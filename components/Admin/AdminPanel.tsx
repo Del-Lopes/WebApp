@@ -9,6 +9,7 @@ export const AdminPanel: React.FC = () => {
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     fetchData();
@@ -16,24 +17,28 @@ export const AdminPanel: React.FC = () => {
 
   const fetchData = async () => {
     setLoading(true);
+    setErrorMsg(null);
     try {
       if (activeTab === 'licenses') {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('license_requests')
-          .select(`*, profiles(full_name, email) as profiles`)
+          .select(`*, profiles:user_id (full_name, email)`) // Explicit foreign key constraint might be needed if auto-detect fails, usually profiles!user_id or similar. Trying simpler alias first.
           .order('created_at', { ascending: false });
-        // Supabase join returns profiles as array or object depending on relationship.
-        // We cast types carefully or handle via any if types are loose.
+        
+        if (error) throw error;
         setLicenses(data as unknown as LicenseRequest[] || []);
       } else {
-        const { data } = await supabase
+        const { data, error } = await supabase
           .from('products')
           .select('*')
           .order('created_at', { ascending: false });
+        
+        if (error) throw error;
         setProducts(data as Product[] || []);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching admin data:', error);
+      setErrorMsg(error.message || 'Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
@@ -78,6 +83,11 @@ export const AdminPanel: React.FC = () => {
       </div>
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        {errorMsg && (
+          <div className="p-4 bg-red-50 text-red-600 border-b border-red-100 text-sm">
+            Erro: {errorMsg}
+          </div>
+        )}
         {loading ? (
             <div className="p-8 text-center text-slate-500">Carregando dados...</div>
         ) : activeTab === 'licenses' ? (
