@@ -1,4 +1,4 @@
-export type View = 'strategies' | 'education' | 'marketing' | 'licenses';
+export type View = 'dashboard' | 'strategies' | 'education' | 'marketing' | 'licenses' | 'admin' | 'course_player';
 
 export type UserRole = 'admin' | 'client' | 'partner';
 
@@ -12,6 +12,42 @@ export interface Robot {
   description?: string;
   images?: string[];
   manualImages?: string[];
+}
+
+export interface Product {
+    id: string;
+    type: 'ea' | 'course';
+    title: string;
+    description: string;
+    image_url: string;
+    external_link?: string;
+}
+
+export interface Module {
+    id: string;
+    product_id: string;
+    title: string;
+    order_index: number;
+    lessons?: Lesson[];
+}
+
+export interface Lesson {
+    id: string;
+    module_id: string;
+    title: string;
+    video_url: string;
+    duration: string;
+    is_free: boolean;
+    order_index: number;
+}
+
+export interface LicenseRequest {
+    id: string;
+    user_id: string;
+    mt5_account: string;
+    status: 'pending' | 'approved' | 'rejected';
+    created_at: string;
+    profiles?: { full_name: string; email: string };
 }
 
 export interface VideoContent {

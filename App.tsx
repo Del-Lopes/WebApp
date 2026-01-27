@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Menu } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
@@ -5,16 +6,20 @@ import { Strategies } from './components/Strategies';
 import { Education } from './components/Education';
 import { Marketing } from './components/Marketing';
 import { Licenses } from './components/Licenses';
-import { View, UserRole, Robot } from './types';
+import { UserDashboard } from './components/Dashboard/UserDashboard';
+import { AdminPanel } from './components/Admin/AdminPanel';
+import { CoursePlayer } from './components/Education/CoursePlayer';
+import { Login } from './components/Auth/Login';
 import { Logo } from './components/Logo';
 import { INITIAL_ROBOTS } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { Login } from './components/Auth/Login';
+import { View, UserRole, Robot } from './types';
 
-function App() {
-  const [currentView, setCurrentView] = useState<View>('strategies');
+function AppContent() {
+  const { user, isLoading, role } = useAuth();
+  const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user, role, isLoading, signIn } = useAuth();
+  const [userRole, setUserRole] = useState<UserRole>('admin'); // Legacy state, kept for prop compatibility
   
   // State lifted from Strategies to App to persist data across tab switches
   const [robots, setRobots] = useState<Robot[]>(INITIAL_ROBOTS);
@@ -33,8 +38,17 @@ function App() {
     setRobots((prevRobots) => prevRobots.filter((r) => r.id !== id));
   };
 
+  if (isLoading) {
+    return <div className="flex items-center justify-center h-screen bg-slate-50">Loading...</div>;
+  }
+
+  if (!user) {
+     return <Login />;
+  }
+
   const renderView = () => {
     switch (currentView) {
+      case 'dashboard': return <UserDashboard />;
       case 'strategies': 
         return (
           <Strategies 
@@ -46,28 +60,13 @@ function App() {
           />
         );
       case 'education': return <Education />;
+      case 'course_player': return <CoursePlayer onBack={() => setCurrentView('education')} />;
       case 'marketing': return <Marketing />;
       case 'licenses': return <Licenses />;
-      default: 
-        return (
-          <Strategies 
-            userRole={role || 'client'} 
-            robots={robots}
-            onAddRobot={handleAddRobot}
-            onUpdateRobot={handleUpdateRobot}
-            onDeleteRobot={handleDeleteRobot}
-          />
-        );
+      case 'admin': return <AdminPanel />;
+      default: return <UserDashboard />;
     }
   };
-
-  if (isLoading) {
-    return <div className="flex items-center justify-center h-screen bg-slate-50">Loading...</div>;
-  }
-
-  if (!user) {
-     return <Login />;
-  }
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 font-sans selection:bg-green-500/30 selection:text-green-900">
@@ -76,8 +75,9 @@ function App() {
         setCurrentView={setCurrentView} 
         isOpen={isSidebarOpen}
         setIsOpen={setIsSidebarOpen}
-        userRole={role || 'client'}
-        setUserRole={() => {}} // Disabled manual role switch in favor of AuthContext
+        // Legacy props
+        userRole={role || 'client'} 
+        setUserRole={setUserRole}
       />
       
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
@@ -110,13 +110,12 @@ function App() {
   );
 }
 
-// Wrap with provider
-function AppWithProvider() {
+function App() {
   return (
     <AuthProvider>
-      <App />
+      <AppContent />
     </AuthProvider>
   );
 }
 
-export default AppWithProvider;
+export default App;
