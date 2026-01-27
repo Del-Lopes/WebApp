@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Activity, Server, TrendingUp, X, Trash2, AlertCircle } from 'lucide-react';
-import { Robot, UserRole } from '../types';
+import { Robot, UserRole, Product } from '../types';
 import { RobotDetails } from './RobotDetails';
+import { supabase } from '../lib/supabase';
 
 interface StrategiesProps {
   userRole: UserRole;
-  robots: Robot[];
-  onAddRobot: (robot: Robot) => void;
-  onUpdateRobot: (robot: Robot) => void;
-  onDeleteRobot: (id: string) => void;
+  robots: Robot[]; // Kept for prop compatibility but unused for data source now
+  onAddRobot: (robot: Robot) => void; // Legacy
+  onUpdateRobot: (robot: Robot) => void; // Legacy
+  onDeleteRobot: (id: string) => void; // Legacy
 }
 
 const PRESET_STRATEGIES = [
@@ -21,78 +22,114 @@ const PRESET_STRATEGIES = [
   'Volatility Breakout'
 ];
 
-
-import { supabase } from '../lib/supabase';
-
-// ... existing imports
-
 export const Strategies: React.FC<StrategiesProps> = ({ 
-  userRole, 
-  robots: initialRobots, 
-  onAddRobot, 
-  onUpdateRobot, 
-  onDeleteRobot 
+  userRole,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'add' | 'delete'>('add');
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
-  const [robots, setRobots] = useState<Robot[]>(initialRobots);
-  
+  const [robots, setRobots] = useState<Robot[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch Robots from Supabase
   useEffect(() => {
-     // If we had the products table populated with EA data, we would fetch here.
-     // For this iteration, we keep using the lifted state from App.tsx (props.robots)
-     // but we sync it to local state to allow suppression/filtering if needed.
-     setRobots(initialRobots);
-  }, [initialRobots]);
+    fetchRobots();
+  }, []);
+
+  const fetchRobots = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('type', 'ea')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      if (data) {
+        const mappedRobots: Robot[] = data.map((item: any) => ({
+          id: item.id,
+          name: item.title,
+          description: item.description,
+          // Map metadata fields back to Robot type
+          version: item.metadata?.version || '1.0',
+          pair: item.metadata?.pair || 'UNK',
+          status: item.metadata?.status || 'stopped',
+          profitability: item.metadata?.profitability || '0.0%',
+          images: item.metadata?.images || [],
+          manualImages: item.metadata?.manualImages || []
+        }));
+        setRobots(mappedRobots);
+      }
+    } catch (error) {
+      console.error('Error fetching strategies:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Form States
   const [newRobot, setNewRobot] = useState({ name: '', version: '', pair: '' });
   const [robotToDeleteId, setRobotToDeleteId] = useState('');
 
-  const handleAddSubmit = (e: React.FormEvent) => {
+  const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newRobot.name || !newRobot.pair) return;
 
-    const robot: Robot = {
-      id: Date.now().toString(),
-      name: newRobot.name,
-      version: newRobot.version || '1.0',
-      pair: newRobot.pair.toUpperCase(),
-      status: 'stopped',
-      profitability: '0.0%',
-      description: 'Nova estratégia adicionada a partir do modelo ' + newRobot.name,
-      images: [],
-      manualImages: []
-    };
+    try {
+      const metadata = {
+        version: newRobot.version || '1.0',
+        pair: newRobot.pair.toUpperCase(),
+        status: 'stopped',
+        profitability: '0.0%',
+        images: [],
+        manualImages: []
+      };
 
-    onAddRobot(robot);
-    setNewRobot({ name: '', version: '', pair: '' });
-    setIsModalOpen(false);
-  };
+      const { data, error } = await supabase.from('products').insert({
+        type: 'ea',
+        title: newRobot.name,
+        description: 'Nova estratégia adicionada a partir do modelo ' + newRobot.name,
+        image_url: `https://picsum.photos/600/400?random=${Math.floor(Math.random() * 100)}`, // Placeholder
+        metadata: metadata
+      }).select();
 
-  const handleDeleteSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!robotToDeleteId) return;
+      if (error) throw error;
 
-    const robotName = robots.find(r => r.id === robotToDeleteId)?.name;
-    
-    if (window.confirm(`Tem certeza que deseja excluir a estratégia "${robotName}"?`)) {
-      onDeleteRobot(robotToDeleteId);
-      setRobotToDeleteId('');
+      await fetchRobots(); // Refresh list
+      setNewRobot({ name: '', version: '', pair: '' });
       setIsModalOpen(false);
-      
-      // If we deleted the currently viewed robot, go back
-      if (selectedRobot?.id === robotToDeleteId) {
-        setSelectedRobot(null);
-      }
+    } catch (error: any) {
+      console.error('Error adding strategy:', error);
+      alert('Erro ao criar estratégia: ' + error.message);
     }
   };
 
-  const handleDeleteClick = (id: string, name: string) => {
-    if (window.confirm(`Tem certeza que deseja excluir a estratégia "${name}"?\n\nEsta ação removerá o robô e todos os seus dados.`)) {
-      onDeleteRobot(id);
-      if (selectedRobot?.id === id) {
-        setSelectedRobot(null);
+  const handleDeleteSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!robotToDeleteId) return;
+    
+    // Legacy support logic removed, utilizing direct DB call
+    await handleDeleteClick(robotToDeleteId, 'Selected Robot');
+    setIsModalOpen(false);
+  };
+
+  const handleDeleteClick = async (id: string, name: string) => {
+    if (window.confirm(`Tem certeza que deseja excluir a estratégia e todos os dados?`)) {
+      try {
+        const { error } = await supabase
+          .from('products')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+
+        await fetchRobots(); // Refresh list
+        if (selectedRobot?.id === id) {
+          setSelectedRobot(null);
+        }
+      } catch (error: any) {
+        alert('Erro ao excluir: ' + error.message);
       }
     }
   };
@@ -105,8 +142,10 @@ export const Strategies: React.FC<StrategiesProps> = ({
         onBack={() => setSelectedRobot(null)} 
         userRole={userRole}
         onUpdate={(updated) => {
-          onUpdateRobot(updated);
-          setSelectedRobot(updated);
+           // For now, simpler to just refresh list on back, or implement update logic here
+           // Ideally we update DB here too
+           fetchRobots();
+           setSelectedRobot(updated);
         }}
       />
     );
@@ -121,85 +160,89 @@ export const Strategies: React.FC<StrategiesProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {robots.map((robot) => (
-          <div key={robot.id} className="group bg-white border border-slate-200 hover:border-green-500/50 rounded-xl p-5 transition-all duration-300 relative overflow-hidden shadow-sm hover:shadow-md cursor-pointer" onClick={() => setSelectedRobot(robot)}>
-            {/* Background Icon Decoration */}
-            <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 pointer-events-none">
-              <Activity size={80} />
-            </div>
-            
-            <div className="flex justify-between items-start mb-4 relative z-10">
-              <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-green-600 group-hover:text-green-500 group-hover:border-green-500/30 transition-colors">
-                <Server size={24} />
+      {loading ? (
+        <div className="text-center py-10 text-slate-500">Carregando estratégias...</div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {robots.map((robot) => (
+            <div key={robot.id} className="group bg-white border border-slate-200 hover:border-green-500/50 rounded-xl p-5 transition-all duration-300 relative overflow-hidden shadow-sm hover:shadow-md cursor-pointer" onClick={() => setSelectedRobot(robot)}>
+              {/* Background Icon Decoration */}
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 pointer-events-none">
+                <Activity size={80} />
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                  robot.status === 'active' 
-                    ? 'bg-green-100 text-green-700 border-green-200' 
-                    : 'bg-slate-100 text-slate-500 border-slate-200'
-                }`}>
-                  {robot.status === 'active' ? 'Rodando' : 'Parado'}
-                </span>
+              
+              <div className="flex justify-between items-start mb-4 relative z-10">
+                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-green-600 group-hover:text-green-500 group-hover:border-green-500/30 transition-colors">
+                  <Server size={24} />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
+                    robot.status === 'active' 
+                      ? 'bg-green-100 text-green-700 border-green-200' 
+                      : 'bg-slate-100 text-slate-500 border-slate-200'
+                  }`}>
+                    {robot.status === 'active' ? 'Rodando' : 'Parado'}
+                  </span>
 
-                {/* Delete Button (Card Action) */}
-                {userRole === 'admin' && (
-                  <button 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleDeleteClick(robot.id, robot.name);
-                    }}
-                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors z-20"
-                    title="Excluir Robô"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-green-700 transition-colors relative z-10">{robot.name}</h3>
-            <div className="text-sm text-slate-500 mb-6 flex items-center gap-2 relative z-10">
-              <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">{robot.version}</span>
-              <span>•</span>
-              <span className="font-semibold">{robot.pair}</span>
-            </div>
-
-            <div className="flex items-center justify-between pt-4 border-t border-slate-100 relative z-10">
-              <div className="flex flex-col">
-                <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">Performance</span>
-                <div className={`flex items-center gap-1.5 font-bold ${
-                  robot.profitability.startsWith('+') ? 'text-green-600' : 
-                  robot.profitability.startsWith('-') ? 'text-red-500' : 'text-slate-400'
-                }`}>
-                  <TrendingUp size={14} />
-                  {robot.profitability}
+                  {/* Delete Button (Card Action) */}
+                  {userRole === 'admin' && (
+                    <button 
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDeleteClick(robot.id, robot.name);
+                      }}
+                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors z-20"
+                      title="Excluir Robô"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
                 </div>
               </div>
-              <span className="text-sm text-green-600 hover:text-green-700 font-medium hover:underline">
-                Acessar &rarr;
-              </span>
-            </div>
-          </div>
-        ))}
 
-        {/* Admin Card to Add New Strategy */}
-        {userRole === 'admin' && (
-          <button 
-            onClick={() => {
-              setModalMode('add');
-              setIsModalOpen(true);
-            }}
-            className="border-2 border-dashed border-slate-300 hover:border-green-500/50 bg-slate-50 hover:bg-white rounded-xl p-5 flex flex-col items-center justify-center gap-3 text-slate-400 hover:text-green-600 transition-all min-h-[220px] group"
-          >
-            <div className="w-12 h-12 rounded-full bg-slate-200 group-hover:bg-green-100 flex items-center justify-center transition-colors">
-              <Plus size={24} />
+              <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-green-700 transition-colors relative z-10">{robot.name}</h3>
+              <div className="text-sm text-slate-500 mb-6 flex items-center gap-2 relative z-10">
+                <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">{robot.version}</span>
+                <span>•</span>
+                <span className="font-semibold">{robot.pair}</span>
+              </div>
+
+              <div className="flex items-center justify-between pt-4 border-t border-slate-100 relative z-10">
+                <div className="flex flex-col">
+                  <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">Performance</span>
+                  <div className={`flex items-center gap-1.5 font-bold ${
+                    robot.profitability.startsWith('+') ? 'text-green-600' : 
+                    robot.profitability.startsWith('-') ? 'text-red-500' : 'text-slate-400'
+                  }`}>
+                    <TrendingUp size={14} />
+                    {robot.profitability}
+                  </div>
+                </div>
+                <span className="text-sm text-green-600 hover:text-green-700 font-medium hover:underline">
+                  Acessar &rarr;
+                </span>
+              </div>
             </div>
-            <span className="font-medium">Gerenciar Robôs</span>
-          </button>
-        )}
-      </div>
+          ))}
+
+          {/* Admin Card to Add New Strategy */}
+          {userRole === 'admin' && (
+            <button 
+              onClick={() => {
+                setModalMode('add');
+                setIsModalOpen(true);
+              }}
+              className="border-2 border-dashed border-slate-300 hover:border-green-500/50 bg-slate-50 hover:bg-white rounded-xl p-5 flex flex-col items-center justify-center gap-3 text-slate-400 hover:text-green-600 transition-all min-h-[220px] group"
+            >
+              <div className="w-12 h-12 rounded-full bg-slate-200 group-hover:bg-green-100 flex items-center justify-center transition-colors">
+                <Plus size={24} />
+              </div>
+              <span className="font-medium">Gerenciar Robôs</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Modal - Manage Strategies */}
       {isModalOpen && (
@@ -295,7 +338,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
                 <div className="bg-red-50 border border-red-100 rounded-lg p-4 flex items-start gap-3">
                   <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={20} />
                   <p className="text-sm text-red-700">
-                    A exclusão é permanente. Todos os dados históricos e configurações do robô selecionado serão perdidos.
+                    A exclusão removerá o Robô do banco de dados para TODOS os usuários.
                   </p>
                 </div>
 
