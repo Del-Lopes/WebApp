@@ -85,7 +85,7 @@ function AppContent() {
         <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-3">
              <div className="w-8 h-8">
-               <Logo className="w-full h-full" />
+               <Logo className="w-full h-full" variant="mobile" />
              </div>
              <h1 className="text-lg font-bold text-slate-900">
               Tradexperience
