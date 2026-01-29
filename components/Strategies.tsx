@@ -204,7 +204,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
               
               <div className="flex justify-between items-start mb-4 relative z-10">
                 {robot.avatar_url ? (
-                   <div className="w-12 h-12 rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                   <div className="w-16 h-16 rounded-xl border border-slate-200 overflow-hidden shadow-sm">
                      <img src={robot.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                    </div>
                 ) : (
