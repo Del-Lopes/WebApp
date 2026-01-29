@@ -215,6 +215,16 @@ export const Education: React.FC = () => {
 
   // --- Articles Admin ---
 
+  const handleDeleteArticle = async (articleId: string) => {
+      if (!confirm("Tem certeza que deseja excluir este artigo?")) return;
+      try {
+          const { error } = await supabase.from('articles').delete().eq('id', articleId);
+          if (error) throw error;
+          setIsArticleModalOpen(false);
+          fetchArticles();
+      } catch(e: any) { alert("Erro ao excluir: " + e.message); }
+  };
+
   const handleSaveArticle = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
@@ -628,7 +638,19 @@ export const Education: React.FC = () => {
               <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6">
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold text-slate-800">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>
-                      <button onClick={() => setIsArticleModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+                      <div className="flex items-center gap-2">
+                        {editingArticle && (
+                            <button 
+                              type="button" 
+                              onClick={() => handleDeleteArticle(editingArticle.id)}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors mr-2"
+                              title="Excluir Artigo"
+                            >
+                                <Trash2 size={20} />
+                            </button>
+                        )}
+                        <button onClick={() => setIsArticleModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+                      </div>
                   </div>
                   <form onSubmit={handleSaveArticle} className="space-y-4">
                       <input type="text" placeholder="Título" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
