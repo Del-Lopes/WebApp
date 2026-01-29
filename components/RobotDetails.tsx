@@ -79,8 +79,8 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                 {formData.status}
               </span>
            )}
-          <span className="font-mono text-sm bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">
-            v{formData.version}
+          <span className="font-mono text-sm bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200" title="Performance Fee">
+            {formData.version}
           </span>
           
           {/* Admin Edit Controls */}
@@ -192,7 +192,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
 
                 {isEditing && (
                   <div className="flex items-center gap-1.5">
-                     <span className="text-slate-500">Versão:</span>
+                     <span className="text-slate-500">Performance Fee:</span>
                      <input 
                       type="text" 
                       value={formData.version}
@@ -227,7 +227,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
             {!isEditing && (
               <div className="pt-4 flex gap-4">
                 <a 
-                  href={formData.external_url || '#'}
+                  href={formData.external_url ? (formData.external_url.startsWith('http') ? formData.external_url : `https://${formData.external_url}`) : '#'}
                   target="_blank"
                   rel="noreferrer"
                   className={`w-full sm:w-auto flex items-center justify-center gap-3 bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transform hover:-translate-y-0.5 ${!formData.external_url ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}

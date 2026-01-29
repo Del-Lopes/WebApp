@@ -118,6 +118,38 @@ export const Strategies: React.FC<StrategiesProps> = ({
     setIsModalOpen(false);
   };
 
+  const handleUpdateRobot = async (updatedRobot: Robot) => {
+    try {
+      const metadata = {
+        version: updatedRobot.version,
+        pair: updatedRobot.pair,
+        status: updatedRobot.status,
+        profitability: updatedRobot.profitability,
+        images: updatedRobot.images,
+        manualImages: updatedRobot.manualImages,
+        avatar_url: updatedRobot.avatar_url,
+        external_url: updatedRobot.external_url
+      };
+
+      const { error } = await supabase
+        .from('products')
+        .update({
+          title: updatedRobot.name,
+          description: updatedRobot.description,
+          metadata: metadata
+        })
+        .eq('id', updatedRobot.id);
+
+      if (error) throw error;
+
+      await fetchRobots();
+      setSelectedRobot(updatedRobot);
+    } catch (error: any) {
+      console.error('Error updating strategy:', error);
+      alert('Erro ao atualizar: ' + error.message);
+    }
+  };
+
   const handleDeleteClick = async (id: string, name: string) => {
     if (window.confirm(`Tem certeza que deseja excluir a estratégia e todos os dados?`)) {
       try {
@@ -145,12 +177,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
         robot={selectedRobot} 
         onBack={() => setSelectedRobot(null)} 
         userRole={userRole}
-        onUpdate={(updated) => {
-           // For now, simpler to just refresh list on back, or implement update logic here
-           // Ideally we update DB here too
-           fetchRobots();
-           setSelectedRobot(updated);
-        }}
+        onUpdate={handleUpdateRobot}
       />
     );
   }
@@ -298,13 +325,13 @@ export const Strategies: React.FC<StrategiesProps> = ({
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1.5">Versão</label>
+                    <label className="block text-sm font-medium text-slate-600 mb-1.5">Performance Fee</label>
                     <input
                       type="text"
                       value={newRobot.version}
                       onChange={(e) => setNewRobot({...newRobot, version: e.target.value})}
                       className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
-                      placeholder="1.0"
+                      placeholder="Ex: 20%"
                     />
                   </div>
                   <div>

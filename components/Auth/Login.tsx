@@ -106,9 +106,17 @@ export const Login: React.FC = () => {
           
           {mode !== 'forgot' && (
             <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-sm font-medium text-slate-700">Senha</label>
-                {mode === 'signin' && (
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Senha</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all placeholder:text-slate-400"
+                placeholder="••••••••"
+              />
+              {mode === 'signin' && (
+                <div className="flex justify-end mt-2">
                   <button
                     type="button"
                     onClick={() => {
@@ -120,16 +128,8 @@ export const Login: React.FC = () => {
                   >
                     Esqueceu a senha?
                   </button>
-                )}
-              </div>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all placeholder:text-slate-400"
-                placeholder="••••••••"
-              />
+                </div>
+              )}
             </div>
           )}
 
