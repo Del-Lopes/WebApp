@@ -52,7 +52,7 @@ export const Login: React.FC = () => {
         <div className="text-center mb-8">
           <div className="flex flex-col items-center gap-3 mb-6">
             <div className="w-16 h-16">
-              <Logo className="w-full h-full" />
+              <Logo className="w-full h-full" variant="mobile" />
             </div>
             <span className="text-2xl font-bold tracking-tight text-slate-900">
               Tradexperience
