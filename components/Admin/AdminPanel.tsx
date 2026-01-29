@@ -30,7 +30,7 @@ export const AdminPanel: React.FC = () => {
       } else if (activeTab === 'partners') {
         const { data, error } = await supabase
           .from('partner_requests')
-          .select(`*, profiles:user_id (full_name, email)`)
+          .select(`*, profiles(full_name, email)`)
           .order('created_at', { ascending: false });
 
         if (error) throw error;

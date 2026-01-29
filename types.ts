@@ -63,15 +63,21 @@ export interface Article {
   id: string;
   title: string;
   excerpt: string;
-  date: string;
+  content?: string;
+  image_url?: string;
+  category?: string;
+  date?: string;
+  created_at?: string;
 }
 
 export interface MarketingAsset {
   id: string;
   title: string;
-  type: 'PDF' | 'Slide' | 'Image';
+  type: 'PDF' | 'Slide' | 'Image' | 'Text';
   size: string;
   url: string;
+  content?: string;
+  image_url?: string;
 }
 
 export interface PartnerRequest {

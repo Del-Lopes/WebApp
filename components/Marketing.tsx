@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, FileText, Image as ImageIcon, Share2, Edit2, Plus, Trash2, Save, X } from 'lucide-react';
+import { Download, FileText, Image as ImageIcon, Share2, Edit2, Plus, Trash2, Save, X, Eye } from 'lucide-react';
 import { MOCK_ASSETS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -11,12 +11,21 @@ export const Marketing: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [partnerRequest, setPartnerRequest] = useState<any>(null); // State for the request
   const [assets, setAssets] = useState<MarketingAsset[]>([]);
-  const [isEditing, setIsEditing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
 
+  // View Modal State
+  const [viewingAsset, setViewingAsset] = useState<MarketingAsset | null>(null);
+
   // New Asset Form State
-  const [newAsset, setNewAsset] = useState<{title: string; type: 'PDF' | 'Slide' | 'Image'; url: string; size: string}>({
-      title: '', type: 'PDF', url: '', size: '15 MB' // Default size
+  const [newAsset, setNewAsset] = useState<{
+      title: string; 
+      type: 'PDF' | 'Slide' | 'Image' | 'Text'; 
+      url: string; 
+      size: string;
+      content: string;
+      image_url: string;
+  }>({
+      title: '', type: 'PDF', url: '', size: '15 MB', content: '', image_url: ''
   });
 
   useEffect(() => {
@@ -68,12 +77,14 @@ export const Marketing: React.FC = () => {
           const { error } = await supabase.from('marketing_assets').insert([{
               title: newAsset.title,
               type: newAsset.type,
-              url: newAsset.url,
-              size: newAsset.size
+              url: newAsset.url, // Ensure pure URL
+              size: newAsset.type === 'Text' ? 'Online' : newAsset.size,
+              content: newAsset.content,
+              image_url: newAsset.image_url
           }]);
           if (error) throw error;
           setShowAddModal(false);
-          setNewAsset({ title: '', type: 'PDF', url: '', size: '10 MB' });
+          setNewAsset({ title: '', type: 'PDF', url: '', size: '10 MB', content: '', image_url: '' });
           fetchData();
       } catch (e: any) {
           alert("Erro ao adicionar material: " + e.message);
@@ -87,6 +98,14 @@ export const Marketing: React.FC = () => {
           fetchData();
       } catch (e) {
           console.error(e);
+      }
+  };
+
+  const handleAssetAction = (asset: MarketingAsset) => {
+      if (asset.type === 'Text') {
+          setViewingAsset(asset);
+      } else {
+          window.open(asset.url, '_blank');
       }
   };
 
@@ -159,14 +178,17 @@ export const Marketing: React.FC = () => {
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${
                 asset.type === 'PDF' ? 'bg-red-50 text-red-500' : 
                 asset.type === 'Slide' ? 'bg-orange-50 text-orange-500' :
+                asset.type === 'Text' ? 'bg-blue-50 text-blue-500' :
                 'bg-purple-50 text-purple-500'
               }`}>
-                {asset.type === 'PDF' ? <FileText size={24} /> : asset.type === 'Image' ? <ImageIcon size={24} /> : <Share2 size={24} />}
+                {asset.type === 'PDF' ? <FileText size={24} /> : 
+                 asset.type === 'Image' ? <ImageIcon size={24} /> : 
+                 asset.type === 'Text' ? <FileText size={24} /> : <Share2 size={24} />}
               </div>
               <div>
                 <h4 className="text-slate-900 font-medium group-hover:text-green-600 transition-colors">{asset.title}</h4>
                 <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
-                  <span className="font-semibold">{asset.type}</span>
+                  <span className="font-semibold">{asset.type === 'Text' ? 'Artigo/Texto' : asset.type}</span>
                   <span>•</span>
                   <span>{asset.size}</span>
                 </div>
@@ -174,15 +196,13 @@ export const Marketing: React.FC = () => {
             </div>
             
             <div className="flex items-center gap-2">
-                <a 
-                  href={asset.url}
-                  target="_blank"
-                  rel="noreferrer"
+                <button 
+                  onClick={() => handleAssetAction(asset)}
                   className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all" 
-                  title="Download / Visualizar"
+                  title={asset.type === 'Text' ? 'Ler Artigo' : 'Download / Visualizar'}
                 >
-                  <Download size={20} />
-                </a>
+                  {asset.type === 'Text' ? <Eye size={20} /> : <Download size={20} />}
+                </button>
                 {role === 'admin' && (
                     <button 
                         onClick={() => handleDeleteAsset(asset.id)}
@@ -199,8 +219,8 @@ export const Marketing: React.FC = () => {
 
       {/* Add Modal */}
       {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+              <div className="bg-white rounded-2xl p-6 max-w-lg w-full shadow-2xl my-8">
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-bold">Novo Material</h3>
                       <button onClick={() => setShowAddModal(false)}><X size={24} className="text-slate-400" /></button>
@@ -225,34 +245,100 @@ export const Marketing: React.FC = () => {
                           >
                               <option value="PDF">PDF</option>
                               <option value="Image">Imagem</option>
-                              <option value="Slide">Slide/Outro</option>
+                              <option value="Slide">Slide/Marketing</option>
+                              <option value="Text">Texto/Artigo</option>
                           </select>
                       </div>
-                      <div>
-                           <label className="block text-sm font-medium mb-1">URL do Arquivo</label>
-                           <input 
-                             type="text" 
-                             required 
-                             placeholder="https://..."
-                             className="w-full border rounded-lg px-3 py-2"
-                             value={newAsset.url}
-                             onChange={e => setNewAsset({...newAsset, url: e.target.value})}
-                           />
-                      </div>
-                      <div>
-                           <label className="block text-sm font-medium mb-1">Tamanho (Texto)</label>
-                           <input 
-                             type="text" 
-                             placeholder="Ex: 5 MB"
-                             className="w-full border rounded-lg px-3 py-2"
-                             value={newAsset.size}
-                             onChange={e => setNewAsset({...newAsset, size: e.target.value})}
-                           />
-                      </div>
+
+                      {newAsset.type === 'Text' ? (
+                          <>
+                             <div>
+                                <label className="block text-sm font-medium mb-1">URL da Imagem de Capa (Opcional)</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="https://..."
+                                  className="w-full border rounded-lg px-3 py-2"
+                                  value={newAsset.image_url}
+                                  onChange={e => setNewAsset({...newAsset, image_url: e.target.value})}
+                                />
+                             </div>
+                             <div>
+                                <label className="block text-sm font-medium mb-1">Conteúdo do Texto</label>
+                                <textarea 
+                                  required 
+                                  rows={6}
+                                  className="w-full border rounded-lg px-3 py-2"
+                                  placeholder="Escreva o conteúdo aqui..."
+                                  value={newAsset.content}
+                                  onChange={e => setNewAsset({...newAsset, content: e.target.value})}
+                                />
+                             </div>
+                          </>
+                      ) : (
+                          <>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">URL do Arquivo</label>
+                                <input 
+                                  type="text" 
+                                  required 
+                                  placeholder="https://..."
+                                  className="w-full border rounded-lg px-3 py-2"
+                                  value={newAsset.url}
+                                  onChange={e => setNewAsset({...newAsset, url: e.target.value})}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium mb-1">Tamanho (Texto)</label>
+                                <input 
+                                  type="text" 
+                                  placeholder="Ex: 5 MB"
+                                  className="w-full border rounded-lg px-3 py-2"
+                                  value={newAsset.size}
+                                  onChange={e => setNewAsset({...newAsset, size: e.target.value})}
+                                />
+                            </div>
+                          </>
+                      )}
+
                       <button type="submit" className="w-full bg-green-600 text-white py-2.5 rounded-lg font-bold hover:bg-green-500">
                           Adicionar
                       </button>
                   </form>
+              </div>
+          </div>
+      )}
+
+      {/* View Content Modal */}
+      {viewingAsset && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+              <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8">
+                  <div className="relative">
+                      {viewingAsset.image_url && (
+                          <div className="h-48 w-full bg-slate-100 rounded-t-2xl overflow-hidden">
+                              <img src={viewingAsset.image_url} alt={viewingAsset.title} className="w-full h-full object-cover" />
+                          </div>
+                      )}
+                      <button 
+                        onClick={() => setViewingAsset(null)}
+                        className="absolute top-4 right-4 p-2 bg-white/80 hover:bg-white rounded-full text-slate-600 hover:text-red-500 transition-colors shadow-sm"
+                      >
+                          <X size={20} />
+                      </button>
+                  </div>
+                  <div className="p-8">
+                      <h2 className="text-2xl font-bold text-slate-900 mb-4">{viewingAsset.title}</h2>
+                      <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed whitespace-pre-wrap">
+                          {viewingAsset.content}
+                      </div>
+                  </div>
+                  <div className="p-6 border-t border-slate-100 flex justify-end bg-slate-50 rounded-b-2xl">
+                      <button 
+                          onClick={() => setViewingAsset(null)}
+                          className="px-6 py-2 bg-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-300 transition-colors"
+                      >
+                          Fechar
+                      </button>
+                  </div>
               </div>
           </div>
       )}
