@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Download, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Download, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2, ExternalLink, ZoomIn } from 'lucide-react';
 import { Robot, UserRole } from '../types';
 
 interface RobotDetailsProps {

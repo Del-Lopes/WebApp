@@ -1,8 +1,33 @@
-import React from 'react';
-import { Download, FileText, Image as ImageIcon, Share2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Download, FileText, Image as ImageIcon, Share2, Edit2, Plus, Trash2, Save, X } from 'lucide-react';
 import { MOCK_ASSETS } from '../constants';
+import { useAuth } from '../contexts/AuthContext';
+import { supabase } from '../lib/supabase';
+import { MarketingAsset } from '../types';
 
 export const Marketing: React.FC = () => {
+  const { role } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [assets, setAssets] = useState<MarketingAsset[]>([]); // We need a state for assets now
+  
+  // Fetch assets or use mock initial
+  useEffect(() => {
+    // Ideally fetch from DB here
+    // setAssets(MOCK_ASSETS); 
+    // For now mocking persistence via local state + potential DB logic later
+    const fetchAssets = async () => {
+        const { data } = await supabase.from('marketing_assets').select('*');
+        if (data) {
+             setAssets(data as MarketingAsset[]);
+        } else {
+             // Fallback or init
+             // setAssets(prev => prev.length ? prev : MOCK_ASSETS);
+        }
+    }
+    // temporary fallback until DB table created
+    // setAssets(prev => prev.length ? prev : MOCK_ASSETS_TYPED); 
+  }, []);
+
   return (
     <div className="space-y-6">
       <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl relative overflow-hidden shadow-lg">
