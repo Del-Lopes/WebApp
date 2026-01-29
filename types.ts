@@ -7,11 +7,13 @@ export interface Robot {
   name: string;
   version: string;
   pair: string;
-  status: 'active' | 'stopped';
+  status: string; // Broker name
   profitability: string;
   description?: string;
   images?: string[];
   manualImages?: string[];
+  avatar_url?: string;
+  external_url?: string;
 }
 
 export interface Product {

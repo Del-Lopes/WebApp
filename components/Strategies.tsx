@@ -54,10 +54,12 @@ export const Strategies: React.FC<StrategiesProps> = ({
           // Map metadata fields back to Robot type
           version: item.metadata?.version || '1.0',
           pair: item.metadata?.pair || 'UNK',
-          status: item.metadata?.status || 'stopped',
+          status: item.metadata?.status || 'Em Análise',
           profitability: item.metadata?.profitability || '0.0%',
           images: item.metadata?.images || [],
-          manualImages: item.metadata?.manualImages || []
+          manualImages: item.metadata?.manualImages || [],
+          avatar_url: item.metadata?.avatar_url || '',
+          external_url: item.metadata?.external_url || ''
         }));
         setRobots(mappedRobots);
       }
@@ -80,10 +82,12 @@ export const Strategies: React.FC<StrategiesProps> = ({
       const metadata = {
         version: newRobot.version || '1.0',
         pair: newRobot.pair.toUpperCase(),
-        status: 'stopped',
+        status: 'Aguardando',
         profitability: '0.0%',
         images: [],
-        manualImages: []
+        manualImages: [],
+        avatar_url: '',
+        external_url: ''
       };
 
       const { data, error } = await supabase.from('products').insert({
@@ -172,16 +176,18 @@ export const Strategies: React.FC<StrategiesProps> = ({
               </div>
               
               <div className="flex justify-between items-start mb-4 relative z-10">
-                <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-green-600 group-hover:text-green-500 group-hover:border-green-500/30 transition-colors">
-                  <Server size={24} />
-                </div>
+                {robot.avatar_url ? (
+                   <div className="w-12 h-12 rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                     <img src={robot.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+                   </div>
+                ) : (
+                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-green-600 group-hover:text-green-500 group-hover:border-green-500/30 transition-colors">
+                    <Server size={24} />
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-semibold border ${
-                    robot.status === 'active' 
-                      ? 'bg-green-100 text-green-700 border-green-200' 
-                      : 'bg-slate-100 text-slate-500 border-slate-200'
-                  }`}>
-                    {robot.status === 'active' ? 'Rodando' : 'Parado'}
+                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-green-100 text-green-700 border-green-200">
+                    {robot.status}
                   </span>
 
                   {/* Delete Button (Card Action) */}
@@ -280,18 +286,15 @@ export const Strategies: React.FC<StrategiesProps> = ({
             {modalMode === 'add' ? (
               <form onSubmit={handleAddSubmit} className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Modelo / Estratégia</label>
-                  <select
+                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Nome da Estratégia</label>
+                  <input
+                    type="text"
                     required
                     value={newRobot.name}
                     onChange={(e) => setNewRobot({...newRobot, name: e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all cursor-pointer appearance-none"
-                  >
-                    <option value="" disabled>Selecione um modelo...</option>
-                    {PRESET_STRATEGIES.map((preset) => (
-                      <option key={preset} value={preset}>{preset}</option>
-                    ))}
-                  </select>
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
+                    placeholder="Ex: Alpha Global Trader"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>

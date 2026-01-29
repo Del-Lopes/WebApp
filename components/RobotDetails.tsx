@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Download, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Download, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2, ExternalLink } from 'lucide-react';
 import { Robot, UserRole } from '../types';
 
 interface RobotDetailsProps {
@@ -66,13 +66,19 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
         </button>
         
         <div className="flex items-center gap-3">
-           <span className={`px-3 py-1 rounded-full text-sm font-semibold border ${
-                formData.status === 'active' 
-                  ? 'bg-green-100 text-green-700 border-green-200' 
-                  : 'bg-slate-100 text-slate-500 border-slate-200'
-              }`}>
-                {formData.status === 'active' ? 'Rodando' : 'Parado'}
-          </span>
+           {isEditing ? (
+             <input
+               type="text"
+               value={formData.status}
+               onChange={(e) => handleChange('status', e.target.value)}
+               className="px-3 py-1 rounded-full text-sm font-semibold border bg-white border-green-300 text-slate-700 focus:outline-none focus:border-green-500 w-32"
+               placeholder="Corretora"
+             />
+           ) : (
+              <span className="px-3 py-1 rounded-full text-sm font-semibold border bg-green-100 text-green-700 border-green-200">
+                {formData.status}
+              </span>
+           )}
           <span className="font-mono text-sm bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200">
             v{formData.version}
           </span>
@@ -117,13 +123,37 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
             <div>
               <div className="flex flex-col gap-2 mb-4">
                 {isEditing ? (
-                  <input 
-                    type="text" 
-                    value={formData.name}
-                    onChange={(e) => handleChange('name', e.target.value)}
-                    className="text-3xl font-bold text-slate-900 border-b-2 border-green-500 focus:outline-none bg-transparent w-full"
-                    placeholder="Nome do Robô"
-                  />
+                  <div className="space-y-4 w-full">
+                    <input 
+                      type="text" 
+                      value={formData.name}
+                      onChange={(e) => handleChange('name', e.target.value)}
+                      className="text-3xl font-bold text-slate-900 border-b-2 border-green-500 focus:outline-none bg-transparent w-full"
+                      placeholder="Nome do Robô"
+                    />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                         <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Link de Acesso (Copy/Social)</label>
+                         <input 
+                          type="text" 
+                          value={formData.external_url || ''}
+                          onChange={(e) => handleChange('external_url', e.target.value)}
+                          className="w-full border border-slate-300 rounded px-2 py-1.5 text-sm"
+                          placeholder="https://..."
+                        />
+                      </div>
+                      <div>
+                         <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">URL do Avatar</label>
+                         <input 
+                          type="text" 
+                          value={formData.avatar_url || ''}
+                          onChange={(e) => handleChange('avatar_url', e.target.value)}
+                          className="w-full border border-slate-300 rounded px-2 py-1.5 text-sm"
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <h1 className="text-3xl font-bold text-slate-900">{formData.name}</h1>
                 )}
@@ -196,10 +226,15 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
 
             {!isEditing && (
               <div className="pt-4 flex gap-4">
-                <button className="w-full sm:w-auto flex items-center justify-center gap-3 bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transform hover:-translate-y-0.5">
-                  <Download size={20} />
-                  Download do Robô (.ex5)
-                </button>
+                <a 
+                  href={formData.external_url || '#'}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={`w-full sm:w-auto flex items-center justify-center gap-3 bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transform hover:-translate-y-0.5 ${!formData.external_url ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                >
+                  <ExternalLink size={20} />
+                  Acessar Robô
+                </a>
               </div>
             )}
           </div>
