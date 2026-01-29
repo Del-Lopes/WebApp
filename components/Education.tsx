@@ -13,12 +13,24 @@ export const Education: React.FC = () => {
   
   // Navigation State
   const [selectedCourse, setSelectedCourse] = useState<Product | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
 
   // Admin State Courses
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Product | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
   const [courseForm, setCourseForm] = useState({ title: '', description: '', image_url: '' });
+
+  // Admin State Lessons
+  const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
+  const [editingLesson, setEditingLesson] = useState<Lesson | null>(null);
+  const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
+  const [lessonForm, setLessonForm] = useState({ 
+      title: '', 
+      video_url: '', 
+      duration: '05:00', 
+      description: '' 
+  });
 
   // Admin State Articles
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
@@ -56,16 +68,43 @@ export const Education: React.FC = () => {
   const fetchModules = async (courseId: string) => {
       try {
         const { data } = await supabase.from('modules').select('*, lessons(*)').eq('product_id', courseId).order('order_index');
-        setModules(data as any || []);
         
-        // Auto expand first module
-        if (data && data.length > 0) {
+        // Sort lessons by order_index manually since supabase relation sort is tricky
+        const sortedData = data?.map(m => ({
+            ...m,
+            lessons: m.lessons?.sort((a: Lesson, b: Lesson) => a.order_index - b.order_index)
+        }));
+
+        setModules(sortedData as any || []);
+        
+        // Auto expand first module if not already set
+        if (data && data.length > 0 && Object.keys(expandedModules).length === 0) {
             setExpandedModules({[data[0].id]: true});
         }
       } catch (e) {
         console.error("Error fetching modules", e);
       }
   };
+
+  const getEmbedUrl = (url: string) => {
+      if (!url) return '';
+      try {
+          // Generic youtube embed converter
+          if (url.includes('youtube.com/watch')) {
+              const videoId = new URLSearchParams(new URL(url).search).get('v');
+              return `https://www.youtube.com/embed/${videoId}`;
+          }
+          if (url.includes('youtu.be/')) {
+              const videoId = url.split('youtu.be/')[1];
+              return `https://www.youtube.com/embed/${videoId}`;
+          }
+          return url; // Return as is if already embed or other provider
+      } catch (e) {
+          return url;
+      }
+  };
+
+  // --- Course Admin ---
 
   const handleEditClick = async (course: Product) => {
     setEditingCourse(course);
@@ -94,7 +133,8 @@ export const Education: React.FC = () => {
       } catch (e: any) { alert("Erro: " + e.message); }
   };
 
-  // Modules & Lessons Logic
+  // --- Modules & Lessons Admin ---
+
   const handleAddModule = async () => {
       if (!editingCourse) return;
       const title = prompt("Nome do novo módulo:");
@@ -105,16 +145,48 @@ export const Education: React.FC = () => {
       } catch(e: any) { alert("Erro ao criar módulo: " + e.message); }
   };
 
-  const handleAddLesson = async (moduleId: string) => {
-      const title = prompt("Título da aula:");
-      if (!title) return;
-      try {
-          await supabase.from('lessons').insert({ module_id: moduleId, title, video_url: '', duration: '05:00', order_index: 0 });
-          if(editingCourse) fetchModules(editingCourse.id);
-      } catch(e: any) { alert("Erro ao criar aula: " + e.message); }
+  const openLessonModal = (moduleId: string, lesson?: Lesson) => {
+      setActiveModuleId(moduleId);
+      if (lesson) {
+          setEditingLesson(lesson);
+          setLessonForm({ 
+              title: lesson.title, 
+              video_url: lesson.video_url || '', 
+              duration: lesson.duration || '05:00',
+              description: lesson.description || ''
+          });
+      } else {
+          setEditingLesson(null);
+          setLessonForm({ title: '', video_url: '', duration: '05:00', description: '' });
+      }
+      setIsLessonModalOpen(true);
   };
 
-  // Articles Logic
+  const handleSaveLesson = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!activeModuleId) return;
+
+      try {
+          if (editingLesson) {
+              await supabase.from('lessons').update(lessonForm).eq('id', editingLesson.id);
+          } else {
+              // Get current max order
+              const currentModule = modules.find(m => m.id === activeModuleId);
+              const nextOrder = (currentModule?.lessons?.length || 0);
+              
+              await supabase.from('lessons').insert({ 
+                  module_id: activeModuleId, 
+                  ...lessonForm, 
+                  order_index: nextOrder 
+              });
+          }
+          if(editingCourse) await fetchModules(editingCourse.id);
+          setIsLessonModalOpen(false);
+      } catch(e: any) { alert("Erro ao salvar aula: " + e.message); }
+  };
+
+  // --- Articles Admin ---
+
   const handleSaveArticle = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
@@ -139,8 +211,11 @@ export const Education: React.FC = () => {
       setIsArticleModalOpen(true);
   };
 
+  // --- View Logic ---
+
   const handleAccessCourse = async (course: Product) => {
       setSelectedCourse(course);
+      setSelectedLesson(null);
       await fetchModules(course.id);
   };
 
@@ -148,45 +223,158 @@ export const Education: React.FC = () => {
       setExpandedModules(prev => ({...prev, [moduleId]: !prev[moduleId]}));
   };
 
+  // --- Render Helpers ---
+
+  const renderLessonModal = () => (
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6">
+              <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-bold text-slate-800">{editingLesson ? 'Editar Aula' : 'Nova Aula'}</h3>
+                  <button onClick={() => setIsLessonModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+              </div>
+              <form onSubmit={handleSaveLesson} className="space-y-4">
+                  <div>
+                      <label className="block text-sm font-medium mb-1">Título</label>
+                      <input type="text" required value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" />
+                  </div>
+                  <div>
+                      <label className="block text-sm font-medium mb-1">Video URL (Youtube/Vimeo)</label>
+                      <input type="text" value={lessonForm.video_url} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" placeholder="https://..." />
+                  </div>
+                  <div>
+                       <label className="block text-sm font-medium mb-1">Duração</label>
+                       <input type="text" value={lessonForm.duration} onChange={e => setLessonForm({...lessonForm, duration: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" placeholder="05:00" />
+                  </div>
+                  <div>
+                       <label className="block text-sm font-medium mb-1">Descrição / Material de Apoio</label>
+                       <textarea rows={4} value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" placeholder="Sobre esta aula..." />
+                  </div>
+                  <button type="submit" className="w-full bg-green-600 text-white font-bold py-2 rounded-lg hover:bg-green-500 mt-2">Salvar Aula</button>
+              </form>
+          </div>
+      </div>
+  );
+
+  const renderCourseModal = () => (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
+                  <h3 className="text-xl font-bold text-slate-800">{editingCourse ? 'Editar Curso' : 'Novo Curso'}</h3>
+                  <button onClick={() => setIsModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+              </div>
+              <div className="p-6 space-y-6">
+                  <form id="course-form" onSubmit={handleSaveCourse} className="space-y-4">
+                      <div><label className="block text-sm font-medium mb-1">Título</label><input type="text" required value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
+                      <div><label className="block text-sm font-medium mb-1">Descrição</label><textarea rows={3} value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
+                      <div><label className="block text-sm font-medium mb-1">Imagem URL</label><input type="text" value={courseForm.image_url} onChange={e => setCourseForm({...courseForm, image_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
+                  </form>
+
+                  {editingCourse && (
+                      <div className="border-t border-slate-200 pt-6">
+                          <div className="flex justify-between items-center mb-4">
+                              <h4 className="font-bold text-slate-700 flex items-center gap-2"><Layout size={18} /> Conteúdo</h4>
+                              <button onClick={handleAddModule} className="text-sm text-green-600 font-semibold hover:underline">+ Módulo</button>
+                          </div>
+                          <div className="space-y-3">
+                              {modules.map((mod) => (
+                                  <div key={mod.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                                      <div className="flex justify-between items-center mb-2">
+                                          <span className="font-semibold text-slate-800">{mod.title}</span>
+                                          <button onClick={() => openLessonModal(mod.id)} className="text-xs bg-white border border-slate-300 px-2 py-1 rounded hover:bg-green-50 hover:text-green-600 font-medium">+ Aula</button>
+                                      </div>
+                                      <div className="pl-4 space-y-1">
+                                          {mod.lessons?.map(lesson => (
+                                              <div key={lesson.id} className="flex items-center justify-between text-sm text-slate-600 bg-white p-2 rounded border border-transparent hover:border-slate-200 group">
+                                                  <div className="flex items-center gap-2">
+                                                      <Play size={12} className="text-slate-400" /> {lesson.title}
+                                                  </div>
+                                                  <button onClick={() => openLessonModal(mod.id, lesson)} className="text-slate-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                      <Edit2 size={14} />
+                                                  </button>
+                                              </div>
+                                          ))}
+                                          {!mod.lessons?.length && <p className="text-xs text-slate-400 italic">Sem aulas.</p>}
+                                      </div>
+                                  </div>
+                              ))}
+                              {modules.length === 0 && <p className="text-sm text-slate-500 text-center">Nenhum módulo criado.</p>}
+                          </div>
+                      </div>
+                  )}
+              </div>
+              <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
+                  <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg">Cancelar</button>
+                  <button type="submit" form="course-form" className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-500 shadow-lg">Salvar</button>
+              </div>
+          </div>
+      </div>
+  );
+
   // Detailed Course View
   if (selectedCourse) {
       return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                {/* Navigation Header */}
-               <div className="flex items-center gap-4">
-                  <button 
-                      onClick={() => setSelectedCourse(null)}
-                      className="p-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-green-600 transition-colors"
-                  >
-                      <ArrowLeft size={24} />
-                  </button>
-                  <div>
-                      <h2 className="text-2xl font-bold text-slate-900">{selectedCourse.title}</h2>
-                      <p className="text-sm text-slate-500">{selectedCourse.description}</p>
-                  </div>
+               <div className="flex items-center justify-between">
+                   <div className="flex items-center gap-4">
+                      <button 
+                          onClick={() => setSelectedCourse(null)}
+                          className="p-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-green-600 transition-colors"
+                      >
+                          <ArrowLeft size={24} />
+                      </button>
+                      <div>
+                          <h2 className="text-2xl font-bold text-slate-900">{selectedCourse.title}</h2>
+                          <p className="text-sm text-slate-500 line-clamp-1">{selectedCourse.description}</p>
+                      </div>
+                   </div>
+                   {role === 'admin' && (
+                       <button 
+                         onClick={() => handleEditClick(selectedCourse)}
+                         className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
+                       >
+                           <Edit2 size={18} /> Editar Curso
+                       </button>
+                   )}
                </div>
 
                {/* Content Layout */}
                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                   {/* Main Player/Content Area (Placeholder) */}
+                   {/* Main Player/Content Area */}
                    <div className="lg:col-span-2 space-y-6">
-                       <div className="aspect-video bg-slate-900 rounded-2xl flex items-center justify-center text-white relative overflow-hidden group">
-                           {/* Using course image as placeholder for video player */}
-                           <img src={selectedCourse.image_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-50 text-transparent" />
-                           <div className="relative z-10 flex flex-col items-center">
-                               <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mb-4 shadow-lg scale-100 group-hover:scale-110 transition-transform">
-                                   <Play className="ml-1 fill-white" size={32} />
-                               </div>
-                               <p className="font-semibold text-lg">Selecione uma aula para iniciar</p>
-                           </div>
+                       <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-lg relative group">
+                           {selectedLesson ? (
+                               <iframe 
+                                 src={getEmbedUrl(selectedLesson.video_url)} 
+                                 className="w-full h-full" 
+                                 title={selectedLesson.title}
+                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                 allowFullScreen
+                               />
+                           ) : (
+                               <>
+                                   <img src={selectedCourse.image_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
+                                   <div className="relative z-10 flex flex-col items-center justify-center h-full text-white">
+                                       <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mb-4 shadow-lg animate-pulse">
+                                           <Play className="ml-1 fill-white" size={32} />
+                                       </div>
+                                       <p className="font-semibold text-lg">Selecione uma aula para iniciar</p>
+                                   </div>
+                               </>
+                           )}
                        </div>
                        
                        <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
-                           <h3 className="font-bold text-lg mb-2">Sobre este curso</h3>
-                           <p className="text-slate-600 leading-relaxed">
-                               Este curso oferece uma visão aprofundada sobre as estratégias utilizadas no {selectedCourse.title}. 
-                               Explore os módulos ao lado para navegar pelo conteúdo.
-                           </p>
+                           <h3 className="font-bold text-lg mb-2 text-slate-900">
+                               {selectedLesson ? `Sobre esta aula: ${selectedLesson.title}` : 'Sobre este curso'}
+                           </h3>
+                           <div className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                               {selectedLesson ? (
+                                   selectedLesson.description || "Sem descrição disponível para esta aula."
+                               ) : (
+                                   selectedCourse.description
+                               )}
+                           </div>
                        </div>
                    </div>
 
@@ -214,12 +402,16 @@ export const Education: React.FC = () => {
                                    {expandedModules[module.id] && (
                                        <div className="divide-y divide-slate-100 bg-white">
                                            {module.lessons?.map((lesson, msgIdx) => (
-                                               <button key={lesson.id} className="w-full flex items-center gap-3 p-3 pl-12 hover:bg-green-50 hover:text-green-700 transition-colors text-left group">
-                                                   <div className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center text-slate-300 group-hover:border-green-300 group-hover:text-green-500">
-                                                       <Play size={10} className="ml-0.5 fill-current" />
+                                               <button 
+                                                    key={lesson.id} 
+                                                    onClick={() => setSelectedLesson(lesson)}
+                                                    className={`w-full flex items-center gap-3 p-3 pl-12 transition-colors text-left group ${selectedLesson?.id === lesson.id ? 'bg-green-50 text-green-700' : 'hover:bg-slate-50'}`}
+                                               >
+                                                   <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${selectedLesson?.id === lesson.id ? 'border-green-500 bg-green-500 text-white' : 'border-slate-200 text-slate-300 group-hover:border-green-300 group-hover:text-green-500'}`}>
+                                                       <Play size={10} className={`ml-0.5 ${selectedLesson?.id === lesson.id ? 'fill-white' : 'fill-current'}`} />
                                                    </div>
                                                    <div className="flex-1">
-                                                       <p className="text-sm font-medium text-slate-600 group-hover:text-green-700">{lesson.title}</p>
+                                                       <p className={`text-sm font-medium ${selectedLesson?.id === lesson.id ? 'text-green-800' : 'text-slate-600 group-hover:text-green-700'}`}>{lesson.title}</p>
                                                        <span className="text-xs text-slate-400 font-mono">{lesson.duration || '00:00'}</span>
                                                    </div>
                                                </button>
@@ -239,9 +431,14 @@ export const Education: React.FC = () => {
                        </div>
                    </div>
                </div>
+
+               {/* Re-using modal logic for consistency, though buttons hidden in view mode */}
+               {isModalOpen && renderCourseModal()}
+               {isLessonModalOpen && renderLessonModal()}
           </div>
       );
   }
+
 
   // List View
   return (
@@ -294,56 +491,9 @@ export const Education: React.FC = () => {
         )}
       </section>
 
-      {/* Editor Modal (Courses) */}
-      {isModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-              <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8">
-                  <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
-                      <h3 className="text-xl font-bold text-slate-800">{editingCourse ? 'Editar Curso' : 'Novo Curso'}</h3>
-                      <button onClick={() => setIsModalOpen(false)}><X size={24} className="text-slate-400" /></button>
-                  </div>
-                  <div className="p-6 space-y-6">
-                      <form id="course-form" onSubmit={handleSaveCourse} className="space-y-4">
-                          <div><label className="block text-sm font-medium mb-1">Título</label><input type="text" required value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
-                          <div><label className="block text-sm font-medium mb-1">Descrição</label><textarea rows={3} value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
-                          <div><label className="block text-sm font-medium mb-1">Imagem URL</label><input type="text" value={courseForm.image_url} onChange={e => setCourseForm({...courseForm, image_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
-                      </form>
-
-                      {editingCourse && (
-                          <div className="border-t border-slate-200 pt-6">
-                              <div className="flex justify-between items-center mb-4">
-                                  <h4 className="font-bold text-slate-700 flex items-center gap-2"><Layout size={18} /> Conteúdo</h4>
-                                  <button onClick={handleAddModule} className="text-sm text-green-600 font-semibold hover:underline">+ Módulo</button>
-                              </div>
-                              <div className="space-y-3">
-                                  {modules.map((mod) => (
-                                      <div key={mod.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                                          <div className="flex justify-between items-center mb-2">
-                                              <span className="font-semibold text-slate-800">{mod.title}</span>
-                                              <button onClick={() => handleAddLesson(mod.id)} className="text-xs bg-white border border-slate-300 px-2 py-1 rounded hover:bg-green-50 hover:text-green-600 font-medium">+ Aula</button>
-                                          </div>
-                                          <div className="pl-4 space-y-1">
-                                              {mod.lessons?.map(lesson => (
-                                                  <div key={lesson.id} className="flex items-center gap-2 text-sm text-slate-600">
-                                                      <Play size={12} className="text-slate-400" /> {lesson.title}
-                                                  </div>
-                                              ))}
-                                              {!mod.lessons?.length && <p className="text-xs text-slate-400 italic">Sem aulas.</p>}
-                                          </div>
-                                      </div>
-                                  ))}
-                                  {modules.length === 0 && <p className="text-sm text-slate-500 text-center">Nenhum módulo criado.</p>}
-                              </div>
-                          </div>
-                      )}
-                  </div>
-                  <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
-                      <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg">Cancelar</button>
-                      <button type="submit" form="course-form" className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-500 shadow-lg">Salvar</button>
-                  </div>
-              </div>
-          </div>
-      )}
+      {/* Modals */}
+      {isModalOpen && renderCourseModal()}
+      {isLessonModalOpen && renderLessonModal()}
 
       {/* Articles Section */}
       <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">

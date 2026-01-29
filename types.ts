@@ -41,6 +41,7 @@ export interface Lesson {
     duration: string;
     is_free: boolean;
     order_index: number;
+    description?: string;
 }
 
 export interface LicenseRequest {

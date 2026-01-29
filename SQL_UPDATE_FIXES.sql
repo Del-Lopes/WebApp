@@ -62,3 +62,7 @@ create policy "Admin Write Lessons" on public.lessons for all using (auth.uid() 
 -- Articles
 create policy "Public Read Articles" on public.articles for select using (true);
 create policy "Admin Write Articles" on public.articles for all using (auth.uid() in (select id from profiles where role = 'admin'));
+
+-- 6. Add description to lessons
+alter table public.lessons
+add column if not exists description text;
