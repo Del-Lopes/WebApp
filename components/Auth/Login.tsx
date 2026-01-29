@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { Logo } from '../Logo';
 import { LogIn, AlertCircle, Loader2 } from 'lucide-react';
 
 export const Login: React.FC = () => {
@@ -23,6 +24,7 @@ export const Login: React.FC = () => {
           email,
           password,
           options: {
+            emailRedirectTo: window.location.origin,
             data: {
               full_name: email.split('@')[0], // Default name from email
             },
@@ -48,13 +50,19 @@ export const Login: React.FC = () => {
     <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
         <div className="text-center mb-8">
-          <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center mx-auto mb-4 text-green-600">
-            <LogIn size={24} />
+          <div className="flex flex-col items-center gap-3 mb-6">
+            <div className="w-16 h-16">
+              <Logo className="w-full h-full" />
+            </div>
+            <span className="text-2xl font-bold tracking-tight text-slate-900">
+              Tradexperience
+            </span>
           </div>
-          <h1 className="text-2xl font-bold text-slate-900">
-            {mode === 'signin' ? 'Bem-vindo de volta' : 'Criar Conta'}
+          
+          <h1 className="text-xl font-medium text-slate-600">
+            {mode === 'signin' ? 'Bem-vindo' : 'Criar nova conta'}
           </h1>
-          <p className="text-slate-500 mt-2">
+          <p className="text-slate-500 mt-2 text-sm">
             {mode === 'signin' 
               ? 'Entre para acessar a área de membros' 
               : 'Preencha seus dados para começar'}
