@@ -1,0 +1,17 @@
+{
+  "name": "Tradexperience",
+  "short_name": "Tradex",
+  "description": "Plataforma de aprendizado e gestão para traders.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#16a34a",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ]
+}
