@@ -9,7 +9,7 @@ export const Login: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+  const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [message, setMessage] = useState<string | null>(null);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -26,18 +26,24 @@ export const Login: React.FC = () => {
           options: {
             emailRedirectTo: window.location.origin,
             data: {
-              full_name: email.split('@')[0], // Default name from email
+              full_name: email.split('@')[0],
             },
           },
         });
         if (error) throw error;
         setMessage('Cadastro realizado! Verifique seu email para confirmar.');
-      } else {
+      } else if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         if (error) throw error;
+      } else if (mode === 'forgot') {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: window.location.origin,
+        });
+        if (error) throw error;
+        setMessage('Email de recuperação enviado! Verifique sua caixa de entrada.');
       }
     } catch (err: any) {
       setError(err.message);
@@ -60,12 +66,14 @@ export const Login: React.FC = () => {
           </div>
           
           <h1 className="text-xl font-medium text-slate-600">
-            {mode === 'signin' ? 'Bem-vindo' : 'Criar nova conta'}
+            {mode === 'signin' ? 'Bem-vindo' : mode === 'signup' ? 'Criar nova conta' : 'Recuperar Senha'}
           </h1>
           <p className="text-slate-500 mt-2 text-sm">
             {mode === 'signin' 
               ? 'Entre para acessar a área de membros' 
-              : 'Preencha seus dados para começar'}
+              : mode === 'signup'
+              ? 'Preencha seus dados para começar'
+              : 'Digite seu email para receber o link'}
           </p>
         </div>
 
@@ -96,17 +104,34 @@ export const Login: React.FC = () => {
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Senha</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all placeholder:text-slate-400"
-              placeholder="••••••••"
-            />
-          </div>
+          {mode !== 'forgot' && (
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-sm font-medium text-slate-700">Senha</label>
+                {mode === 'signin' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMode('forgot');
+                      setError(null);
+                      setMessage(null);
+                    }}
+                    className="text-xs text-green-600 hover:text-green-700 font-medium"
+                  >
+                    Esqueceu a senha?
+                  </button>
+                )}
+              </div>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all placeholder:text-slate-400"
+                placeholder="••••••••"
+              />
+            </div>
+          )}
 
           <button
             type="submit"
@@ -117,25 +142,40 @@ export const Login: React.FC = () => {
               <Loader2 size={20} className="animate-spin" />
             ) : mode === 'signin' ? (
               'Entrar'
-            ) : (
+            ) : mode === 'signup' ? (
               'Cadastrar'
+            ) : (
+              'Enviar Link de Recuperação'
             )}
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <button
-            onClick={() => {
-              setMode(mode === 'signin' ? 'signup' : 'signin');
-              setError(null);
-              setMessage(null);
-            }}
-            className="text-sm text-slate-600 hover:text-green-600 font-medium transition-colors"
-          >
-            {mode === 'signin' 
-              ? 'Não tem uma conta? Crie agora' 
-              : 'Já tem conta? Fazer login'}
-          </button>
+        <div className="mt-6 text-center space-y-2">
+          {mode === 'forgot' ? (
+             <button
+              onClick={() => {
+                setMode('signin');
+                setError(null);
+                setMessage(null);
+              }}
+              className="text-sm text-slate-600 hover:text-green-600 font-medium transition-colors"
+            >
+              Voltar para Login
+            </button>
+          ) : (
+            <button
+              onClick={() => {
+                setMode(mode === 'signin' ? 'signup' : 'signin');
+                setError(null);
+                setMessage(null);
+              }}
+              className="text-sm text-slate-600 hover:text-green-600 font-medium transition-colors"
+            >
+              {mode === 'signin' 
+                ? 'Não tem uma conta? Crie agora' 
+                : 'Já tem conta? Fazer login'}
+            </button>
+          )}
         </div>
       </div>
     </div>
