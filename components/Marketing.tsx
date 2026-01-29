@@ -5,11 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { MarketingAsset } from '../types';
 
-export const Marketing: React.FC = () => {
-  const { role } = useAuth();
-  const [isEditing, setIsEditing] = useState(false);
-  const [assets, setAssets] = useState<MarketingAsset[]>([]); // We need a state for assets now
-  
+
 export const Marketing: React.FC = () => {
   const { user, role } = useAuth();
   const [loading, setLoading] = useState(true);
