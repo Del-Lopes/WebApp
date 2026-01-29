@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, FileText, Clock, ChevronRight, Loader2, Plus, Edit2, Trash2, Save, X, MoreVertical, Layout, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, FileText, Clock, ChevronRight, Loader2, Plus, Edit2, Trash2, Save, X, MoreVertical, Layout, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { MOCK_ARTICLES } from '../constants';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -11,6 +11,9 @@ export const Education: React.FC = () => {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   
+  // Navigation State
+  const [selectedCourse, setSelectedCourse] = useState<Product | null>(null);
+
   // Admin State Courses
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Product | null>(null);
@@ -21,6 +24,9 @@ export const Education: React.FC = () => {
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [articleForm, setArticleForm] = useState({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise' });
+
+  // Module Expansion State for Viewer
+  const [expandedModules, setExpandedModules] = useState<{[key: string]: boolean}>({});
 
   useEffect(() => {
     fetchCourses();
@@ -51,6 +57,11 @@ export const Education: React.FC = () => {
       try {
         const { data } = await supabase.from('modules').select('*, lessons(*)').eq('product_id', courseId).order('order_index');
         setModules(data as any || []);
+        
+        // Auto expand first module
+        if (data && data.length > 0) {
+            setExpandedModules({[data[0].id]: true});
+        }
       } catch (e) {
         console.error("Error fetching modules", e);
       }
@@ -128,6 +139,111 @@ export const Education: React.FC = () => {
       setIsArticleModalOpen(true);
   };
 
+  const handleAccessCourse = async (course: Product) => {
+      setSelectedCourse(course);
+      await fetchModules(course.id);
+  };
+
+  const toggleModule = (moduleId: string) => {
+      setExpandedModules(prev => ({...prev, [moduleId]: !prev[moduleId]}));
+  };
+
+  // Detailed Course View
+  if (selectedCourse) {
+      return (
+          <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+               {/* Navigation Header */}
+               <div className="flex items-center gap-4">
+                  <button 
+                      onClick={() => setSelectedCourse(null)}
+                      className="p-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-green-600 transition-colors"
+                  >
+                      <ArrowLeft size={24} />
+                  </button>
+                  <div>
+                      <h2 className="text-2xl font-bold text-slate-900">{selectedCourse.title}</h2>
+                      <p className="text-sm text-slate-500">{selectedCourse.description}</p>
+                  </div>
+               </div>
+
+               {/* Content Layout */}
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                   {/* Main Player/Content Area (Placeholder) */}
+                   <div className="lg:col-span-2 space-y-6">
+                       <div className="aspect-video bg-slate-900 rounded-2xl flex items-center justify-center text-white relative overflow-hidden group">
+                           {/* Using course image as placeholder for video player */}
+                           <img src={selectedCourse.image_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-50 text-transparent" />
+                           <div className="relative z-10 flex flex-col items-center">
+                               <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mb-4 shadow-lg scale-100 group-hover:scale-110 transition-transform">
+                                   <Play className="ml-1 fill-white" size={32} />
+                               </div>
+                               <p className="font-semibold text-lg">Selecione uma aula para iniciar</p>
+                           </div>
+                       </div>
+                       
+                       <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+                           <h3 className="font-bold text-lg mb-2">Sobre este curso</h3>
+                           <p className="text-slate-600 leading-relaxed">
+                               Este curso oferece uma visão aprofundada sobre as estratégias utilizadas no {selectedCourse.title}. 
+                               Explore os módulos ao lado para navegar pelo conteúdo.
+                           </p>
+                       </div>
+                   </div>
+
+                   {/* Sidebar: Modules & Lessons */}
+                   <div className="space-y-4">
+                       <div className="flex items-center justify-between">
+                           <h3 className="font-bold text-slate-900 text-lg">Conteúdo do Curso</h3>
+                           <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-lg">{modules.length} Módulos</span>
+                       </div>
+                       
+                       <div className="space-y-3">
+                           {modules.map((module, idx) => (
+                               <div key={module.id} className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                                   <button 
+                                      onClick={() => toggleModule(module.id)}
+                                      className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+                                   >
+                                       <div className="flex items-center gap-3">
+                                           <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">{idx + 1}</span>
+                                           <span className="font-semibold text-slate-800">{module.title}</span>
+                                       </div>
+                                       {expandedModules[module.id] ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
+                                   </button>
+                                   
+                                   {expandedModules[module.id] && (
+                                       <div className="divide-y divide-slate-100 bg-white">
+                                           {module.lessons?.map((lesson, msgIdx) => (
+                                               <button key={lesson.id} className="w-full flex items-center gap-3 p-3 pl-12 hover:bg-green-50 hover:text-green-700 transition-colors text-left group">
+                                                   <div className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center text-slate-300 group-hover:border-green-300 group-hover:text-green-500">
+                                                       <Play size={10} className="ml-0.5 fill-current" />
+                                                   </div>
+                                                   <div className="flex-1">
+                                                       <p className="text-sm font-medium text-slate-600 group-hover:text-green-700">{lesson.title}</p>
+                                                       <span className="text-xs text-slate-400 font-mono">{lesson.duration || '00:00'}</span>
+                                                   </div>
+                                               </button>
+                                           ))}
+                                           {(!module.lessons || module.lessons.length === 0) && (
+                                               <div className="p-4 text-center text-xs text-slate-400 italic">Em breve</div>
+                                           )}
+                                       </div>
+                                   )}
+                               </div>
+                           ))}
+                           {modules.length === 0 && (
+                               <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                   Nenhum conteúdo disponível ainda.
+                               </div>
+                           )}
+                       </div>
+                   </div>
+               </div>
+          </div>
+      );
+  }
+
+  // List View
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -165,7 +281,12 @@ export const Education: React.FC = () => {
                 <div className="p-4 flex-1 flex flex-col">
                     <h4 className="text-lg font-bold text-slate-900 mb-2">{course.title}</h4>
                     <p className="text-sm text-slate-500 line-clamp-2 mb-4 flex-1">{course.description}</p>
-                    <button className="w-full mt-auto py-2 bg-slate-50 hover:bg-green-50 text-slate-600 hover:text-green-600 font-semibold rounded-lg text-sm transition-colors">Começar Agora</button>
+                    <button 
+                        onClick={() => handleAccessCourse(course)}
+                        className="w-full mt-auto py-2 bg-slate-50 hover:bg-green-50 text-slate-600 hover:text-green-600 font-semibold rounded-lg text-sm transition-colors"
+                    >
+                        Acessar
+                    </button>
                 </div>
               </div>
             ))}

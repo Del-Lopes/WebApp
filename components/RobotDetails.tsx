@@ -12,6 +12,7 @@ interface RobotDetailsProps {
 export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userRole, onUpdate }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Robot>(robot);
+  const [viewingImage, setViewingImage] = useState<string | null>(null);
 
   // Sync state if prop changes
   useEffect(() => {
@@ -270,8 +271,13 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                 className="w-full h-full object-cover"
               />
               {!isEditing && (
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4 cursor-zoom-in">
-                  <span className="text-white font-medium text-sm">Visualizar Ampliado</span>
+                <div 
+                  onClick={() => setViewingImage(img)}
+                  className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4 cursor-zoom-in"
+                >
+                  <span className="text-white font-medium text-sm flex items-center gap-2">
+                      <ZoomIn size={16} /> Visualizar Ampliado
+                  </span>
                 </div>
               )}
               {isEditing && (
@@ -321,7 +327,10 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
           {formData.manualImages?.map((img, idx) => (
             <div key={idx} className="flex flex-col gap-2">
               <span className="text-green-600 text-xs font-bold uppercase tracking-wider">Passo {idx + 1}</span>
-              <div className="rounded-xl border border-slate-200 overflow-hidden shadow-lg relative group">
+              <div 
+                className={`rounded-xl border border-slate-200 overflow-hidden shadow-lg relative group ${!isEditing ? 'cursor-zoom-in' : ''}`}
+                onClick={!isEditing ? () => setViewingImage(img) : undefined}
+              >
                 <img 
                   src={img} 
                   alt={`Manual Página ${idx + 1}`} 
@@ -329,12 +338,22 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                 />
                  {isEditing && (
                     <button 
-                      onClick={() => removeImage('manualImages', idx)}
+                      onClick={(e) => {
+                          e.stopPropagation();
+                          removeImage('manualImages', idx);
+                      }}
                       className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg shadow-lg transition-colors"
                       title="Remover página"
                     >
                         <Trash2 size={16} />
                     </button>
+                )}
+                {!isEditing && (
+                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                         <div className="bg-black/50 text-white p-2 rounded-full backdrop-blur-sm">
+                             <ZoomIn size={24} />
+                         </div>
+                     </div>
                 )}
               </div>
             </div>
@@ -351,6 +370,27 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
           {(!formData.manualImages?.length && !isEditing) && <p className="text-slate-500 italic p-4 col-span-full">Manual indisponível.</p>}
         </div>
       </div>
+
+      {/* Image Viewer Overlay */}
+      {viewingImage && (
+        <div 
+            className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
+            onClick={() => setViewingImage(null)}
+        >
+            <button 
+                onClick={() => setViewingImage(null)}
+                className="absolute top-4 right-4 text-white hover:text-slate-300 transition-colors"
+            >
+                <X size={32} />
+            </button>
+            <img 
+                src={viewingImage} 
+                alt="Visualização Ampliada" 
+                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
+                onClick={(e) => e.stopPropagation()} 
+            />
+        </div>
+      )}
     </div>
   );
 };

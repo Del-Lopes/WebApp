@@ -104,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <Users size={20} />
             <span className="font-medium">
-              {role === 'client' ? 'Torne-se Parceiro' : 'Marketing'}
+              {role === 'partner' ? 'Painel de Parceiro' : role === 'client' ? 'Torne-se Parceiro' : 'Marketing'}
             </span>
           </button>
 

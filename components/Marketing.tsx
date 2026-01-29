@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, FileText, Image as ImageIcon, Share2, Edit2, Plus, Trash2, Save, X, Eye } from 'lucide-react';
+import { Download, FileText, Image as ImageIcon, Share2, Edit2, Plus, Trash2, Save, X, Eye, ArrowLeft, Calendar } from 'lucide-react';
 import { MOCK_ASSETS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -13,7 +13,7 @@ export const Marketing: React.FC = () => {
   const [assets, setAssets] = useState<MarketingAsset[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
 
-  // View Modal State
+  // View Modal State (Full Page Mode)
   const [viewingAsset, setViewingAsset] = useState<MarketingAsset | null>(null);
 
   // New Asset Form State
@@ -101,7 +101,7 @@ export const Marketing: React.FC = () => {
       }
   };
 
-  const handleAssetAction = (asset: MarketingAsset) => {
+  const handleAssetClick = (asset: MarketingAsset) => {
       if (asset.type === 'Text') {
           setViewingAsset(asset);
       } else {
@@ -113,6 +113,44 @@ export const Marketing: React.FC = () => {
   const canViewContent = role === 'admin' || role === 'partner' || (partnerRequest?.status === 'approved');
 
   if (loading) return <div className="p-10 text-center text-slate-500">Carregando...</div>;
+
+  // Full Page Article View
+  if (viewingAsset) {
+      return (
+          <div className="space-y-6 animate-in slide-in-from-right duration-300">
+             <div className="flex items-center gap-4 mb-6">
+                 <button 
+                     onClick={() => setViewingAsset(null)}
+                     className="p-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-green-600 transition-colors"
+                 >
+                     <ArrowLeft size={24} />
+                 </button>
+                 <span className="font-semibold text-slate-500">Voltar para Materiais</span>
+             </div>
+
+             <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden max-w-4xl mx-auto">
+                 {viewingAsset.image_url && (
+                     <div className="w-full h-80 bg-slate-100">
+                         <img src={viewingAsset.image_url} alt={viewingAsset.title} className="w-full h-full object-cover" />
+                     </div>
+                 )}
+                 
+                 <div className="p-8 md:p-12">
+                     <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold uppercase tracking-wide mb-4">
+                         Artigo Oficial
+                     </span>
+                     <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-6 leading-tight">{viewingAsset.title}</h1>
+                     
+                     <div className="prose prose-lg prose-slate max-w-none">
+                         <div className="whitespace-pre-wrap leading-relaxed text-slate-600">
+                             {viewingAsset.content}
+                         </div>
+                     </div>
+                 </div>
+             </div>
+          </div>
+      );
+  }
 
   if (!canViewContent) {
       // Client View: CTA or Status
@@ -173,12 +211,16 @@ export const Marketing: React.FC = () => {
 
       <div className="grid grid-cols-1 gap-4">
         {assets.map((asset) => (
-          <div key={asset.id} className="flex items-center justify-between p-5 bg-white border border-slate-200 rounded-xl hover:border-green-500/30 transition-colors group shadow-sm">
+          <div 
+             key={asset.id} 
+             onClick={() => handleAssetClick(asset)}
+             className={`flex items-center justify-between p-5 bg-white border border-slate-200 rounded-xl hover:border-green-500/30 hover:shadow-md transition-all group shadow-sm ${asset.type === 'Text' ? 'cursor-pointer' : ''}`}
+          >
             <div className="flex items-center gap-4">
               <div className={`w-12 h-12 rounded-lg flex items-center justify-center transition-colors ${
                 asset.type === 'PDF' ? 'bg-red-50 text-red-500' : 
                 asset.type === 'Slide' ? 'bg-orange-50 text-orange-500' :
-                asset.type === 'Text' ? 'bg-blue-50 text-blue-500' :
+                asset.type === 'Text' ? 'bg-blue-50 text-blue-500 group-hover:bg-blue-100' :
                 'bg-purple-50 text-purple-500'
               }`}>
                 {asset.type === 'PDF' ? <FileText size={24} /> : 
@@ -197,7 +239,10 @@ export const Marketing: React.FC = () => {
             
             <div className="flex items-center gap-2">
                 <button 
-                  onClick={() => handleAssetAction(asset)}
+                  onClick={(e) => {
+                      e.stopPropagation();
+                      handleAssetClick(asset);
+                  }}
                   className="p-2 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-all" 
                   title={asset.type === 'Text' ? 'Ler Artigo' : 'Download / Visualizar'}
                 >
@@ -205,7 +250,10 @@ export const Marketing: React.FC = () => {
                 </button>
                 {role === 'admin' && (
                     <button 
-                        onClick={() => handleDeleteAsset(asset.id)}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteAsset(asset.id);
+                        }}
                         className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                     >
                         <Trash2 size={20} />
@@ -304,41 +352,6 @@ export const Marketing: React.FC = () => {
                           Adicionar
                       </button>
                   </form>
-              </div>
-          </div>
-      )}
-
-      {/* View Content Modal */}
-      {viewingAsset && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
-              <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8">
-                  <div className="relative">
-                      {viewingAsset.image_url && (
-                          <div className="h-48 w-full bg-slate-100 rounded-t-2xl overflow-hidden">
-                              <img src={viewingAsset.image_url} alt={viewingAsset.title} className="w-full h-full object-cover" />
-                          </div>
-                      )}
-                      <button 
-                        onClick={() => setViewingAsset(null)}
-                        className="absolute top-4 right-4 p-2 bg-white/80 hover:bg-white rounded-full text-slate-600 hover:text-red-500 transition-colors shadow-sm"
-                      >
-                          <X size={20} />
-                      </button>
-                  </div>
-                  <div className="p-8">
-                      <h2 className="text-2xl font-bold text-slate-900 mb-4">{viewingAsset.title}</h2>
-                      <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed whitespace-pre-wrap">
-                          {viewingAsset.content}
-                      </div>
-                  </div>
-                  <div className="p-6 border-t border-slate-100 flex justify-end bg-slate-50 rounded-b-2xl">
-                      <button 
-                          onClick={() => setViewingAsset(null)}
-                          className="px-6 py-2 bg-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-300 transition-colors"
-                      >
-                          Fechar
-                      </button>
-                  </div>
               </div>
           </div>
       )}
