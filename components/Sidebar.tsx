@@ -125,10 +125,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </nav>
 
         <div className="p-4 border-t border-slate-800">
-          <button 
-            onClick={() => signOut()}
-            className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-800 transition-colors group"
-          >
+          <div className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-slate-800 transition-colors group cursor-pointer" onClick={() => handleViewChange('settings')}>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 font-bold">
                  {user?.email?.charAt(0).toUpperCase()}
@@ -140,8 +137,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <p className="text-xs text-slate-500 capitalize">{role === 'client' ? 'Usuário' : role}</p>
               </div>
             </div>
-            <LogOut size={18} className="text-slate-500 group-hover:text-white transition-colors" />
-          </button>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                signOut();
+              }}
+              className="p-2 text-slate-500 hover:text-red-500 hover:bg-slate-700/50 rounded-lg transition-all"
+              title="Sair da conta"
+            >
+              <LogOut size={18} />
+            </button>
+          </div>
         </div>
       </aside>
     </>

@@ -8,6 +8,7 @@ import { Marketing } from './components/Marketing';
 import { Licenses } from './components/Licenses';
 import { UserDashboard } from './components/Dashboard/UserDashboard';
 import { AdminPanel } from './components/Admin/AdminPanel';
+import { Settings } from './components/Settings';
 import { CoursePlayer } from './components/Education/CoursePlayer';
 import { Login } from './components/Auth/Login';
 import { Logo } from './components/Logo';
@@ -64,6 +65,7 @@ function AppContent() {
       case 'marketing': return <Marketing />;
       case 'licenses': return <Licenses />;
       case 'admin': return <AdminPanel />;
+      case 'settings': return <Settings />;
       default: return <UserDashboard />;
     }
   };
