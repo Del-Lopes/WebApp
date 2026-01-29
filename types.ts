@@ -71,4 +71,13 @@ export interface MarketingAsset {
   title: string;
   type: 'PDF' | 'Slide' | 'Image';
   size: string;
+  url: string;
+}
+
+export interface PartnerRequest {
+  id: string;
+  user_id: string;
+  status: 'pending' | 'approved' | 'rejected';
+  created_at: string;
+  profiles?: { full_name: string; email: string };
 }

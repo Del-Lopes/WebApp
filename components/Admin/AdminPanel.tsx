@@ -1,12 +1,12 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { LicenseRequest, Product } from '../../types';
+import { LicenseRequest, Product, PartnerRequest } from '../../types';
 import { CheckCircle, XCircle, Package, Users, Activity, Plus } from 'lucide-react';
 
 export const AdminPanel: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'licenses' | 'products'>('licenses');
+  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'products'>('licenses');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
+  const [partners, setPartners] = useState<PartnerRequest[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -22,11 +22,19 @@ export const AdminPanel: React.FC = () => {
       if (activeTab === 'licenses') {
         const { data, error } = await supabase
           .from('license_requests')
-          .select(`*, profiles:user_id (full_name, email)`) // Explicit foreign key constraint might be needed if auto-detect fails, usually profiles!user_id or similar. Trying simpler alias first.
+          .select(`*, profiles:user_id (full_name, email)`) 
           .order('created_at', { ascending: false });
         
         if (error) throw error;
         setLicenses(data as unknown as LicenseRequest[] || []);
+      } else if (activeTab === 'partners') {
+        const { data, error } = await supabase
+          .from('partner_requests')
+          .select(`*, profiles:user_id (full_name, email)`)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        setPartners(data as unknown as PartnerRequest[] || []);
       } else {
         const { data, error } = await supabase
           .from('products')
@@ -53,6 +61,33 @@ export const AdminPanel: React.FC = () => {
     }
   };
 
+  const handlePartnerAction = async (request: PartnerRequest, status: 'approved' | 'rejected') => {
+      try {
+          // Update request status
+          const { error: reqError } = await supabase
+            .from('partner_requests')
+            .update({ status })
+            .eq('id', request.id);
+          
+          if (reqError) throw reqError;
+
+          // If approved, update user role
+          if (status === 'approved') {
+              const { error: roleError } = await supabase
+                .from('profiles')
+                .update({ role: 'partner' })
+                .eq('id', request.user_id);
+              
+              if (roleError) throw roleError;
+          }
+
+          fetchData();
+      } catch (error: any) {
+          console.error("Error updating partner:", error);
+          alert("Erro: " + error.message);
+      }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -71,6 +106,14 @@ export const AdminPanel: React.FC = () => {
           }`}
         >
           Licenças
+        </button>
+        <button
+          onClick={() => setActiveTab('partners')}
+          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+            activeTab === 'partners' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+          }`}
+        >
+          Parceiros
         </button>
         <button
           onClick={() => setActiveTab('products')}
@@ -146,6 +189,64 @@ export const AdminPanel: React.FC = () => {
                 ))}
                 {licenses.length === 0 && (
                     <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhuma solicitação encontrada.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        ) : activeTab === 'partners' ? (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                <tr>
+                  <th className="px-6 py-4 font-medium">Usuário</th>
+                  <th className="px-6 py-4 font-medium">Data</th>
+                  <th className="px-6 py-4 font-medium">Status</th>
+                  <th className="px-6 py-4 font-medium text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {partners.map((req) => (
+                  <tr key={req.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">
+                        <div className="font-medium text-slate-900">
+                            {/* @ts-ignore */}
+                            {req.profiles?.full_name || 'Usuário'}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                            {/* @ts-ignore */}
+                            {req.profiles?.email}
+                        </div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-500">{new Date(req.created_at).toLocaleDateString()}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize border ${
+                        req.status === 'approved' ? 'bg-green-100 text-green-700 border-green-200' :
+                        req.status === 'rejected' ? 'bg-red-100 text-red-700 border-red-200' :
+                        'bg-yellow-100 text-yellow-700 border-yellow-200'
+                      }`}>
+                         {req.status === 'pending' ? 'Solicitado' : req.status === 'approved' ? 'Parceiro' : req.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      {req.status === 'pending' && (
+                        <div className="flex justify-end gap-2">
+                          <button 
+                            onClick={() => handlePartnerAction(req, 'approved')}
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Aprovar e Tornar Parceiro">
+                            <CheckCircle size={18} />
+                          </button>
+                          <button 
+                            onClick={() => handlePartnerAction(req, 'rejected')}
+                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Rejeitar">
+                            <XCircle size={18} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {partners.length === 0 && (
+                    <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">Nenhuma solicitação de parceria.</td></tr>
                 )}
               </tbody>
             </table>
