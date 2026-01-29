@@ -1,9 +1,8 @@
-const CACHE_NAME = 'tradexperience-v1';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon.svg'
+  '/icon.png'
 ];
 
 // Install SW
