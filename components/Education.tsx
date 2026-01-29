@@ -14,6 +14,7 @@ export const Education: React.FC = () => {
   // Navigation State
   const [selectedCourse, setSelectedCourse] = useState<Product | null>(null);
   const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
 
   // Admin State Courses
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -98,6 +99,10 @@ export const Education: React.FC = () => {
               const videoId = url.split('youtu.be/')[1];
               return `https://www.youtube.com/embed/${videoId}`;
           }
+          if (url.includes('vimeo.com')) {
+              const videoId = url.split('.com/')[1];
+              return `https://player.vimeo.com/video/${videoId}`;
+          }
           return url; // Return as is if already embed or other provider
       } catch (e) {
           return url;
@@ -111,6 +116,17 @@ export const Education: React.FC = () => {
     setCourseForm({ title: course.title, description: course.description, image_url: course.image_url });
     await fetchModules(course.id);
     setIsModalOpen(true);
+  };
+
+  const handleDeleteCourse = async (courseId: string) => {
+      if (!confirm("Tem certeza que deseja excluir este curso e todo seu conteúdo?")) return;
+      try {
+          // Cascading delete should handle modules/lessons if configured, but let's be safe
+          const { error } = await supabase.from('products').delete().eq('id', courseId);
+          if (error) throw error;
+          setIsModalOpen(false);
+          fetchCourses();
+      } catch(e: any) { alert("Erro ao excluir: " + e.message); }
   };
 
   const handleCreateClick = () => {
@@ -167,19 +183,31 @@ export const Education: React.FC = () => {
       if (!activeModuleId) return;
 
       try {
+          let updatedLessonData = null;
+
           if (editingLesson) {
-              await supabase.from('lessons').update(lessonForm).eq('id', editingLesson.id);
+              const { data, error } = await supabase.from('lessons').update(lessonForm).eq('id', editingLesson.id).select().single();
+              if (error) throw error;
+              updatedLessonData = data;
           } else {
               // Get current max order
               const currentModule = modules.find(m => m.id === activeModuleId);
               const nextOrder = (currentModule?.lessons?.length || 0);
               
-              await supabase.from('lessons').insert({ 
+              const { data, error } = await supabase.from('lessons').insert({ 
                   module_id: activeModuleId, 
                   ...lessonForm, 
                   order_index: nextOrder 
-              });
+              }).select().single();
+              if (error) throw error;
+              updatedLessonData = data;
           }
+
+          // Force update local state so changes reflect immediately in player if selected
+          if (updatedLessonData && selectedLesson && selectedLesson.id === updatedLessonData.id) {
+              setSelectedLesson(updatedLessonData);
+          }
+
           if(editingCourse) await fetchModules(editingCourse.id);
           setIsLessonModalOpen(false);
       } catch(e: any) { alert("Erro ao salvar aula: " + e.message); }
@@ -260,7 +288,19 @@ export const Education: React.FC = () => {
           <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
                   <h3 className="text-xl font-bold text-slate-800">{editingCourse ? 'Editar Curso' : 'Novo Curso'}</h3>
-                  <button onClick={() => setIsModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+                  <div className="flex items-center gap-2">
+                      {editingCourse && (
+                          <button 
+                            type="button" 
+                            onClick={() => handleDeleteCourse(editingCourse.id)}
+                            className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors mr-2"
+                            title="Excluir Curso"
+                          >
+                              <Trash2 size={20} />
+                          </button>
+                      )}
+                      <button onClick={() => setIsModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+                  </div>
               </div>
               <div className="p-6 space-y-6">
                   <form id="course-form" onSubmit={handleSaveCourse} className="space-y-4">
@@ -309,6 +349,62 @@ export const Education: React.FC = () => {
           </div>
       </div>
   );
+
+  // Detailed Article View
+  if (selectedArticle) {
+       return (
+           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+               <div className="flex items-center gap-4 mb-6">
+                 <button 
+                     onClick={() => setSelectedArticle(null)}
+                     className="p-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-green-600 transition-colors"
+                 >
+                     <ArrowLeft size={24} />
+                 </button>
+                 <span className="font-semibold text-slate-500">Voltar para Academia</span>
+              </div>
+              
+              <article className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden max-w-4xl mx-auto">
+                  {selectedArticle.image_url && (
+                      <div className="w-full h-64 md:h-96 relative">
+                          <img src={selectedArticle.image_url} alt={selectedArticle.title} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+                          <div className="absolute bottom-0 left-0 p-8 text-white">
+                              <span className="inline-block px-3 py-1 bg-green-600 rounded-lg text-xs font-bold uppercase tracking-wide mb-2">
+                                  {selectedArticle.category || 'Análise'}
+                              </span>
+                              <h1 className="text-3xl md:text-4xl font-bold leading-tight">{selectedArticle.title}</h1>
+                          </div>
+                      </div>
+                  )}
+                  {!selectedArticle.image_url && (
+                       <div className="p-8 pb-4">
+                          <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold uppercase tracking-wide mb-2">
+                                  {selectedArticle.category || 'Análise'}
+                             </span>
+                          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">{selectedArticle.title}</h1>
+                       </div>
+                  )}
+                  
+                  <div className="px-8 py-2 md:px-12 flex items-center gap-4 text-sm text-slate-500 border-b border-slate-100 pb-6 mb-6">
+                      <div className="flex items-center gap-1"><Clock size={16} /> {new Date(selectedArticle.created_at || Date.now()).toLocaleDateString()}</div>
+                      <div>•</div>
+                      <div className="font-medium text-green-600">Equipe Tradexperience</div>
+                  </div>
+
+                  <div className="px-8 md:px-12 pb-12">
+                      <div className="prose prose-lg prose-slate max-w-none">
+                          <p className="lead text-xl text-slate-600 mb-8 font-light">{selectedArticle.excerpt}</p>
+                          <div className="whitespace-pre-wrap leading-relaxed text-slate-700">
+                              {selectedArticle.content}
+                          </div>
+                      </div>
+                  </div>
+              </article>
+              {/* Reuse Edit Modal if admin wants to edit from here - maybe later */}
+           </div>
+       );
+  }
 
   // Detailed Course View
   if (selectedCourse) {
@@ -503,13 +599,19 @@ export const Education: React.FC = () => {
         </div>
         <div className="space-y-4">
           {articles.map((article) => (
-            <div key={article.id} onClick={() => role === 'admin' && openArticleModal(article)} className="group p-4 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer">
+            <div key={article.id} onClick={() => setSelectedArticle(article)} className="group p-4 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer">
               <div className="flex justify-between items-start gap-4">
                 <div className="space-y-1">
                   <h4 className="text-base font-medium text-slate-800 group-hover:text-green-600 transition-colors">{article.title}</h4>
                   <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">{article.excerpt}</p>
                 </div>
-                {role === 'admin' ? <Edit2 size={16} className="text-slate-400 hover:text-green-600" /> : <ChevronRight size={18} className="text-slate-400 group-hover:text-green-500 mt-1 shrink-0" />}
+                {role === 'admin' ? (
+                    <button onClick={(e) => { e.stopPropagation(); openArticleModal(article); }} className="text-slate-400 hover:text-green-600 p-1 hover:bg-slate-100 rounded">
+                        <Edit2 size={16} />
+                    </button>
+                ) : (
+                    <ChevronRight size={18} className="text-slate-400 group-hover:text-green-500 mt-1 shrink-0" />
+                )}
               </div>
               <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
                 <Clock size={12} /><span>{new Date(article.created_at || Date.now()).toLocaleDateString()}</span>
