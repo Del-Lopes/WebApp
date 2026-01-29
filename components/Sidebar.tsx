@@ -103,7 +103,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`}
           >
             <Users size={20} />
-            <span className="font-medium">Marketing</span>
+            <span className="font-medium">
+              {role === 'client' ? 'Torne-se Parceiro' : 'Marketing'}
+            </span>
           </button>
 
           {role === 'admin' && (
