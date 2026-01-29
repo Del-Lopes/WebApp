@@ -60,7 +60,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.error('Error fetching role:', error);
         setRole('client'); // Default role
       } else {
-        setRole((data?.role as UserRole) || 'client');
+        let userRole = (data?.role as UserRole) || 'client';
+        
+        // Check if user is an approved partner (upgrade role locally if so, unless admin)
+        if (userRole !== 'admin') {
+           const { data: request } = await supabase
+             .from('partner_requests')
+             .select('status')
+             .eq('user_id', userId)
+             .maybeSingle(); // maybeSingle allows null result if no request
+           
+           if (request?.status === 'approved') {
+             userRole = 'partner';
+           }
+        }
+
+        setRole(userRole);
       }
     } catch (error) {
       console.error('Error:', error);
