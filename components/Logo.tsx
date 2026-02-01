@@ -10,7 +10,7 @@ export const Logo: React.FC<LogoProps> = ({ className, variant = 'default' }) =>
   if (variant === 'mobile') {
     return (
       <img 
-        src="https://tradexperience.com.br/wp-content/uploads/2025/02/favicon-tradenew.png" 
+        src="/icon.png" 
         alt="Tradexperience Mobile Logo" 
         className={className} 
       />
