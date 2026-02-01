@@ -111,7 +111,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
         {/* Status Card */}
         <div 
           onClick={() => onNavigate('settings')}
-          className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm shadow-blue-500/5 hover:shadow-md hover:shadow-blue-500/20 transition-all cursor-pointer group"
+          className="bg-white p-6 rounded-2xl border border-blue-100 shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer group"
         >
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-blue-100 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
@@ -128,7 +128,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
         {/* Licenses Card */}
         <div 
           onClick={() => onNavigate('licenses')}
-          className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm shadow-green-500/5 hover:shadow-md hover:shadow-green-500/20 transition-all cursor-pointer group"
+          className="bg-white p-6 rounded-2xl border border-green-100 shadow-lg shadow-green-500/10 hover:shadow-xl hover:shadow-green-500/20 transition-all duration-300 cursor-pointer group"
         >
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-green-100 text-green-600 rounded-xl group-hover:bg-green-600 group-hover:text-white transition-colors">
@@ -149,7 +149,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
         {/* Courses Card (Renamed to Biblioteca) */}
         <div 
           onClick={() => onNavigate('education')}
-          className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm shadow-purple-500/5 hover:shadow-md hover:shadow-purple-500/20 transition-all cursor-pointer group"
+          className="bg-white p-6 rounded-2xl border border-purple-100 shadow-lg shadow-purple-500/10 hover:shadow-xl hover:shadow-purple-500/20 transition-all duration-300 cursor-pointer group"
         >
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-purple-100 text-purple-600 rounded-xl group-hover:bg-purple-600 group-hover:text-white transition-colors">
