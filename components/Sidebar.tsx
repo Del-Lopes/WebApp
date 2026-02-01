@@ -83,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`}
           >
             <GraduationCap size={20} />
-            <span className="font-medium">Academia</span>
+            <span className="font-medium">Biblioteca</span>
           </button>
 
           <button

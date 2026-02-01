@@ -552,7 +552,7 @@ export const Education: React.FC = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">Academia de Trading</h2>
+          <h2 className="text-2xl font-bold text-slate-900 mb-1">Biblioteca de Conteúdo</h2>
           <p className="text-slate-500 text-sm">Aprofunde seus conhecimentos em negociação algorítmica.</p>
         </div>
         {role === 'admin' && (

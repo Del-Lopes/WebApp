@@ -49,7 +49,7 @@ function AppContent() {
 
   const renderView = () => {
     switch (currentView) {
-      case 'dashboard': return <UserDashboard />;
+      case 'dashboard': return <UserDashboard onNavigate={setCurrentView} />;
       case 'strategies': 
         return (
           <Strategies 
