@@ -11,14 +11,16 @@ import { AdminPanel } from './components/Admin/AdminPanel';
 import { Settings } from './components/Settings';
 import { CoursePlayer } from './components/Education/CoursePlayer';
 import { Login } from './components/Auth/Login';
+import { ArticleView } from './components/Dashboard/ArticleView';
 import { Logo } from './components/Logo';
 import { INITIAL_ROBOTS } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
-import { View, UserRole, Robot } from './types';
+import { View, UserRole, Robot, Article } from './types';
 
 function AppContent() {
   const { user, isLoading, role } = useAuth();
   const [currentView, setCurrentView] = useState<View>('dashboard');
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('admin'); // Legacy state, kept for prop compatibility
   
@@ -39,6 +41,11 @@ function AppContent() {
     setRobots((prevRobots) => prevRobots.filter((r) => r.id !== id));
   };
 
+  const handleReadArticle = (article: Article) => {
+    setSelectedArticle(article);
+    setCurrentView('article');
+  };
+
   if (isLoading) {
     return <div className="flex items-center justify-center h-screen bg-slate-50">Loading...</div>;
   }
@@ -49,7 +56,14 @@ function AppContent() {
 
   const renderView = () => {
     switch (currentView) {
-      case 'dashboard': return <UserDashboard onNavigate={setCurrentView} />;
+      case 'dashboard': return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+      case 'article': 
+        return selectedArticle ? (
+          <ArticleView 
+            article={selectedArticle} 
+            onBack={() => setCurrentView('dashboard')} 
+          />
+        ) : <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
       case 'strategies': 
         return (
           <Strategies 

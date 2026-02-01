@@ -7,9 +7,10 @@ import { LicenseRequest, Article, View } from '../../types';
 
 interface UserDashboardProps {
   onNavigate: (view: View) => void;
+  onReadArticle: (article: Article) => void;
 }
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate }) => {
+export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onReadArticle }) => {
   const { user, role } = useAuth();
   const [activeLicenses, setActiveLicenses] = useState<LicenseRequest[]>([]);
   const [loading, setLoading] = useState(true);
@@ -212,7 +213,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate }) => {
             {articles.length > 0 ? (
                 <div className="space-y-4">
                   {articles.map((article) => (
-                    <div key={article.id} className="group p-4 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer relative">
+                    <div 
+                      key={article.id} 
+                      onClick={() => onReadArticle(article)}
+                      className="group p-4 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer relative"
+                    >
                       <div className="flex justify-between items-start gap-3">
                           <div className="space-y-1 flex-1">
                             <h4 className="text-sm font-semibold text-slate-800 group-hover:text-green-600 transition-colors">{article.title}</h4>
