@@ -602,35 +602,7 @@ export const Education: React.FC = () => {
       {isLessonModalOpen && renderLessonModal()}
 
       {/* Articles Section */}
-      <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-green-600 flex items-center gap-2"><FileText size={18} /> Artigos e Análises</h3>
-          {role === 'admin' && <button onClick={() => openArticleModal()} className="text-sm text-green-600 font-medium flex items-center gap-1 hover:bg-green-50 px-2 py-1 rounded"><Plus size={16} /> Novo Artigo</button>}
-        </div>
-        <div className="space-y-4">
-          {articles.map((article) => (
-            <div key={article.id} onClick={() => setSelectedArticle(article)} className="group p-4 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer">
-              <div className="flex justify-between items-start gap-4">
-                <div className="space-y-1">
-                  <h4 className="text-base font-medium text-slate-800 group-hover:text-green-600 transition-colors">{article.title}</h4>
-                  <p className="text-sm text-slate-500 line-clamp-2 leading-relaxed">{article.excerpt}</p>
-                </div>
-                {role === 'admin' ? (
-                    <button onClick={(e) => { e.stopPropagation(); openArticleModal(article); }} className="text-slate-400 hover:text-green-600 p-1 hover:bg-slate-100 rounded">
-                        <Edit2 size={16} />
-                    </button>
-                ) : (
-                    <ChevronRight size={18} className="text-slate-400 group-hover:text-green-500 mt-1 shrink-0" />
-                )}
-              </div>
-              <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
-                <Clock size={12} /><span>{new Date(article.created_at || Date.now()).toLocaleDateString()}</span>
-                <span>•</span><span className="text-green-600/80 uppercase tracking-wide font-semibold">{article.category || 'Geral'}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+
 
       {/* Article Modal */}
       {isArticleModalOpen && (
