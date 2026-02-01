@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Calendar, User, Clock, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Calendar, User, Clock, Share2, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Article } from '../../types';
 
 interface ArticleViewProps {
@@ -9,6 +9,13 @@ interface ArticleViewProps {
 
 export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [lightboxImage, setLightboxImage] = useState('');
+
+  const openLightbox = (image: string) => {
+    setLightboxImage(image);
+    setLightboxOpen(true);
+  };
 
   const nextImage = () => {
     if (!article.gallery_urls || article.gallery_urls.length === 0) return;
@@ -37,7 +44,8 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
             <img 
               src={article.image_url} 
               alt={article.title} 
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover cursor-zoom-in hover:scale-105 transition-transform duration-700"
+              onClick={() => openLightbox(article.image_url!)}
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6 md:p-8 text-white">
@@ -98,7 +106,8 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
                  <img 
                    src={article.gallery_urls[currentImageIndex]} 
                    alt={`Imagem ${currentImageIndex + 1}`} 
-                   className="w-full h-full object-contain"
+                   className="w-full h-full object-contain cursor-zoom-in"
+                   onClick={() => openLightbox(article.gallery_urls![currentImageIndex])}
                  />
                  
                  {article.gallery_urls.length > 1 && (
@@ -131,6 +140,24 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
           )}
         </div>
       </article>
+
+      {/* Lightbox Overlay */}
+      {lightboxOpen && (
+        <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-md flex items-center justify-center p-4 animate-in fade-in duration-200" onClick={() => setLightboxOpen(false)}>
+           <button 
+             onClick={() => setLightboxOpen(false)}
+             className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 text-white rounded-full transition-colors"
+           >
+             <X size={32} />
+           </button>
+           <img 
+             src={lightboxImage} 
+             alt="Full size" 
+             className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl scale-100 animate-in zoom-in-95 duration-200"
+             onClick={(e) => e.stopPropagation()} // Prevent closing when clicking image
+           />
+        </div>
+      )}
     </div>
   );
 };

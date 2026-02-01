@@ -4,6 +4,7 @@ import { MOCK_ARTICLES } from '../constants';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, Module, Lesson, Article } from '../types';
+import { ArticleView } from './Dashboard/ArticleView';
 import { type } from 'os';
 
 export const Education: React.FC = () => {
@@ -417,53 +418,9 @@ export const Education: React.FC = () => {
   if (selectedArticle) {
        return (
            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-               <div className="flex items-center gap-4 mb-6">
-                 <button 
-                     onClick={() => setSelectedArticle(null)}
-                     className="p-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-green-600 transition-colors"
-                 >
-                     <ArrowLeft size={24} />
-                 </button>
-                 <span className="font-semibold text-slate-500">Voltar para Academia</span>
-              </div>
-              
-              <article className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden max-w-4xl mx-auto">
-                  {selectedArticle.image_url && (
-                      <div className="w-full h-64 md:h-96 relative">
-                          <img src={selectedArticle.image_url} alt={selectedArticle.title} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                          <div className="absolute bottom-0 left-0 p-8 text-white">
-                              <span className="inline-block px-3 py-1 bg-green-600 rounded-lg text-xs font-bold uppercase tracking-wide mb-2">
-                                  {selectedArticle.category || 'Análise'}
-                              </span>
-                              <h1 className="text-3xl md:text-4xl font-bold leading-tight">{selectedArticle.title}</h1>
-                          </div>
-                      </div>
-                  )}
-                  {!selectedArticle.image_url && (
-                       <div className="p-8 pb-4">
-                          <span className="inline-block px-3 py-1 bg-green-100 text-green-700 rounded-lg text-xs font-bold uppercase tracking-wide mb-2">
-                                  {selectedArticle.category || 'Análise'}
-                             </span>
-                          <h1 className="text-3xl md:text-4xl font-bold text-slate-900 mb-4">{selectedArticle.title}</h1>
-                       </div>
-                  )}
-                  
-                  <div className="px-8 py-2 md:px-12 flex items-center gap-4 text-sm text-slate-500 border-b border-slate-100 pb-6 mb-6">
-                      <div className="flex items-center gap-1"><Clock size={16} /> {new Date(selectedArticle.created_at || Date.now()).toLocaleDateString()}</div>
-                      <div>•</div>
-                      <div className="font-medium text-green-600">Equipe Tradexperience</div>
-                  </div>
 
-                  <div className="px-8 md:px-12 pb-12">
-                      <div className="prose prose-lg prose-slate max-w-none">
-                          <p className="lead text-xl text-slate-600 mb-8 font-light">{selectedArticle.excerpt}</p>
-                          <div className="whitespace-pre-wrap leading-relaxed text-slate-700">
-                              {selectedArticle.content}
-                          </div>
-                      </div>
-                  </div>
-              </article>
+              
+               <ArticleView article={selectedArticle} onBack={() => setSelectedArticle(null)} />
               {/* Reuse Edit Modal if admin wants to edit from here - maybe later */}
            </div>
        );
