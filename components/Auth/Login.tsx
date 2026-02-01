@@ -7,6 +7,7 @@ import { LogIn, AlertCircle, Loader2 } from 'lucide-react';
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
@@ -26,7 +27,7 @@ export const Login: React.FC = () => {
           options: {
             emailRedirectTo: window.location.origin,
             data: {
-              full_name: email.split('@')[0],
+              full_name: fullName,
             },
           },
         });
@@ -92,6 +93,19 @@ export const Login: React.FC = () => {
         )}
 
         <form onSubmit={handleAuth} className="space-y-4">
+          {mode === 'signup' && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">Nome Completo</label>
+              <input
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all placeholder:text-slate-400"
+                placeholder="Seu Nome"
+              />
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">Email</label>
             <input
