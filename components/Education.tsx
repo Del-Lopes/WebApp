@@ -93,15 +93,15 @@ export const Education: React.FC = () => {
           // Generic youtube embed converter
           if (url.includes('youtube.com/watch')) {
               const videoId = new URLSearchParams(new URL(url).search).get('v');
-              return `https://www.youtube.com/embed/${videoId}`;
+              return `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0&modestbranding=1`;
           }
           if (url.includes('youtu.be/')) {
-              const videoId = url.split('youtu.be/')[1];
-              return `https://www.youtube.com/embed/${videoId}`;
+              const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+              return `https://www.youtube.com/embed/${videoId}?playsinline=1&rel=0&modestbranding=1`;
           }
           if (url.includes('vimeo.com')) {
-              const videoId = url.split('.com/')[1];
-              return `https://player.vimeo.com/video/${videoId}`;
+              const videoId = url.split('.com/')[1]?.split('?')[0];
+              return `https://player.vimeo.com/video/${videoId}?playsinline=1&title=0&byline=0`;
           }
           return url; // Return as is if already embed or other provider
       } catch (e) {
