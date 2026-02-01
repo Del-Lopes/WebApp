@@ -2,16 +2,21 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { ShieldCheck, GraduationCap, TrendingUp, AlertCircle, Clock } from 'lucide-react';
-import { LicenseRequest } from '../../types';
+import { ShieldCheck, GraduationCap, TrendingUp, AlertCircle, Clock, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
+import { LicenseRequest, Article } from '../../types';
 
 export const UserDashboard: React.FC = () => {
   const { user, role } = useAuth();
   const [activeLicenses, setActiveLicenses] = useState<LicenseRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const [articles, setArticles] = useState<any[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [coursesCount, setCoursesCount] = useState(0);
+
+  // Article Admin State
+  const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [articleForm, setArticleForm] = useState({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise' });
 
   useEffect(() => {
     if (user) {
@@ -47,6 +52,47 @@ export const UserDashboard: React.FC = () => {
           if (articlesData) setArticles(articlesData);
 
       } catch (e) { console.error(e); }
+  };
+
+  // Article Management Functions
+  const openArticleModal = (article?: Article) => {
+      if (article) {
+          setEditingArticle(article);
+          setArticleForm({ 
+            title: article.title, 
+            excerpt: article.excerpt, 
+            content: article.content || '', 
+            image_url: article.image_url || '', 
+            category: article.category || 'Análise' 
+          });
+      } else {
+          setEditingArticle(null);
+          setArticleForm({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise' });
+      }
+      setIsArticleModalOpen(true);
+  };
+
+  const handleSaveArticle = async (e: React.FormEvent) => {
+      e.preventDefault();
+      try {
+          if (editingArticle) {
+              await supabase.from('articles').update(articleForm).eq('id', editingArticle.id);
+          } else {
+              await supabase.from('articles').insert(articleForm);
+          }
+          setIsArticleModalOpen(false);
+          fetchContentData(); // Refresh list
+      } catch(e: any) { alert("Erro: " + e.message); }
+  };
+
+  const handleDeleteArticle = async (articleId: string) => {
+      if (!confirm("Tem certeza que deseja excluir este artigo?")) return;
+      try {
+          const { error } = await supabase.from('articles').delete().eq('id', articleId);
+          if (error) throw error;
+          setIsArticleModalOpen(false);
+          fetchContentData();
+      } catch(e: any) { alert("Erro ao excluir: " + e.message); }
   };
 
   return (
@@ -138,19 +184,45 @@ export const UserDashboard: React.FC = () => {
 
           {/* Articles Section (Migrated) */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">Artigos e Análises Recentes</h3>
+            <div className="flex items-center justify-between mb-6">
+                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">Artigos e Análises Recentes</h3>
+                 {role === 'admin' && (
+                     <button 
+                         onClick={() => openArticleModal()} 
+                         className="text-xs bg-green-50 text-green-700 hover:bg-green-100 px-3 py-1.5 rounded-lg font-bold flex items-center gap-1 transition-colors"
+                     >
+                         <Plus size={14} /> Novo
+                     </button>
+                 )}
+            </div>
             
             {articles.length > 0 ? (
                 <div className="space-y-4">
                   {articles.map((article) => (
-                    <div key={article.id} className="group p-4 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer">
-                      <div className="space-y-1">
-                        <h4 className="text-sm font-semibold text-slate-800 group-hover:text-green-600 transition-colors">{article.title}</h4>
-                        <p className="text-xs text-slate-500 line-clamp-2">{article.excerpt}</p>
+                    <div key={article.id} className="group p-4 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer relative">
+                      <div className="flex justify-between items-start gap-3">
+                          <div className="space-y-1 flex-1">
+                            <h4 className="text-sm font-semibold text-slate-800 group-hover:text-green-600 transition-colors">{article.title}</h4>
+                            <p className="text-xs text-slate-500 line-clamp-2">{article.excerpt}</p>
+                          </div>
                       </div>
-                      <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
-                         <Clock size={10} /><span>{new Date(article.created_at || Date.now()).toLocaleDateString()}</span>
-                         <span>•</span><span className="text-green-600/80 uppercase font-semibold">{article.category || 'Geral'}</span>
+                      
+                      <div className="mt-2 flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                             <Clock size={10} /><span>{new Date(article.created_at || Date.now()).toLocaleDateString()}</span>
+                             <span>•</span><span className="text-green-600/80 uppercase font-semibold">{article.category || 'Geral'}</span>
+                          </div>
+                          
+                          {role === 'admin' && (
+                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <button 
+                                    onClick={(e) => { e.stopPropagation(); openArticleModal(article); }}
+                                    className="p-1 text-slate-400 hover:text-green-600 hover:bg-white rounded shadow-sm"
+                                  >
+                                      <Edit2 size={12} />
+                                  </button>
+                              </div>
+                          )}
                       </div>
                     </div>
                   ))}
@@ -160,6 +232,57 @@ export const UserDashboard: React.FC = () => {
             )}
           </div>
       </div>
+
+      {/* Article Modal */}
+      {isArticleModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold text-slate-800">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>
+                      <div className="flex items-center gap-2">
+                        {editingArticle && (
+                            <button 
+                              type="button" 
+                              onClick={() => handleDeleteArticle(editingArticle.id)}
+                              className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors mr-2"
+                              title="Excluir Artigo"
+                            >
+                                <Trash2 size={20} />
+                            </button>
+                        )}
+                        <button onClick={() => setIsArticleModalOpen(false)}><X size={24} className="text-slate-400 hover:text-slate-600" /></button>
+                      </div>
+                  </div>
+                  <form onSubmit={handleSaveArticle} className="space-y-4">
+                      <div>
+                          <label className="block text-sm font-medium mb-1 text-slate-600">Título</label>
+                          <input type="text" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="Ex: Análise do Ouro" />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium mb-1 text-slate-600">Categoria</label>
+                          <input type="text" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="Ex: Forex, Crypto..." />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium mb-1 text-slate-600">Resumo (Card)</label>
+                          <textarea rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="Breve descrição..." />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium mb-1 text-slate-600">Conteúdo Completo</label>
+                          <textarea rows={6} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="Texto completo da análise..." />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium mb-1 text-slate-600">Imagem URL (Opcional)</label>
+                          <input type="text" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="https://..." />
+                      </div>
+                      <div className="pt-2">
+                        <button type="submit" className="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-500 shadow-lg shadow-green-600/20 transition-all transform hover:-translate-y-0.5">
+                            {editingArticle ? 'Salvar Alterações' : 'Publicar Artigo'}
+                        </button>
+                      </div>
+                  </form>
+              </div>
+          </div>
+      )}
     </div>
   );
 };

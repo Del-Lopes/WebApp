@@ -63,7 +63,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`}
           >
             <LayoutDashboard size={20} className={currentView === 'dashboard' ? 'animate-pulse' : ''} />
-            <span className="font-medium">Dashboard</span>
+            <span className="font-medium">Início</span>
           </button>
 
           <button
