@@ -1,3 +1,4 @@
+const CACHE_NAME = 'tradexperience-v1';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -33,7 +34,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Fetch Strategy: Network First for creating a fresh experience, Cache Fallback for offline support of static assets
+// Fetch Strategy: Network First for creating a fresh experience, Cache Fallback for offline support
 self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests like APIs needed for live data
   if (!event.request.url.startsWith(self.location.origin)) {
@@ -60,7 +61,18 @@ self.addEventListener('fetch', (event) => {
         return response;
       })
       .catch(() => {
-        return caches.match(event.request);
+        // If network fails, try cache
+        return caches.match(event.request).then((response) => {
+            if (response) {
+                return response;
+            }
+            // If not in cache and looks like a navigation (HTML), return index.html
+            // This fixes "SPA refresh on 404" behavior when offline/failing
+            if (event.request.mode === 'navigate') {
+                return caches.match('/index.html');
+            }
+            return null;
+        });
       })
   );
 });
