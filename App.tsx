@@ -84,18 +84,18 @@ function AppContent() {
       
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-800 bg-slate-900 sticky top-0 z-10 text-white shadow-md">
           <div className="flex items-center gap-3">
              <div className="w-8 h-8">
                <Logo className="w-full h-full" variant="mobile" />
              </div>
-             <h1 className="text-lg font-bold text-slate-900">
+             <h1 className="text-lg font-bold tracking-tight">
               Tradexperience
             </h1>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100"
+            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
           >
             <Menu size={24} />
           </button>
