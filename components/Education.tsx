@@ -90,16 +90,14 @@ export const Education: React.FC = () => {
   const getEmbedUrl = (url: string) => {
       if (!url) return '';
       try {
-          const origin = typeof window !== 'undefined' ? window.location.origin : '';
-
           // Generic youtube embed converter
           if (url.includes('youtube.com/watch')) {
               const videoId = new URLSearchParams(new URL(url).search).get('v');
-              return `https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1&rel=0&modestbranding=1&origin=${origin}&widget_referrer=${origin}&enablejsapi=1`;
+              return `https://www.youtube.com/embed/${videoId}?playsinline=1&modestbranding=1&rel=0`;
           }
           if (url.includes('youtu.be/')) {
               const videoId = url.split('youtu.be/')[1]?.split('?')[0];
-              return `https://www.youtube-nocookie.com/embed/${videoId}?playsinline=1&rel=0&modestbranding=1&origin=${origin}&widget_referrer=${origin}&enablejsapi=1`;
+              return `https://www.youtube.com/embed/${videoId}?playsinline=1&modestbranding=1&rel=0`;
           }
           if (url.includes('vimeo.com')) {
               const videoId = url.split('.com/')[1]?.split('?')[0];
@@ -107,6 +105,7 @@ export const Education: React.FC = () => {
           }
           return url;
       } catch (e) {
+          console.error("Error parsing video URL:", e);
           return url;
       }
   };
