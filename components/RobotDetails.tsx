@@ -158,7 +158,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                 ) : (
                   <div className="flex items-center gap-4">
                      {formData.avatar_url && (
-                        <div className="w-16 h-16 rounded-xl border border-slate-200 overflow-hidden shadow-sm shrink-0">
+                        <div className="w-24 h-24 rounded-xl border border-slate-200 overflow-hidden shadow-sm shrink-0">
                            <img src={formData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                         </div>
                      )}
