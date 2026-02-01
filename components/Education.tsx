@@ -4,6 +4,7 @@ import { MOCK_ARTICLES } from '../constants';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, Module, Lesson, Article } from '../types';
+import { type } from 'os';
 
 export const Education: React.FC = () => {
   const { role } = useAuth();
@@ -289,10 +290,7 @@ export const Education: React.FC = () => {
       setIsArticleModalOpen(true);
   };
 
-          setArticleForm({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise' });
-      }
-      setIsArticleModalOpen(true);
-  };
+
 
   // --- View Logic ---
 
