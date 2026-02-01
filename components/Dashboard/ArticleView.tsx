@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowLeft, Calendar, User, Clock, Share2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowLeft, Calendar, User, Clock, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Article } from '../../types';
 
 interface ArticleViewProps {
@@ -8,6 +8,17 @@ interface ArticleViewProps {
 }
 
 export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  const nextImage = () => {
+    if (!article.gallery_urls || article.gallery_urls.length === 0) return;
+    setCurrentImageIndex((prev) => (prev === (article.gallery_urls!.length - 1) ? 0 : prev + 1));
+  };
+
+  const prevImage = () => {
+    if (!article.gallery_urls || article.gallery_urls.length === 0) return;
+    setCurrentImageIndex((prev) => (prev === 0 ? (article.gallery_urls!.length - 1) : prev - 1));
+  };
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
       <button 
@@ -77,6 +88,47 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
                 <p className="text-slate-500 italic">Conteúdo indisponível.</p>
              )}
           </div>
+
+          {/* Image Gallery Carousel */}
+          {article.gallery_urls && article.gallery_urls.length > 0 && (
+            <div className="mt-12 pt-12 border-t border-slate-100">
+              <h3 className="text-xl font-bold text-slate-800 mb-6">Galeria de Imagens</h3>
+              
+              <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden group">
+                 <img 
+                   src={article.gallery_urls[currentImageIndex]} 
+                   alt={`Imagem ${currentImageIndex + 1}`} 
+                   className="w-full h-full object-contain"
+                 />
+                 
+                 {article.gallery_urls.length > 1 && (
+                   <>
+                     <button 
+                       onClick={prevImage}
+                       className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                     >
+                       <ChevronLeft size={24} />
+                     </button>
+                     <button 
+                       onClick={nextImage}
+                       className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                     >
+                       <ChevronRight size={24} />
+                     </button>
+                     
+                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                       {article.gallery_urls.map((_, idx) => (
+                         <div 
+                           key={idx} 
+                           className={`w-2 h-2 rounded-full transition-colors ${idx === currentImageIndex ? 'bg-white' : 'bg-white/50'}`}
+                         />
+                       ))}
+                     </div>
+                   </>
+                 )}
+              </div>
+            </div>
+          )}
         </div>
       </article>
     </div>

@@ -21,7 +21,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
   // Article Admin State
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [articleForm, setArticleForm] = useState({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise' });
+  const [articleForm, setArticleForm] = useState({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise', gallery_urls_input: '' });
 
   useEffect(() => {
     if (user) {
@@ -68,11 +68,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             excerpt: article.excerpt, 
             content: article.content || '', 
             image_url: article.image_url || '', 
-            category: article.category || 'Análise' 
+            category: article.category || 'Análise',
+            gallery_urls_input: article.gallery_urls ? article.gallery_urls.join('\n') : ''
           });
       } else {
           setEditingArticle(null);
-          setArticleForm({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise' });
+          setArticleForm({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise', gallery_urls_input: '' });
       }
       setIsArticleModalOpen(true);
   };
@@ -80,10 +81,24 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
   const handleSaveArticle = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
+          const gallery_urls = articleForm.gallery_urls_input
+              .split('\n')
+              .map(url => url.trim())
+              .filter(url => url.length > 0);
+
+          const articleData = {
+              title: articleForm.title,
+              excerpt: articleForm.excerpt,
+              content: articleForm.content,
+              image_url: articleForm.image_url,
+              category: articleForm.category,
+              gallery_urls: gallery_urls
+          };
+
           if (editingArticle) {
-              await supabase.from('articles').update(articleForm).eq('id', editingArticle.id);
+              await supabase.from('articles').update(articleData).eq('id', editingArticle.id);
           } else {
-              await supabase.from('articles').insert(articleForm);
+              await supabase.from('articles').insert(articleData);
           }
           setIsArticleModalOpen(false);
           fetchContentData(); // Refresh list
@@ -291,6 +306,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                       <div>
                           <label className="block text-sm font-medium mb-1 text-slate-600">Imagem URL (Opcional)</label>
                           <input type="text" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="https://..." />
+                      </div>
+                      <div>
+                          <label className="block text-sm font-medium mb-1 text-slate-600">Galeria de Imagens (Uma URL por linha)</label>
+                          <textarea 
+                            rows={3} 
+                            value={articleForm.gallery_urls_input} 
+                            onChange={e => setArticleForm({...articleForm, gallery_urls_input: e.target.value})} 
+                            className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" 
+                            placeholder="https://imagem1.jpg&#10;https://imagem2.jpg" 
+                          />
                       </div>
                       <div className="pt-2">
                         <button type="submit" className="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-500 shadow-lg shadow-green-600/20 transition-all transform hover:-translate-y-0.5">

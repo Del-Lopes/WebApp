@@ -36,7 +36,7 @@ export const Education: React.FC = () => {
   // Admin State Articles
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [articleForm, setArticleForm] = useState({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise' });
+  const [articleForm, setArticleForm] = useState({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise', gallery_urls_input: '' });
 
   // Module Expansion State for Viewer
   const [expandedModules, setExpandedModules] = useState<{[key: string]: boolean}>({});
@@ -247,10 +247,24 @@ export const Education: React.FC = () => {
   const handleSaveArticle = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
+          const gallery_urls = articleForm.gallery_urls_input
+              .split('\n')
+              .map(url => url.trim())
+              .filter(url => url.length > 0);
+
+          const articleData = {
+              title: articleForm.title,
+              excerpt: articleForm.excerpt,
+              content: articleForm.content,
+              image_url: articleForm.image_url,
+              category: articleForm.category,
+              gallery_urls: gallery_urls
+          };
+
           if (editingArticle) {
-              await supabase.from('articles').update(articleForm).eq('id', editingArticle.id);
+              await supabase.from('articles').update(articleData).eq('id', editingArticle.id);
           } else {
-              await supabase.from('articles').insert(articleForm);
+              await supabase.from('articles').insert(articleData);
           }
           setIsArticleModalOpen(false);
           fetchArticles();
@@ -260,9 +274,21 @@ export const Education: React.FC = () => {
   const openArticleModal = (article?: Article) => {
       if (article) {
           setEditingArticle(article);
-          setArticleForm({ title: article.title, excerpt: article.excerpt, content: article.content || '', image_url: article.image_url || '', category: article.category || 'Análise' });
+          setArticleForm({ 
+            title: article.title, 
+            excerpt: article.excerpt, 
+            content: article.content || '', 
+            image_url: article.image_url || '', 
+            category: article.category || 'Análise',
+            gallery_urls_input: article.gallery_urls ? article.gallery_urls.join('\n') : ''
+          });
       } else {
           setEditingArticle(null);
+          setArticleForm({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise', gallery_urls_input: '' });
+      }
+      setIsArticleModalOpen(true);
+  };
+
           setArticleForm({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise' });
       }
       setIsArticleModalOpen(true);
@@ -662,6 +688,14 @@ export const Education: React.FC = () => {
                       <input type="text" placeholder="Categoria" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
                       <textarea placeholder="Resumo" rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
                       <textarea placeholder="Conteúdo Completo" rows={5} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                      <input type="text" placeholder="Imagem URL de Capa" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                      <textarea 
+                        placeholder="Galeria de Imagens (Uma URL por linha)" 
+                        rows={3} 
+                        value={articleForm.gallery_urls_input} 
+                        onChange={e => setArticleForm({...articleForm, gallery_urls_input: e.target.value})} 
+                        className="w-full border rounded-lg px-3 py-2" 
+                      />
                       <button type="submit" className="w-full bg-green-600 text-white font-bold py-2 rounded-lg hover:bg-green-500">Salvar Artigo</button>
                   </form>
               </div>

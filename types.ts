@@ -66,6 +66,7 @@ export interface Article {
   excerpt: string;
   content?: string;
   image_url?: string;
+  gallery_urls?: string[];
   category?: string;
   date?: string;
   created_at?: string;
