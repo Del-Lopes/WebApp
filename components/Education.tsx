@@ -162,6 +162,15 @@ export const Education: React.FC = () => {
       } catch(e: any) { alert("Erro ao criar módulo: " + e.message); }
   };
 
+  const handleDeleteModule = async (moduleId: string) => {
+      if (!confirm("Tem certeza que deseja excluir este módulo e todas as suas aulas?")) return;
+      try {
+          const { error } = await supabase.from('modules').delete().eq('id', moduleId);
+          if (error) throw error;
+          if (editingCourse) fetchModules(editingCourse.id);
+      } catch(e: any) { alert("Erro ao excluir módulo: " + e.message); }
+  };
+
   const openLessonModal = (moduleId: string, lesson?: Lesson) => {
       setActiveModuleId(moduleId);
       if (lesson) {
@@ -214,7 +223,16 @@ export const Education: React.FC = () => {
       } catch(e: any) { alert("Erro ao salvar aula: " + e.message); }
   };
 
-  // --- Articles Admin ---
+
+
+  const handleDeleteLesson = async (lessonId: string) => {
+      if (!confirm("Tem certeza que deseja excluir esta aula?")) return;
+      try {
+          const { error } = await supabase.from('lessons').delete().eq('id', lessonId);
+          if (error) throw error;
+          if (editingCourse) fetchModules(editingCourse.id);
+      } catch(e: any) { alert("Erro ao excluir aula: " + e.message); }
+  };
 
   const handleDeleteArticle = async (articleId: string) => {
       if (!confirm("Tem certeza que deseja excluir este artigo?")) return;
@@ -330,7 +348,12 @@ export const Education: React.FC = () => {
                               {modules.map((mod) => (
                                   <div key={mod.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
                                       <div className="flex justify-between items-center mb-2">
-                                          <span className="font-semibold text-slate-800">{mod.title}</span>
+                                          <div className="flex items-center gap-2">
+                                              <span className="font-semibold text-slate-800">{mod.title}</span>
+                                              <button onClick={() => handleDeleteModule(mod.id)} className="text-slate-400 hover:text-red-500 transition-colors" title="Excluir Módulo">
+                                                  <Trash2 size={14} />
+                                              </button>
+                                          </div>
                                           <button onClick={() => openLessonModal(mod.id)} className="text-xs bg-white border border-slate-300 px-2 py-1 rounded hover:bg-green-50 hover:text-green-600 font-medium">+ Aula</button>
                                       </div>
                                       <div className="pl-4 space-y-1">
@@ -339,9 +362,14 @@ export const Education: React.FC = () => {
                                                   <div className="flex items-center gap-2">
                                                       <Play size={12} className="text-slate-400" /> {lesson.title}
                                                   </div>
-                                                  <button onClick={() => openLessonModal(mod.id, lesson)} className="text-slate-400 hover:text-green-600 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                      <Edit2 size={14} />
-                                                  </button>
+                                                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                      <button onClick={() => openLessonModal(mod.id, lesson)} className="text-slate-400 hover:text-green-600" title="Editar Aula">
+                                                          <Edit2 size={14} />
+                                                      </button>
+                                                      <button onClick={() => handleDeleteLesson(lesson.id)} className="text-slate-400 hover:text-red-500" title="Excluir Aula">
+                                                          <Trash2 size={14} />
+                                                      </button>
+                                                  </div>
                                               </div>
                                           ))}
                                           {!mod.lessons?.length && <p className="text-xs text-slate-400 italic">Sem aulas.</p>}
@@ -579,8 +607,11 @@ export const Education: React.FC = () => {
                 )}
                 <div className="relative aspect-video bg-slate-100">
                   <img src={course.image_url || 'https://picsum.photos/400/225'} alt={course.title} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-white shadow-xl"><Play size={20} className="ml-1 fill-white" /></div>
+                  <div 
+                    onClick={() => handleAccessCourse(course)}
+                    className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-black/20"
+                  >
+                    <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-white shadow-xl transform group-hover:scale-110 transition-transform"><Play size={20} className="ml-1 fill-white" /></div>
                   </div>
                 </div>
                 <div className="p-4 flex-1 flex flex-col">
