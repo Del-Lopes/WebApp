@@ -78,7 +78,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
             </div>
             <div className="flex items-center gap-2">
               <User size={16} className="text-green-600" />
-              <span>Equipe Tradexperience</span>
+              <span>Equipe AFK Trade</span>
             </div>
              <div className="flex items-center gap-2">
               <Clock size={16} className="text-green-600" />

@@ -104,7 +104,7 @@ function AppContent() {
                <Logo className="w-full h-full" variant="mobile" />
              </div>
              <h1 className="text-lg font-bold text-slate-900">
-              Tradexperience
+              AFK Trade
             </h1>
           </div>
           <button 

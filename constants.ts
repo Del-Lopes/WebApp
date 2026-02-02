@@ -68,7 +68,7 @@ export const MOCK_ARTICLES: Article[] = [
 ];
 
 export const MOCK_ASSETS: MarketingAsset[] = [
-  { id: '1', title: 'Tradexperience Pitch Deck', type: 'PDF', size: '2.4 MB' },
-  { id: '2', title: 'Performance Report Q3', type: 'PDF', size: '1.1 MB' },
-  { id: '3', title: 'Social Media Kit', type: 'Image', size: '15 MB' },
+  { id: '1', title: 'AFK Trade Pitch Deck', type: 'PDF', size: '2.4 MB', url: '#' },
+  { id: '2', title: 'Performance Report Q3', type: 'PDF', size: '1.1 MB', url: '#' },
+  { id: '3', title: 'Social Media Kit', type: 'Image', size: '15 MB', url: '#' },
 ];

@@ -1,6 +1,6 @@
 {
-  "name": "Tradexperience",
-  "short_name": "Tradex",
+  "name": "AFK Trade",
+  "short_name": "AFK Trade",
   "description": "Plataforma de aprendizado e gestão para traders.",
   "start_url": "/",
   "display": "standalone",
