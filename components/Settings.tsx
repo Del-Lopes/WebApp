@@ -3,8 +3,13 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { User, Lock, Save, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { BackButton } from './BackButton';
 
-export const Settings: React.FC = () => {
+interface SettingsProps {
+  onBack?: () => void;
+}
+
+export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -76,6 +81,7 @@ export const Settings: React.FC = () => {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
+      {onBack && <BackButton onClick={onBack} />}
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Configurações da Conta</h2>
         <p className="text-slate-500 text-sm">Gerencie seus dados pessoais e segurança.</p>

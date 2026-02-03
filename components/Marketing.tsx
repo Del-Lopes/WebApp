@@ -6,7 +6,13 @@ import { supabase } from '../lib/supabase';
 import { MarketingAsset } from '../types';
 
 
-export const Marketing: React.FC = () => {
+import { BackButton } from './BackButton';
+
+interface MarketingProps {
+  onBack?: () => void;
+}
+
+export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
   const { user, role } = useAuth();
   const [loading, setLoading] = useState(true);
   const [partnerRequest, setPartnerRequest] = useState<any>(null); // State for the request
@@ -184,6 +190,7 @@ export const Marketing: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {onBack && <BackButton onClick={onBack} />}
       <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl relative overflow-hidden shadow-lg">
         <div className="absolute top-0 right-0 p-8 opacity-10 text-green-500">
           <Share2 size={120} />

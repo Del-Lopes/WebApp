@@ -72,14 +72,16 @@ function AppContent() {
             onAddRobot={handleAddRobot}
             onUpdateRobot={handleUpdateRobot}
             onDeleteRobot={handleDeleteRobot}
+            onBack={() => setCurrentView('dashboard')}
           />
         );
-      case 'education': return <Education />;
+
+      case 'education': return <Education onBack={() => setCurrentView('dashboard')} />;
       case 'course_player': return <CoursePlayer onBack={() => setCurrentView('education')} />;
-      case 'marketing': return <Marketing />;
-      case 'licenses': return <Licenses />;
-      case 'admin': return <AdminPanel />;
-      case 'settings': return <Settings />;
+      case 'marketing': return <Marketing onBack={() => setCurrentView('dashboard')} />;
+      case 'licenses': return <Licenses onBack={() => setCurrentView('dashboard')} />;
+      case 'admin': return <AdminPanel onBack={() => setCurrentView('dashboard')} />;
+      case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
       default: return <UserDashboard />;
     }
   };

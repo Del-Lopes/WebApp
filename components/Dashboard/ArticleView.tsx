@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Calendar, User, Clock, Share2, ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { Calendar, User, Clock, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Article } from '../../types';
+import { BackButton } from '../BackButton';
 
 interface ArticleViewProps {
   article: Article;
@@ -28,15 +29,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
   };
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
-      <button 
-        onClick={onBack}
-        className="flex items-center gap-2 text-slate-500 hover:text-green-600 transition-colors group mb-4"
-      >
-        <div className="p-2 rounded-full bg-white border border-slate-200 group-hover:border-green-200 group-hover:bg-green-50 transition-all">
-          <ArrowLeft size={20} />
-        </div>
-        <span className="font-medium">Voltar para o Início</span>
-      </button>
+      <BackButton onClick={onBack} />
 
       <article className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
         {article.image_url && (

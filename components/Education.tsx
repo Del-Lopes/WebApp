@@ -5,9 +5,14 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, Module, Lesson, Article } from '../types';
 import { ArticleView } from './Dashboard/ArticleView';
+import { BackButton } from './BackButton';
 import { type } from 'os';
 
-export const Education: React.FC = () => {
+interface EducationProps {
+  onBack?: () => void;
+}
+
+export const Education: React.FC<EducationProps> = ({ onBack }) => {
   const { role } = useAuth();
   const [courses, setCourses] = useState<Product[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -560,6 +565,7 @@ export const Education: React.FC = () => {
   // List View
   return (
     <div className="space-y-8">
+      {onBack && <BackButton onClick={onBack} />}
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>

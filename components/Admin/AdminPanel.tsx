@@ -2,8 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, Product, PartnerRequest } from '../../types';
 import { CheckCircle, XCircle, Package, Users, Activity, Plus } from 'lucide-react';
+import { BackButton } from '../BackButton';
 
-export const AdminPanel: React.FC = () => {
+interface AdminPanelProps {
+  onBack?: () => void;
+}
+
+export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'products'>('licenses');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<PartnerRequest[]>([]);
@@ -90,6 +95,7 @@ export const AdminPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {onBack && <BackButton onClick={onBack} />}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Painel Administrativo</h2>
