@@ -1,21 +1,23 @@
 
-import React, { useState } from 'react';
-import { Menu } from 'lucide-react';
+import React, { useState, Suspense } from 'react';
+import { Menu, Loader2 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
-import { Strategies } from './components/Strategies';
-import { Education } from './components/Education';
-import { Marketing } from './components/Marketing';
-import { Licenses } from './components/Licenses';
-import { UserDashboard } from './components/Dashboard/UserDashboard';
-import { AdminPanel } from './components/Admin/AdminPanel';
-import { Settings } from './components/Settings';
-import { CoursePlayer } from './components/Education/CoursePlayer';
-import { Login } from './components/Auth/Login';
-import { ArticleView } from './components/Dashboard/ArticleView';
-import { Logo } from './components/Logo';
 import { INITIAL_ROBOTS } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { View, UserRole, Robot, Article } from './types';
+import { Logo } from './components/Logo';
+import { Login } from './components/Auth/Login';
+
+// Lazy load components for performance optimization
+const Strategies = React.lazy(() => import('./components/Strategies').then(module => ({ default: module.Strategies })));
+const Education = React.lazy(() => import('./components/Education').then(module => ({ default: module.Education })));
+const Marketing = React.lazy(() => import('./components/Marketing').then(module => ({ default: module.Marketing })));
+const Licenses = React.lazy(() => import('./components/Licenses').then(module => ({ default: module.Licenses })));
+const UserDashboard = React.lazy(() => import('./components/Dashboard/UserDashboard').then(module => ({ default: module.UserDashboard })));
+const AdminPanel = React.lazy(() => import('./components/Admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
+const Settings = React.lazy(() => import('./components/Settings').then(module => ({ default: module.Settings })));
+const CoursePlayer = React.lazy(() => import('./components/Education/CoursePlayer').then(module => ({ default: module.CoursePlayer })));
+const ArticleView = React.lazy(() => import('./components/Dashboard/ArticleView').then(module => ({ default: module.ArticleView })));
 
 function AppContent() {
   const { user, isLoading, role } = useAuth();
@@ -55,35 +57,45 @@ function AppContent() {
   }
 
   const renderView = () => {
-    switch (currentView) {
-      case 'dashboard': return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
-      case 'article': 
-        return selectedArticle ? (
-          <ArticleView 
-            article={selectedArticle} 
-            onBack={() => setCurrentView('dashboard')} 
-          />
-        ) : <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
-      case 'strategies': 
-        return (
-          <Strategies 
-            userRole={role || 'client'} 
-            robots={robots}
-            onAddRobot={handleAddRobot}
-            onUpdateRobot={handleUpdateRobot}
-            onDeleteRobot={handleDeleteRobot}
-            onBack={() => setCurrentView('dashboard')}
-          />
-        );
-
-      case 'education': return <Education onBack={() => setCurrentView('dashboard')} />;
-      case 'course_player': return <CoursePlayer onBack={() => setCurrentView('education')} />;
-      case 'marketing': return <Marketing onBack={() => setCurrentView('dashboard')} />;
-      case 'licenses': return <Licenses onBack={() => setCurrentView('dashboard')} />;
-      case 'admin': return <AdminPanel onBack={() => setCurrentView('dashboard')} />;
-      case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
-      default: return <UserDashboard />;
-    }
+    return (
+      <Suspense fallback={
+        <div className="flex items-center justify-center h-full min-h-[400px]">
+          <Loader2 className="animate-spin text-green-600" size={40} />
+        </div>
+      }>
+        {(() => {
+          switch (currentView) {
+            case 'dashboard': return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+            case 'article': 
+              return selectedArticle ? (
+                <ArticleView 
+                  article={selectedArticle} 
+                  onBack={() => setCurrentView('dashboard')} 
+                />
+              ) : <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+            case 'strategies': 
+              return (
+                <Strategies 
+                  userRole={role || 'client'} 
+                  robots={robots}
+                  onAddRobot={handleAddRobot}
+                  onUpdateRobot={handleUpdateRobot}
+                  onDeleteRobot={handleDeleteRobot}
+                  onBack={() => setCurrentView('dashboard')}
+                />
+              );
+      
+            case 'education': return <Education onBack={() => setCurrentView('dashboard')} />;
+            case 'course_player': return <CoursePlayer onBack={() => setCurrentView('education')} />;
+            case 'marketing': return <Marketing onBack={() => setCurrentView('dashboard')} />;
+            case 'licenses': return <Licenses onBack={() => setCurrentView('dashboard')} />;
+            case 'admin': return <AdminPanel onBack={() => setCurrentView('dashboard')} />;
+            case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
+            default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+          }
+        })()}
+      </Suspense>
+    );
   };
 
   return (
