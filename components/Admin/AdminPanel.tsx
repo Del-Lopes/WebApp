@@ -41,10 +41,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
 
         if (error) throw error;
         setPartners(data as unknown as PartnerRequest[] || []);
-      } else if (activeTab === 'users') {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
+          .eq('role', 'client')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -284,7 +284,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                   <th className="px-6 py-4 font-medium">Nome</th>
                   <th className="px-6 py-4 font-medium">Email</th>
                   <th className="px-6 py-4 font-medium">Data de Cadastro</th>
-                  <th className="px-6 py-4 font-medium">Função</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -298,15 +297,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     </td>
                     <td className="px-6 py-4 text-slate-600">{user.email}</td>
                     <td className="px-6 py-4 text-slate-500">{new Date(user.created_at).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase border ${
-                        user.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                        user.role === 'partner' ? 'bg-green-100 text-green-700 border-green-200' :
-                        'bg-slate-100 text-slate-700 border-slate-200'
-                      }`}>
-                        {user.role}
-                      </span>
-                    </td>
                   </tr>
                 ))}
                 {users.length === 0 && (
