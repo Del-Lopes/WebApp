@@ -40,7 +40,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
+        if (error) throw error;
         setPartners(data as unknown as PartnerRequest[] || []);
+      } else if (activeTab === 'users') {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
