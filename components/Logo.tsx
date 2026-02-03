@@ -19,7 +19,7 @@ export const Logo: React.FC<LogoProps> = ({ className, variant = 'default' }) =>
 
   return (
     <img 
-      src="https://tradexperience.com.br/wp-content/uploads/2026/01/Design-sem-nome-15.png" 
+      src="/images/logo-icon.png" 
       alt="AFK Trade Logo" 
       className={className} 
     />
