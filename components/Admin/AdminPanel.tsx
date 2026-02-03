@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, Product, PartnerRequest, Profile } from '../../types';
-import { CheckCircle, XCircle, Package, Users, Activity, Plus, User } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { LicenseRequest, Product, PartnerRequest, Profile } from '../../types';
+import { CheckCircle, XCircle, Package, Users, Activity, Plus, User, Search } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
@@ -15,6 +17,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -151,6 +154,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         </button>
       </div>
 
+      {(activeTab === 'partners' || activeTab === 'users') && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+          <input
+            type="text"
+            placeholder="Buscar por nome ou email..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
+          />
+        </div>
+      )}
+
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         {errorMsg && (
           <div className="p-4 bg-red-50 text-red-600 border-b border-red-100 text-sm">
@@ -231,7 +247,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {partners.map((req) => (
+                {partners.filter(req => {
+                  if (!searchTerm) return true;
+                  const searchLower = searchTerm.toLowerCase();
+                  const name = req.profiles?.full_name?.toLowerCase() || '';
+                  const email = req.profiles?.email?.toLowerCase() || '';
+                  return name.includes(searchLower) || email.includes(searchLower);
+                }).map((req) => (
                   <tr key={req.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                         <div className="font-medium text-slate-900">
@@ -289,7 +311,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {users.map((user) => (
+                {users.filter(user => {
+                  if (!searchTerm) return true;
+                  const searchLower = searchTerm.toLowerCase();
+                  const name = user.full_name?.toLowerCase() || '';
+                  const email = user.email?.toLowerCase() || '';
+                  return name.includes(searchLower) || email.includes(searchLower);
+                }).map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
