@@ -43,6 +43,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         if (error) throw error;
         setPartners(data as unknown as PartnerRequest[] || []);
       } else if (activeTab === 'users') {
+        // 1. Get all pending partner requests to exclude them
+        const { data: pendingRequests, error: pendingError } = await supabase
+          .from('partner_requests')
+          .select('user_id')
+          .eq('status', 'pending');
+        
+        if (pendingError) throw pendingError;
+        
+        const pendingUserIds = pendingRequests?.map(req => req.user_id) || [];
+
+        // 2. Get all clients
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -50,7 +61,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        setUsers(data as Profile[] || []);
+        
+        // 3. Filter out those who are pending partners
+        const filteredUsers = (data as Profile[] || []).filter(user => !pendingUserIds.includes(user.id));
+        setUsers(filteredUsers);
       } else {
         const { data, error } = await supabase
           .from('products')
