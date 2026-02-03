@@ -1,6 +1,5 @@
+```
 import React, { useEffect, useState } from 'react';
-import { supabase } from '../../lib/supabase';
-import { LicenseRequest, Product, PartnerRequest, Profile } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, Product, PartnerRequest, Profile } from '../../types';
 import { CheckCircle, XCircle, Package, Users, Activity, Plus, User, Search } from 'lucide-react';
