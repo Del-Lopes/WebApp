@@ -9,11 +9,11 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'products' | 'clients'>('licenses');
+  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'products' | 'users'>('licenses');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<PartnerRequest[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [clients, setClients] = useState<Profile[]>([]);
+  const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -41,14 +41,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
 
         if (error) throw error;
         setPartners(data as unknown as PartnerRequest[] || []);
-      } else if (activeTab === 'clients') {
+      } else if (activeTab === 'users') {
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        setClients(data as Profile[] || []);
+        setUsers(data as Profile[] || []);
       } else {
         const { data, error } = await supabase
           .from('products')
@@ -133,12 +133,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
           Parceiros
         </button>
         <button
-          onClick={() => setActiveTab('clients')}
+          onClick={() => setActiveTab('users')}
           className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'clients' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+            activeTab === 'users' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          Clientes
+          Usuários
         </button>
         <button
           onClick={() => setActiveTab('products')}
@@ -276,7 +276,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
               </tbody>
             </table>
           </div>
-        ) : activeTab === 'clients' ? (
+        ) : activeTab === 'users' ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
@@ -288,29 +288,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {clients.map((client) => (
-                  <tr key={client.id} className="hover:bg-slate-50 transition-colors">
+                {users.map((user) => (
+                  <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
                             <User size={16} />
                          </div>
-                         {client.full_name || 'Sem nome'}
+                         {user.full_name || 'Sem nome'}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{client.email}</td>
-                    <td className="px-6 py-4 text-slate-500">{new Date(client.created_at).toLocaleDateString()}</td>
+                    <td className="px-6 py-4 text-slate-600">{user.email}</td>
+                    <td className="px-6 py-4 text-slate-500">{new Date(user.created_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase border ${
-                        client.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                        client.role === 'partner' ? 'bg-green-100 text-green-700 border-green-200' :
+                        user.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                        user.role === 'partner' ? 'bg-green-100 text-green-700 border-green-200' :
                         'bg-slate-100 text-slate-700 border-slate-200'
                       }`}>
-                        {client.role}
+                        {user.role === 'admin' ? 'Administrador' : user.role === 'partner' ? 'Parceiro' : 'Cliente'}
                       </span>
                     </td>
                   </tr>
                 ))}
-                {clients.length === 0 && (
-                    <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">Nenhum cliente encontrado.</td></tr>
+                {users.length === 0 && (
+                    <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">Nenhum usuário encontrado.</td></tr>
                 )}
               </tbody>
             </table>
