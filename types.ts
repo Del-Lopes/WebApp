@@ -89,3 +89,11 @@ export interface PartnerRequest {
   created_at: string;
   profiles?: { full_name: string; email: string };
 }
+
+export interface Profile {
+  id: string;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  created_at: string;
+}
