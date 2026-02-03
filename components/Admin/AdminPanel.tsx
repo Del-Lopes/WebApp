@@ -30,7 +30,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       if (activeTab === 'licenses') {
         const { data, error } = await supabase
           .from('license_requests')
-          .select(`*, profiles:user_id (full_name, email)`) 
+          .select('*, profiles:user_id (full_name, email)') 
           .order('created_at', { ascending: false });
         
         if (error) throw error;
@@ -38,10 +38,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       } else if (activeTab === 'partners') {
         const { data, error } = await supabase
           .from('partner_requests')
-          .select(`*, profiles(full_name, email)`)
+          .select('*, profiles(full_name, email)')
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
         if (error) throw error;
         setPartners(data as unknown as PartnerRequest[] || []);
       } else if (activeTab === 'users') {
