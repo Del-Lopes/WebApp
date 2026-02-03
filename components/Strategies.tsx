@@ -187,11 +187,13 @@ export const Strategies: React.FC<StrategiesProps> = ({
 
   return (
     <div className="space-y-6">
-      {onBack && <BackButton onClick={onBack} />}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Minhas Estratégias</h2>
-          <p className="text-slate-500 text-sm">Gerencie seus Expert Advisors e configurações.</p>
+        <div className="flex items-center gap-4">
+          {onBack && <BackButton onClick={onBack} />}
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900">Minhas Estratégias</h2>
+            <p className="text-slate-500 text-sm">Gerencie seus Expert Advisors e configurações.</p>
+          </div>
         </div>
       </div>
 

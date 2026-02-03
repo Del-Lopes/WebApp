@@ -81,10 +81,12 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      {onBack && <BackButton onClick={onBack} />}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Configurações da Conta</h2>
-        <p className="text-slate-500 text-sm">Gerencie seus dados pessoais e segurança.</p>
+      <div className="flex items-center gap-4">
+        {onBack && <BackButton onClick={onBack} />}
+        <div>
+            <h2 className="text-2xl font-bold text-slate-900">Configurações da Conta</h2>
+            <p className="text-slate-500 text-sm">Gerencie seus dados pessoais e segurança.</p>
+        </div>
       </div>
 
       {message && (

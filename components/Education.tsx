@@ -565,12 +565,14 @@ export const Education: React.FC<EducationProps> = ({ onBack }) => {
   // List View
   return (
     <div className="space-y-8">
-      {onBack && <BackButton onClick={onBack} />}
       {/* Header */}
       <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">Biblioteca de Conteúdo</h2>
-          <p className="text-slate-500 text-sm">Aprofunde seus conhecimentos em negociação algorítmica.</p>
+        <div className="flex items-center gap-4">
+          {onBack && <BackButton onClick={onBack} />}
+          <div>
+            <h2 className="text-2xl font-bold text-slate-900 mb-1">Biblioteca de Conteúdo</h2>
+            <p className="text-slate-500 text-sm">Aprofunde seus conhecimentos em negociação algorítmica.</p>
+          </div>
         </div>
         {role === 'admin' && (
             <button onClick={handleCreateClick} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">

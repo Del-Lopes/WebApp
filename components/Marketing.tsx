@@ -190,15 +190,21 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-6">
-      {onBack && <BackButton onClick={onBack} />}
       <div className="bg-slate-900 border border-slate-800 p-8 rounded-2xl relative overflow-hidden shadow-lg">
         <div className="absolute top-0 right-0 p-8 opacity-10 text-green-500">
           <Share2 size={120} />
         </div>
         <div className="relative z-10 max-w-xl">
-          <h2 className="text-2xl font-bold text-white mb-2">
-            {(role === 'partner' || (role === 'client' && partnerRequest?.status === 'approved')) ? 'Painel do Parceiro' : 'Central de Marketing'}
-          </h2>
+           <div className="flex items-center gap-4 mb-2">
+              {onBack && (
+                  <button onClick={onBack} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-full text-slate-400 hover:text-green-400 transition-colors">
+                      <ArrowLeft size={24} />
+                  </button>
+              )}
+              <h2 className="text-2xl font-bold text-white mb-0">
+                {(role === 'partner' || (role === 'client' && partnerRequest?.status === 'approved')) ? 'Painel do Parceiro' : 'Central de Marketing'}
+              </h2>
+           </div>
           <p className="text-slate-300 mb-6">Baixe materiais oficiais para promover a plataforma e expandir sua rede de afiliados.</p>
           <button className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg font-medium transition-colors shadow-lg shadow-green-900/30 border border-green-500/50">
             Copiar Link de Afiliado

@@ -96,8 +96,12 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
   return (
     <div className="max-w-4xl mx-auto pt-8 px-4">
-      {onBack && <BackButton onClick={onBack} />}
-      <div className="text-center mb-10">
+      <div className="text-center mb-10 relative">
+        {onBack && (
+            <div className="absolute left-0 top-0">
+                 <BackButton onClick={onBack} />
+            </div>
+        )}
         <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-200 shadow-sm">
           <Key size={32} className="text-green-600" />
         </div>
