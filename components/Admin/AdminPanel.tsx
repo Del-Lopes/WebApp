@@ -304,7 +304,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                         user.role === 'partner' ? 'bg-green-100 text-green-700 border-green-200' :
                         'bg-slate-100 text-slate-700 border-slate-200'
                       }`}>
-                        {user.role === 'admin' ? 'Administrador' : user.role === 'partner' ? 'Parceiro' : 'Cliente'}
+                        {user.role}
                       </span>
                     </td>
                   </tr>
