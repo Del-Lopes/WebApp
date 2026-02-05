@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { ShieldCheck, GraduationCap, TrendingUp, AlertCircle, Clock, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
+import { Cpu, GraduationCap, TrendingUp, AlertCircle, Clock, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
 import { LicenseRequest, Article, View } from '../../types';
 
 interface UserDashboardProps {
@@ -123,21 +123,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Status Card */}
+        {/* Strategies Card */}
         <div 
-          onClick={() => onNavigate('settings')}
+          onClick={() => onNavigate('strategies')}
           className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer group"
         >
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-blue-100 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <ShieldCheck size={24} />
+              <Cpu size={24} />
             </div>
             <div>
-              <p className="text-sm text-slate-500 font-medium">Status da Conta</p>
-              <h3 className="text-lg font-bold capitalize text-slate-900">{role === 'client' ? 'Cliente VIP' : role}</h3>
+              <p className="text-sm text-slate-500 font-medium">Estratégias</p>
+              <h3 className="text-lg font-bold capitalize text-slate-900">Meus Robôs</h3>
             </div>
           </div>
-          <div className="text-xs text-slate-400">Clique para configurar</div>
+          <div className="text-xs text-slate-400">Gerenciar estratégias</div>
         </div>
 
         {/* Licenses Card */}
