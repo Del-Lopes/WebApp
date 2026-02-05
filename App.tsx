@@ -1,5 +1,6 @@
 
 import React, { useState, Suspense } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { Menu, Loader2 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { INITIAL_ROBOTS } from './constants';
@@ -7,6 +8,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { View, UserRole, Robot, Article } from './types';
 import { Logo } from './components/Logo';
 import { Login } from './components/Auth/Login';
+import { ArticleView } from './components/Dashboard/ArticleView';
 
 // Lazy load components for performance optimization
 const Strategies = React.lazy(() => import('./components/Strategies').then(module => ({ default: module.Strategies })));
@@ -48,8 +50,30 @@ function AppContent() {
     setCurrentView('article');
   };
 
+
+  const getPageTitle = (view: View, article: Article | null) => {
+    switch (view) {
+      case 'dashboard': return 'Painel - AFK Trade';
+      case 'strategies': return 'Meus Robôs - AFK Trade';
+      case 'education': return 'Biblioteca - AFK Trade';
+      case 'course_player': return 'Aula - AFK Trade';
+      case 'marketing': return 'Marketing - AFK Trade';
+      case 'licenses': return 'Licenças - AFK Trade';
+      case 'admin': return 'Administração - AFK Trade';
+      case 'settings': return 'Configurações - AFK Trade';
+      case 'article': return article ? `${article.title} - AFK Trade` : 'Artigo - AFK Trade';
+      default: return 'AFK Trade';
+    }
+  };
   if (isLoading) {
-    return <div className="flex items-center justify-center h-screen bg-slate-50">Loading...</div>;
+    return (
+      <div className="flex items-center justify-center h-screen bg-slate-50">
+        <Helmet>
+          <title>Carregando... - AFK Trade</title>
+        </Helmet>
+        Loading...
+      </div>
+    );
   }
 
   if (!user) {
@@ -100,6 +124,10 @@ function AppContent() {
 
   return (
     <div className="flex h-screen bg-slate-50 text-slate-900 font-sans selection:bg-green-500/30 selection:text-green-900">
+      <Helmet>
+        <title>{getPageTitle(currentView, selectedArticle)}</title>
+        <meta name="description" content="Plataforma de negociação algorítmica AFK Trade." />
+      </Helmet>
       <Sidebar 
         currentView={currentView} 
         setCurrentView={setCurrentView} 
