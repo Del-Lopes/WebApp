@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, PartnerRequest, Profile, Prospect } from '../../types';
-import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2 } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
@@ -514,7 +514,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                             className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
                                             title="Editar Prospecto"
                                         >
-                                            <FileText size={18} />
+                                            <Edit2 size={18} />
                                         </button>
                                         <a 
                                             href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} 
