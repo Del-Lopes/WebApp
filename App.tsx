@@ -53,8 +53,8 @@ function AppContent() {
 
   const getPageTitle = (view: View, article: Article | null) => {
     switch (view) {
-      case 'dashboard': return 'Painel - AFK Trade';
-      case 'strategies': return 'Meus Robôs - AFK Trade';
+      case 'dashboard': return 'Início - AFK Trade';
+      case 'strategies': return 'Estratégias - AFK Trade';
       case 'education': return 'Biblioteca - AFK Trade';
       case 'course_player': return 'Aula - AFK Trade';
       case 'marketing': return 'Marketing - AFK Trade';

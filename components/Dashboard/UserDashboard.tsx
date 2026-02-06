@@ -134,7 +134,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             </div>
             <div>
               <p className="text-sm text-slate-500 font-medium">Estratégias</p>
-              <h3 className="text-lg font-bold capitalize text-slate-900">Meus Robôs</h3>
+              <h3 className="text-lg font-bold capitalize text-slate-900">Robôs</h3>
             </div>
           </div>
           <div className="text-xs text-slate-400">Gerenciar estratégias</div>

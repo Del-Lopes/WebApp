@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Activity, Server, TrendingUp, X, Trash2, AlertCircle } from 'lucide-react';
+import { Plus, Activity, Server, TrendingUp, X, Trash2, AlertCircle, ArrowUpDown } from 'lucide-react';
 import { Robot, UserRole, Product } from '../types';
 import { RobotDetails } from './RobotDetails';
 import { BackButton } from './BackButton';
@@ -33,6 +33,24 @@ export const Strategies: React.FC<StrategiesProps> = ({
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [robots, setRobots] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+
+  const sortedRobots = React.useMemo(() => {
+    if (!sortOrder) return robots;
+
+    return [...robots].sort((a, b) => {
+      // Parse profitability string (e.g. "+12.5%" -> 12.5)
+      const getVal = (r: Robot) => {
+        const str = r.profitability?.replace('%', '') || '0';
+        return parseFloat(str);
+      };
+
+      const valA = getVal(a);
+      const valB = getVal(b);
+
+      return sortOrder === 'asc' ? valA - valB : valB - valA;
+    });
+  }, [robots, sortOrder]);
 
   // Fetch Robots from Supabase
   useEffect(() => {
@@ -45,6 +63,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
         .from('products')
         .select('*')
         .eq('type', 'ea')
+        // Default sort by created_at serverside, but we'll sort by profitability client-side if selected
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -191,9 +210,28 @@ export const Strategies: React.FC<StrategiesProps> = ({
         <div className="flex items-center gap-4">
           {onBack && <BackButton onClick={onBack} />}
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Minhas Estratégias</h2>
-            <p className="text-slate-500 text-sm">Gerencie seus Expert Advisors e configurações.</p>
+            <h2 className="text-2xl font-bold text-slate-900">Estratégias e Robôs</h2>
+            <p className="text-slate-500 text-sm">Expert Advisors e Provedores de estratégias.</p>
           </div>
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setSortOrder(current => current === 'desc' ? 'asc' : 'desc')}
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+              sortOrder 
+                ? 'bg-green-50 border-green-200 text-green-700' 
+                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            }`}
+            title="Ordenar por Rentabilidade"
+          >
+            <ArrowUpDown size={16} />
+            <span className="text-sm font-medium">
+              Rentabilidade
+              {sortOrder === 'asc' && ' (Crescente)'}
+              {sortOrder === 'desc' && ' (Decrescente)'}
+            </span>
+          </button>
         </div>
       </div>
 
@@ -201,7 +239,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
         <div className="text-center py-10 text-slate-500">Carregando estratégias...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {robots.map((robot) => (
+          {sortedRobots.map((robot) => (
             <div key={robot.id} className="group bg-white border border-slate-200 hover:border-green-500/50 rounded-xl p-5 transition-all duration-300 relative overflow-hidden shadow-sm hover:shadow-md cursor-pointer" onClick={() => setSelectedRobot(robot)}>
               {/* Background Icon Decoration */}
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 pointer-events-none">
