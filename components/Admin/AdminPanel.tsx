@@ -18,6 +18,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [editingProspect, setEditingProspect] = useState<string | null>(null);
+
+  const handleUpdateField = async (id: string, field: keyof Prospect, value: string) => {
+      // Optimistic Update
+      setProspects(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+      
+      // Debounced/Direct DB update logic could go here, but for now we update single interactions or on blur
+      // However, a better approach for UX is "save on edit" or individual field save
+      // Given the requirement is just "edit fields", we'll update DB directly on change (debounced ideally) or just simple update:
+      
+      try {
+          await supabase.from('prospects').update({ [field]: value }).eq('id', id);
+      } catch (err) {
+          console.error(err);
+      }
+  };
 
   useEffect(() => {
     fetchData();
@@ -360,15 +376,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             </table>
           </div>
         ) : (
+          <div>
+          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+             <h3 className="font-bold text-slate-700">Lista de Prospectos</h3>
+             <button 
+                onClick={async () => {
+                    try {
+                        const { data, error } = await supabase.from('prospects').insert({
+                            full_name: 'Novo Prospecto',
+                            email: '',
+                            phone: '',
+                            status: 'new',
+                            notes: ''
+                        }).select().single();
+                        
+                        if (error) throw error;
+                        await fetchData();
+                        setEditingProspect(data.id);
+                    } catch (e: any) {
+                        alert('Erro ao criar: ' + e.message);
+                    }
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500 text-sm font-medium transition-colors"
+             >
+                <Plus size={16} /> Novo
+             </button>
+          </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                 <tr>
-                  <th className="px-6 py-4 font-medium">Prospecto</th>
-                  <th className="px-6 py-4 font-medium">Contato</th>
-                  <th className="px-6 py-4 font-medium">Status</th>
-                  <th className="px-6 py-4 font-medium">Data</th>
-                  <th className="px-6 py-4 font-medium text-right">Ação</th>
+                  <th className="px-6 py-4 font-medium w-[25%]">Prospecto</th>
+                  <th className="px-6 py-4 font-medium w-[25%]">Contato</th>
+                  <th className="px-6 py-4 font-medium w-[15%]">Status</th>
+                  <th className="px-6 py-4 font-medium w-[25%]">Anotações</th>
+                  <th className="px-6 py-4 font-medium text-right w-[10%]">Ação</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -379,31 +421,61 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                            p.email.toLowerCase().includes(term) ||
                            p.phone.includes(term);
                 }).map(prospect => (
-                    <tr key={prospect.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4">
-                            <div className="font-bold text-slate-900">{prospect.full_name}</div>
-                            <div className="text-xs text-slate-500">ID: {prospect.id.slice(0, 8)}</div>
+                    <tr key={prospect.id} className="hover:bg-slate-50 transition-colors group">
+                        <td className="px-6 py-4 align-top">
+                            {editingProspect === prospect.id ? (
+                                <input 
+                                    autoFocus
+                                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 mb-1 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none font-bold text-slate-900"
+                                    defaultValue={prospect.full_name}
+                                    onChange={(e) => handleUpdateField(prospect.id, 'full_name', e.target.value)}
+                                    placeholder="Nome Completo"
+                                />
+                            ) : (
+                                <div className="font-bold text-slate-900">{prospect.full_name}</div>
+                            )}
+                            <div className="text-xs text-slate-500 mt-1">ID: {prospect.id.slice(0, 8)}</div>
                         </td>
-                        <td className="px-6 py-4">
-                            <div className="flex flex-col gap-1">
-                                <a href={`mailto:${prospect.email}`} className="flex items-center gap-2 text-slate-600 hover:text-green-600">
-                                    <Mail size={14} /> {prospect.email}
-                                </a>
-                                <a href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-slate-600 hover:text-green-600">
-                                    <Phone size={14} /> {prospect.phone}
-                                </a>
+                        <td className="px-6 py-4 align-top">
+                            <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2 text-slate-600">
+                                   <Mail size={14} className="shrink-0" />
+                                   {editingProspect === prospect.id ? (
+                                       <input 
+                                            className="w-full bg-white border border-slate-300 rounded px-2 py-0.5 focus:ring-1 focus:ring-green-500 outline-none text-xs"
+                                            defaultValue={prospect.email}
+                                            onChange={(e) => handleUpdateField(prospect.id, 'email', e.target.value)}
+                                            placeholder="Email"
+                                       />
+                                   ) : (
+                                       <a href={`mailto:${prospect.email}`} className="hover:text-green-600 truncate">{prospect.email || 'Sem email'}</a>
+                                   )}
+                                </div>
+                                <div className="flex items-center gap-2 text-slate-600">
+                                   <Phone size={14} className="shrink-0" />
+                                   {editingProspect === prospect.id ? (
+                                       <input 
+                                            className="w-full bg-white border border-slate-300 rounded px-2 py-0.5 focus:ring-1 focus:ring-green-500 outline-none text-xs"
+                                            defaultValue={prospect.phone}
+                                            onChange={(e) => handleUpdateField(prospect.id, 'phone', e.target.value)}
+                                            placeholder="Telefone (55...)"
+                                       />
+                                   ) : (
+                                       <a href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:text-green-600 truncate">{prospect.phone || 'Sem telefone'}</a>
+                                   )}
+                                </div>
                             </div>
                         </td>
-                        <td className="px-6 py-4">
+                        <td className="px-6 py-4 align-top">
                              <select 
                                 value={prospect.status}
                                 onChange={(e) => handleProspectStatus(prospect.id, e.target.value as Prospect['status'])}
-                                className={`px-2 py-1 rounded text-xs font-semibold uppercase border outline-none cursor-pointer ${
-                                    prospect.status === 'new' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                                    prospect.status === 'contacted' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
-                                    prospect.status === 'negotiating' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                                    prospect.status === 'converted' ? 'bg-green-50 text-green-700 border-green-200' :
-                                    'bg-red-50 text-red-700 border-red-200'
+                                className={`w-full px-2 py-1.5 rounded text-xs font-bold uppercase border outline-none cursor-pointer transition-colors ${
+                                    prospect.status === 'new' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' :
+                                    prospect.status === 'contacted' ? 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100' :
+                                    prospect.status === 'negotiating' ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' :
+                                    prospect.status === 'converted' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' :
+                                    'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
                                 }`}
                              >
                                  <option value="new">Novo</option>
@@ -413,27 +485,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                  <option value="lost">Perdido</option>
                              </select>
                         </td>
-                        <td className="px-6 py-4 text-slate-500">
-                            {new Date(prospect.created_at).toLocaleDateString()}
+                        <td className="px-6 py-4 align-top text-slate-500">
+                            {editingProspect === prospect.id ? (
+                                <textarea 
+                                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-green-500 outline-none text-xs min-h-[60px]"
+                                    defaultValue={prospect.notes || ''}
+                                    onChange={(e) => handleUpdateField(prospect.id, 'notes', e.target.value)}
+                                    placeholder="Adicionar anotações..."
+                                />
+                            ) : (
+                                <p className="text-xs leading-relaxed max-w-[200px] whitespace-pre-wrap">{prospect.notes || '-'}</p>
+                            )}
                         </td>
-                         <td className="px-6 py-4 text-right">
-                            <a 
-                                href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} 
-                                target="_blank" 
-                                rel="noreferrer"
-                                className="inline-flex items-center justify-center p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                title="Abrir WhatsApp"
-                            >
-                                <MessageCircle size={18} />
-                            </a>
+                         <td className="px-6 py-4 align-top text-right">
+                            <div className="flex justify-end gap-2">
+                                {editingProspect === prospect.id ? (
+                                    <button 
+                                        onClick={() => setEditingProspect(null)}
+                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-green-200 bg-white shadow-sm"
+                                        title="Concluir Edição"
+                                    >
+                                        <CheckCircle size={18} />
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button 
+                                            onClick={() => setEditingProspect(prospect.id)}
+                                            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
+                                            title="Editar Prospecto"
+                                        >
+                                            <FileText size={18} />
+                                        </button>
+                                        <a 
+                                            href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} 
+                                            target="_blank" 
+                                            rel="noreferrer"
+                                            className={`p-2 rounded-lg transition-colors ${
+                                                prospect.phone 
+                                                ? 'text-green-600 hover:bg-green-50 hover:scale-105 transform' 
+                                                : 'text-slate-300 cursor-not-allowed'
+                                            }`}
+                                            title={prospect.phone ? "Abrir WhatsApp" : "Sem telefone"}
+                                            onClick={(e) => !prospect.phone && e.preventDefault()}
+                                        >
+                                            <MessageCircle size={18} />
+                                        </a>
+                                    </>
+                                )}
+                            </div>
                         </td>
                     </tr>
                 ))}
                  {prospects.length === 0 && (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum prospecto encontrado.</td></tr>
+                    <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Nenhum prospecto cadastrado.</td></tr>
                 )}
               </tbody>
             </table>
+          </div>
           </div>
         )}
       </div>

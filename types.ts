@@ -105,5 +105,6 @@ export interface Prospect {
   email: string;
   phone: string;
   status: 'new' | 'contacted' | 'negotiating' | 'converted' | 'lost';
+  notes?: string;
   created_at: string;
 }
