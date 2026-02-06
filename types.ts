@@ -98,3 +98,12 @@ export interface Profile {
   role: UserRole;
   created_at: string;
 }
+
+export interface Prospect {
+  id: string;
+  full_name: string;
+  email: string;
+  phone: string;
+  status: 'new' | 'contacted' | 'negotiating' | 'converted' | 'lost';
+  created_at: string;
+}

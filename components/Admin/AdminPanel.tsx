@@ -1,8 +1,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { LicenseRequest, Product, PartnerRequest, Profile } from '../../types';
-import { CheckCircle, XCircle, Package, Users, Activity, Plus, User, Search } from 'lucide-react';
+import { LicenseRequest, PartnerRequest, Profile, Prospect } from '../../types';
+import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
@@ -10,10 +10,10 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
-  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'products' | 'users'>('licenses');
+  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users'>('licenses');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<PartnerRequest[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [prospects, setProspects] = useState<Prospect[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,13 +52,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         if (error) throw error;
         setUsers(data as Profile[] || []);
       } else {
+        // Prospects
         const { data, error } = await supabase
-          .from('products')
+          .from('prospects')
           .select('*')
           .order('created_at', { ascending: false });
         
         if (error) throw error;
-        setProducts(data as Product[] || []);
+        setProspects(data as Prospect[] || []);
       }
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
@@ -104,6 +105,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
       }
   };
 
+  const handleProspectStatus = async (id: string, status: Prospect['status']) => {
+    try {
+      const { error } = await supabase
+        .from('prospects')
+        .update({ status })
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      // Optimistic update
+      setProspects(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+    } catch (error: any) {
+      alert('Erro ao atualizar status: ' + error.message);
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -143,21 +160,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
           Usuários
         </button>
         <button
-          onClick={() => setActiveTab('products')}
+          onClick={() => setActiveTab('prospects')}
           className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'products' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+            activeTab === 'prospects' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
           }`}
         >
-          Produtos e Cursos
+          Prospectos
         </button>
       </div>
 
-      {(activeTab === 'partners' || activeTab === 'users') && (
+      {(activeTab === 'partners' || activeTab === 'users' || activeTab === 'prospects') && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
           <input
             type="text"
-            placeholder="Buscar por nome ou email..."
+            placeholder="Buscar por nome, email ou telefone..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
@@ -343,26 +360,80 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             </table>
           </div>
         ) : (
-          <div className="p-6">
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="font-bold text-slate-700">Catálogo de Produtos</h3>
-                <button className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium">
-                    <Plus size={16} /> Novo Produto
-                </button>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {products.map(prod => (
-                    <div key={prod.id} className="border border-slate-200 rounded-xl p-4 flex gap-4">
-                        <div className="w-16 h-16 bg-slate-100 rounded-lg shrink-0 overflow-hidden">
-                            {prod.image_url && <img src={prod.image_url} alt="" className="w-full h-full object-cover" />}
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-slate-800 line-clamp-1">{prod.title}</h4>
-                            <span className="text-xs uppercase font-semibold text-slate-400 border border-slate-200 px-1.5 py-0.5 rounded">{prod.type}</span>
-                        </div>
-                    </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                <tr>
+                  <th className="px-6 py-4 font-medium">Prospecto</th>
+                  <th className="px-6 py-4 font-medium">Contato</th>
+                  <th className="px-6 py-4 font-medium">Status</th>
+                  <th className="px-6 py-4 font-medium">Data</th>
+                  <th className="px-6 py-4 font-medium text-right">Ação</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {prospects.filter(p => {
+                    if (!searchTerm) return true;
+                    const term = searchTerm.toLowerCase();
+                    return p.full_name.toLowerCase().includes(term) || 
+                           p.email.toLowerCase().includes(term) ||
+                           p.phone.includes(term);
+                }).map(prospect => (
+                    <tr key={prospect.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                            <div className="font-bold text-slate-900">{prospect.full_name}</div>
+                            <div className="text-xs text-slate-500">ID: {prospect.id.slice(0, 8)}</div>
+                        </td>
+                        <td className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
+                                <a href={`mailto:${prospect.email}`} className="flex items-center gap-2 text-slate-600 hover:text-green-600">
+                                    <Mail size={14} /> {prospect.email}
+                                </a>
+                                <a href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-slate-600 hover:text-green-600">
+                                    <Phone size={14} /> {prospect.phone}
+                                </a>
+                            </div>
+                        </td>
+                        <td className="px-6 py-4">
+                             <select 
+                                value={prospect.status}
+                                onChange={(e) => handleProspectStatus(prospect.id, e.target.value as Prospect['status'])}
+                                className={`px-2 py-1 rounded text-xs font-semibold uppercase border outline-none cursor-pointer ${
+                                    prospect.status === 'new' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                    prospect.status === 'contacted' ? 'bg-yellow-50 text-yellow-700 border-yellow-200' :
+                                    prospect.status === 'negotiating' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                                    prospect.status === 'converted' ? 'bg-green-50 text-green-700 border-green-200' :
+                                    'bg-red-50 text-red-700 border-red-200'
+                                }`}
+                             >
+                                 <option value="new">Novo</option>
+                                 <option value="contacted">Contatado</option>
+                                 <option value="negotiating">Em Negociação</option>
+                                 <option value="converted">Convertido</option>
+                                 <option value="lost">Perdido</option>
+                             </select>
+                        </td>
+                        <td className="px-6 py-4 text-slate-500">
+                            {new Date(prospect.created_at).toLocaleDateString()}
+                        </td>
+                         <td className="px-6 py-4 text-right">
+                            <a 
+                                href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} 
+                                target="_blank" 
+                                rel="noreferrer"
+                                className="inline-flex items-center justify-center p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                                title="Abrir WhatsApp"
+                            >
+                                <MessageCircle size={18} />
+                            </a>
+                        </td>
+                    </tr>
                 ))}
-            </div>
+                 {prospects.length === 0 && (
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum prospecto encontrado.</td></tr>
+                )}
+              </tbody>
+            </table>
           </div>
         )}
       </div>

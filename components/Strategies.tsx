@@ -232,8 +232,8 @@ export const Strategies: React.FC<StrategiesProps> = ({
             <ArrowUpDown size={16} />
             <span className="text-sm font-medium">
               Rentabilidade
-              {sortOrder === 'asc' && ' (↑)'}
-              {sortOrder === 'desc' && ' (↓)'}
+              {sortOrder === 'asc' && '-'}
+              {sortOrder === 'desc' && '+'}
             </span>
           </button>
         </div>
