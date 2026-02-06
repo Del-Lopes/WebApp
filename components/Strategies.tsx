@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Activity, Server, TrendingUp, X, Trash2, AlertCircle, ArrowUpDown } from 'lucide-react';
+import { Plus, Activity, Server, TrendingUp, X, Trash2, AlertCircle, ArrowUpDown, ShieldCheck } from 'lucide-react';
 import { Robot, UserRole, Product } from '../types';
 import { RobotDetails } from './RobotDetails';
 import { BackButton } from './BackButton';
@@ -82,7 +82,8 @@ export const Strategies: React.FC<StrategiesProps> = ({
           images: item.metadata?.images || [],
           manualImages: item.metadata?.manualImages || [],
           avatar_url: item.metadata?.avatar_url || '',
-          external_url: item.metadata?.external_url || ''
+          external_url: item.metadata?.external_url || '',
+          myfxbook_url: item.metadata?.myfxbook_url || ''
         }));
         setRobots(mappedRobots);
       }
@@ -110,7 +111,8 @@ export const Strategies: React.FC<StrategiesProps> = ({
         images: [],
         manualImages: [],
         avatar_url: '',
-        external_url: ''
+        external_url: '',
+        myfxbook_url: ''
       };
 
       const { data, error } = await supabase.from('products').insert({
@@ -151,7 +153,8 @@ export const Strategies: React.FC<StrategiesProps> = ({
         images: updatedRobot.images,
         manualImages: updatedRobot.manualImages,
         avatar_url: updatedRobot.avatar_url,
-        external_url: updatedRobot.external_url
+        external_url: updatedRobot.external_url,
+        myfxbook_url: updatedRobot.myfxbook_url
       };
 
       const { error } = await supabase
@@ -229,8 +232,8 @@ export const Strategies: React.FC<StrategiesProps> = ({
             <ArrowUpDown size={16} />
             <span className="text-sm font-medium">
               Rentabilidade
-              {sortOrder === 'asc' && ' (Crescente)'}
-              {sortOrder === 'desc' && ' (Decrescente)'}
+              {sortOrder === 'asc' && ' (↑)'}
+              {sortOrder === 'desc' && ' (↓)'}
             </span>
           </button>
         </div>
@@ -289,12 +292,28 @@ export const Strategies: React.FC<StrategiesProps> = ({
               <div className="flex items-center justify-between pt-4 border-t border-slate-100 relative z-10">
                 <div className="flex flex-col">
                   <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">Performance</span>
-                  <div className={`flex items-center gap-1.5 font-bold ${
-                    robot.profitability.startsWith('+') ? 'text-green-600' : 
-                    robot.profitability.startsWith('-') ? 'text-red-500' : 'text-slate-400'
-                  }`}>
-                    <TrendingUp size={14} />
-                    {robot.profitability}
+                  <div className="flex items-center gap-2">
+                    <div className={`flex items-center gap-1.5 font-bold ${
+                      robot.profitability.startsWith('+') ? 'text-green-600' : 
+                      robot.profitability.startsWith('-') ? 'text-red-500' : 'text-slate-400'
+                    }`}>
+                      <TrendingUp size={14} />
+                      {robot.profitability}
+                    </div>
+                    {/* MyFxBook Verified Icon - Card */}
+                    {robot.myfxbook_url && (
+                        <a 
+                            href={robot.myfxbook_url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            onClick={(e) => e.stopPropagation()} 
+                            className="flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-orange-100 transition-colors"
+                            title="Verificado no MyFxBook"
+                        >
+                            <ShieldCheck size={10} />
+                            MyFxBook
+                        </a>
+                    )}
                   </div>
                 </div>
                 <span className="text-sm text-green-600 hover:text-green-700 font-medium hover:underline">

@@ -14,6 +14,7 @@ export interface Robot {
   manualImages?: string[];
   avatar_url?: string;
   external_url?: string;
+  myfxbook_url?: string;
 }
 
 export interface Product {

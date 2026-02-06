@@ -45,6 +45,13 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
     }
   };
 
+  const handleAddMyFxBook = () => {
+    const url = window.prompt("Insira a URL do MyFxBook:", formData.myfxbook_url || '');
+    if (url !== null) {
+         setFormData(prev => ({ ...prev, myfxbook_url: url }));
+    }
+  }
+
   const removeImage = (type: 'images' | 'manualImages', index: number) => {
     if (window.confirm("Remover esta imagem?")) {
       setFormData(prev => ({
@@ -196,6 +203,19 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                   ) : (
                     <strong className={formData.profitability.includes('+') ? 'text-green-600' : 'text-red-500'}>{formData.profitability}</strong>
                   )}
+                  {/* Verified MyFxBook Badge */}
+                  {formData.myfxbook_url && (
+                    <a 
+                      href={formData.myfxbook_url}
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 px-2 py-0.5 rounded-full text-xs font-bold hover:bg-orange-100 transition-colors ml-1"
+                      title="Estratégia Verificada no MyFxBook"
+                    >
+                      <ShieldCheck size={12} />
+                      MyFxBook
+                    </a>
+                  )}
                 </div>
 
                 {isEditing && (
@@ -255,10 +275,10 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
             <h3 className="text-xl font-bold text-slate-900">Operacional & Backtests</h3>
             {isEditing && (
                 <button 
-                  onClick={() => addImage('images')}
-                  className="flex items-center gap-1 text-sm font-semibold text-green-600 hover:underline"
+                  onClick={handleAddMyFxBook}
+                  className="flex items-center gap-1 text-sm font-semibold text-orange-600 hover:underline"
                 >
-                  <Plus size={16} /> Adicionar URL
+                  <ShieldCheck size={16} /> MyFxBook
                 </button>
             )}
         </div>
