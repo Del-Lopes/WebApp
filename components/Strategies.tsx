@@ -33,7 +33,8 @@ export const Strategies: React.FC<StrategiesProps> = ({
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [robots, setRobots] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  // Default to 'desc' (Highest Profitability first) as requested
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('desc');
 
   const sortedRobots = React.useMemo(() => {
     if (!sortOrder) return robots;
