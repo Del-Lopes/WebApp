@@ -19,6 +19,7 @@ const UserDashboard = React.lazy(() => import('./components/Dashboard/UserDashbo
 const AdminPanel = React.lazy(() => import('./components/Admin/AdminPanel').then(module => ({ default: module.AdminPanel })));
 const Settings = React.lazy(() => import('./components/Settings').then(module => ({ default: module.Settings })));
 const CoursePlayer = React.lazy(() => import('./components/Education/CoursePlayer').then(module => ({ default: module.CoursePlayer })));
+const Downloads = React.lazy(() => import('./components/Downloads').then(module => ({ default: module.Downloads })));
 const ArticleView = React.lazy(() => import('./components/Dashboard/ArticleView').then(module => ({ default: module.ArticleView })));
 const Journey = React.lazy(() => import('./components/Journey').then(module => ({ default: module.Journey })));
 
@@ -63,6 +64,7 @@ function AppContent() {
       case 'admin': return 'Administração - AFK Trade';
       case 'settings': return 'Configurações - AFK Trade';
       case 'journey': return 'Sua Jornada - AFK Trade';
+      case 'downloads': return 'Downloads - AFK Trade';
       case 'article': return article ? `${article.title} - AFK Trade` : 'Artigo - AFK Trade';
       default: return 'AFK Trade';
     }
@@ -117,6 +119,7 @@ function AppContent() {
             case 'licenses': return <Licenses onBack={() => setCurrentView('dashboard')} />;
             case 'admin': return <AdminPanel onBack={() => setCurrentView('dashboard')} />;
             case 'journey': return <Journey onBack={() => setCurrentView('dashboard')} />;
+            case 'downloads': return <Downloads onBack={() => setCurrentView('dashboard')} />;
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
           }

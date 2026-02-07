@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { Cpu, GraduationCap, TrendingUp, AlertCircle, Clock, Plus, Edit2, Trash2, X, Save, Map, ChevronRight } from 'lucide-react';
+import { Cpu, GraduationCap, TrendingUp, AlertCircle, Clock, Plus, Edit2, Trash2, X, Save, Map, ChevronRight, Download } from 'lucide-react';
 import { LicenseRequest, Article, View } from '../../types';
 
 interface UserDashboardProps {
@@ -143,6 +143,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             <span>Siga a trilha do sucesso</span>
             <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
           </div>
+        </div>
+
+        {/* Downloads Card */}
+        <div 
+          onClick={() => onNavigate('downloads')}
+          className="bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-lg shadow-slate-200/50 hover:shadow-xl hover:shadow-slate-300/50 transition-all duration-300 cursor-pointer group"
+        >
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-slate-200 text-slate-600 rounded-xl group-hover:bg-slate-600 group-hover:text-white transition-colors">
+              <Download size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 font-medium">Ferramentas</p>
+              <h3 className="text-lg font-bold capitalize text-slate-900">Downloads</h3>
+            </div>
+          </div>
+          <div className="text-xs text-slate-400">MT5, Manuais e Indicadores</div>
         </div>
 
         {/* Strategies Card */}
