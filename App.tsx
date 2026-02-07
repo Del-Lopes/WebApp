@@ -8,7 +8,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { View, UserRole, Robot, Article } from './types';
 import { Logo } from './components/Logo';
 import { Login } from './components/Auth/Login';
-import { ArticleView } from './components/Dashboard/ArticleView';
+// Removed duplicate ArticleView import
 
 // Lazy load components for performance optimization
 const Strategies = React.lazy(() => import('./components/Strategies').then(module => ({ default: module.Strategies })));
@@ -20,6 +20,7 @@ const AdminPanel = React.lazy(() => import('./components/Admin/AdminPanel').then
 const Settings = React.lazy(() => import('./components/Settings').then(module => ({ default: module.Settings })));
 const CoursePlayer = React.lazy(() => import('./components/Education/CoursePlayer').then(module => ({ default: module.CoursePlayer })));
 const ArticleView = React.lazy(() => import('./components/Dashboard/ArticleView').then(module => ({ default: module.ArticleView })));
+const Journey = React.lazy(() => import('./components/Journey').then(module => ({ default: module.Journey })));
 
 function AppContent() {
   const { user, isLoading, role } = useAuth();
@@ -61,6 +62,7 @@ function AppContent() {
       case 'licenses': return 'Licenças - AFK Trade';
       case 'admin': return 'Administração - AFK Trade';
       case 'settings': return 'Configurações - AFK Trade';
+      case 'journey': return 'Sua Jornada - AFK Trade';
       case 'article': return article ? `${article.title} - AFK Trade` : 'Artigo - AFK Trade';
       default: return 'AFK Trade';
     }
@@ -114,6 +116,7 @@ function AppContent() {
             case 'marketing': return <Marketing onBack={() => setCurrentView('dashboard')} />;
             case 'licenses': return <Licenses onBack={() => setCurrentView('dashboard')} />;
             case 'admin': return <AdminPanel onBack={() => setCurrentView('dashboard')} />;
+            case 'journey': return <Journey onBack={() => setCurrentView('dashboard')} />;
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
           }

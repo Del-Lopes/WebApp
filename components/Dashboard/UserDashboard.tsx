@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { Cpu, GraduationCap, TrendingUp, AlertCircle, Clock, Plus, Edit2, Trash2, X, Save } from 'lucide-react';
+import { Cpu, GraduationCap, TrendingUp, AlertCircle, Clock, Plus, Edit2, Trash2, X, Save, Map, ChevronRight } from 'lucide-react';
 import { LicenseRequest, Article, View } from '../../types';
 
 interface UserDashboardProps {
@@ -122,7 +122,29 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
         <p className="text-slate-500">Bem-vindo ao seu painel de controle.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Journey Card (Start Here) */}
+        <div 
+          onClick={() => onNavigate('journey')}
+          className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 rounded-2xl border border-transparent shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 cursor-pointer group relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
+          
+          <div className="flex items-center gap-4 mb-4 relative z-10">
+            <div className="p-3 bg-white/20 text-white rounded-xl backdrop-blur-sm group-hover:bg-white group-hover:text-indigo-600 transition-colors">
+              <Map size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-indigo-100 font-medium">Novo por aqui?</p>
+              <h3 className="text-lg font-bold text-white">Comece Por Aqui</h3>
+            </div>
+          </div>
+          <div className="text-xs text-indigo-100 relative z-10 flex items-center gap-1 font-medium">
+            <span>Siga a trilha do sucesso</span>
+            <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
+          </div>
+        </div>
+
         {/* Strategies Card */}
         <div 
           onClick={() => onNavigate('strategies')}
