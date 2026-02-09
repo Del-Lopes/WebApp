@@ -172,11 +172,11 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                 Torne-se um parceiro oficial e tenha acesso a materiais de marketing exclusivos, suporte dedicado e comissões especiais.
             </p>
 
-            {partnerRequest ? (
+            {partnerRequest && partnerRequest.status === 'pending' ? (
                  <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-6 py-4 rounded-xl flex items-center gap-3">
                      <span className="font-bold">Status:</span>
-                     {partnerRequest.status === 'pending' ? 'Em Análise' : 'Solicitação Rejeitada'}
-                     {partnerRequest.status === 'pending' && <span className="animate-pulse">...</span>}
+                     Em Análise
+                     <span className="animate-pulse">...</span>
                  </div>
             ) : (
                 <button 
