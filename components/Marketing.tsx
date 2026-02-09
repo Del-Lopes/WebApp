@@ -53,7 +53,9 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                .from('partner_requests')
                .select('*')
                .eq('user_id', user.id)
-               .maybeSingle(); // Use maybeSingle to avoid error if none
+               .order('created_at', { ascending: false }) // Get the absolute latest request
+               .limit(1)
+               .maybeSingle(); 
            setPartnerRequest(reqData);
        }
     } catch (error) {
@@ -65,14 +67,20 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
   const handleRequestPartner = async () => {
     if (!user) return;
+    
+    // Safety check: Don't allow if already pending (though UI hides button)
+    if (partnerRequest && partnerRequest.status === 'pending') {
+        alert("Você já tem uma solicitação em análise.");
+        return;
+    }
+
     try {
         const { error } = await supabase.from('partner_requests').insert({
             user_id: user.id,
             status: 'pending'
         });
         if (error) throw error;
-        alert("Solicitação enviada com sucesso! Aguarde a aprovação.");
-        fetchData();
+        await fetchData(); // Refresh state immediately
     } catch (e: any) {
         alert("Erro ao solicitar: " + e.message);
     }
