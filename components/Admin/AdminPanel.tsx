@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, PartnerRequest, Profile, Prospect } from '../../types';
@@ -12,7 +13,7 @@ interface AdminPanelProps {
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) => {
   const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users'>('licenses');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
-  const [partners, setPartners] = useState<Profile[]>([]); // Changed to Profile[] to list users with partner role
+  const [partners, setPartners] = useState<Profile[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,28 +51,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         setLicenses(data as unknown as LicenseRequest[] || []);
 
       } else if (activeTab === 'partners') {
-        // Now fetching from profiles where role is 'partner', 'first_mate', or 'admin'
-        // Logic: Display users who have partner privileges or higher in the partners tab if the intent is to see "who is a partner"
-        // Based on user request "users with role 'partner' should be in the list".
-        // Also "First Mate role includes everything Partner has + more".
-        // Assuming "Partners" tab is for managing those with partner capability. 
-        // Or strictly 'partner'? The user said: "só mostre os usuários que realmente são parceiros".
-        // If I strictly follow "really are partners", it implies role = 'partner'.
-        // But since First Mate > Partner, they are inherently partners too?
-        // Let's filter by role IN ('partner', 'first_mate', 'admin') or just 'partner'?
-        // The user complained that a user whose role was removed (presumably set to 'client') remained in the list.
-        // So the list was likely stale or fetching from 'partner_requests' table.
-        // Previously: .from('partner_requests')
-        // Fix: Fetch from 'profiles' where role is 'partner' OR 'first_mate' (since they include partner privileges).
-        
+        // Fetch partners, first mates, and admins
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .in('role', ['partner', 'first_mate', 'admin']) 
+          .order('role', { ascending: true }) // Sort to group by role if possible, or handle locally
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        setPartners(data as Profile[] || []);
+        
+        // Manual sorting to enforce hierarchy: Admin > First Mate > Partner
+        const sortedData = (data as Profile[] || []).sort((a, b) => {
+             const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2 };
+             // @ts-ignore
+             return (roleOrder[a.role] || 3) - (roleOrder[b.role] || 3);
+        });
+
+        setPartners(sortedData);
 
       } else if (activeTab === 'users') {
         const { data, error } = await supabase
@@ -121,13 +118,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       // Optimistic update for users tab
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole as any } : u));
       
-      // If we are in partners tab and role is changed to client, remove from list
+      // Handle partners list update
       if (activeTab === 'partners') {
           if (newRole === 'client') {
+              // Remove if demoted to client
               setPartners(prev => prev.filter(p => p.id !== userId));
           } else {
-               // Update role in partners list
-               setPartners(prev => prev.map(p => p.id === userId ? { ...p, role: newRole as any } : p));
+               // Update role and re-sort local list to maintain hierarchy
+               setPartners(prev => {
+                   const updated = prev.map(p => p.id === userId ? { ...p, role: newRole as any } : p);
+                   // If user wasn't in list (e.g. was client, now partner - though this flow is usually from 'users' tab)
+                   // But if editing directly in partners tab, they exist.
+                   return updated.sort((a, b) => {
+                        const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2 };
+                        // @ts-ignore
+                        return (roleOrder[a.role] || 3) - (roleOrder[b.role] || 3);
+                   });
+               });
           }
       }
 
@@ -299,8 +306,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 <tr>
                   <th className="px-6 py-4 font-medium">Parceiro</th>
                   <th className="px-6 py-4 font-medium">Email</th>
-                  <th className="px-6 py-4 font-medium">Since</th>
-                  <th className="px-6 py-4 font-medium">Role</th>
+                  <th className="px-6 py-4 font-medium">Desde</th>
+                  <th className="px-6 py-4 font-medium">Função</th>
                   <th className="px-6 py-4 font-medium text-right">Ações</th>
                 </tr>
               </thead>

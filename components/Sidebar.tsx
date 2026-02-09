@@ -120,19 +120,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="font-medium">Licenças</span>
           </button>
 
-          <button
-            onClick={() => handleViewChange('marketing')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-              currentView === 'marketing' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-            }`}
-          >
-            <Users size={20} />
-            <span className="font-medium">
-              {role === 'partner' ? 'Painel do Parceiro' : role === 'client' ? 'Torne-se Parceiro' : 'Marketing'}
-            </span>
-          </button>
+          {/* Partner Panel - Accessible by Partner, First Mate, and Admin */}
+          {['partner', 'first_mate', 'admin'].includes(role || '') && (
+            <button
+              onClick={() => handleViewChange('marketing')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                currentView === 'marketing' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Users size={20} />
+              <span className="font-medium">Painel do Parceiro</span>
+            </button>
+          )}
 
-          {['admin', 'first_mate'].includes(role || '') && (
+          {/* Show "Become Partner" only for clients */}
+          {role === 'client' && (
+             <button
+              onClick={() => handleViewChange('marketing')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                currentView === 'marketing' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <Users size={20} />
+              <span className="font-medium">Torne-se Parceiro</span>
+            </button>
+          )}
+
+          {/* Treasury - Accessible by First Mate and Admin */}
+          {['first_mate', 'admin'].includes(role || '') && (
             <>
               <div className="border-t border-slate-800 my-4 mx-2"></div>
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-4">Administração</div>
@@ -146,7 +161,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <DollarSign size={20} />
                 <span className="font-medium">Tesouraria</span>
               </button>
+            </>
+          )}
 
+          {/* Admin Panel - Accessible by Admin only */}
+          {role === 'admin' && (
               <button
                 onClick={() => handleViewChange('admin')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
@@ -156,7 +175,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <Settings size={20} />
                 <span className="font-medium">Painel Admin</span>
               </button>
-            </>
           )}
 
         </nav>
