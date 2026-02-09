@@ -37,7 +37,8 @@ function AppContent() {
     const tourCompleted = localStorage.getItem('afk_tour_completed');
     if (!tourCompleted) {
        // Delay tour slightly for better UX
-       setTimeout(() => setShowTour(true), 1500);
+       const timer = setTimeout(() => setShowTour(true), 1500);
+       return () => clearTimeout(timer);
     }
   }, []);
   
@@ -61,6 +62,12 @@ function AppContent() {
   const handleReadArticle = (article: Article) => {
     setSelectedArticle(article);
     setCurrentView('article');
+  };
+
+  const handleTourClose = () => {
+    setShowTour(false);
+    // Always mark as completed on interaction (whether close or finish)
+    localStorage.setItem('afk_tour_completed', 'true');
   };
 
 
@@ -190,11 +197,8 @@ function AppContent() {
         {showTour && (
           <Suspense fallback={null}>
             <PlatformTour 
-              onClose={() => setShowTour(false)} 
-              onComplete={() => {
-                setShowTour(false);
-                localStorage.setItem('afk_tour_completed', 'true');
-              }} 
+              onClose={handleTourClose} 
+              onComplete={handleTourClose}
             />
           </Suspense>
         )}

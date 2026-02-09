@@ -41,7 +41,6 @@ const TOUR_STEPS = [
 
 export const PlatformTour: React.FC<PlatformTourProps> = ({ onClose, onComplete }) => {
   const [currentStep, setCurrentStep] = useState(0);
-  const [dontShowAgain, setDontShowAgain] = useState(false);
 
   const handleNext = () => {
     if (currentStep < TOUR_STEPS.length - 1) {
@@ -58,9 +57,6 @@ export const PlatformTour: React.FC<PlatformTourProps> = ({ onClose, onComplete 
   };
 
   const finishTour = () => {
-    if (dontShowAgain) {
-      localStorage.setItem('afk_tour_completed', 'true');
-    }
     onComplete();
   };
 
@@ -139,20 +135,6 @@ export const PlatformTour: React.FC<PlatformTourProps> = ({ onClose, onComplete 
                    <ChevronRight size={18} />
                  </button>
                </div>
-            </div>
-
-            {/* Do not show again */}
-            <div className="pt-4 border-t border-slate-100 flex items-center gap-2">
-              <input 
-                type="checkbox" 
-                id="dontShow" 
-                checked={dontShowAgain}
-                onChange={(e) => setDontShowAgain(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-green-600 focus:ring-green-500 cursor-pointer"
-              />
-              <label htmlFor="dontShow" className="text-sm text-slate-500 cursor-pointer select-none">
-                Não mostrar este tour novamente
-              </label>
             </div>
           </div>
         </div>
