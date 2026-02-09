@@ -40,7 +40,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
       }`}>
         <div className="p-6 flex items-center justify-between">
-           <div className="flex items-center gap-3">
+           <div 
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => handleViewChange('dashboard')}
+           >
              <div className="w-8 h-8">
                <Logo className="w-full h-full text-green-500" />
              </div>

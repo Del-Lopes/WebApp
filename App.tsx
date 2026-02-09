@@ -157,7 +157,10 @@ function AppContent() {
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Mobile Header */}
         <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-10">
-          <div className="flex items-center gap-3">
+          <div 
+            className="flex items-center gap-3 cursor-pointer"
+            onClick={() => setCurrentView('dashboard')}
+          >
              <div className="w-8 h-8">
                <Logo className="w-full h-full" variant="mobile" />
              </div>
