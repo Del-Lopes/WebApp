@@ -15,6 +15,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<Profile[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
+  const [partnerRequests, setPartnerRequests] = useState<PartnerRequest[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -51,24 +52,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         setLicenses(data as unknown as LicenseRequest[] || []);
 
       } else if (activeTab === 'partners') {
-        // Fetch partners, first mates, and admins
-        const { data, error } = await supabase
+        // Fetch existing partners (profiles with relevant roles)
+        const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
           .in('role', ['partner', 'first_mate', 'admin']) 
-          .order('role', { ascending: true }) // Sort to group by role if possible, or handle locally
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (profilesError) throw profilesError;
         
         // Manual sorting to enforce hierarchy: Admin > First Mate > Partner
-        const sortedData = (data as Profile[] || []).sort((a, b) => {
+        const sortedData = (profiles as Profile[] || []).sort((a, b) => {
              const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2 };
              // @ts-ignore
              return (roleOrder[a.role] || 3) - (roleOrder[b.role] || 3);
         });
 
         setPartners(sortedData);
+
+        // Fetch pending partner requests
+        const { data: requests, error: requestsError } = await supabase
+            .from('partner_requests')
+            .select('*, profiles(full_name, email)')
+            .eq('status', 'pending')
+            .order('created_at', { ascending: false });
+        
+        if (requestsError) throw requestsError;
+        setPartnerRequests(requests as unknown as PartnerRequest[] || []);
 
       } else if (activeTab === 'users') {
         const { data, error } = await supabase
@@ -105,6 +115,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     }
   };
 
+  const handlePartnerRequestAction = async (request: PartnerRequest, status: 'approved' | 'rejected') => {
+      try {
+          // Update request status
+          const { error: reqError } = await supabase
+            .from('partner_requests')
+            .update({ status })
+            .eq('id', request.id);
+          
+          if (reqError) throw reqError;
+
+          // If approved, update user role to partner
+          if (status === 'approved') {
+              const { error: roleError } = await supabase
+                .from('profiles')
+                .update({ role: 'partner' })
+                .eq('id', request.user_id);
+              
+              if (roleError) throw roleError;
+          }
+
+          fetchData();
+      } catch (error: any) {
+          console.error("Error updating partner request:", error);
+          alert("Erro: " + error.message);
+      }
+  };
+
 
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
     try {
@@ -124,11 +161,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               // Remove if demoted to client
               setPartners(prev => prev.filter(p => p.id !== userId));
           } else {
-               // Update role and re-sort local list to maintain hierarchy
+               // Update role and re-sort local list
                setPartners(prev => {
                    const updated = prev.map(p => p.id === userId ? { ...p, role: newRole as any } : p);
-                   // If user wasn't in list (e.g. was client, now partner - though this flow is usually from 'users' tab)
-                   // But if editing directly in partners tab, they exist.
                    return updated.sort((a, b) => {
                         const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2 };
                         // @ts-ignore
@@ -300,77 +335,135 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
             </table>
           </div>
         ) : activeTab === 'partners' ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Parceiro</th>
-                  <th className="px-6 py-4 font-medium">Email</th>
-                  <th className="px-6 py-4 font-medium">Desde</th>
-                  <th className="px-6 py-4 font-medium">Função</th>
-                  <th className="px-6 py-4 font-medium text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {partners.filter(user => {
-                  if (!searchTerm) return true;
-                  const searchLower = searchTerm.toLowerCase();
-                  const name = user.full_name?.toLowerCase() || '';
-                  const email = user.email?.toLowerCase() || '';
-                  return name.includes(searchLower) || email.includes(searchLower);
-                }).map((partner) => (
-                  <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900">
-                        {partner.full_name || 'Usuário'}
-                    </td>
-                    <td className="px-6 py-4 text-slate-600">{partner.email}</td>
-                    <td className="px-6 py-4 text-slate-500">{new Date(partner.created_at).toLocaleDateString()}</td>
-                    <td className="px-6 py-4">
-                      {editingUserRole === partner.id ? (
-                        <select
-                          value={partner.role}
-                          onChange={(e) => handleUpdateUserRole(partner.id, e.target.value)}
-                          className="px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-green-500 outline-none"
-                          autoFocus
-                          onBlur={() => setEditingUserRole(null)}
-                        >
-                          <option value="client">Client</option>
-                          <option value="partner">Partner</option>
-                          <option value="admin">Admin</option>
-                          <option value="first_mate">First Mate</option>
-                        </select>
-                      ) : (
+          <div className="space-y-6">
+            
+            {/* 1. Pending Partner Requests Section */}
+            {partnerRequests.length > 0 && (
+                <div className="bg-yellow-50/50 border-b border-yellow-100">
+                    <div className="px-6 py-4 border-b border-yellow-100">
+                        <h3 className="text-sm font-bold text-yellow-800 flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                            Solicitações Pendentes
+                        </h3>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left text-sm">
+                            <thead className="text-slate-500">
+                                <tr>
+                                    <th className="px-6 py-3 font-medium">Usuário</th>
+                                    <th className="px-6 py-3 font-medium">Solicitado em</th>
+                                    <th className="px-6 py-3 font-medium text-right">Ação</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-yellow-100">
+                                {partnerRequests.map(req => (
+                                    <tr key={req.id} className="hover:bg-yellow-50 transition-colors">
+                                        <td className="px-6 py-3 text-slate-800 font-medium">
+                                            {/* @ts-ignore */}
+                                            {req.profiles?.full_name}
+                                            <div className="text-xs text-slate-500 font-normal">{/* @ts-ignore */}{req.profiles?.email}</div>
+                                        </td>
+                                        <td className="px-6 py-3 text-slate-500">{new Date(req.created_at).toLocaleDateString()}</td>
+                                        <td className="px-6 py-3 text-right">
+                                             <div className="flex justify-end gap-2">
+                                                <button 
+                                                    onClick={() => handlePartnerRequestAction(req, 'approved')}
+                                                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-500 text-xs font-bold shadow-sm transition-colors"
+                                                >
+                                                    Aprovar
+                                                </button>
+                                                <button 
+                                                    onClick={() => handlePartnerRequestAction(req, 'rejected')}
+                                                    className="px-3 py-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg hover:bg-red-50 hover:text-red-600 hover:border-red-100 text-xs font-bold transition-colors"
+                                                >
+                                                    Recusar
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            {/* 2. Active Partners List */}
+            <div className="overflow-x-auto">
+                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
+                    <h3 className="text-sm font-bold text-slate-700">Parceiros Ativos (Lista Hierárquica)</h3>
+                </div>
+                <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                    <tr>
+                    <th className="px-6 py-4 font-medium">Parceiro</th>
+                    <th className="px-6 py-4 font-medium">Email</th>
+                    <th className="px-6 py-4 font-medium">Desde</th>
+                    <th className="px-6 py-4 font-medium">Função</th>
+                    <th className="px-6 py-4 font-medium text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                    {partners.filter(user => {
+                    if (!searchTerm) return true;
+                    const searchLower = searchTerm.toLowerCase();
+                    const name = user.full_name?.toLowerCase() || '';
+                    const email = user.email?.toLowerCase() || '';
+                    return name.includes(searchLower) || email.includes(searchLower);
+                    }).map((partner) => (
+                    <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4 font-medium text-slate-900">
+                            {partner.full_name || 'Usuário'}
+                        </td>
+                        <td className="px-6 py-4 text-slate-600">{partner.email}</td>
+                        <td className="px-6 py-4 text-slate-500">{new Date(partner.created_at).toLocaleDateString()}</td>
+                        <td className="px-6 py-4">
+                        {editingUserRole === partner.id ? (
+                            <select
+                            value={partner.role}
+                            onChange={(e) => handleUpdateUserRole(partner.id, e.target.value)}
+                            className="px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-green-500 outline-none"
+                            autoFocus
+                            onBlur={() => setEditingUserRole(null)}
+                            >
+                            <option value="client">Client</option>
+                            <option value="partner">Partner</option>
+                            <option value="admin">Admin</option>
+                            <option value="first_mate">First Mate</option>
+                            </select>
+                        ) : (
+                            <button
+                            onClick={() => setEditingUserRole(partner.id)}
+                            className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase border flex items-center gap-1 hover:opacity-80 transition-opacity ${
+                                partner.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                                partner.role === 'first_mate' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                                partner.role === 'partner' ? 'bg-green-100 text-green-700 border-green-200' :
+                                'bg-slate-100 text-slate-700 border-slate-200'
+                            }`}
+                            >
+                            {partner.role === 'first_mate' && <Anchor size={12} />}
+                            {partner.role === 'admin' && <Crown size={12} />}
+                            {partner.role}
+                            </button>
+                        )}
+                        </td>
+                        <td className="px-6 py-4 text-right">
                         <button
-                          onClick={() => setEditingUserRole(partner.id)}
-                          className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase border flex items-center gap-1 hover:opacity-80 transition-opacity ${
-                            partner.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                            partner.role === 'first_mate' ? 'bg-blue-100 text-blue-700 border-blue-200' :
-                            partner.role === 'partner' ? 'bg-green-100 text-green-700 border-green-200' :
-                            'bg-slate-100 text-slate-700 border-slate-200'
-                          }`}
+                            onClick={() => setEditingUserRole(partner.id)}
+                            className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors"
+                            title="Alterar Função"
                         >
-                          {partner.role === 'first_mate' && <Anchor size={12} />}
-                          {partner.role === 'admin' && <Crown size={12} />}
-                          {partner.role}
+                            <Edit2 size={16} />
                         </button>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                       <button
-                          onClick={() => setEditingUserRole(partner.id)}
-                          className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors"
-                          title="Alterar Função"
-                       >
-                         <Edit2 size={16} />
-                       </button>
-                    </td>
-                  </tr>
-                ))}
-                {partners.length === 0 && (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum parceiro encontrado.</td></tr>
-                )}
-              </tbody>
-            </table>
+                        </td>
+                    </tr>
+                    ))}
+                    {partners.length === 0 && (
+                        <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum parceiro encontrado na lista ativa.</td></tr>
+                    )}
+                </tbody>
+                </table>
+            </div>
           </div>
         ) : activeTab === 'users' ? (
           <div className="overflow-x-auto">

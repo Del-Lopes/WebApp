@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Download, FileText, Image as ImageIcon, Share2, Edit2, Plus, Trash2, Save, X, Eye, ArrowLeft, Calendar } from 'lucide-react';
 import { MOCK_ASSETS } from '../constants';
@@ -116,7 +117,8 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
   };
 
   // Render Logic
-  const canViewContent = role === 'admin' || role === 'partner' || (partnerRequest?.status === 'approved');
+  // First Mate includes Partner privileges
+  const canViewContent = role === 'admin' || role === 'first_mate' || role === 'partner' || (partnerRequest?.status === 'approved');
 
   if (loading) return <div className="p-10 text-center text-slate-500">Carregando...</div>;
 
@@ -202,7 +204,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                   </button>
               )}
               <h2 className="text-2xl font-bold text-white mb-0">
-                {(role === 'partner' || (role === 'client' && partnerRequest?.status === 'approved')) ? 'Painel do Parceiro' : 'Central de Marketing'}
+                {(role === 'partner' || role === 'first_mate' || (role === 'client' && partnerRequest?.status === 'approved')) ? 'Painel do Parceiro' : 'Central de Marketing'}
               </h2>
            </div>
           <p className="text-slate-300 mb-6">Baixe materiais oficiais para promover a plataforma e expandir sua rede de afiliados.</p>
@@ -214,7 +216,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
       <div className="flex items-center justify-between">
           <h3 className="text-lg font-bold text-slate-900">Materiais Disponíveis</h3>
-          {role === 'admin' && (
+          {(role === 'admin' || role === 'first_mate') && (
               <button 
                 onClick={() => setShowAddModal(true)}
                 className="flex items-center gap-2 text-sm font-medium text-green-600 hover:bg-green-50 px-3 py-2 rounded-lg transition-colors"
@@ -263,7 +265,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                 >
                   {asset.type === 'Text' ? <Eye size={20} /> : <Download size={20} />}
                 </button>
-                {role === 'admin' && (
+                {(role === 'admin' || role === 'first_mate') && (
                     <button 
                         onClick={(e) => {
                             e.stopPropagation();
