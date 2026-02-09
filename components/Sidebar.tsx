@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Shield, User, Map, Download } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Shield, User, Map, Download, DollarSign, DollarSign } from 'lucide-react';
 import { View, UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
@@ -132,10 +132,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </span>
           </button>
 
-          {role === 'admin' && (
+          {['admin', 'first_mate'].includes(role || '') && (
             <>
               <div className="border-t border-slate-800 my-4 mx-2"></div>
               <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-4">Administração</div>
+              
+              <button
+                onClick={() => handleViewChange('treasury')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                  currentView === 'treasury' ? 'bg-amber-600 text-white shadow-lg shadow-amber-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <DollarSign size={20} />
+                <span className="font-medium">Tesouraria</span>
+              </button>
+
               <button
                 onClick={() => handleViewChange('admin')}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
@@ -160,7 +171,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <p className="text-sm font-medium text-white group-hover:text-green-400 transition-colors">
                     {user?.user_metadata?.full_name || 'Usuário'}
                 </p>
-                <p className="text-xs text-slate-500 capitalize">{role === 'client' ? 'Usuário' : role}</p>
+                <p className="text-xs text-slate-500 capitalize flex items-center gap-1">
+                  {role === 'admin' && '👑 '}
+                  {role === 'first_mate' && '🏴‍☠️ '}
+                  {role === 'first_mate' ? 'First Mate' : role === 'client' ? 'Usuário' : role}
+                </p>
               </div>
             </div>
             <button 

@@ -23,6 +23,7 @@ const Downloads = React.lazy(() => import('./components/Downloads').then(module 
 const ArticleView = React.lazy(() => import('./components/Dashboard/ArticleView').then(module => ({ default: module.ArticleView })));
 const Journey = React.lazy(() => import('./components/Journey').then(module => ({ default: module.Journey })));
 const PlatformTour = React.lazy(() => import('./components/PlatformTour').then(module => ({ default: module.PlatformTour })));
+const Treasury = React.lazy(() => import('./components/Treasury').then(module => ({ default: module.Treasury })));
 
 function AppContent() {
   const { user, isLoading, role } = useAuth();
@@ -75,6 +76,7 @@ function AppContent() {
       case 'settings': return 'Configurações - AFK Trade';
       case 'journey': return 'Sua Jornada - AFK Trade';
       case 'downloads': return 'Downloads - AFK Trade';
+      case 'treasury': return 'Tesouraria - AFK Trade';
       case 'article': return article ? `${article.title} - AFK Trade` : 'Artigo - AFK Trade';
       default: return 'AFK Trade';
     }
@@ -130,6 +132,7 @@ function AppContent() {
             case 'admin': return <AdminPanel onBack={() => setCurrentView('dashboard')} onShowTour={() => setShowTour(true)} />;
             case 'journey': return <Journey onBack={() => setCurrentView('dashboard')} />;
             case 'downloads': return <Downloads onBack={() => setCurrentView('dashboard')} />;
+            case 'treasury': return <Treasury onBack={() => setCurrentView('dashboard')} />;
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
           }

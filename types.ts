@@ -1,6 +1,6 @@
-export type View = 'dashboard' | 'strategies' | 'education' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads';
+export type View = 'dashboard' | 'strategies' | 'education' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury';
 
-export type UserRole = 'admin' | 'client' | 'partner';
+export type UserRole = 'admin' | 'client' | 'partner' | 'first_mate';
 
 export interface Robot {
   id: string;
