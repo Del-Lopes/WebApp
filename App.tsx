@@ -1,5 +1,5 @@
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, Suspense, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Menu, Loader2 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
@@ -22,6 +22,7 @@ const CoursePlayer = React.lazy(() => import('./components/Education/CoursePlaye
 const Downloads = React.lazy(() => import('./components/Downloads').then(module => ({ default: module.Downloads })));
 const ArticleView = React.lazy(() => import('./components/Dashboard/ArticleView').then(module => ({ default: module.ArticleView })));
 const Journey = React.lazy(() => import('./components/Journey').then(module => ({ default: module.Journey })));
+const PlatformTour = React.lazy(() => import('./components/PlatformTour').then(module => ({ default: module.PlatformTour })));
 
 function AppContent() {
   const { user, isLoading, role } = useAuth();
@@ -29,6 +30,15 @@ function AppContent() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('admin'); // Legacy state, kept for prop compatibility
+  const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    const tourCompleted = localStorage.getItem('afk_tour_completed');
+    if (!tourCompleted) {
+       // Delay tour slightly for better UX
+       setTimeout(() => setShowTour(true), 1500);
+    }
+  }, []);
   
   // State lifted from Strategies to App to persist data across tab switches
   const [robots, setRobots] = useState<Robot[]>(INITIAL_ROBOTS);
@@ -169,6 +179,19 @@ function AppContent() {
             {renderView()}
           </div>
         </div>
+        
+        {/* Platform Tour Modal */}
+        {showTour && (
+          <Suspense fallback={null}>
+            <PlatformTour 
+              onClose={() => setShowTour(false)} 
+              onComplete={() => {
+                setShowTour(false);
+                localStorage.setItem('afk_tour_completed', 'true');
+              }} 
+            />
+          </Suspense>
+        )}
       </main>
     </div>
   );
