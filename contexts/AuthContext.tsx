@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
@@ -11,6 +10,7 @@ interface AuthContextType {
   isLoading: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
+  refreshRole: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,8 +45,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    // Real-time subscription to profile changes
+    const profileSubscription = supabase
+      .channel('public:profiles')
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: 'profiles',
+        filter: session?.user ? `id=eq.${session.user.id}` : undefined
+      }, (payload) => {
+        if (payload.new && 'role' in payload.new) {
+             console.log("Role updated via realtime:", payload.new.role);
+             setRole(payload.new.role as UserRole);
+        }
+      })
+      .subscribe();
+
+    return () => {
+        subscription.unsubscribe();
+        supabase.removeChannel(profileSubscription);
+    };
+  }, [session?.user?.id]); // Re-subscribe if user changes
 
   const fetchUserRole = async (userId: string) => {
     try {
@@ -62,19 +81,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         let userRole = (data?.role as UserRole) || 'client';
         
-        // Check if user is an approved partner (upgrade role locally if so, unless admin)
-        if (userRole !== 'admin') {
-           const { data: request } = await supabase
-             .from('partner_requests')
-             .select('status')
-             .eq('user_id', userId)
-             .maybeSingle(); // maybeSingle allows null result if no request
-           
-           if (request?.status === 'approved') {
-             userRole = 'partner';
-           }
-        }
-
+        // We rely on the DB role now. The partner request check should ideally be handled by a trigger or admin action updating the profile role.
+        // However, keeping this check for legacy compatibility or if the upgrade logic is strictly frontend-based (not recommended).
+        // Since we now update profile.role directly in AdminPanel, the DB source of truth is profiles.role.
+        
         setRole(userRole);
       }
     } catch (error) {
@@ -82,6 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const refreshRole = async () => {
+      if (user) {
+          await fetchUserRole(user.id);
+      }
   };
 
   const signIn = async () => {
@@ -95,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, session, isLoading, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, role, session, isLoading, signIn, signOut, refreshRole }}>
       {children}
     </AuthContext.Provider>
   );
