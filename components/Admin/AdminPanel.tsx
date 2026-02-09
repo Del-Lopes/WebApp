@@ -2,14 +2,15 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, PartnerRequest, Profile, Prospect } from '../../types';
-import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2 } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
   onBack?: () => void;
+  onShowTour?: () => void;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) => {
   const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users'>('licenses');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<PartnerRequest[]>([]);
@@ -147,6 +148,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             <p className="text-slate-500 text-sm">Gerencie usuários, licenças e conteúdo.</p>
           </div>
         </div>
+        
+        {onShowTour && (
+            <button 
+                onClick={onShowTour}
+                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-medium transition-colors"
+            >
+                <Play size={16} /> Ver Tour
+            </button>
+        )}
       </div>
 
       {/* Tabs */}
