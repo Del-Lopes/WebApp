@@ -136,10 +136,26 @@ function AppContent() {
             case 'course_player': return <CoursePlayer onBack={() => setCurrentView('education')} />;
             case 'marketing': return <Marketing onBack={() => setCurrentView('dashboard')} />;
             case 'licenses': return <Licenses onBack={() => setCurrentView('dashboard')} />;
-            case 'admin': return <AdminPanel onBack={() => setCurrentView('dashboard')} onShowTour={() => setShowTour(true)} />;
+            
+            case 'admin': 
+              if (role !== 'admin') {
+                  // Redirect to dashboard if unauthorized
+                  setTimeout(() => setCurrentView('dashboard'), 0);
+                  return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+              }
+              return <AdminPanel onBack={() => setCurrentView('dashboard')} onShowTour={() => setShowTour(true)} />;
+            
             case 'journey': return <Journey onBack={() => setCurrentView('dashboard')} />;
             case 'downloads': return <Downloads onBack={() => setCurrentView('dashboard')} />;
-            case 'treasury': return <Treasury onBack={() => setCurrentView('dashboard')} />;
+            
+            case 'treasury': 
+              if (!['admin', 'first_mate'].includes(role || '')) {
+                  // Redirect to dashboard if unauthorized
+                  setTimeout(() => setCurrentView('dashboard'), 0);
+                  return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+              }
+              return <Treasury onBack={() => setCurrentView('dashboard')} />;
+            
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
           }

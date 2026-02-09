@@ -145,12 +145,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
     try {
+      // 1. Update the profile role
       const { error } = await supabase
         .from('profiles')
         .update({ role: newRole })
         .eq('id', userId);
 
       if (error) throw error;
+
+      // 2. Sync partner_requests status to maintain consistency
+      if (newRole === 'client') {
+          // If downgrading to client, revoke any approved partner status
+          // This ensures they lose access effectively even if the marketing panel checks this table
+          const { error: reqError } = await supabase
+            .from('partner_requests')
+            .update({ status: 'rejected' }) 
+            .eq('user_id', userId)
+            .eq('status', 'approved');
+            
+          if (reqError) console.error("Error revoking partner request:", reqError);
+
+      } else if (['partner', 'first_mate', 'admin'].includes(newRole)) {
+          // If promoting manually, ensure any PENDING request is approved
+          // This prevents a "pending" badge from showing up for an actual partner
+          const { error: reqError } = await supabase
+            .from('partner_requests')
+            .update({ status: 'approved' }) 
+            .eq('user_id', userId)
+            .eq('status', 'pending');
+
+          if (reqError) console.error("Error approving partner request:", reqError);
+      }
       
       // Optimistic update for users tab
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole as any } : u));

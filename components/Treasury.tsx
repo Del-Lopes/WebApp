@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, DollarSign, Trash2, Wallet, Edit2, Check, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 interface Account {
   id: string;
@@ -16,7 +17,8 @@ interface TreasuryProps {
 export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const { role } = useAuth();
+  const isAdmin = role === 'admin';
 
   // New account state
   const [isAdding, setIsAdding] = useState(false);
@@ -28,23 +30,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
 
   useEffect(() => {
     fetchAccounts();
-    checkUserRole();
   }, []);
-
-  const checkUserRole = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      if (data && data.role === 'admin') {
-        setIsAdmin(true);
-      }
-    }
-  };
 
   const fetchAccounts = async () => {
     try {
