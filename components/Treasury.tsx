@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Plus, DollarSign, Trash2, Wallet } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Plus, DollarSign, Trash2, Wallet, Edit2, Check, X } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 
 interface Account {
   id: string;
@@ -13,32 +14,117 @@ interface TreasuryProps {
 }
 
 export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
-  const [accounts, setAccounts] = useState<Account[]>([
-    { id: '1', name: 'Conta Principal', balance: 50000, currency: 'USD' },
-    { id: '2', name: 'Reserva de Emergência', balance: 10000, currency: 'BRL' },
-  ]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
 
+  // New account state
   const [isAdding, setIsAdding] = useState(false);
   const [newAccount, setNewAccount] = useState({ name: '', balance: '', currency: 'USD' });
 
-  const handleAddAccount = (e: React.FormEvent) => {
+  // Edit state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValues, setEditValues] = useState<Partial<Account>>({});
+
+  useEffect(() => {
+    fetchAccounts();
+    checkUserRole();
+  }, []);
+
+  const checkUserRole = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (data && data.role === 'admin') {
+        setIsAdmin(true);
+      }
+    }
+  };
+
+  const fetchAccounts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('treasury_accounts')
+        .select('*')
+        .order('created_at', { ascending: true });
+      
+      if (error) throw error;
+      setAccounts(data || []);
+    } catch (error) {
+      console.error('Error fetching accounts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAccount.name || !newAccount.balance) return;
 
-    const account: Account = {
-      id: Date.now().toString(),
-      name: newAccount.name,
-      balance: Number(newAccount.balance),
-      currency: newAccount.currency,
-    };
+    try {
+      const { error } = await supabase.from('treasury_accounts').insert({
+        name: newAccount.name,
+        balance: parseFloat(newAccount.balance),
+        currency: newAccount.currency,
+      });
 
-    setAccounts([...accounts, account]);
-    setNewAccount({ name: '', balance: '', currency: 'USD' });
-    setIsAdding(false);
+      if (error) throw error;
+
+      setNewAccount({ name: '', balance: '', currency: 'USD' });
+      setIsAdding(false);
+      fetchAccounts();
+    } catch (error) {
+      console.error('Error adding account:', error);
+      alert('Erro ao adicionar conta');
+    }
   };
 
-  const handleDeleteAccount = (id: string) => {
-    setAccounts(accounts.filter(a => a.id !== id));
+  const handleDeleteAccount = async (id: string) => {
+    if (!confirm('Tem certeza que deseja excluir esta conta?')) return;
+    try {
+      const { error } = await supabase.from('treasury_accounts').delete().eq('id', id);
+      if (error) throw error;
+      fetchAccounts();
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Erro ao excluir conta');
+    }
+  };
+
+  const startEditing = (account: Account) => {
+    setEditingId(account.id);
+    setEditValues(account);
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditValues({});
+  };
+
+  const saveEditing = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('treasury_accounts')
+        .update({
+          name: editValues.name,
+          balance: Number(editValues.balance),
+          currency: editValues.currency
+        })
+        .eq('id', id);
+
+      if (error) throw error;
+      setEditingId(null);
+      setEditValues({});
+      fetchAccounts();
+    } catch (error) {
+      console.error('Error updating account:', error);
+      alert('Erro ao atualizar conta');
+    }
   };
 
   const totalCapitalUSD = accounts
@@ -97,13 +183,15 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-slate-200 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-slate-900">Contas Registradas</h2>
-          <button
-            onClick={() => setIsAdding(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
-          >
-            <Plus size={18} />
-            <span>Nova Conta</span>
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setIsAdding(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors"
+            >
+              <Plus size={18} />
+              <span>Nova Conta</span>
+            </button>
+          )}
         </div>
 
         {isAdding && (
@@ -169,49 +257,115 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Conta</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Moeda</th>
                 <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Saldo</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>
+                {isAdmin && <th className="px-6 py-3 text-right text-xs font-medium text-slate-500 uppercase tracking-wider">Ações</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
-              {accounts.map((account) => (
-                <tr key={account.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0 h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center">
-                        <Wallet className="text-slate-600" size={20} />
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-slate-900">{account.name}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-800">
-                      {account.currency}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900 font-medium">
-                    {new Intl.NumberFormat(account.currency === 'BRL' ? 'pt-BR' : 'en-US', { 
-                      style: 'currency', 
-                      currency: account.currency 
-                    }).format(account.balance)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleDeleteAccount(account.id)}
-                      className="text-red-400 hover:text-red-600 transition-colors"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {accounts.length === 0 && (
+              {loading ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
-                    Nenhuma conta cadastrada. Adicione uma nova conta para começar.
+                    Carregando contas...
                   </td>
                 </tr>
+              ) : accounts.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500">
+                    Nenhuma conta cadastrada.
+                  </td>
+                </tr>
+              ) : (
+                accounts.map((account) => (
+                  <tr key={account.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center">
+                        <div className="flex-shrink-0 h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center">
+                          <Wallet className="text-slate-600" size={20} />
+                        </div>
+                        <div className="ml-4">
+                          {editingId === account.id ? (
+                            <input
+                              type="text"
+                              value={editValues.name || ''}
+                              onChange={e => setEditValues({ ...editValues, name: e.target.value })}
+                              className="px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-900"
+                            />
+                          ) : (
+                            <div className="text-sm font-medium text-slate-900">{account.name}</div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      {editingId === account.id ? (
+                        <select
+                          value={editValues.currency}
+                          onChange={e => setEditValues({ ...editValues, currency: e.target.value })}
+                          className="px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm"
+                        >
+                          <option value="USD">USD</option>
+                          <option value="BRL">BRL</option>
+                        </select>
+                      ) : (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-800">
+                          {account.currency}
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900 font-medium">
+                      {editingId === account.id ? (
+                        <input
+                          type="number"
+                          value={editValues.balance}
+                          onChange={e => setEditValues({ ...editValues, balance: Number(e.target.value) })}
+                          className="px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-900 text-right w-32"
+                          step="0.01"
+                        />
+                      ) : (
+                        new Intl.NumberFormat(account.currency === 'BRL' ? 'pt-BR' : 'en-US', { 
+                          style: 'currency', 
+                          currency: account.currency 
+                        }).format(account.balance)
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      {editingId === account.id ? (
+                        <div className="flex justify-end gap-2">
+                           <button
+                            onClick={() => saveEditing(account.id)}
+                            className="text-green-600 hover:text-green-800 transition-colors p-1"
+                            title="Salvar"
+                          >
+                            <Check size={18} />
+                          </button>
+                          <button
+                            onClick={cancelEditing}
+                            className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                            title="Cancelar"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      ) : isAdmin && (
+                        <div className="flex justify-end gap-2">
+                          <button
+                            onClick={() => startEditing(account)}
+                            className="text-blue-400 hover:text-blue-600 transition-colors p-1"
+                            title="Editar"
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteAccount(account.id)}
+                            className="text-red-400 hover:text-red-600 transition-colors p-1"
+                            title="Excluir"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))
               )}
             </tbody>
           </table>
