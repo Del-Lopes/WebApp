@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, PartnerRequest, Profile, Prospect } from '../../types';
-import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
@@ -20,14 +19,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [searchTerm, setSearchTerm] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [editingProspect, setEditingProspect] = useState<string | null>(null);
+  const [editingUserRole, setEditingUserRole] = useState<string | null>(null);
 
   const handleUpdateField = async (id: string, field: keyof Prospect, value: string) => {
       // Optimistic Update
       setProspects(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
-      
-      // Debounced/Direct DB update logic could go here, but for now we update single interactions or on blur
-      // However, a better approach for UX is "save on edit" or individual field save
-      // Given the requirement is just "edit fields", we'll update DB directly on change (debounced ideally) or just simple update:
       
       try {
           await supabase.from('prospects').update({ [field]: value }).eq('id', id);
@@ -120,6 +116,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           console.error("Error updating partner:", error);
           alert("Erro: " + error.message);
       }
+  };
+
+  const handleUpdateUserRole = async (userId: string, newRole: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ role: newRole })
+        .eq('id', userId);
+
+      if (error) throw error;
+      
+      // Optimistic update
+      setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole as any } : u));
+      setEditingUserRole(null);
+    } catch (error: any) {
+      console.error('Error updating user role:', error);
+      alert('Erro ao atualizar função: ' + error.message);
+    }
   };
 
   const handleProspectStatus = async (id: string, status: Prospect['status']) => {
@@ -349,6 +363,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                   <th className="px-6 py-4 font-medium">Email</th>
                   <th className="px-6 py-4 font-medium">Data de Cadastro</th>
                   <th className="px-6 py-4 font-medium">Função</th>
+                  <th className="px-6 py-4 font-medium text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -369,18 +384,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     <td className="px-6 py-4 text-slate-600">{user.email}</td>
                     <td className="px-6 py-4 text-slate-500">{new Date(user.created_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase border ${
-                        user.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' :
-                        user.role === 'partner' ? 'bg-green-100 text-green-700 border-green-200' :
-                        'bg-slate-100 text-slate-700 border-slate-200'
-                      }`}>
-                        {user.role}
-                      </span>
+                      {editingUserRole === user.id ? (
+                        <select
+                          value={user.role}
+                          onChange={(e) => handleUpdateUserRole(user.id, e.target.value)}
+                          className="px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-green-500 outline-none"
+                          autoFocus
+                          onBlur={() => setEditingUserRole(null)}
+                        >
+                          <option value="client">Client</option>
+                          <option value="partner">Partner</option>
+                          <option value="admin">Admin</option>
+                          <option value="first_mate">First Mate</option>
+                        </select>
+                      ) : (
+                        <button
+                          onClick={() => setEditingUserRole(user.id)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold uppercase border flex items-center gap-1 hover:opacity-80 transition-opacity ${
+                            user.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                            user.role === 'first_mate' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                            user.role === 'partner' ? 'bg-green-100 text-green-700 border-green-200' :
+                            'bg-slate-100 text-slate-700 border-slate-200'
+                          }`}
+                        >
+                          {user.role === 'first_mate' && <Anchor size={12} />}
+                          {user.role === 'admin' && <Crown size={12} />}
+                          {user.role}
+                        </button>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                       <button
+                          onClick={() => setEditingUserRole(user.id)}
+                          className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors"
+                          title="Alterar Função"
+                       >
+                         <Edit2 size={16} />
+                       </button>
                     </td>
                   </tr>
                 ))}
                 {users.length === 0 && (
-                    <tr><td colSpan={4} className="px-6 py-8 text-center text-slate-400">Nenhum usuário encontrado.</td></tr>
+                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum usuário encontrado.</td></tr>
                 )}
               </tbody>
             </table>
