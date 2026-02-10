@@ -30,6 +30,9 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
   // Edit state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<Partial<Account>>({});
+  const [tooltip, setTooltip] = useState<{show: boolean, x: number, y: number, data: Account | null}>({
+    show: false, x: 0, y: 0, data: null
+  });
 
   useEffect(() => {
     fetchAccounts();
@@ -161,14 +164,82 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
           </div>
         </div>
 
-        {/* Pie Chart Card - 75% width */}
-        <div className="md:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-12">
-           <div className="relative w-80 h-80 shrink-0 rounded-full shadow-xl" style={{ background: `conic-gradient(${gradientStops})` }}>
-               <div className="absolute inset-0 m-auto w-40 h-40 bg-white rounded-full flex flex-col items-center justify-center border-4 border-slate-50 shadow-inner">
-                   <span className="text-3xl font-bold text-slate-800">{accounts.length}</span>
-                   <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Contas</span>
+        {/* Pie Chart Card - Row 2 */}
+        <div className="md:col-span-3 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center">
+           <h4 className="text-xl font-bold text-slate-800 mb-8 self-start w-full border-b border-slate-100 pb-4">Distribuição do Capital</h4>
+           
+           <div className="flex flex-col lg:flex-row items-center gap-12 w-full">
+               <div className="relative w-80 h-80 shrink-0 group">
+                   {/* Tooltip */}
+                   {tooltip.show && tooltip.data && (
+                       <div 
+                           className="absolute z-50 bg-slate-900 text-white text-xs rounded-lg py-1.5 px-3 shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full transition-opacity duration-200"
+                           style={{ left: tooltip.x, top: tooltip.y - 10 }}
+                       >
+                           <p className="font-bold mb-0.5">{tooltip.data.name}</p>
+                           <div className="flex items-center gap-2">
+                               <span className="text-slate-300">{tooltip.data.location || 'N/A'}</span>
+                               <span className="font-mono text-green-400">
+                                   {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tooltip.data.balance)}
+                               </span>
+                           </div>
+                           <div className="text-slate-400 mt-0.5 font-mono">
+                               {((tooltip.data.balance / totalCapital) * 100).toFixed(1)}%
+                           </div>
+                       </div>
+                   )}
+
+                   <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
+                       {accounts.length === 0 && (
+                           <circle cx="50" cy="50" r="37.5" fill="transparent" stroke="#e2e8f0" strokeWidth="25" />
+                       )}
+                       {accounts.map((acc, idx) => {
+                           const percentage = acc.balance / totalCapital;
+                           const strokeDasharray = `${percentage * 235.619} 235.619`;
+                           // Calculate accumulated offset
+                           const currentOffset = accounts.slice(0, idx).reduce((sum, a) => sum + (a.balance/totalCapital), 0) * 235.619;
+                           
+                           return (
+                               <circle
+                                   key={acc.id}
+                                   cx="50"
+                                   cy="50"
+                                   r="37.5"
+                                   fill="transparent"
+                                   stroke={COLORS[idx % COLORS.length]}
+                                   strokeWidth="25"
+                                   strokeDasharray={strokeDasharray}
+                                   strokeDashoffset={-currentOffset}
+                                   className="transition-all duration-300 hover:opacity-90 cursor-pointer"
+                                   onMouseEnter={(e) => {
+                                       setTooltip({ 
+                                           show: true, 
+                                           x: 0, // Initial, updated by move
+                                           y: 0, 
+                                           data: acc 
+                                       });
+                                   }}
+                                   onMouseMove={(e) => {
+                                       const rect = e.currentTarget.parentElement?.parentElement?.getBoundingClientRect();
+                                       if (rect) {
+                                           setTooltip(prev => ({
+                                               ...prev,
+                                               x: e.clientX - rect.left,
+                                               y: e.clientY - rect.top
+                                           }));
+                                       }
+                                   }}
+                                   onMouseLeave={() => setTooltip(prev => ({ ...prev, show: false }))}
+                               />
+                           );
+                       })}
+                   </svg>
+
+                   <div className="absolute inset-0 m-auto w-40 h-40 bg-white rounded-full flex flex-col items-center justify-center border-4 border-slate-50 shadow-inner pointer-events-none">
+                       <span className="text-3xl font-bold text-slate-800">{accounts.length}</span>
+                       <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Contas</span>
+                   </div>
                </div>
-           </div>
            
            <div className="flex-1 w-full overflow-y-auto max-h-80 custom-scrollbar pr-4">
                <h4 className="text-xl font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Distribuição do Capital</h4>
@@ -193,6 +264,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                        </div>
                    ))}
                </div>
+           </div>
            </div>
         </div>
       </div>
