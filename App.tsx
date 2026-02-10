@@ -26,12 +26,25 @@ const PlatformTour = React.lazy(() => import('./components/PlatformTour').then(m
 const Treasury = React.lazy(() => import('./components/Treasury').then(module => ({ default: module.Treasury })));
 
 function AppContent() {
-  const { user, isLoading, role } = useAuth();
+  const { user, isLoading, role, isPasswordRecovery } = useAuth();
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('admin'); // Legacy state, kept for prop compatibility
   const [showTour, setShowTour] = useState(false);
+
+  useEffect(() => {
+    // Check for recovery hash in URL directly as fallback/primary method
+    const hash = window.location.hash;
+    const type = new URLSearchParams(hash.replace('#', '?')).get('type');
+
+    if (isPasswordRecovery || type === 'recovery') {
+      console.log("Recovery mode detected, redirecting to settings");
+      setCurrentView('settings');
+      // Optionally clean the URL
+      // window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, [isPasswordRecovery]);
 
   useEffect(() => {
     const tourCompleted = localStorage.getItem('afk_tour_completed');
