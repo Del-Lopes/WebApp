@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, DollarSign, Trash2, Wallet, Edit2, Check, X } from 'lucide-react';
+import { ArrowLeft, Plus, DollarSign, Trash2, Wallet, Edit2, Check, X, TrendingUp } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -9,6 +9,7 @@ interface Account {
   balance: number;
   currency: string;
   location?: string;
+  trend?: 'neutral' | 'positive';
 }
 
 interface TreasuryProps {
@@ -106,7 +107,8 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
         .update({
           name: editValues.name,
           balance: Number(editValues.balance),
-          location: editValues.location
+          location: editValues.location,
+          trend: editValues.trend
         })
         .eq('id', id);
 
@@ -369,8 +371,26 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                   <tr key={account.id} className="hover:bg-slate-50 transition-colors group">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-500 group-hover:bg-white group-hover:shadow-md transition-all border border-slate-200">
-                          <Wallet size={18} />
+                        <div 
+                          onClick={() => {
+                            if (editingId === account.id) {
+                              setEditValues(prev => ({
+                                ...prev,
+                                trend: prev.trend === 'positive' ? 'neutral' : 'positive'
+                              }));
+                            }
+                          }}
+                          className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all border ${
+                            (editingId === account.id ? editValues.trend : account.trend) === 'positive'
+                              ? 'bg-green-100 text-green-600 border-green-200'
+                              : 'bg-slate-100 text-slate-500 border-slate-200 group-hover:bg-white group-hover:shadow-md'
+                          } ${editingId === account.id ? 'cursor-pointer hover:scale-105 active:scale-95 ring-2 ring-offset-2 ring-transparent hover:ring-slate-100' : ''}`}
+                        >
+                          {(editingId === account.id ? editValues.trend : account.trend) === 'positive' ? (
+                            <TrendingUp size={18} />
+                          ) : (
+                            <Wallet size={18} />
+                          )}
                         </div>
                         <div className="ml-4">
                           {editingId === account.id ? (
