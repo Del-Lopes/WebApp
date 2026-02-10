@@ -145,9 +145,9 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
         {/* Total Capital Card */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-full flex flex-col justify-center">
+        <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-full flex flex-col justify-center">
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-green-100 rounded-xl">
               <DollarSign className="text-green-600" size={24} />
@@ -162,25 +162,33 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
         </div>
 
         {/* Pie Chart Card */}
-        <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-8">
-           <div className="relative w-32 h-32 shrink-0 rounded-full" style={{ background: `conic-gradient(${gradientStops})` }}>
-               <div className="absolute inset-0 m-auto w-16 h-16 bg-white rounded-full flex items-center justify-center text-xs font-bold text-slate-400">
+        <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-8">
+           <div className="relative w-56 h-56 shrink-0 rounded-full" style={{ background: `conic-gradient(${gradientStops})` }}>
+               <div className="absolute inset-0 m-auto w-28 h-28 bg-white rounded-full flex items-center justify-center text-sm font-bold text-slate-400 border border-slate-100 shadow-inner">
                    {accounts.length} Contas
                </div>
            </div>
            
-           <div className="flex-1 overflow-y-auto max-h-32 custom-scrollbar">
-               <h4 className="text-sm font-bold text-slate-700 mb-2">Distribuição</h4>
-               <div className="space-y-2">
+           <div className="flex-1 overflow-y-auto max-h-56 custom-scrollbar pr-2">
+               <h4 className="text-lg font-bold text-slate-700 mb-4">Distribuição do Capital</h4>
+               <div className="space-y-3">
                    {accounts.map((acc, idx) => (
-                       <div key={acc.id} className="flex items-center justify-between text-xs">
-                           <div className="flex items-center gap-2">
-                               <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                               <span className="text-slate-600 truncate max-w-[100px]" title={acc.name}>{acc.name}</span>
+                       <div key={acc.id} className="flex items-center justify-between text-sm p-2 hover:bg-slate-50 rounded-lg transition-colors">
+                           <div className="flex items-center gap-3">
+                               <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                               <div className="flex flex-col">
+                                   <span className="font-medium text-slate-700 truncate max-w-[150px]" title={acc.name}>{acc.name}</span>
+                                   <span className="text-xs text-slate-400">{acc.location || 'N/A'}</span>
+                               </div>
                            </div>
-                           <span className="font-mono font-medium text-slate-900">
-                               {((acc.balance / totalCapital) * 100).toFixed(1)}%
-                           </span>
+                           <div className="text-right">
+                               <span className="block font-mono font-bold text-slate-900">
+                                   {((acc.balance / totalCapital) * 100).toFixed(1)}%
+                               </span>
+                               <span className="text-xs text-slate-500 font-mono">
+                                   {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(acc.balance)}
+                               </span>
+                           </div>
                        </div>
                    ))}
                </div>
