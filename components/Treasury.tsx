@@ -171,10 +171,10 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
            </div>
            
            <div className="flex-1 w-full overflow-y-auto max-h-80 custom-scrollbar pr-4">
-               <h4 className="text-xl font-bold text-slate-800 mb-6 border-b border-slate-100 pb-2">Distribuição do Capital</h4>
-               <div className="space-y-4">
+               <h4 className="text-xl font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Distribuição do Capital</h4>
+               <div className="space-y-2">
                    {accounts.map((acc, idx) => (
-                       <div key={acc.id} className="flex items-center justify-between text-base p-3 hover:bg-slate-50 rounded-xl transition-all hover:shadow-sm border border-transparent hover:border-slate-100">
+                       <div key={acc.id} className="flex items-center justify-between text-base p-2 hover:bg-slate-50 rounded-xl transition-all hover:shadow-sm border border-transparent hover:border-slate-100">
                            <div className="flex items-center gap-4">
                                <div className="w-4 h-4 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                                <div className="flex flex-col">

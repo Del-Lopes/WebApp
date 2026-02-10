@@ -92,7 +92,7 @@ function AppContent() {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <Helmet>
-          <title>Carregando... - AFK Trade</title>
+          <title>Login - AFK Trade</title>
         </Helmet>
         Loading...
       </div>
