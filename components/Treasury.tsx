@@ -145,47 +145,48 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Total Capital Card */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* Total Capital Card - 25% width */}
         <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-full flex flex-col justify-center">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-green-100 rounded-xl">
-              <DollarSign className="text-green-600" size={24} />
+          <div className="flex flex-col items-center text-center gap-4 mb-4">
+            <div className="p-4 bg-green-100 rounded-full">
+              <DollarSign className="text-green-600" size={32} />
             </div>
             <div>
-              <p className="text-sm font-medium text-slate-500">Capital Total</p>
-              <h3 className="text-3xl font-bold text-slate-900">
+              <p className="text-sm font-medium text-slate-500 mb-1">Capital Total</p>
+              <h3 className="text-3xl font-bold text-slate-900 tracking-tight">
                 {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCapital)}
               </h3>
             </div>
           </div>
         </div>
 
-        {/* Pie Chart Card */}
-        <div className="md:col-span-2 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-8">
-           <div className="relative w-56 h-56 shrink-0 rounded-full" style={{ background: `conic-gradient(${gradientStops})` }}>
-               <div className="absolute inset-0 m-auto w-28 h-28 bg-white rounded-full flex items-center justify-center text-sm font-bold text-slate-400 border border-slate-100 shadow-inner">
-                   {accounts.length} Contas
+        {/* Pie Chart Card - 75% width */}
+        <div className="md:col-span-3 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center gap-12">
+           <div className="relative w-80 h-80 shrink-0 rounded-full shadow-xl" style={{ background: `conic-gradient(${gradientStops})` }}>
+               <div className="absolute inset-0 m-auto w-40 h-40 bg-white rounded-full flex flex-col items-center justify-center border-4 border-slate-50 shadow-inner">
+                   <span className="text-3xl font-bold text-slate-800">{accounts.length}</span>
+                   <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Contas</span>
                </div>
            </div>
            
-           <div className="flex-1 overflow-y-auto max-h-56 custom-scrollbar pr-2">
-               <h4 className="text-lg font-bold text-slate-700 mb-4">Distribuição do Capital</h4>
-               <div className="space-y-3">
+           <div className="flex-1 w-full overflow-y-auto max-h-80 custom-scrollbar pr-4">
+               <h4 className="text-xl font-bold text-slate-800 mb-6 border-b border-slate-100 pb-2">Distribuição do Capital</h4>
+               <div className="space-y-4">
                    {accounts.map((acc, idx) => (
-                       <div key={acc.id} className="flex items-center justify-between text-sm p-2 hover:bg-slate-50 rounded-lg transition-colors">
-                           <div className="flex items-center gap-3">
-                               <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                       <div key={acc.id} className="flex items-center justify-between text-base p-3 hover:bg-slate-50 rounded-xl transition-all hover:shadow-sm border border-transparent hover:border-slate-100">
+                           <div className="flex items-center gap-4">
+                               <div className="w-4 h-4 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                                <div className="flex flex-col">
-                                   <span className="font-medium text-slate-700 truncate max-w-[150px]" title={acc.name}>{acc.name}</span>
-                                   <span className="text-xs text-slate-400">{acc.location || 'N/A'}</span>
+                                   <span className="font-bold text-slate-700 truncate max-w-[200px]" title={acc.name}>{acc.name}</span>
+                                   <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">{acc.location || 'N/A'}</span>
                                </div>
                            </div>
                            <div className="text-right">
-                               <span className="block font-mono font-bold text-slate-900">
+                               <span className="block font-mono font-bold text-slate-900 text-lg">
                                    {((acc.balance / totalCapital) * 100).toFixed(1)}%
                                </span>
-                               <span className="text-xs text-slate-500 font-mono">
+                               <span className="text-sm text-slate-500 font-mono">
                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(acc.balance)}
                                </span>
                            </div>
