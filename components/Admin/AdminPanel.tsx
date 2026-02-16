@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, PartnerRequest, Profile, Prospect } from '../../types';
-import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor, Trash2, Calendar } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
@@ -106,13 +106,41 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     }
   };
 
-  const handleLicenseAction = async (id: string, status: 'approved' | 'rejected') => {
+  const handleLicenseAction = async (id: string, status: 'approved' | 'rejected', expires_at?: string) => {
     try {
-      await supabase.from('license_requests').update({ status }).eq('id', id);
+      const updateData: any = { status };
+      if (expires_at) updateData.expires_at = expires_at;
+      
+      await supabase.from('license_requests').update(updateData).eq('id', id);
       fetchData(); // Refresh
     } catch (error) {
       console.error('Error updating license:', error);
     }
+  };
+
+  const handleDeleteLicense = async (id: string) => {
+    if (!window.confirm('Tem certeza que deseja excluir esta licença permanentemente?')) return;
+    try {
+      const { error } = await supabase.from('license_requests').delete().eq('id', id);
+      if (error) throw error;
+      setLicenses(prev => prev.filter(l => l.id !== id));
+    } catch (error: any) {
+      alert('Erro ao excluir licença: ' + error.message);
+    }
+  };
+
+  const handleUpdateLicenseExpiration = async (id: string, date: string) => {
+      try {
+          const { error } = await supabase
+            .from('license_requests')
+            .update({ expires_at: date })
+            .eq('id', id);
+          
+          if (error) throw error;
+          setLicenses(prev => prev.map(l => l.id === id ? { ...l, expires_at: date } : l));
+      } catch (error: any) {
+          alert('Erro ao atualizar validade: ' + error.message);
+      }
   };
 
   const handlePartnerRequestAction = async (request: PartnerRequest, status: 'approved' | 'rejected') => {
@@ -307,6 +335,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                   <th className="px-6 py-4 font-medium">Usuário</th>
                   <th className="px-6 py-4 font-medium">Conta MT5</th>
                   <th className="px-6 py-4 font-medium">Data</th>
+                  <th className="px-6 py-4 font-medium">Validade</th>
                   <th className="px-6 py-4 font-medium">Status</th>
                   <th className="px-6 py-4 font-medium text-right">Ações</th>
                 </tr>
@@ -327,6 +356,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     <td className="px-6 py-4 font-mono text-slate-600">{lic.mt5_account}</td>
                     <td className="px-6 py-4 text-slate-500">{new Date(lic.created_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
+                        <div className="flex items-center gap-2">
+                           <Calendar size={14} className="text-slate-400" />
+                           <input 
+                                type="date"
+                                className="bg-transparent border-none text-xs text-slate-600 focus:ring-0 cursor-pointer"
+                                defaultValue={lic.expires_at ? lic.expires_at.split('T')[0] : ''}
+                                onChange={(e) => handleUpdateLicenseExpiration(lic.id, e.target.value)}
+                           />
+                        </div>
+                    </td>
+                    <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize border ${
                         lic.status === 'approved' ? 'bg-green-100 text-green-700 border-green-200' :
                         lic.status === 'rejected' ? 'bg-red-100 text-red-700 border-red-200' :
@@ -336,20 +376,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      {lic.status === 'pending' && (
-                        <div className="flex justify-end gap-2">
-                          <button 
-                            onClick={() => handleLicenseAction(lic.id, 'approved')}
-                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Aprovar">
-                            <CheckCircle size={18} />
-                          </button>
-                          <button 
-                            onClick={() => handleLicenseAction(lic.id, 'rejected')}
-                            className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Rejeitar">
-                            <XCircle size={18} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex justify-end gap-2">
+                        {lic.status === 'pending' && (
+                          <>
+                            <button 
+                              onClick={() => handleLicenseAction(lic.id, 'approved')}
+                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Aprovar">
+                              <CheckCircle size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleLicenseAction(lic.id, 'rejected')}
+                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Rejeitar">
+                              <XCircle size={18} />
+                            </button>
+                          </>
+                        )}
+                        <button 
+                          onClick={() => handleDeleteLicense(lic.id)}
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir Licença">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

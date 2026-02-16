@@ -50,6 +50,7 @@ export interface LicenseRequest {
     user_id: string;
     mt5_account: string;
     status: 'pending' | 'approved' | 'rejected';
+    expires_at?: string;
     created_at: string;
     profiles?: { full_name: string; email: string };
 }
