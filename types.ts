@@ -51,6 +51,7 @@ export interface LicenseRequest {
     mt5_account: string;
     status: 'pending' | 'approved' | 'rejected';
     expires_at?: string;
+    notes?: string;
     created_at: string;
     profiles?: { full_name: string; email: string };
 }

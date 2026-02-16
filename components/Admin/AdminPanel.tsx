@@ -143,6 +143,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       }
   };
 
+  const handleUpdateLicenseNotes = async (id: string, notes: string) => {
+      try {
+          const { error } = await supabase
+            .from('license_requests')
+            .update({ notes })
+            .eq('id', id);
+          
+          if (error) throw error;
+          setLicenses(prev => prev.map(l => l.id === id ? { ...l, notes } : l));
+      } catch (error: any) {
+          console.error('Erro ao atualizar observação:', error);
+      }
+  };
+
   const handlePartnerRequestAction = async (request: PartnerRequest, status: 'approved' | 'rejected') => {
       try {
           // Update request status
@@ -336,6 +350,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                   <th className="px-6 py-4 font-medium">Conta MT5</th>
                   <th className="px-6 py-4 font-medium">Data</th>
                   <th className="px-6 py-4 font-medium">Validade</th>
+                  <th className="px-6 py-4 font-medium">Observação</th>
                   <th className="px-6 py-4 font-medium">Status</th>
                   <th className="px-6 py-4 font-medium text-right">Ações</th>
                 </tr>
@@ -365,6 +380,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                 onChange={(e) => handleUpdateLicenseExpiration(lic.id, e.target.value)}
                            />
                         </div>
+                    </td>
+                    <td className="px-6 py-4">
+                        <input 
+                            type="text"
+                            className="bg-transparent border-b border-transparent hover:border-slate-200 focus:border-blue-400 text-xs text-slate-600 focus:ring-0 w-full outline-none"
+                            placeholder="Adicionar nota..."
+                            defaultValue={lic.notes || ''}
+                            onBlur={(e) => handleUpdateLicenseNotes(lic.id, e.target.value)}
+                        />
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold capitalize border ${
