@@ -22,7 +22,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [editingProspect, setEditingProspect] = useState<string | null>(null);
   const [editingUserRole, setEditingUserRole] = useState<string | null>(null);
-  const [sortConfig, setSortConfig] = useState<{ key: keyof Profile; direction: 'asc' | 'desc' } | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
   const handleUpdateField = async (id: string, field: keyof Prospect, value: string) => {
       // Optimistic Update
@@ -61,15 +61,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           .order('created_at', { ascending: false });
 
         if (profilesError) throw profilesError;
-        
-        // Manual sorting to enforce hierarchy: Admin > First Mate > Partner
-        const sortedData = (profiles as Profile[] || []).sort((a, b) => {
-             const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2 };
-             // @ts-ignore
-             return (roleOrder[a.role] || 3) - (roleOrder[b.role] || 3);
-        });
-
-        setPartners(sortedData);
+        setPartners(profiles as Profile[] || []);
 
         // Fetch pending partner requests
         const { data: requests, error: requestsError } = await supabase
@@ -107,13 +99,78 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     }
   };
 
-  const handleSort = (key: keyof Profile) => {
+  const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
       direction = 'desc';
     }
     setSortConfig({ key, direction });
   };
+
+  const sortedLicenses = React.useMemo(() => {
+    let sortableData = [...licenses];
+
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      sortableData = sortableData.filter(lic => {
+        const name = lic.profiles?.full_name?.toLowerCase() || '';
+        const email = lic.profiles?.email?.toLowerCase() || '';
+        const mt5 = lic.mt5_account?.toLowerCase() || '';
+        return name.includes(searchLower) || email.includes(searchLower) || mt5.includes(searchLower);
+      });
+    }
+
+    if (sortConfig?.key === 'created_at') {
+      sortableData.sort((a, b) => {
+        const aVal = new Date(a.created_at).getTime();
+        const bVal = new Date(b.created_at).getTime();
+        return sortConfig.direction === 'asc' ? aVal - bVal : bVal - aVal;
+      });
+    }
+
+    return sortableData;
+  }, [licenses, searchTerm, sortConfig]);
+
+  const sortedPartners = React.useMemo(() => {
+    let sortableData = [...partners];
+
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      sortableData = sortableData.filter(user => {
+        const name = user.full_name?.toLowerCase() || '';
+        const email = user.email?.toLowerCase() || '';
+        return name.includes(searchLower) || email.includes(searchLower);
+      });
+    }
+
+    if (sortConfig !== null) {
+      sortableData.sort((a, b) => {
+        if (sortConfig.key === 'role') {
+            const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2, 'client': 3 };
+            const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 4;
+            const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 4;
+            return sortConfig.direction === 'asc' ? aOrder - bOrder : bOrder - aOrder;
+        }
+
+        const aValue = (a as any)[sortConfig.key] || '';
+        const bValue = (b as any)[sortConfig.key] || '';
+
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    } else {
+        // Default hierarchy sorting for partners tab if no explicit sort
+        sortableData.sort((a, b) => {
+            const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2, 'client': 3 };
+            const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 4;
+            const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 4;
+            return aOrder - bOrder;
+        });
+    }
+
+    return sortableData;
+  }, [partners, searchTerm, sortConfig]);
 
   const sortedUsers = React.useMemo(() => {
     let sortableUsers = [...users];
@@ -131,8 +188,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     // Then apply sorting
     if (sortConfig !== null) {
       sortableUsers.sort((a, b) => {
-        const aValue = a[sortConfig.key] || '';
-        const bValue = b[sortConfig.key] || '';
+        const aValue = (a as any)[sortConfig.key] || '';
+        const bValue = (b as any)[sortConfig.key] || '';
 
         // Hierarchy for roles if sorting by role
         if (sortConfig.key === 'role') {
@@ -282,11 +339,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                // Update role and re-sort local list
                setPartners(prev => {
                    const updated = prev.map(p => p.id === userId ? { ...p, role: newRole as any } : p);
-                   return updated.sort((a, b) => {
-                        const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2 };
-                        // @ts-ignore
-                        return (roleOrder[a.role] || 3) - (roleOrder[b.role] || 3);
-                   });
+                   return updated;
                });
           }
       }
@@ -371,12 +424,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         </button>
       </div>
 
-      {(activeTab === 'partners' || activeTab === 'users' || activeTab === 'prospects') && (
+      {(activeTab === 'licenses' || activeTab === 'partners' || activeTab === 'users' || activeTab === 'prospects') && (
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
           <input
             type="text"
-            placeholder="Buscar por nome, email ou telefone..."
+            placeholder={activeTab === 'licenses' ? "Buscar por nome, email ou conta MT5..." : "Buscar por nome, email ou telefone..."}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
@@ -399,7 +452,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 <tr>
                   <th className="px-6 py-4 font-medium">Usuário</th>
                   <th className="px-6 py-4 font-medium">Conta MT5</th>
-                  <th className="px-6 py-4 font-medium">Data</th>
+                  <th 
+                    className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                        Data
+                        {sortConfig?.key === 'created_at' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                        ) : (
+                            <ArrowUpDown size={14} className="text-slate-300" />
+                        )}
+                    </div>
+                  </th>
                   <th className="px-6 py-4 font-medium">Validade</th>
                   <th className="px-6 py-4 font-medium">Observação</th>
                   <th className="px-6 py-4 font-medium">Status</th>
@@ -407,7 +472,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {licenses.map((lic) => (
+                {sortedLicenses.map((lic) => (
                   <tr key={lic.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                         <div className="font-medium text-slate-900">
@@ -545,19 +610,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     <tr>
                     <th className="px-6 py-4 font-medium">Parceiro</th>
                     <th className="px-6 py-4 font-medium">Email</th>
-                    <th className="px-6 py-4 font-medium">Desde</th>
-                    <th className="px-6 py-4 font-medium">Função</th>
+                    <th 
+                        className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                        onClick={() => handleSort('created_at')}
+                    >
+                        <div className="flex items-center gap-1">
+                            Desde
+                            {sortConfig?.key === 'created_at' ? (
+                                sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                            ) : (
+                                <ArrowUpDown size={14} className="text-slate-300" />
+                            )}
+                        </div>
+                    </th>
+                    <th 
+                        className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                        onClick={() => handleSort('role')}
+                    >
+                        <div className="flex items-center gap-1">
+                            Função
+                            {sortConfig?.key === 'role' ? (
+                                sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                            ) : (
+                                <ArrowUpDown size={14} className="text-slate-300" />
+                            )}
+                        </div>
+                    </th>
                     <th className="px-6 py-4 font-medium text-right">Ações</th>
                     </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                    {partners.filter(user => {
-                    if (!searchTerm) return true;
-                    const searchLower = searchTerm.toLowerCase();
-                    const name = user.full_name?.toLowerCase() || '';
-                    const email = user.email?.toLowerCase() || '';
-                    return name.includes(searchLower) || email.includes(searchLower);
-                    }).map((partner) => (
+                    {sortedPartners.map((partner) => (
                     <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
                         <td className="px-6 py-4 font-medium text-slate-900">
                             {partner.full_name || 'Usuário'}
