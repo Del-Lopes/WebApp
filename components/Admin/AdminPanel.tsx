@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, PartnerRequest, Profile, Prospect } from '../../types';
-import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor, Trash2, Calendar } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor, Trash2, Calendar, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
@@ -22,6 +22,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [editingProspect, setEditingProspect] = useState<string | null>(null);
   const [editingUserRole, setEditingUserRole] = useState<string | null>(null);
+  const [sortConfig, setSortConfig] = useState<{ key: keyof Profile; direction: 'asc' | 'desc' } | null>(null);
 
   const handleUpdateField = async (id: string, field: keyof Prospect, value: string) => {
       // Optimistic Update
@@ -105,6 +106,56 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       setLoading(false);
     }
   };
+
+  const handleSort = (key: keyof Profile) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const sortedUsers = React.useMemo(() => {
+    let sortableUsers = [...users];
+    
+    // First apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      sortableUsers = sortableUsers.filter(user => {
+        const name = user.full_name?.toLowerCase() || '';
+        const email = user.email?.toLowerCase() || '';
+        return name.includes(searchLower) || email.includes(searchLower);
+      });
+    }
+
+    // Then apply sorting
+    if (sortConfig !== null) {
+      sortableUsers.sort((a, b) => {
+        const aValue = a[sortConfig.key] || '';
+        const bValue = b[sortConfig.key] || '';
+
+        // Hierarchy for roles if sorting by role
+        if (sortConfig.key === 'role') {
+            const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2, 'client': 3 };
+            const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 4;
+            const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 4;
+            
+            if (aOrder < bOrder) return sortConfig.direction === 'asc' ? -1 : 1;
+            if (aOrder > bOrder) return sortConfig.direction === 'asc' ? 1 : -1;
+            return 0;
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1;
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1;
+        }
+        return 0;
+      });
+    }
+    return sortableUsers;
+  }, [users, searchTerm, sortConfig]);
 
   const handleLicenseAction = async (id: string, status: 'approved' | 'rejected', expires_at?: string) => {
     try {
@@ -568,19 +619,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 <tr>
                   <th className="px-6 py-4 font-medium">Nome</th>
                   <th className="px-6 py-4 font-medium">Email</th>
-                  <th className="px-6 py-4 font-medium">Data de Cadastro</th>
-                  <th className="px-6 py-4 font-medium">Função</th>
+                  <th 
+                    className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                    onClick={() => handleSort('created_at')}
+                  >
+                    <div className="flex items-center gap-1">
+                        Data de Cadastro
+                        {sortConfig?.key === 'created_at' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                        ) : (
+                            <ArrowUpDown size={14} className="text-slate-300" />
+                        )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                    onClick={() => handleSort('role')}
+                  >
+                    <div className="flex items-center gap-1">
+                        Função
+                        {sortConfig?.key === 'role' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                        ) : (
+                            <ArrowUpDown size={14} className="text-slate-300" />
+                        )}
+                    </div>
+                  </th>
                   <th className="px-6 py-4 font-medium text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {users.filter(user => {
-                  if (!searchTerm) return true;
-                  const searchLower = searchTerm.toLowerCase();
-                  const name = user.full_name?.toLowerCase() || '';
-                  const email = user.email?.toLowerCase() || '';
-                  return name.includes(searchLower) || email.includes(searchLower);
-                }).map((user) => (
+                {sortedUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">

@@ -128,7 +128,7 @@ export const Journey: React.FC<JourneyProps> = ({ onBack }) => {
                 <Map className="text-green-600" />
                 Sua Jornada Trader
             </h1>
-            <p className="text-slate-500">Siga o passo a passo para o sucesso.</p>
+            <p className="text-slate-500">Veja como é simples o passo a passo.</p>
             </div>
         </div>
         
@@ -147,10 +147,10 @@ export const Journey: React.FC<JourneyProps> = ({ onBack }) => {
       <div className="bg-gradient-to-r from-green-600 to-green-500 p-8 rounded-2xl text-white shadow-lg shadow-green-500/20 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
         <div className="relative z-10">
-          <h2 className="text-3xl font-bold mb-2">Bem-vindo ao Futuro!</h2>
+          <h2 className="text-3xl font-bold mb-2">Bem-vindo à jornada</h2>
           <p className="text-green-50 max-w-xl text-lg opacity-90">
-            Preparamos um caminho exclusivo para você atingir a consistência. 
-            Complete as missões abaixo para liberar todo o potencial da plataforma.
+            Preparamos um caminho simples e fácil para você atingir a consistência. 
+            Complete as missões abaixo para começar a lucrar no piloto automático.
           </p>
         </div>
       </div>
