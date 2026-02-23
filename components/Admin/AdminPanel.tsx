@@ -602,9 +602,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
             {/* 2. Active Partners List */}
             <div className="overflow-x-auto">
-                <div className="px-6 py-4 border-b border-slate-100 bg-slate-50">
-                    <h3 className="text-sm font-bold text-slate-700">Parceiros Ativos (Lista Hierárquica)</h3>
-                </div>
+
                 <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                     <tr>
