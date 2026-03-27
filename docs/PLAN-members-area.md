@@ -1,7 +1,7 @@
 # PLAN-members-area.md
 
 ## Overview
-Implementation of a Members Area for the AFK Trade web application. The goal is to transition from a static prototype to a dynamic, database-driven application using Supabase. The system will handle User Authentication (Admin, Client, Partner), license requests for Expert Advisors (EAs), and serve educational content.
+Implementation of a Members Area for the Trader AFK web application. The goal is to transition from a static prototype to a dynamic, database-driven application using Supabase. The system will handle User Authentication (Admin, Client, Partner), license requests for Expert Advisors (EAs), and serve educational content.
 
 ## Project Type
 **WEB** (React + Vite + Supabase)

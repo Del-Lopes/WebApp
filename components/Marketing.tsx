@@ -175,7 +175,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
             <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-2">
                 <Share2 size={40} />
             </div>
-            <h2 className="text-3xl font-bold text-slate-900">Seja um Parceiro AFK Trade</h2>
+            <h2 className="text-3xl font-bold text-slate-900">Seja um Parceiro Trader AFK</h2>
             <p className="max-w-md text-slate-600">
                 Torne-se um parceiro oficial e tenha acesso a materiais de marketing exclusivos, suporte dedicado e comissões especiais.
             </p>

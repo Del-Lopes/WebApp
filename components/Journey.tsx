@@ -23,7 +23,7 @@ interface Step {
 const INITIAL_STEPS: Step[] = [
   {
     id: 1,
-    title: "Boas-vindas à AFK Trade",
+    title: "Boas-vindas à Trader AFK",
     description: "Você já deu o primeiro passo! Agora você faz parte da elite do trading automatizado.",
     status: "completed",
     iconType: 'UserCheck',

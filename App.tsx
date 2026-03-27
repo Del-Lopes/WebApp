@@ -47,7 +47,7 @@ function AppContent() {
   }, [isPasswordRecovery]);
 
   useEffect(() => {
-    const tourCompleted = localStorage.getItem('afk_tour_completed');
+    const tourCompleted = localStorage.getItem('trader_afk_tour_completed');
     if (!tourCompleted) {
        // Delay tour slightly for better UX
        const timer = setTimeout(() => setShowTour(true), 1500);
@@ -80,32 +80,32 @@ function AppContent() {
   const handleTourClose = () => {
     setShowTour(false);
     // Always mark as completed on interaction (whether close or finish)
-    localStorage.setItem('afk_tour_completed', 'true');
+    localStorage.setItem('trader_afk_tour_completed', 'true');
   };
 
 
   const getPageTitle = (view: View, article: Article | null) => {
     switch (view) {
-      case 'dashboard': return 'Início - AFK Trade';
-      case 'strategies': return 'Estratégias - AFK Trade';
-      case 'education': return 'Biblioteca - AFK Trade';
-      case 'course_player': return 'Aula - AFK Trade';
-      case 'marketing': return 'Marketing - AFK Trade';
-      case 'licenses': return 'Licenças - AFK Trade';
-      case 'admin': return 'Administração - AFK Trade';
-      case 'settings': return 'Configurações - AFK Trade';
-      case 'journey': return 'Sua Jornada - AFK Trade';
-      case 'downloads': return 'Downloads - AFK Trade';
-      case 'treasury': return 'Tesouraria - AFK Trade';
-      case 'article': return article ? `${article.title} - AFK Trade` : 'Artigo - AFK Trade';
-      default: return 'AFK Trade';
+      case 'dashboard': return 'Início - Trader AFK';
+      case 'strategies': return 'Estratégias - Trader AFK';
+      case 'education': return 'Biblioteca - Trader AFK';
+      case 'course_player': return 'Aula - Trader AFK';
+      case 'marketing': return 'Marketing - Trader AFK';
+      case 'licenses': return 'Licenças - Trader AFK';
+      case 'admin': return 'Administração - Trader AFK';
+      case 'settings': return 'Configurações - Trader AFK';
+      case 'journey': return 'Sua Jornada - Trader AFK';
+      case 'downloads': return 'Downloads - Trader AFK';
+      case 'treasury': return 'Tesouraria - Trader AFK';
+      case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
+      default: return 'Trader AFK';
     }
   };
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <Helmet>
-          <title>Login - AFK Trade</title>
+          <title>Login - Trader AFK</title>
         </Helmet>
         Loading...
       </div>
@@ -181,7 +181,7 @@ function AppContent() {
     <div className="flex h-screen bg-slate-50 text-slate-900 font-sans selection:bg-green-500/30 selection:text-green-900">
       <Helmet>
         <title>{getPageTitle(currentView, selectedArticle)}</title>
-        <meta name="description" content="Plataforma de negociação algorítmica AFK Trade." />
+        <meta name="description" content="Plataforma de negociação algorítmica Trader AFK." />
       </Helmet>
       <Sidebar 
         currentView={currentView} 
@@ -204,7 +204,7 @@ function AppContent() {
                <Logo className="w-full h-full" variant="mobile" />
              </div>
              <h1 className="text-lg font-bold text-slate-900">
-              AFK Trade
+              Trader AFK
             </h1>
           </div>
           <button 

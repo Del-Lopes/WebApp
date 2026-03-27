@@ -1,6 +1,6 @@
 {
-  "name": "AFK Trade",
-  "short_name": "AFK Trade",
+  "name": "Trader AFK",
+  "short_name": "Trader AFK",
   "description": "Plataforma de aprendizado e gestão para traders.",
   "start_url": "/",
   "display": "standalone",

@@ -62,7 +62,7 @@ export const Login: React.FC = () => {
               <Logo className="w-full h-full" variant="mobile" />
             </div>
             <span className="text-2xl font-bold tracking-tight text-slate-900">
-              AFK Trade
+              Trader AFK
             </span>
           </div>
           

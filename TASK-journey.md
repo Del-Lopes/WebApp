@@ -7,7 +7,7 @@ Implement a "Journey" (Trilha) session to guide new users through the setup proc
 1.  **Entry Point**: Add a "Comece por aqui" (Start Here) card on the User Dashboard.
 2.  **Journey View**: Create a new view/page called "Journey" (`Trilha`).
 3.  **Roadmap Steps**:
-    *   **Step 1**: Introduction (User knows AFK Trade).
+    *   **Step 1**: Introduction (User knows Trader AFK).
     *   **Step 2**: Broker Selection (Choose partner broker & open account).
     *   **Step 3**: Deposit (Deposit capital).
     *   **Step 4**: Strategy (Connect to a strategy).

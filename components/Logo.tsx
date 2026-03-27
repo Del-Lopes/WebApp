@@ -11,7 +11,7 @@ export const Logo: React.FC<LogoProps> = ({ className, variant = 'default' }) =>
     return (
       <img 
         src="/icon.png" 
-        alt="AFK Trade Mobile Logo" 
+        alt="Trader AFK Mobile Logo" 
         className={className} 
       />
     );
@@ -20,7 +20,7 @@ export const Logo: React.FC<LogoProps> = ({ className, variant = 'default' }) =>
   return (
     <img 
       src="/images/logo-icon.png" 
-      alt="AFK Trade Logo" 
+      alt="Trader AFK Logo" 
       className={className} 
     />
   );
