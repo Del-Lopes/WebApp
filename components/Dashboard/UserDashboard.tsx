@@ -228,20 +228,25 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             ) : activeLicenses.length > 0 ? (
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {activeLicenses.map((license) => (
-                  <div key={license.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-4">
-                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
-                      <span className="font-mono font-medium text-slate-700">{license.mt5_account}</span>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-200/50 px-2 py-0.5 rounded flex items-center gap-2">
-                        {license.license_title || 'MT5'}
+                  <div key={license.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500 shrink-0"></div>
+                        <span className="font-mono font-bold text-slate-800 text-lg">{license.mt5_account}</span>
+                      </div>
+                      <div className="flex items-center gap-2 bg-slate-200/50 px-2.5 py-1 rounded-xl border border-slate-200/50">
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                          {license.license_title || 'MT5'}
+                        </span>
                         {license.expires_at && (
-                          <span className="ml-1 pl-2 border-l border-slate-300 text-[10px] normal-case font-medium">
-                            Valida até: {new Date(license.expires_at).toLocaleDateString()}
-                          </span>
+                          <div className="pl-2 border-l border-slate-300 text-[10px] text-slate-400 font-medium">
+                            <span className="hidden sm:inline">Valida até: </span>
+                            <span className="text-slate-600 font-bold">{new Date(license.expires_at).toLocaleDateString()}</span>
+                          </div>
                         )}
-                      </span>
+                      </div>
                     </div>
-                    <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200">
+                    <span className="self-start sm:self-auto px-4 py-1.5 bg-green-100 text-green-700 text-[10px] font-black rounded-full border border-green-200 shadow-sm uppercase tracking-widest shrink-0">
                       ATIVO
                     </span>
                   </div>
