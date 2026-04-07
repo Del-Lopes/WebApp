@@ -105,8 +105,8 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
         <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-200 shadow-sm">
           <Key size={32} className="text-green-600" />
         </div>
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">Solicitar Licença</h2>
-        <p className="text-slate-500">Ative o trading automático para sua conta MetaTrader 5.</p>
+        <h2 className="text-3xl font-bold text-slate-900 mb-2">Gestor de Licença</h2>
+        <p className="text-slate-500">Tudo relacionado as suas licenças MT4 e MT5.</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-8">
@@ -124,7 +124,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700 mb-2">Número da Conta MT5</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Número da Conta</label>
               <div className="relative group">
                 <input
                   type="number"
@@ -157,7 +157,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
               disabled={loading}
               className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Enviando...' : 'Liberar Acesso'}
+              {loading ? 'Enviando...' : 'Solicitar Acesso'}
             </button>
           </form>
         </div>
