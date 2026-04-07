@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { LicenseRequest, PartnerRequest, Profile, Prospect } from '../../types';
+import { LicenseRequest, PartnerRequest, Profile, Prospect, LicenseTitle } from '../../types';
 import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor, Trash2, Calendar, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
@@ -25,6 +25,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
   const [editingLicenseId, setEditingLicenseId] = useState<string | null>(null);
   const [editLicenseValue, setEditLicenseValue] = useState('');
+  const [editLicenseTitle, setEditLicenseTitle] = useState('');
+  const [titles, setTitles] = useState<LicenseTitle[]>([]);
 
   const handleUpdateField = async (id: string, field: keyof Prospect, value: string) => {
       // Optimistic Update
@@ -100,6 +102,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       setLoading(false);
     }
   };
+
+  const fetchTitles = async () => {
+    const { data } = await supabase.from('license_titles').select('*').order('name');
+    if (data) setTitles(data);
+  };
+
+  useEffect(() => {
+    fetchTitles();
+  }, []);
 
   const handleSort = (key: string) => {
     let direction: 'asc' | 'desc' = 'asc';
@@ -233,14 +244,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     try {
       const { error } = await supabase
         .from('license_requests')
-        .update({ mt5_account: editLicenseValue })
+        .update({ 
+            mt5_account: editLicenseValue,
+            license_title: editLicenseTitle
+        })
         .eq('id', id);
       
       if (error) throw error;
-      setLicenses(prev => prev.map(l => l.id === id ? { ...l, mt5_account: editLicenseValue } : l));
+      setLicenses(prev => prev.map(l => l.id === id ? { ...l, mt5_account: editLicenseValue, license_title: editLicenseTitle } : l));
       setEditingLicenseId(null);
     } catch (error: any) {
-      alert('Erro ao atualizar conta: ' + error.message);
+      alert('Erro ao atualizar: ' + error.message);
     }
   };
 
@@ -504,9 +518,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                         </div>
                     </td>
                     <td className="px-6 py-4">
-                        <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded uppercase tracking-wider">
-                            {lic.license_title || 'MT5'}
-                        </span>
+                        {editingLicenseId === lic.id ? (
+                            <select
+                                value={editLicenseTitle}
+                                onChange={(e) => setEditLicenseTitle(e.target.value)}
+                                className="bg-white border border-slate-300 rounded px-2 py-1 text-[10px] font-bold uppercase focus:ring-1 focus:ring-green-500 outline-none"
+                            >
+                                {titles.map(t => (
+                                    <option key={t.id} value={t.name}>{t.name}</option>
+                                ))}
+                                {titles.length === 0 && <option value="MT5">MT5</option>}
+                            </select>
+                        ) : (
+                            <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded uppercase tracking-wider">
+                                {lic.license_title || 'MT5'}
+                            </span>
+                        )}
                     </td>
                     <td className="px-6 py-4 font-mono text-slate-600">
                         {editingLicenseId === lic.id ? (
@@ -584,10 +611,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             )}
                             <button 
                               onClick={() => {
-                                  setEditingLicenseId(lic.id);
-                                  setEditLicenseValue(lic.mt5_account);
-                              }}
-                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar Conta">
+                                   setEditingLicenseId(lic.id);
+                                   setEditLicenseValue(lic.mt5_account);
+                                   setEditLicenseTitle(lic.license_title || 'MT5');
+                               }}
+                               className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar Conta">
                               <Edit2 size={18} />
                             </button>
                             <button 

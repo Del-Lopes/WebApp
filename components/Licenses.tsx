@@ -244,7 +244,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
             <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
                 <Key size={20} className="text-slate-400" />
-                Solicitar Acesso
+                Nova Solicitação
                 </h3>
                 {(role === 'admin' || role === 'first_mate') && (
                     <button 
@@ -258,20 +258,6 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Título da Licença</label>
-                <select 
-                    value={selectedTitle}
-                    onChange={(e) => setSelectedTitle(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all font-medium appearance-none"
-                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.5em' }}
-                >
-                    {titles.map(t => (
-                        <option key={t.id} value={t.name}>{t.name}</option>
-                    ))}
-                    {titles.length === 0 && <option value="MT5">MT5</option>}
-                </select>
-              </div>
 
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-700">Número da Conta</label>
