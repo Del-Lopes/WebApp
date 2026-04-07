@@ -240,17 +240,17 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                       </span>
                     </div>
 
-                    {/* Linha 2: Validade e Ativo */}
+                    {/* Linha 2: Ativo e Validade (Invertidos) */}
                     <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
-                      <div className="flex items-center gap-2 text-slate-400">
-                        <Calendar size={12} className="shrink-0" />
-                        <span className="text-[11px] font-medium uppercase tracking-wider">
-                          Valida até: <span className="text-slate-700 font-bold ml-1">{license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'Não definida'}</span>
-                        </span>
-                      </div>
                       <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black rounded-lg border border-green-200/50 shadow-sm uppercase tracking-[0.2em]">
                         <CheckCircle2 size={10} />
                         <span>ATIVO</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Calendar size={12} className="shrink-0" />
+                        <span className="text-[11px] font-medium uppercase tracking-wider">
+                          Validade: <span className="text-slate-700 font-bold ml-1">{license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'Não definida'}</span>
+                        </span>
                       </div>
                     </div>
                   </div>
