@@ -221,17 +221,20 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Recent Activity / Licenses List */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-6">Suas Contas MT5</h3>
+            <h3 className="text-lg font-bold text-slate-900 mb-6">Suas Contas</h3>
             
             {loading ? (
                  <p className="text-slate-400">Carregando...</p>
             ) : activeLicenses.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {activeLicenses.map((license) => (
                   <div key={license.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
                       <span className="font-mono font-medium text-slate-700">{license.mt5_account}</span>
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-200/50 px-2 py-0.5 rounded">
+                        {license.license_title || 'MT5'}
+                      </span>
                     </div>
                     <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200">
                       ATIVO

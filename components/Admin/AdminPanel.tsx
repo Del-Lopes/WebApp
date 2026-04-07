@@ -469,7 +469,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                 <tr>
                   <th className="px-6 py-4 font-medium">Usuário</th>
-                  <th className="px-6 py-4 font-medium">Conta MT5</th>
+                  <th className="px-6 py-4 font-medium">Título</th>
+                  <th className="px-6 py-4 font-medium">Conta</th>
                   <th 
                     className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
                     onClick={() => handleSort('created_at')}
@@ -501,6 +502,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             {/* @ts-ignore */}
                             {lic.profiles?.email}
                         </div>
+                    </td>
+                    <td className="px-6 py-4">
+                        <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded uppercase tracking-wider">
+                            {lic.license_title || 'MT5'}
+                        </span>
                     </td>
                     <td className="px-6 py-4 font-mono text-slate-600">
                         {editingLicenseId === lic.id ? (

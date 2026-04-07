@@ -49,11 +49,18 @@ export interface LicenseRequest {
     id: string;
     user_id: string;
     mt5_account: string;
+    license_title?: string;
     status: 'pending' | 'approved' | 'rejected';
     expires_at?: string;
     notes?: string;
     created_at: string;
     profiles?: { full_name: string; email: string };
+}
+
+export interface LicenseTitle {
+    id: string;
+    name: string;
+    created_at: string;
 }
 
 export interface VideoContent {

@@ -1,36 +1,49 @@
 import React, { useState, useEffect } from 'react';
-import { Key, ShieldCheck, CheckCircle2, Clock, AlertCircle, Edit2, Calendar, XCircle } from 'lucide-react';
+import { Key, ShieldCheck, CheckCircle2, Clock, AlertCircle, Edit2, Calendar, XCircle, Settings, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { BackButton } from './BackButton';
+import { LicenseRequest, LicenseTitle } from '../types';
 
 interface LicensesProps {
   onBack?: () => void;
 }
 
-interface LicenseRequest {
-  id: string;
-  mt5_account: string;
-  status: 'pending' | 'approved' | 'rejected';
-  created_at: string;
-  expires_at?: string;
-}
-
 export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [mt5Account, setMt5Account] = useState('');
+  const [selectedTitle, setSelectedTitle] = useState('MT5');
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [requests, setRequests] = useState<LicenseRequest[]>([]);
+  const [titles, setTitles] = useState<LicenseTitle[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [showTitleManager, setShowTitleManager] = useState(false);
+  const [newTitleName, setNewTitleName] = useState('');
 
   useEffect(() => {
     if (user) {
       fetchRequests();
+      fetchTitles();
     }
   }, [user]);
+
+  const fetchTitles = async () => {
+      try {
+          const { data } = await supabase.from('license_titles').select('*').order('name');
+          if (data) {
+              setTitles(data);
+              // Set default selected title if available
+              if (data.length > 0 && !data.find(t => t.name === selectedTitle)) {
+                  setSelectedTitle(data[0].name);
+              }
+          }
+      } catch (e) {
+          console.error('Error fetching titles:', e);
+      }
+  };
 
   const fetchRequests = async () => {
     try {
@@ -60,6 +73,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
           { 
             user_id: user.id,
             mt5_account: mt5Account,
+            license_title: selectedTitle,
             status: 'pending'
           }
         ]);
@@ -68,14 +82,14 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
       setSubmitted(true);
       setMt5Account('');
-      fetchRequests(); // Refresh list
+      fetchRequests();
       
       setTimeout(() => {
         setSubmitted(false);
       }, 3000);
     } catch (err: any) {
       console.error('Error creating license request:', err);
-      setError(err.message || 'Erro ao solicitar licença. Tente novamente.');
+      setError(err.message || 'Erro ao solicitar licença.');
     } finally {
       setLoading(false);
     }
@@ -91,7 +105,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
         .update({ 
           mt5_account: editValue,
           status: 'pending',
-          expires_at: null // Reset expiration since account changed
+          expires_at: null
         })
         .eq('id', id);
 
@@ -127,7 +141,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
   const historyRequests = requests.filter(req => req.status !== 'approved');
 
   return (
-    <div className="max-w-4xl mx-auto pt-8 px-4">
+    <div className="max-w-4xl mx-auto pt-8 px-4 pb-20">
       <div className="text-center mb-10 relative">
         {onBack && (
             <div className="absolute left-0 top-0">
@@ -160,8 +174,8 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                   <div key={req.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col gap-4">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 text-green-600 rounded-lg flex items-center justify-center font-bold">
-                          MT5
+                        <div className="w-12 h-10 bg-green-600 text-white rounded-lg flex items-center justify-center font-bold text-[10px] text-center px-1 shadow-sm uppercase overflow-hidden">
+                          {req.license_title || 'MT5'}
                         </div>
                         <div>
                           {editingId === req.id ? (
@@ -187,16 +201,14 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                           <button 
                             onClick={() => handleUpdateAccount(req.id)}
                             className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                            title="Salvar alteração"
                           >
                             <CheckCircle2 size={18} />
                           </button>
                           <button 
                             onClick={() => setEditingId(null)}
                             className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
-                            title="Cancelar"
                           >
-                            <XCircle size={18} className="text-slate-400" />
+                            <XCircle size={18} />
                           </button>
                         </div>
                       ) : (
@@ -206,7 +218,6 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                             setEditValue(req.mt5_account);
                           }}
                           className="p-2 hover:bg-slate-200 text-slate-400 hover:text-slate-600 rounded-lg transition-all"
-                          title="Editar conta"
                         >
                           <Edit2 size={18} />
                         </button>
@@ -220,24 +231,50 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
           {/* Request Form */}
           <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm relative overflow-hidden h-fit">
-            {submitted ? (
+            {submitted && (
               <div className="absolute inset-0 bg-white/95 z-10 flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-300">
                 <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
                   <CheckCircle2 size={40} />
                 </div>
                 <h3 className="text-2xl font-bold text-slate-900 mb-2">Licença Solicitada!</h3>
-                <p className="text-slate-500">Sua solicitação foi enviada. Verifique o status ao lado.</p>
+                <p className="text-slate-500 text-sm">Sua solicitação foi enviada para análise.</p>
               </div>
-            ) : null}
+            )}
 
-            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-              <Key size={20} className="text-slate-400" />
-              Nova Solicitação
-            </h3>
+            <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Key size={20} className="text-slate-400" />
+                Solicitar Acesso
+                </h3>
+                {(role === 'admin' || role === 'first_mate') && (
+                    <button 
+                        onClick={() => setShowTitleManager(true)}
+                        className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
+                        title="Gerenciar Títulos"
+                    >
+                        <Settings size={18} />
+                    </button>
+                )}
+            </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Número da Conta</label>
+                <label className="block text-sm font-medium text-slate-700">Título da Licença</label>
+                <select 
+                    value={selectedTitle}
+                    onChange={(e) => setSelectedTitle(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-3 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all font-medium appearance-none"
+                    style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2394a3b8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`, backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1.5em' }}
+                >
+                    {titles.map(t => (
+                        <option key={t.id} value={t.name}>{t.name}</option>
+                    ))}
+                    {titles.length === 0 && <option value="MT5">MT5</option>}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700">Número da Conta</label>
                 <div className="relative group">
                   <input
                     type="number"
@@ -258,12 +295,6 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                   {error}
                 </div>
               )}
-
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="text-xs text-green-800/80 leading-relaxed text-center">
-                  Certifique-se que o número da conta está correto.
-                </p>
-              </div>
 
               <button
                 type="submit"
@@ -290,12 +321,17 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
           ) : (
             <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
               {historyRequests.map((req) => (
-                <div key={req.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                <div key={req.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 italic">
                   <div>
-                    <span className="block font-mono font-medium text-slate-700">Conta: {req.mt5_account}</span>
-                    <span className="text-xs text-slate-400">{new Date(req.created_at).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
+                            {req.license_title || 'MT5'}
+                        </span>
+                        <span className="block font-mono font-medium text-slate-700">Conta: {req.mt5_account}</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400">{new Date(req.created_at).toLocaleDateString()}</span>
                   </div>
-                  <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(req.status)}`}>
+                  <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold border ${getStatusColor(req.status)}`}>
                     {getStatusIcon(req.status)}
                     <span className="capitalize">{req.status === 'pending' ? 'Pendente' : req.status === 'approved' ? 'Aprovado' : 'Rejeitado'}</span>
                   </div>
@@ -305,6 +341,68 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
           )}
         </div>
       </div>
+
+      {/* Admin Title Manager Modal */}
+      {showTitleManager && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+              <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
+                  <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-xl font-bold text-slate-800">Gerenciar Títulos</h3>
+                      <button onClick={() => setShowTitleManager(false)}><XCircle size={24} className="text-slate-400 hover:text-slate-600 transition-colors" /></button>
+                  </div>
+
+                  <div className="space-y-4">
+                      <div className="flex gap-2">
+                          <input 
+                            type="text" 
+                            value={newTitleName}
+                            onChange={(e) => setNewTitleName(e.target.value)}
+                            placeholder="Ex: MT4 Gold"
+                            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-all"
+                          />
+                          <button 
+                            onClick={async () => {
+                                if (!newTitleName) return;
+                                const { error } = await supabase.from('license_titles').insert({ name: newTitleName });
+                                if (error) {
+                                    alert("Erro ou título já existente");
+                                } else {
+                                    setNewTitleName('');
+                                    fetchTitles();
+                                }
+                            }}
+                            className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-500 transition-colors shadow-sm"
+                          >
+                              <Plus size={20} />
+                          </button>
+                      </div>
+
+                      <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                          {titles.map(t => (
+                              <div key={t.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100/50 transition-colors">
+                                  <span className="font-medium text-slate-700">{t.name}</span>
+                                  <button 
+                                    onClick={async () => {
+                                        if (confirm(`Excluir título "${t.name}"?`)) {
+                                            const { error } = await supabase.from('license_titles').delete().eq('id', t.id);
+                                            if (error) alert("Erro ao excluir. O título pode estar em uso.");
+                                            fetchTitles();
+                                        }
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
+                                  >
+                                      <Trash2 size={16} />
+                                  </button>
+                              </div>
+                          ))}
+                          {titles.length === 0 && (
+                              <p className="text-center text-slate-400 text-xs py-10 italic">Nenhum título cadastrado.</p>
+                          )}
+                      </div>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 };
