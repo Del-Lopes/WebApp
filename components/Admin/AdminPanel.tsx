@@ -23,6 +23,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [editingProspect, setEditingProspect] = useState<string | null>(null);
   const [editingUserRole, setEditingUserRole] = useState<string | null>(null);
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
+  const [editingLicenseId, setEditingLicenseId] = useState<string | null>(null);
+  const [editLicenseValue, setEditLicenseValue] = useState('');
 
   const handleUpdateField = async (id: string, field: keyof Prospect, value: string) => {
       // Optimistic Update
@@ -223,6 +225,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       fetchData(); // Refresh
     } catch (error) {
       console.error('Error updating license:', error);
+    }
+  };
+
+  const handleUpdateLicenseAccount = async (id: string) => {
+    if (!editLicenseValue) return;
+    try {
+      const { error } = await supabase
+        .from('license_requests')
+        .update({ mt5_account: editLicenseValue })
+        .eq('id', id);
+      
+      if (error) throw error;
+      setLicenses(prev => prev.map(l => l.id === id ? { ...l, mt5_account: editLicenseValue } : l));
+      setEditingLicenseId(null);
+    } catch (error: any) {
+      alert('Erro ao atualizar conta: ' + error.message);
     }
   };
 
@@ -484,7 +502,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             {lic.profiles?.email}
                         </div>
                     </td>
-                    <td className="px-6 py-4 font-mono text-slate-600">{lic.mt5_account}</td>
+                    <td className="px-6 py-4 font-mono text-slate-600">
+                        {editingLicenseId === lic.id ? (
+                            <input 
+                                type="text"
+                                value={editLicenseValue}
+                                onChange={(e) => setEditLicenseValue(e.target.value)}
+                                className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-mono focus:ring-1 focus:ring-green-500 outline-none"
+                                autoFocus
+                            />
+                        ) : (
+                            lic.mt5_account
+                        )}
+                    </td>
                     <td className="px-6 py-4 text-slate-500">{new Date(lic.created_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -517,25 +547,50 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        {lic.status === 'pending' && (
+                        {editingLicenseId === lic.id ? (
                           <>
                             <button 
-                              onClick={() => handleLicenseAction(lic.id, 'approved')}
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Aprovar">
+                              onClick={() => handleUpdateLicenseAccount(lic.id)}
+                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Salvar">
                               <CheckCircle size={18} />
                             </button>
                             <button 
-                              onClick={() => handleLicenseAction(lic.id, 'rejected')}
-                              className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Rejeitar">
+                              onClick={() => setEditingLicenseId(null)}
+                              className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors" title="Cancelar">
                               <XCircle size={18} />
                             </button>
                           </>
+                        ) : (
+                          <>
+                            {lic.status === 'pending' && (
+                              <>
+                                <button 
+                                  onClick={() => handleLicenseAction(lic.id, 'approved')}
+                                  className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Aprovar">
+                                  <CheckCircle size={18} />
+                                </button>
+                                <button 
+                                  onClick={() => handleLicenseAction(lic.id, 'rejected')}
+                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Rejeitar">
+                                  <XCircle size={18} />
+                                </button>
+                              </>
+                            )}
+                            <button 
+                              onClick={() => {
+                                  setEditingLicenseId(lic.id);
+                                  setEditLicenseValue(lic.mt5_account);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar Conta">
+                              <Edit2 size={18} />
+                            </button>
+                            <button 
+                              onClick={() => handleDeleteLicense(lic.id)}
+                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir Licença">
+                              <Trash2 size={18} />
+                            </button>
+                          </>
                         )}
-                        <button 
-                          onClick={() => handleDeleteLicense(lic.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir Licença">
-                          <Trash2 size={18} />
-                        </button>
                       </div>
                     </td>
                   </tr>

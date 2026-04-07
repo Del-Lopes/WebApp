@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Key, ShieldCheck, CheckCircle2, Clock, AlertCircle, Edit2, Calendar } from 'lucide-react';
+import { Key, ShieldCheck, CheckCircle2, Clock, AlertCircle, Edit2, Calendar, XCircle } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { BackButton } from './BackButton';
@@ -183,18 +183,20 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                       </div>
                       
                       {editingId === req.id ? (
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <button 
                             onClick={() => handleUpdateAccount(req.id)}
-                            className="bg-green-600 text-white text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-green-500 transition-colors"
+                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Salvar alteração"
                           >
-                            Salvar
+                            <CheckCircle2 size={18} />
                           </button>
                           <button 
                             onClick={() => setEditingId(null)}
-                            className="bg-slate-200 text-slate-600 text-xs px-3 py-1.5 rounded-lg font-bold hover:bg-slate-300 transition-colors"
+                            className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
+                            title="Cancelar"
                           >
-                            Cancelar
+                            <XCircle size={18} className="text-slate-400" />
                           </button>
                         </div>
                       ) : (
