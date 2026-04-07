@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { Cpu, GraduationCap, TrendingUp, AlertCircle, Clock, Plus, Edit2, Trash2, X, Save, Map, ChevronRight, Download } from 'lucide-react';
+import { Cpu, GraduationCap, TrendingUp, AlertCircle, Clock, Plus, Edit2, Trash2, X, Save, Map, ChevronRight, Download, Calendar, CheckCircle2 } from 'lucide-react';
 import { LicenseRequest, Article, View } from '../../types';
 
 interface UserDashboardProps {
@@ -228,27 +228,31 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             ) : activeLicenses.length > 0 ? (
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                 {activeLicenses.map((license) => (
-                  <div key={license.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-all gap-3">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 shrink-0"></div>
-                        <span className="font-mono font-bold text-slate-800 text-lg">{license.mt5_account}</span>
+                  <div key={license.id} className="p-5 bg-slate-50/50 rounded-3xl border border-slate-100 hover:bg-slate-50 transition-all space-y-3 group">
+                    {/* Linha 1: Conta e Título */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
+                        <span className="font-mono font-black text-slate-900 text-xl tracking-tight">{license.mt5_account}</span>
                       </div>
-                      <div className="flex items-center gap-2 bg-slate-200/50 px-2.5 py-1 rounded-xl border border-slate-200/50">
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                          {license.license_title || 'MT5'}
+                      <span className="text-[10px] font-bold bg-slate-200 text-slate-500 px-3 py-1 rounded-xl uppercase tracking-widest border border-slate-300/30">
+                        {license.license_title || 'MT5'}
+                      </span>
+                    </div>
+
+                    {/* Linha 2: Validade e Ativo */}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Calendar size={12} className="shrink-0" />
+                        <span className="text-[11px] font-medium uppercase tracking-wider">
+                          Valida até: <span className="text-slate-700 font-bold ml-1">{license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'Não definida'}</span>
                         </span>
-                        {license.expires_at && (
-                          <div className="pl-2 border-l border-slate-300 text-[10px] text-slate-400 font-medium">
-                            <span className="hidden sm:inline">Valida até: </span>
-                            <span className="text-slate-600 font-bold">{new Date(license.expires_at).toLocaleDateString()}</span>
-                          </div>
-                        )}
+                      </div>
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black rounded-lg border border-green-200/50 shadow-sm uppercase tracking-[0.2em]">
+                        <CheckCircle2 size={10} />
+                        <span>ATIVO</span>
                       </div>
                     </div>
-                    <span className="self-start sm:self-auto px-4 py-1.5 bg-green-100 text-green-700 text-[10px] font-black rounded-full border border-green-200 shadow-sm uppercase tracking-widest shrink-0">
-                      ATIVO
-                    </span>
                   </div>
                 ))}
               </div>
