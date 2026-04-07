@@ -155,171 +155,176 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
         <p className="text-slate-500">Tudo relacionado as suas licenças MT4 e MT5.</p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <div className="space-y-8">
-          {/* Active Licenses */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm h-fit">
-            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
-              <ShieldCheck size={20} className="text-green-600" />
-              Licenças Ativas
-            </h3>
+      <div className="space-y-8">
+        {/* Request Form - NOW FIRST */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm relative overflow-hidden h-fit animate-in fade-in slide-in-from-top-4 duration-500">
+          {submitted && (
+            <div className="absolute inset-0 bg-white/95 z-10 flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-300">
+              <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                <CheckCircle2 size={40} />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">Licença Solicitada!</h3>
+              <p className="text-slate-500 text-sm">Sua solicitação foi enviada para análise.</p>
+            </div>
+          )}
 
-            {activeLicenses.length === 0 ? (
-              <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400 text-sm">
-                Nenhuma licença ativa no momento.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {activeLicenses.map((req) => (
-                  <div key={req.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col gap-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-10 bg-green-600 text-white rounded-lg flex items-center justify-center font-bold text-[10px] text-center px-1 shadow-sm uppercase overflow-hidden">
-                          {req.license_title || 'MT5'}
-                        </div>
-                        <div>
-                          {editingId === req.id ? (
-                            <input
-                              type="text"
-                              value={editValue}
-                              onChange={(e) => setEditValue(e.target.value)}
-                              className="bg-white border border-slate-300 rounded px-2 py-1 text-sm font-mono focus:outline-none focus:border-green-500"
-                              autoFocus
-                            />
-                          ) : (
-                            <span className="block font-mono font-bold text-slate-900">{req.mt5_account}</span>
-                          )}
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium uppercase tracking-wider">
-                            <Calendar size={10} />
-                            Expiração: {req.expires_at ? new Date(req.expires_at).toLocaleDateString() : 'Não definida'}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      {editingId === req.id ? (
-                        <div className="flex gap-1">
-                          <button 
-                            onClick={() => handleUpdateAccount(req.id)}
-                            className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                          >
-                            <CheckCircle2 size={18} />
-                          </button>
-                          <button 
-                            onClick={() => setEditingId(null)}
-                            className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors"
-                          >
-                            <XCircle size={18} />
-                          </button>
-                        </div>
-                      ) : (
-                        <button 
-                          onClick={() => {
-                            setEditingId(req.id);
-                            setEditValue(req.mt5_account);
-                          }}
-                          className="p-2 hover:bg-slate-200 text-slate-400 hover:text-slate-600 rounded-lg transition-all"
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
+          <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 font-display">
+                <Plus size={20} className="text-green-600" />
+                Nova Solicitação
+              </h3>
+              {(role === 'admin' || role === 'first_mate') && (
+                  <button 
+                      onClick={() => setShowTitleManager(true)}
+                      className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
+                      title="Gerenciar Títulos"
+                  >
+                      <Settings size={18} />
+                  </button>
+              )}
           </div>
 
-          {/* Request Form */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm relative overflow-hidden h-fit">
-            {submitted && (
-              <div className="absolute inset-0 bg-white/95 z-10 flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-300">
-                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
-                  <CheckCircle2 size={40} />
-                </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Licença Solicitada!</h3>
-                <p className="text-slate-500 text-sm">Sua solicitação foi enviada para análise.</p>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700">Número da Conta</label>
+              <div className="relative group">
+                <input
+                  type="number"
+                  required
+                  value={mt5Account}
+                  onChange={(e) => setMt5Account(e.target.value)}
+                  disabled={loading}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 pl-12 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400 font-mono text-lg disabled:opacity-50"
+                  placeholder="Ex: 50123456"
+                />
+                <ShieldCheck size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
               </div>
-            )}
-
-            <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Key size={20} className="text-slate-400" />
-                Nova Solicitação
-                </h3>
-                {(role === 'admin' || role === 'first_mate') && (
-                    <button 
-                        onClick={() => setShowTitleManager(true)}
-                        className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
-                        title="Gerenciar Títulos"
-                    >
-                        <Settings size={18} />
-                    </button>
-                )}
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-
-              <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Número da Conta</label>
-                <div className="relative group">
-                  <input
-                    type="number"
-                    required
-                    value={mt5Account}
-                    onChange={(e) => setMt5Account(e.target.value)}
-                    disabled={loading}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-xl px-4 py-4 pl-12 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400 font-mono text-lg disabled:opacity-50"
-                    placeholder="Ex: 50123456"
-                  />
-                  <ShieldCheck size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
-                </div>
+            {error && (
+              <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
+                <AlertCircle size={16} />
+                {error}
               </div>
+            )}
 
-              {error && (
-                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
-                  <AlertCircle size={16} />
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Enviando...' : 'Solicitar Acesso'}
-              </button>
-            </form>
-          </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Enviando...' : 'Solicitar Acesso'}
+            </button>
+          </form>
         </div>
 
-        {/* Request History */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-8 shadow-sm h-fit">
-          <h3 className="text-lg font-bold text-slate-900 mb-4 flex items-center gap-2">
+        {/* Request History - NOW SECOND */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm h-fit">
+          <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 font-display">
             <Clock size={20} className="text-slate-400" />
             Histórico de Solicitações
           </h3>
           
           {historyRequests.length === 0 ? (
-            <div className="text-center py-10 text-slate-400 text-sm">
+            <div className="text-center py-10 text-slate-400 text-sm italic">
               Nenhuma outra solicitação encontrada.
             </div>
           ) : (
-            <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
               {historyRequests.map((req) => (
-                <div key={req.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 italic">
+                <div key={req.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors">
                   <div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-1.5 py-0.5 rounded">
+                    <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase tracking-wider">
                             {req.license_title || 'MT5'}
                         </span>
                         <span className="block font-mono font-medium text-slate-700">Conta: {req.mt5_account}</span>
                     </div>
                     <span className="text-[10px] text-slate-400">{new Date(req.created_at).toLocaleDateString()}</span>
                   </div>
-                  <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-semibold border ${getStatusColor(req.status)}`}>
+                  <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider ${getStatusColor(req.status)}`}>
                     {getStatusIcon(req.status)}
-                    <span className="capitalize">{req.status === 'pending' ? 'Pendente' : req.status === 'approved' ? 'Aprovado' : 'Rejeitado'}</span>
+                    <span>{req.status === 'pending' ? 'Pendente' : req.status === 'approved' ? 'Aprovado' : 'Rejeitado'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Active Licenses - NOW THIRD */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm h-fit">
+          <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 font-display">
+            <ShieldCheck size={20} className="text-green-600" />
+            Licenças Ativas
+          </h3>
+
+          {activeLicenses.length === 0 ? (
+            <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-sm">
+              Nenhuma licença ativa no momento.
+            </div>
+          ) : (
+            <div className="space-y-4 max-h-[520px] overflow-y-auto pr-2 custom-scrollbar">
+              {activeLicenses.map((req) => (
+                <div key={req.id} className="p-5 bg-green-50/30 rounded-2xl border border-green-100/50 flex flex-col gap-4 hover:bg-green-50/50 transition-colors">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex-1">
+                        {editingId === req.id ? (
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={editValue}
+                              onChange={(e) => setEditValue(e.target.value)}
+                              className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-green-500 w-full"
+                              autoFocus
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-3">
+                            <span className="block font-mono font-bold text-lg text-slate-900">{req.mt5_account}</span>
+                            <div className="flex items-center gap-1.5 text-[9px] font-bold bg-green-100/60 text-green-700 px-2.5 py-1 rounded-lg uppercase tracking-wider border border-green-200/50">
+                                <Key size={10} className="shrink-0" />
+                                <span className="truncate max-w-[120px]">{req.license_title || 'MT5'}</span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-1.5">
+                          <Calendar size={10} className="text-slate-400" />
+                          Expira em: <span className="text-slate-700">{req.expires_at ? new Date(req.expires_at).toLocaleDateString() : 'Não definida'}</span>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {editingId === req.id ? (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleUpdateAccount(req.id)}
+                          className="p-2 text-green-600 hover:bg-green-100 rounded-xl transition-all shadow-sm bg-white"
+                          title="Confirmar"
+                        >
+                          <CheckCircle2 size={18} />
+                        </button>
+                        <button 
+                          onClick={() => setEditingId(null)}
+                          className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-all shadow-sm bg-white"
+                          title="Cancelar"
+                        >
+                          <XCircle size={18} />
+                        </button>
+                      </div>
+                    ) : (
+                      <button 
+                        onClick={() => {
+                          setEditingId(req.id);
+                          setEditValue(req.mt5_account);
+                        }}
+                        className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-green-600 hover:border-green-100 hover:shadow-md rounded-xl transition-all"
+                        title="Editar Conta"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}

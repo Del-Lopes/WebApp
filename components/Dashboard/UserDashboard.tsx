@@ -232,8 +232,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                     <div className="flex items-center gap-4">
                       <div className="w-2 h-2 rounded-full bg-green-500"></div>
                       <span className="font-mono font-medium text-slate-700">{license.mt5_account}</span>
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-200/50 px-2 py-0.5 rounded">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-wider bg-slate-200/50 px-2 py-0.5 rounded flex items-center gap-2">
                         {license.license_title || 'MT5'}
+                        {license.expires_at && (
+                          <span className="ml-1 pl-2 border-l border-slate-300 text-[10px] normal-case font-medium">
+                            Valida até: {new Date(license.expires_at).toLocaleDateString()}
+                          </span>
+                        )}
                       </span>
                     </div>
                     <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full border border-green-200">
