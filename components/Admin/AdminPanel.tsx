@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, PartnerRequest, Profile, Prospect, LicenseTitle } from '../../types';
-import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor, Trash2, Calendar, ArrowUpDown, ChevronUp, ChevronDown, X, ArrowLeft } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, Send, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor, Trash2, Calendar, ArrowUpDown, ChevronUp, ChevronDown, X, ArrowLeft } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
@@ -28,6 +28,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [editLicenseValue, setEditLicenseValue] = useState('');
   const [editLicenseTitle, setEditLicenseTitle] = useState('');
   const [titles, setTitles] = useState<LicenseTitle[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);
+  const [newsletterSubject, setNewsletterSubject] = useState('');
+  const [newsletterContent, setNewsletterContent] = useState('');
+  const [isSending, setIsSending] = useState(false);
 
   const handleUpdateField = async (id: string, field: keyof Prospect, value: string) => {
       // Optimistic Update
@@ -420,6 +425,55 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     } finally {
         setLoading(false);
     }
+  };
+
+  const handleSendNewsletter = async () => {
+    if (!newsletterSubject || !newsletterContent) {
+      alert("Por favor, preencha o assunto e a mensagem.");
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      // Create broadcast record for history
+      const { data: broadcast, error: broadcastError } = await supabase
+        .from('broadcasts')
+        .insert({
+          subject: newsletterSubject,
+          content: newsletterContent,
+          target_count: selectedIds.length
+        })
+        .select()
+        .single();
+
+      if (broadcastError) throw broadcastError;
+
+      // NOTE: In Phase 3 (motor de disparo), here we would trigger the Edge Function 
+      // or loop through selected emails to send via provider.
+      // For now, we simulate success for UI testing.
+      
+      alert(`Comunicado enviado com sucesso para ${selectedIds.length} usuários.`);
+      setIsNewsletterOpen(false);
+      setSelectedIds([]);
+      setNewsletterSubject('');
+      setNewsletterContent('');
+    } catch (error: any) {
+      alert("Erro ao enviar comunicado: " + error.message);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const toggleSelectAll = (ids: string[]) => {
+    if (selectedIds.length === ids.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(ids);
+    }
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
 
   const renderUserDetails = (user: Profile) => {
@@ -826,6 +880,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                     <tr>
+                    <th className="px-6 py-4 font-medium px-2">
+                        <input 
+                          type="checkbox" 
+                          onChange={() => toggleSelectAll(sortedPartners.map(p => p.id))}
+                          checked={selectedIds.length > 0 && selectedIds.length === sortedPartners.length}
+                          className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                        />
+                    </th>
                     <th className="px-6 py-4 font-medium">Parceiro</th>
                     <th className="px-6 py-4 font-medium">Email</th>
                     <th className="px-6 py-4 font-medium">Último Login</th>
@@ -861,6 +923,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 <tbody className="divide-y divide-slate-100">
                     {sortedPartners.map((partner) => (
                     <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
+                        <td className="px-6 py-4">
+                            <input 
+                              type="checkbox" 
+                              checked={selectedIds.includes(partner.id)}
+                              onChange={() => toggleSelect(partner.id)}
+                              className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                            />
+                        </td>
                         <td className="px-6 py-4">
                            <button 
                              onClick={() => setSelectedUser(partner)}
@@ -928,6 +998,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                 <tr>
+                  <th className="px-6 py-4 font-medium px-2 text-center">
+                    <input 
+                      type="checkbox" 
+                      onChange={() => toggleSelectAll(sortedUsers.map(u => u.id))}
+                      checked={selectedIds.length > 0 && selectedIds.length === sortedUsers.length}
+                      className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                    />
+                  </th>
                   <th className="px-6 py-4 font-medium">Nome</th>
                   <th className="px-6 py-4 font-medium">Email</th>
                   <th className="px-6 py-4 font-medium">Último Login</th>
@@ -963,6 +1041,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               <tbody className="divide-y divide-slate-100">
                 {sortedUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">
+                        <input 
+                          type="checkbox" 
+                          checked={selectedIds.includes(user.id)}
+                          onChange={() => toggleSelect(user.id)}
+                          className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                        />
+                    </td>
                     <td className="px-6 py-4">
                         <button 
                           onClick={() => setSelectedUser(user)}
@@ -1201,6 +1287,112 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       </div>
       </>
       )}
+
+      {/* Hub de Comunicação: Barra de Seleção Suspensa */}
+      {selectedIds.length > 0 && (
+           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-8 py-5 rounded-[32px] shadow-3xl flex items-center gap-8 animate-in slide-in-from-bottom-12 duration-500 z-50 backdrop-blur-xl border border-white/10 ring-1 ring-white/5">
+                <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-[20px] flex items-center justify-center font-black shadow-lg shadow-green-500/40 transform -rotate-12">
+                        {selectedIds.length}
+                    </div>
+                    <div>
+                        <div className="text-[10px] uppercase font-black tracking-[0.25em] text-slate-400 mb-0.5">Audiência</div>
+                        <div className="text-base font-black tracking-tight whitespace-nowrap">Usuários Selecionados</div>
+                    </div>
+                </div>
+                <div className="h-12 w-[1px] bg-white/10 mx-2" />
+                <div className="flex gap-4">
+                    <button 
+                        onClick={() => setIsNewsletterOpen(true)}
+                        className="px-8 py-3.5 bg-white text-slate-900 rounded-2xl font-black hover:bg-green-500 hover:text-white transition-all shadow-xl flex items-center gap-3 group active:scale-95"
+                    >
+                        <Mail size={20} className="group-hover:scale-110 transition-transform" /> Enviar Mensagem
+                    </button>
+                    <button 
+                        onClick={() => setSelectedIds([])}
+                        className="px-6 py-3.5 bg-slate-800 text-slate-400 rounded-2xl font-black hover:bg-slate-700 hover:text-white transition-all active:scale-95"
+                    >
+                        Cancelar
+                    </button>
+                </div>
+           </div>
+        )}
+
+        {/* Modal de Disparo (Newsletter) */}
+        {isNewsletterOpen && (
+             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
+                <div className="bg-white w-full max-w-2xl rounded-[48px] shadow-3xl overflow-hidden animate-in zoom-in-95 duration-500 border border-slate-100 flex flex-col max-h-[90vh]">
+                    <div className="bg-slate-50/50 px-12 py-10 border-b border-slate-100 flex justify-between items-start shrink-0">
+                        <div>
+                            <div className="flex items-center gap-4 mb-2">
+                                <div className="p-4 bg-slate-900 rounded-[24px] shadow-2xl shadow-slate-900/20">
+                                    <Mail className="text-green-500" size={28} />
+                                </div>
+                                <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Novo Comunicado</h2>
+                            </div>
+                            <p className="text-sm text-slate-500 font-bold ml-2">Disparo exclusivo para {selectedIds.length} traders.</p>
+                        </div>
+                        <button 
+                            onClick={() => setIsNewsletterOpen(false)}
+                            className="p-4 hover:bg-slate-200 rounded-2xl transition-all group"
+                        >
+                            <X size={28} className="text-slate-400 group-hover:rotate-90 transition-transform" />
+                        </button>
+                    </div>
+                    
+                    <div className="p-12 space-y-10 overflow-y-auto custom-scrollbar">
+                        <div className="space-y-4">
+                            <label className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Assunto do E-mail</label>
+                            <input 
+                                type="text" 
+                                value={newsletterSubject}
+                                onChange={(e) => setNewsletterSubject(e.target.value)}
+                                placeholder="Qual o título do anúncio?"
+                                className="w-full px-8 py-6 bg-slate-50/80 border border-slate-100 rounded-[28px] focus:ring-4 focus:ring-green-500/10 focus:border-green-500/50 focus:bg-white outline-none font-bold text-slate-900 text-lg transition-all placeholder:text-slate-300 shadow-sm"
+                            />
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <label className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Nossa Mensagem</label>
+                            <textarea 
+                                value={newsletterContent}
+                                onChange={(e) => setNewsletterContent(e.target.value)}
+                                rows={10}
+                                placeholder="Traga as novidades aqui..."
+                                className="w-full px-8 py-8 bg-slate-50/80 border border-slate-100 rounded-[32px] focus:ring-4 focus:ring-green-500/10 focus:border-green-500/50 focus:bg-white outline-none font-bold text-slate-700 text-base resize-none transition-all shadow-inner placeholder:text-slate-300"
+                            />
+                        </div>
+                    </div>
+
+                    <div className="px-12 py-10 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-5 shrink-0">
+                        <button 
+                            onClick={() => setIsNewsletterOpen(false)}
+                            className="px-10 py-5 text-slate-500 font-black hover:bg-slate-100 rounded-[24px] transition-all"
+                        >
+                            Agora Não
+                        </button>
+                        <button 
+                            onClick={handleSendNewsletter}
+                            disabled={isSending}
+                            className={`px-14 py-5 rounded-[28px] font-black shadow-2xl transition-all flex items-center gap-3 disabled:opacity-50 group hover:-translate-y-1 active:translate-y-0 ${
+                                isSending ? 'bg-slate-400 text-white' : 'bg-slate-900 text-white hover:bg-green-600 shadow-green-500/20'
+                            }`}
+                        >
+                            {isSending ? (
+                                <>
+                                    <div className="w-5 h-5 border-[3px] border-white/30 border-t-white rounded-full animate-spin" />
+                                    Processando...
+                                </>
+                            ) : (
+                                <>
+                                    Disparar Mensagem <Send size={22} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                                </>
+                            )}
+                        </button>
+                    </div>
+                </div>
+             </div>
+        )}
     </div>
   );
 };

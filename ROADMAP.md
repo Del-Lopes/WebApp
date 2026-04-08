@@ -36,10 +36,26 @@ Este documento traça a evolução estratégica do **Tradexperience**, focando e
 
 ---
 
-## 📉 Fase 3: Auditoria e UX Avançada
+## 📢 Fase 3: Hub de Comunicação (Newsletter & Broadcast)
+**Objetivo**: Permitir o disparo de comunicados, atualizações de robôs e novidades diretamente para os usuários selecionados.
+
+### 🛠️ Tarefas
+- [ ] **Supabase (Backend)**:
+    - [ ] Criar tabela `broadcasts` (histórico de mensagens).
+    - [ ] Configurar integração com provedor de e-mail (Resend/SendGrid).
+- [ ] **App (Admin Panel)**:
+    - [ ] Interface de Checkboxes nas abas de Usuários e Parceiros para seleção múltipla.
+    - [ ] Modal de Composição: Campo "Assunto" e "Mensagem" (Suporte a Markdown).
+    - [ ] Filtros Dinâmicos: Botão de "Selecionar Todos" e segmentação por função (Admin, Parceiro, Cliente).
+- [ ] **Motor de Automação**:
+    - [ ] Implementar fila de disparos (Queue) para evitar sobrecarga do servidor.
+
+---
+
+## 📉 Fase 4: Auditoria e UX Avançada
 - [ ] **Logs de Tentativas**: Registrar no Supabase quando um robô for bloqueado para identificar possíveis compartilhamentos de licença indevidos.
 - [ ] **Painel de Usuário**: Exibir progresso visual de dias restantes para expiração no app.
 
 ---
 
-*Última atualização: 07/04/2026*
+*Última atualização: 08/04/2026*
