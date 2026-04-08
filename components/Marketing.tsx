@@ -351,7 +351,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
         </button>
       </div>
 
-      {activeTab === 'materials' ? (
+      {activeTab === 'materials' && (
         <div className="space-y-8 animate-in fade-in duration-500">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {assets.map((asset) => (
@@ -419,7 +419,9 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
             </div>
           )}
         </div>
-      ) : (
+      )}
+
+      {activeTab === 'prospects' && (
         /* PROSPECTS VIEW - Match AdminPanel Inline Table Style */
         <div className="bg-white rounded-[40px] shadow-2xl shadow-slate-100 border border-slate-100 overflow-hidden animate-in slide-in-from-bottom duration-500">
           <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6 bg-[#f8fafc]/30">
