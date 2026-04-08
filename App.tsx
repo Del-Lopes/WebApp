@@ -2,6 +2,7 @@
 import React, { useState, Suspense, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Menu, Loader2 } from 'lucide-react';
+import { Analytics } from '@vercel/analytics/react';
 import { Sidebar } from './components/Sidebar';
 import { INITIAL_ROBOTS } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -240,6 +241,7 @@ function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <Analytics />
     </AuthProvider>
   );
 }
