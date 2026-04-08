@@ -254,11 +254,11 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-8 pb-20">
-      <div className="flex items-start gap-6">
+      <div className="flex items-center gap-4">
         <BackButton onClick={onBack} />
-        <div className="flex flex-col">
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight leading-tight">Painel do Parceiro</h2>
-          <p className="text-slate-500 font-medium text-lg mt-1">Gerencie seus prospectos e materiais de marketing em um só lugar.</p>
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900 mb-1">Painel do Parceiro</h2>
+          <p className="text-slate-500 text-sm">Gerencie seus prospectos e materiais de marketing em um só lugar.</p>
         </div>
       </div>
 
