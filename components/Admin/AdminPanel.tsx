@@ -487,11 +487,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const filename = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-        const uploadUrl = `http://s3-u5jwkfdyqrzqj39vcpf8nk9n.137.131.134.214.sslip.io/trade/${filename}`;
+        // Endpoint Admin (Filer) com Basic Auth
+        const uploadUrl = `https://admin-u5jwkfdyqrzqj39vcpf8nk9n.137.131.134.214.sslip.io/trade/${filename}`;
 
         const response = await fetch(uploadUrl, {
           method: 'PUT',
-          body: file
+          body: file,
+          headers: {
+            'Authorization': 'Basic ' + btoa('nGXocdX6kUwpBXdJ:5Xy97eHINXVyRktkI9t4KY8JIjHXMqJE')
+          }
         });
 
         if (response.ok) {

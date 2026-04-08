@@ -21,7 +21,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
   // Article Admin State
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [articleForm, setArticleForm] = useState({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise', gallery_urls_input: '' });
+  const [articleForm, setArticleForm] = useState({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise', gallery_urls: [] as string[] });
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -69,11 +70,11 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             content: article.content || '', 
             image_url: article.image_url || '', 
             category: article.category || 'Análise',
-            gallery_urls_input: article.gallery_urls ? article.gallery_urls.join('\n') : ''
+            gallery_urls: article.gallery_urls || []
           });
       } else {
           setEditingArticle(null);
-          setArticleForm({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise', gallery_urls_input: '' });
+          setArticleForm({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise', gallery_urls: [] });
       }
       setIsArticleModalOpen(true);
   };
@@ -81,18 +82,13 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
   const handleSaveArticle = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
-          const gallery_urls = articleForm.gallery_urls_input
-              .split('\n')
-              .map(url => url.trim())
-              .filter(url => url.length > 0);
-
           const articleData = {
               title: articleForm.title,
               excerpt: articleForm.excerpt,
               content: articleForm.content,
               image_url: articleForm.image_url,
               category: articleForm.category,
-              gallery_urls: gallery_urls
+              gallery_urls: articleForm.gallery_urls
           };
 
           if (editingArticle) {
@@ -103,6 +99,44 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
           setIsArticleModalOpen(false);
           fetchContentData(); // Refresh list
       } catch(e: any) { alert("Erro: " + e.message); }
+  };
+
+  const handleUploadToSeaweed = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const filename = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
+        // Endpoint Admin (Filer) com Basic Auth
+        const uploadUrl = `https://admin-u5jwkfdyqrzqj39vcpf8nk9n.137.131.134.214.sslip.io/trade/${filename}`;
+
+        const response = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Authorization': 'Basic ' + btoa('nGXocdX6kUwpBXdJ:5Xy97eHINXVyRktkI9t4KY8JIjHXMqJE')
+          }
+        });
+
+        if (response.ok) {
+          uploadedUrls.push(uploadUrl);
+        }
+      }
+
+      setArticleForm(prev => ({
+        ...prev,
+        gallery_urls: [...prev.gallery_urls, ...uploadedUrls],
+        image_url: prev.image_url || uploadedUrls[0] || ''
+      }));
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Erro ao fazer upload para o storage.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleDeleteArticle = async (articleId: string) => {
@@ -360,18 +394,24 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                           <textarea rows={6} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="Texto completo da análise..." />
                       </div>
                       <div>
-                          <label className="block text-sm font-medium mb-1 text-slate-600">Imagem URL (Opcional)</label>
-                          <input type="text" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="https://..." />
-                      </div>
-                      <div>
-                          <label className="block text-sm font-medium mb-1 text-slate-600">Galeria de Imagens (Uma URL por linha)</label>
-                          <textarea 
-                            rows={3} 
-                            value={articleForm.gallery_urls_input} 
-                            onChange={e => setArticleForm({...articleForm, gallery_urls_input: e.target.value})} 
-                            className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" 
-                            placeholder="https://imagem1.jpg&#10;https://imagem2.jpg" 
-                          />
+                        <label className="block text-sm font-medium mb-1 text-slate-600">Fotos (SeaweedFS)</label>
+                        <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-4 cursor-pointer hover:bg-green-50 hover:border-green-400 transition-all ${isUploading ? 'bg-slate-50 cursor-wait' : 'bg-green-50/10 border-slate-200'}`}>
+                            <Plus size={24} className={`${isUploading ? 'text-slate-300 animate-spin' : 'text-green-500'}`} />
+                            <span className="text-xs font-bold text-slate-500 mt-1">{isUploading ? 'Enviando...' : 'Adicionar Fotos'}</span>
+                            <input type="file" multiple accept="image/*" onChange={(e) => handleUploadToSeaweed(e.target.files)} className="hidden" disabled={isUploading} />
+                        </label>
+                        
+                        {articleForm.gallery_urls.length > 0 && (
+                            <div className="grid grid-cols-4 gap-2 mt-4">
+                                {articleForm.gallery_urls.map((url, i) => (
+                                    <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-slate-200">
+                                        <img src={url} className="w-full h-full object-cover" />
+                                        <button type="button" onClick={() => setArticleForm(prev => ({...prev, gallery_urls: prev.gallery_urls.filter((_, idx) => idx !== i)}))} className="absolute top-0 right-0 p-1 bg-red-500 text-white rounded-bl-lg opacity-0 group-hover:opacity-100 transition-opacity"><X size={10} /></button>
+                                        <button type="button" onClick={() => setArticleForm({...articleForm, image_url: url})} className={`absolute bottom-0 left-0 right-0 py-0.5 text-[8px] font-black text-center ${articleForm.image_url === url ? 'bg-green-600 text-white' : 'bg-slate-900/40 text-white opacity-0 group-hover:opacity-100'}`}>{articleForm.image_url === url ? 'CAPA' : 'USAR CAPA'}</button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
                       </div>
                       <div className="pt-2">
                         <button type="submit" className="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-500 shadow-lg shadow-green-600/20 transition-all transform hover:-translate-y-0.5">
