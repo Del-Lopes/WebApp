@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { LicenseRequest, PartnerRequest, Profile, Prospect, LicenseTitle } from '../../types';
+import { LicenseRequest, PartnerRequest, Profile, Prospect, LicenseTitle, Article } from '../../types';
 import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, Send, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor, Trash2, Calendar, ArrowUpDown, ChevronUp, ChevronDown, X, ArrowLeft } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
@@ -11,12 +11,13 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) => {
-  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users'>('licenses');
+  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users' | 'content'>('licenses');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<Profile[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
   const [partnerRequests, setPartnerRequests] = useState<PartnerRequest[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
+  const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
@@ -30,6 +31,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [titles, setTitles] = useState<LicenseTitle[]>([]);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [isNewsletterOpen, setIsNewsletterOpen] = useState(false);
+  const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
+  const [articleForm, setArticleForm] = useState({ 
+    title: '', excerpt: '', content: '', image_url: '', category: '', gallery_urls: [] as string[] 
+  });
+  const [isUploading, setIsUploading] = useState(false);
   const [newsletterSubject, setNewsletterSubject] = useState('');
   const [newsletterContent, setNewsletterContent] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -91,8 +98,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
         if (error) throw error;
         setUsers(data as Profile[] || []);
-      } else {
-        // Prospects
+      } else if (activeTab === 'prospects') {
         const { data, error } = await supabase
           .from('prospects')
           .select('*')
@@ -100,6 +106,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         
         if (error) throw error;
         setProspects(data as Prospect[] || []);
+      } else if (activeTab === 'content') {
+        const { data, error } = await supabase
+          .from('articles')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        setArticles(data as Article[] || []);
       }
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
@@ -464,6 +478,78 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     }
   };
 
+  const handleUploadToSeaweed = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    const uploadedUrls: string[] = [];
+
+    try {
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const filename = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
+        const uploadUrl = `http://s3-u5jwkfdyqrzqj39vcpf8nk9n.137.131.134.214.sslip.io/trade/${filename}`;
+
+        const response = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file
+        });
+
+        if (response.ok) {
+          uploadedUrls.push(uploadUrl);
+        }
+      }
+
+      setArticleForm(prev => ({
+        ...prev,
+        gallery_urls: [...prev.gallery_urls, ...uploadedUrls],
+        image_url: prev.image_url || uploadedUrls[0] || ''
+      }));
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Erro ao fazer upload para o storage.');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSaveArticle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const data = {
+        title: articleForm.title,
+        excerpt: articleForm.excerpt,
+        content: articleForm.content,
+        image_url: articleForm.image_url,
+        category: articleForm.category,
+        gallery_urls: articleForm.gallery_urls
+      };
+
+      if (editingArticle) {
+        const { error } = await supabase.from('articles').update(data).eq('id', editingArticle.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from('articles').insert(data);
+        if (error) throw error;
+      }
+
+      setIsArticleModalOpen(false);
+      fetchData();
+    } catch (error: any) {
+      alert('Erro ao salvar artigo: ' + error.message);
+    }
+  };
+
+  const handleDeleteArticle = async (id: string) => {
+    if (!window.confirm('Excluir este artigo permanentemente?')) return;
+    try {
+      const { error } = await supabase.from('articles').delete().eq('id', id);
+      if (error) throw error;
+      setArticles(prev => prev.filter(a => a.id !== id));
+    } catch (error: any) {
+      alert('Erro ao excluir: ' + error.message);
+    }
+  };
+
   const toggleSelectAll = (ids: string[]) => {
     if (selectedIds.length === ids.length) {
       setSelectedIds([]);
@@ -635,6 +721,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               }`}
             >
               Prospectos
+            </button>
+            <button
+              onClick={() => setActiveTab('content')}
+              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === 'content' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Blog / Conteúdo
             </button>
           </div>
 
@@ -1115,284 +1209,236 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               </tbody>
             </table>
           </div>
-        ) : (
+        ) : activeTab === 'prospects' ? (
           <div>
-          <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-             <h3 className="font-bold text-slate-700">Lista de Prospectos</h3>
-             <button 
-                onClick={async () => {
-                    try {
-                        const { data, error } = await supabase.from('prospects').insert({
-                            full_name: 'Novo Prospecto',
-                            email: '',
-                            phone: '',
-                            status: 'new',
-                            notes: ''
-                        }).select().single();
-                        
-                        if (error) throw error;
-                        await fetchData();
-                        setEditingProspect(data.id);
-                    } catch (e: any) {
-                        alert('Erro ao criar: ' + e.message);
-                    }
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500 text-sm font-medium transition-colors"
-             >
-                <Plus size={16} /> Novo
-             </button>
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+               <h3 className="font-bold text-slate-700">Lista de Prospectos</h3>
+               <button 
+                  onClick={async () => {
+                      try {
+                          const { data, error } = await supabase.from('prospects').insert({
+                              full_name: 'Novo Prospecto', email: '', phone: '', status: 'new', notes: ''
+                          }).select().single();
+                          if (error) throw error;
+                          await fetchData();
+                          setEditingProspect(data.id);
+                      } catch (e: any) { alert('Erro ao criar: ' + e.message); }
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-500 text-sm font-medium transition-colors"
+               >
+                  <Plus size={16} /> Novo
+               </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                  <tr>
+                    <th className="px-6 py-4 font-medium w-[25%]">Prospecto</th>
+                    <th className="px-6 py-4 font-medium w-[25%]">Contato</th>
+                    <th className="px-6 py-4 font-medium w-[15%]">Status</th>
+                    <th className="px-6 py-4 font-medium w-[25%]">Anotações</th>
+                    <th className="px-6 py-4 font-medium text-right w-[10%]">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {prospects.filter(p => {
+                      if (!searchTerm) return true;
+                      const term = searchTerm.toLowerCase();
+                      return p.full_name.toLowerCase().includes(term) || p.email.toLowerCase().includes(term) || p.phone.includes(term);
+                  }).map(prospect => (
+                      <tr key={prospect.id} className="hover:bg-slate-50 transition-colors group">
+                          <td className="px-6 py-4 align-top">
+                              {editingProspect === prospect.id ? (
+                                  <input autoFocus className="w-full border rounded px-2 py-1 outline-none font-bold" defaultValue={prospect.full_name} onChange={(e) => handleUpdateField(prospect.id, 'full_name', e.target.value)} />
+                              ) : ( <div className="font-bold text-slate-900">{prospect.full_name}</div> )}
+                              <div className="text-xs text-slate-500 mt-1">ID: {prospect.id.slice(0, 8)}</div>
+                          </td>
+                          <td className="px-6 py-4 align-top">
+                              <div className="flex flex-col gap-2">
+                                  <div className="flex items-center gap-2 text-slate-600">
+                                     <Mail size={14} />
+                                     {editingProspect === prospect.id ? (
+                                         <input className="w-full border rounded px-2 py-0.5 text-xs" defaultValue={prospect.email} onChange={(e) => handleUpdateField(prospect.id, 'email', e.target.value)} />
+                                     ) : ( <a href={`mailto:${prospect.email}`} className="truncate hover:text-green-600">{prospect.email || 'Sem email'}</a> )}
+                                  </div>
+                                  <div className="flex items-center gap-2 text-slate-600">
+                                     <Phone size={14} />
+                                     {editingProspect === prospect.id ? (
+                                         <input className="w-full border rounded px-2 py-0.5 text-xs" defaultValue={prospect.phone} onChange={(e) => handleUpdateField(prospect.id, 'phone', e.target.value)} />
+                                     ) : ( <a href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} target="_blank" className="hover:text-green-600">{prospect.phone || 'Sem telefone'}</a> )}
+                                  </div>
+                              </div>
+                          </td>
+                          <td className="px-6 py-4 align-top">
+                               <select 
+                                  value={prospect.status}
+                                  onChange={(e) => handleProspectStatus(prospect.id, e.target.value as Prospect['status'])}
+                                  className="w-full px-2 py-1.5 rounded text-xs font-bold border outline-none"
+                               >
+                                   <option value="new">Novo</option>
+                                   <option value="contacted">Contatado</option>
+                                   <option value="negotiating">Negociando</option>
+                                   <option value="converted">Convertido</option>
+                                   <option value="lost">Perdido</option>
+                               </select>
+                          </td>
+                          <td className="px-6 py-4 align-top">
+                              {editingProspect === prospect.id ? (
+                                  <textarea className="w-full border rounded px-2 py-1 text-xs" defaultValue={prospect.notes || ''} onChange={(e) => handleUpdateField(prospect.id, 'notes', e.target.value)} />
+                              ) : ( <p className="text-xs whitespace-pre-wrap">{prospect.notes || '-'}</p> )}
+                          </td>
+                          <td className="px-6 py-4 align-top text-right">
+                              <div className="flex justify-end gap-2">
+                                  {editingProspect === prospect.id ? (
+                                      <button onClick={() => setEditingProspect(null)} className="p-2 text-green-600 hover:bg-green-50 rounded-lg"><CheckCircle size={18} /></button>
+                                  ) : (
+                                      <button onClick={() => setEditingProspect(prospect.id)} className="p-2 text-slate-400 hover:text-slate-600"><Edit2 size={18} /></button>
+                                  )}
+                              </div>
+                          </td>
+                      </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
+        ) : activeTab === 'content' ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                 <tr>
-                  <th className="px-6 py-4 font-medium w-[25%]">Prospecto</th>
-                  <th className="px-6 py-4 font-medium w-[25%]">Contato</th>
-                  <th className="px-6 py-4 font-medium w-[15%]">Status</th>
-                  <th className="px-6 py-4 font-medium w-[25%]">Anotações</th>
-                  <th className="px-6 py-4 font-medium text-right w-[10%]">Ação</th>
+                  <th className="px-6 py-4 font-medium">Artigo</th>
+                  <th className="px-6 py-4 font-medium">Categoria</th>
+                  <th className="px-6 py-4 font-medium">Imagens</th>
+                  <th className="px-6 py-4 font-medium">Data</th>
+                  <th className="px-6 py-4 font-medium text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {prospects.filter(p => {
+                {articles.filter(a => {
                     if (!searchTerm) return true;
-                    const term = searchTerm.toLowerCase();
-                    return p.full_name.toLowerCase().includes(term) || 
-                           p.email.toLowerCase().includes(term) ||
-                           p.phone.includes(term);
-                }).map(prospect => (
-                    <tr key={prospect.id} className="hover:bg-slate-50 transition-colors group">
-                        <td className="px-6 py-4 align-top">
-                            {editingProspect === prospect.id ? (
-                                <input 
-                                    autoFocus
-                                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 mb-1 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none font-bold text-slate-900"
-                                    defaultValue={prospect.full_name}
-                                    onChange={(e) => handleUpdateField(prospect.id, 'full_name', e.target.value)}
-                                    placeholder="Nome Completo"
-                                />
-                            ) : (
-                                <div className="font-bold text-slate-900">{prospect.full_name}</div>
-                            )}
-                            <div className="text-xs text-slate-500 mt-1">ID: {prospect.id.slice(0, 8)}</div>
-                        </td>
-                        <td className="px-6 py-4 align-top">
-                            <div className="flex flex-col gap-2">
-                                <div className="flex items-center gap-2 text-slate-600">
-                                   <Mail size={14} className="shrink-0" />
-                                   {editingProspect === prospect.id ? (
-                                       <input 
-                                            className="w-full bg-white border border-slate-300 rounded px-2 py-0.5 focus:ring-1 focus:ring-green-500 outline-none text-xs"
-                                            defaultValue={prospect.email}
-                                            onChange={(e) => handleUpdateField(prospect.id, 'email', e.target.value)}
-                                            placeholder="Email"
-                                       />
-                                   ) : (
-                                       <a href={`mailto:${prospect.email}`} className="hover:text-green-600 truncate">{prospect.email || 'Sem email'}</a>
-                                   )}
-                                </div>
-                                <div className="flex items-center gap-2 text-slate-600">
-                                   <Phone size={14} className="shrink-0" />
-                                   {editingProspect === prospect.id ? (
-                                       <input 
-                                            className="w-full bg-white border border-slate-300 rounded px-2 py-0.5 focus:ring-1 focus:ring-green-500 outline-none text-xs"
-                                            defaultValue={prospect.phone}
-                                            onChange={(e) => handleUpdateField(prospect.id, 'phone', e.target.value)}
-                                            placeholder="Telefone (55...)"
-                                       />
-                                   ) : (
-                                       <a href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="hover:text-green-600 truncate">{prospect.phone || 'Sem telefone'}</a>
-                                   )}
-                                </div>
-                            </div>
-                        </td>
-                        <td className="px-6 py-4 align-top">
-                             <select 
-                                value={prospect.status}
-                                onChange={(e) => handleProspectStatus(prospect.id, e.target.value as Prospect['status'])}
-                                className={`w-full px-2 py-1.5 rounded text-xs font-bold uppercase border outline-none cursor-pointer transition-colors ${
-                                    prospect.status === 'new' ? 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100' :
-                                    prospect.status === 'contacted' ? 'bg-yellow-50 text-yellow-700 border-yellow-200 hover:bg-yellow-100' :
-                                    prospect.status === 'negotiating' ? 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100' :
-                                    prospect.status === 'converted' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' :
-                                    'bg-red-50 text-red-700 border-red-200 hover:bg-red-100'
-                                }`}
-                             >
-                                 <option value="new">Novo</option>
-                                 <option value="contacted">Contatado</option>
-                                 <option value="negotiating">Em Negociação</option>
-                                 <option value="converted">Convertido</option>
-                                 <option value="lost">Perdido</option>
-                             </select>
-                        </td>
-                        <td className="px-6 py-4 align-top text-slate-500">
-                            {editingProspect === prospect.id ? (
-                                <textarea 
-                                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 focus:ring-1 focus:ring-green-500 outline-none text-xs min-h-[60px]"
-                                    defaultValue={prospect.notes || ''}
-                                    onChange={(e) => handleUpdateField(prospect.id, 'notes', e.target.value)}
-                                    placeholder="Adicionar anotações..."
-                                />
-                            ) : (
-                                <p className="text-xs leading-relaxed max-w-[200px] whitespace-pre-wrap">{prospect.notes || '-'}</p>
-                            )}
-                        </td>
-                         <td className="px-6 py-4 align-top text-right">
-                            <div className="flex justify-end gap-2">
-                                {editingProspect === prospect.id ? (
-                                    <button 
-                                        onClick={() => setEditingProspect(null)}
-                                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-green-200 bg-white shadow-sm"
-                                        title="Concluir Edição"
-                                    >
-                                        <CheckCircle size={18} />
-                                    </button>
-                                ) : (
-                                    <>
-                                        <button 
-                                            onClick={() => setEditingProspect(prospect.id)}
-                                            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-lg transition-colors"
-                                            title="Editar Prospecto"
-                                        >
-                                            <Edit2 size={18} />
-                                        </button>
-                                        <a 
-                                            href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} 
-                                            target="_blank" 
-                                            rel="noreferrer"
-                                            className={`p-2 rounded-lg transition-colors ${
-                                                prospect.phone 
-                                                ? 'text-green-600 hover:bg-green-50 hover:scale-105 transform' 
-                                                : 'text-slate-300 cursor-not-allowed'
-                                            }`}
-                                            title={prospect.phone ? "Abrir WhatsApp" : "Sem telefone"}
-                                            onClick={(e) => !prospect.phone && e.preventDefault()}
-                                        >
-                                            <MessageCircle size={18} />
-                                        </a>
-                                    </>
-                                )}
-                            </div>
-                        </td>
-                    </tr>
+                    return a.title.toLowerCase().includes(searchTerm.toLowerCase()) || a.category?.toLowerCase().includes(searchTerm.toLowerCase());
+                }).map(article => (
+                  <tr key={article.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="font-bold text-slate-900">{article.title}</div>
+                      <div className="text-xs text-slate-500 line-clamp-1">{article.excerpt}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold uppercase tracking-wider">{article.category || 'Geral'}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                       <div className="flex -space-x-2">
+                          {article.image_url && <img src={article.image_url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />}
+                          {article.gallery_urls?.slice(0, 3).map((url, i) => (
+                             <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />
+                          ))}
+                       </div>
+                    </td>
+                    <td className="px-6 py-4 text-slate-500">{new Date(article.created_at || '').toLocaleDateString()}</td>
+                    <td className="px-6 py-4 text-right">
+                       <div className="flex justify-end gap-2">
+                          <button onClick={() => { setEditingArticle(article); setArticleForm({ title: article.title, excerpt: article.excerpt, content: article.content || '', image_url: article.image_url || '', category: article.category || '', gallery_urls: article.gallery_urls || [] }); setIsArticleModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 rounded-lg"><Edit2 size={18} /></button>
+                          <button onClick={() => handleDeleteArticle(article.id)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg"><Trash2 size={18} /></button>
+                       </div>
+                    </td>
+                  </tr>
                 ))}
-                 {prospects.length === 0 && (
-                    <tr><td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Nenhum prospecto cadastrado.</td></tr>
-                )}
               </tbody>
             </table>
           </div>
-          </div>
-        )}
+        ) : null}
       </div>
-      </>
-      )}
 
       {/* Hub de Comunicação: Barra de Seleção Suspensa */}
       {selectedIds.length > 0 && (
-           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-8 py-5 rounded-[32px] shadow-3xl flex items-center gap-8 animate-in slide-in-from-bottom-12 duration-500 z-50 backdrop-blur-xl border border-white/10 ring-1 ring-white/5">
+           <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-8 py-5 rounded-[32px] shadow-3xl flex items-center gap-8 animate-in slide-in-from-bottom-12 duration-500 z-50 backdrop-blur-xl border border-white/10">
                 <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-[20px] flex items-center justify-center font-black shadow-lg shadow-green-500/40 transform -rotate-12">
-                        {selectedIds.length}
-                    </div>
-                    <div>
-                        <div className="text-[10px] uppercase font-black tracking-[0.25em] text-slate-400 mb-0.5">Audiência</div>
-                        <div className="text-base font-black tracking-tight whitespace-nowrap">Usuários Selecionados</div>
-                    </div>
+                    <div className="w-12 h-12 bg-gradient-to-br from-green-400 to-green-600 rounded-[20px] flex items-center justify-center font-black shadow-lg shadow-green-500/40 transform -rotate-12">{selectedIds.length}</div>
+                    <div><div className="text-[10px] uppercase font-black tracking-[0.25em] text-slate-400 mb-0.5">Audiência</div><div className="text-base font-black tracking-tight whitespace-nowrap">Usuários Selecionados</div></div>
                 </div>
                 <div className="h-12 w-[1px] bg-white/10 mx-2" />
                 <div className="flex gap-4">
-                    <button 
-                        onClick={() => setIsNewsletterOpen(true)}
-                        className="px-8 py-3.5 bg-white text-slate-900 rounded-2xl font-black hover:bg-green-500 hover:text-white transition-all shadow-xl flex items-center gap-3 group active:scale-95"
-                    >
-                        <Mail size={20} className="group-hover:scale-110 transition-transform" /> Enviar Mensagem
-                    </button>
-                    <button 
-                        onClick={() => setSelectedIds([])}
-                        className="px-6 py-3.5 bg-slate-800 text-slate-400 rounded-2xl font-black hover:bg-slate-700 hover:text-white transition-all active:scale-95"
-                    >
-                        Cancelar
-                    </button>
+                    <button onClick={() => setIsNewsletterOpen(true)} className="px-8 py-3.5 bg-white text-slate-900 rounded-2xl font-black hover:bg-green-500 hover:text-white transition-all shadow-xl flex items-center gap-3"><Mail size={20} /> Enviar Mensagem</button>
+                    <button onClick={() => setSelectedIds([])} className="px-6 py-3.5 bg-slate-800 text-slate-400 rounded-2xl font-black hover:bg-slate-700 hover:text-white transition-all">Cancelar</button>
                 </div>
            </div>
-        )}
+      )}
 
-        {/* Modal de Disparo (Newsletter) */}
-        {isNewsletterOpen && (
-             <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in duration-300">
-                <div className="bg-white w-full max-w-2xl rounded-[48px] shadow-3xl overflow-hidden animate-in zoom-in-95 duration-500 border border-slate-100 flex flex-col max-h-[90vh]">
-                    <div className="bg-slate-50/50 px-12 py-10 border-b border-slate-100 flex justify-between items-start shrink-0">
-                        <div>
-                            <div className="flex items-center gap-4 mb-2">
-                                <div className="p-4 bg-slate-900 rounded-[24px] shadow-2xl shadow-slate-900/20">
-                                    <Mail className="text-green-500" size={28} />
-                                </div>
-                                <h2 className="text-3xl font-black text-slate-900 tracking-tighter">Novo Comunicado</h2>
-                            </div>
-                            <p className="text-sm text-slate-500 font-bold ml-2">Disparo exclusivo para {selectedIds.length} traders.</p>
-                        </div>
-                        <button 
-                            onClick={() => setIsNewsletterOpen(false)}
-                            className="p-4 hover:bg-slate-200 rounded-2xl transition-all group"
-                        >
-                            <X size={28} className="text-slate-400 group-hover:rotate-90 transition-transform" />
-                        </button>
-                    </div>
-                    
-                    <div className="p-12 space-y-10 overflow-y-auto custom-scrollbar">
-                        <div className="space-y-4">
-                            <label className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Assunto do E-mail</label>
-                            <input 
-                                type="text" 
-                                value={newsletterSubject}
-                                onChange={(e) => setNewsletterSubject(e.target.value)}
-                                placeholder="Qual o título do anúncio?"
-                                className="w-full px-8 py-6 bg-slate-50/80 border border-slate-100 rounded-[28px] focus:ring-4 focus:ring-green-500/10 focus:border-green-500/50 focus:bg-white outline-none font-bold text-slate-900 text-lg transition-all placeholder:text-slate-300 shadow-sm"
-                            />
-                        </div>
-                        
-                        <div className="space-y-4">
-                            <label className="text-[12px] font-black uppercase tracking-[0.3em] text-slate-400 ml-1">Nossa Mensagem</label>
-                            <textarea 
-                                value={newsletterContent}
-                                onChange={(e) => setNewsletterContent(e.target.value)}
-                                rows={10}
-                                placeholder="Traga as novidades aqui..."
-                                className="w-full px-8 py-8 bg-slate-50/80 border border-slate-100 rounded-[32px] focus:ring-4 focus:ring-green-500/10 focus:border-green-500/50 focus:bg-white outline-none font-bold text-slate-700 text-base resize-none transition-all shadow-inner placeholder:text-slate-300"
-                            />
-                        </div>
-                    </div>
+      {/* Modal de Disparo (Newsletter) */}
+      {isNewsletterOpen && (
+           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
+              <div className="bg-white w-full max-w-2xl rounded-[48px] shadow-3xl overflow-hidden flex flex-col max-h-[90vh]">
+                  <div className="bg-slate-50/50 px-12 py-10 border-b border-slate-100 flex justify-between items-start">
+                      <div><h2 className="text-3xl font-black text-slate-900 tracking-tighter">Novo Comunicado</h2><p className="text-sm text-slate-500 font-bold">Disparo para {selectedIds.length} traders.</p></div>
+                      <button onClick={() => setIsNewsletterOpen(false)} className="p-4 hover:bg-slate-200 rounded-2xl transition-all"><X size={28} className="text-slate-400" /></button>
+                  </div>
+                  <div className="p-12 space-y-8 overflow-y-auto custom-scrollbar">
+                      <div className="space-y-2"><label className="text-[12px] font-black uppercase text-slate-400">Assunto</label><input type="text" value={newsletterSubject} onChange={e => setNewsletterSubject(e.target.value)} className="w-full px-8 py-6 bg-slate-50 border rounded-[28px] outline-none font-bold" /></div>
+                      <div className="space-y-2"><label className="text-[12px] font-black uppercase text-slate-400">Mensagem</label><textarea value={newsletterContent} onChange={e => setNewsletterContent(e.target.value)} rows={6} className="w-full px-8 py-8 bg-slate-50 border rounded-[32px] outline-none font-bold resize-none" /></div>
+                  </div>
+                  <div className="px-12 py-10 bg-slate-50/50 border-t flex justify-end gap-5">
+                      <button onClick={() => setIsNewsletterOpen(false)} className="px-8 py-4 text-slate-500 font-black">Cancelar</button>
+                      <button onClick={handleSendNewsletter} disabled={isSending} className="px-12 py-4 bg-slate-900 text-white rounded-[28px] font-black hover:bg-green-600">Disparar</button>
+                  </div>
+              </div>
+           </div>
+      )}
 
-                    <div className="px-12 py-10 bg-slate-50/50 border-t border-slate-100 flex justify-end gap-5 shrink-0">
-                        <button 
-                            onClick={() => setIsNewsletterOpen(false)}
-                            className="px-10 py-5 text-slate-500 font-black hover:bg-slate-100 rounded-[24px] transition-all"
-                        >
-                            Agora Não
-                        </button>
-                        <button 
-                            onClick={handleSendNewsletter}
-                            disabled={isSending}
-                            className={`px-14 py-5 rounded-[28px] font-black shadow-2xl transition-all flex items-center gap-3 disabled:opacity-50 group hover:-translate-y-1 active:translate-y-0 ${
-                                isSending ? 'bg-slate-400 text-white' : 'bg-slate-900 text-white hover:bg-green-600 shadow-green-500/20'
-                            }`}
-                        >
-                            {isSending ? (
-                                <>
-                                    <div className="w-5 h-5 border-[3px] border-white/30 border-t-white rounded-full animate-spin" />
-                                    Processando...
-                                </>
-                            ) : (
-                                <>
-                                    Disparar Mensagem <Send size={22} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                </>
-                            )}
-                        </button>
-                    </div>
-                </div>
-             </div>
-        )}
+      {/* Modal de Artigo (Hub de Conteúdo) */}
+      {isArticleModalOpen && (
+           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in">
+              <div className="bg-white w-full max-w-3xl rounded-[48px] shadow-3xl overflow-hidden flex flex-col max-h-[95vh]">
+                  <div className="bg-slate-50/50 px-10 py-6 border-b border-slate-100 flex justify-between items-center">
+                      <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{editingArticle ? 'Editar Conteúdo' : 'Nova Postagem'}</h2>
+                      <button onClick={() => setIsArticleModalOpen(false)} className="p-3 hover:bg-slate-200 rounded-xl transition-all"><X size={24} className="text-slate-400" /></button>
+                  </div>
+                  
+                  <form onSubmit={handleSaveArticle} className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-6">
+                      <div className="grid grid-cols-2 gap-6">
+                          <div className="space-y-2"><label className="text-[10px] font-black uppercase text-slate-400">Título</label>
+                          <input type="text" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-none font-bold" /></div>
+                          <div className="space-y-2"><label className="text-[10px] font-black uppercase text-slate-400">Categoria</label>
+                          <input type="text" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-none font-bold" /></div>
+                      </div>
+
+                      <div className="space-y-2">
+                           <label className="text-[10px] font-black uppercase text-slate-400">Imagens (Galeria SeaweedFS)</label>
+                           <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-[32px] p-6 cursor-pointer hover:bg-green-50 hover:border-green-400 transition-all ${isUploading ? 'bg-slate-50 cursor-wait' : 'bg-green-50/30 border-green-200'}`}>
+                              <Plus size={32} className={`${isUploading ? 'text-slate-300 animate-spin' : 'text-green-500'}`} />
+                              <span className="text-sm font-black text-slate-700">{isUploading ? 'Enviando...' : 'Adicionar Fotos'}</span>
+                              <input type="file" multiple accept="image/*" onChange={(e) => handleUploadToSeaweed(e.target.files)} className="hidden" disabled={isUploading} />
+                           </label>
+                           {articleForm.gallery_urls.length > 0 && (
+                               <div className="grid grid-cols-5 gap-2 mt-4">
+                                  {articleForm.gallery_urls.map((url, i) => (
+                                      <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-white shadow-sm">
+                                          <img src={url} className="w-full h-full object-cover" />
+                                          <button type="button" onClick={() => setArticleForm(prev => ({...prev, gallery_urls: prev.gallery_urls.filter((_, idx) => idx !== i)}))} className="absolute top-0.5 right-0.5 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><X size={10} /></button>
+                                          <button type="button" onClick={() => setArticleForm({...articleForm, image_url: url})} className={`absolute bottom-0 left-0 right-0 py-0.5 text-[8px] font-black text-center ${articleForm.image_url === url ? 'bg-green-600 text-white' : 'bg-slate-900/40 text-white opacity-0 group-hover:opacity-100 italic'}`}>CAPA</button>
+                                      </div>
+                                  ))}
+                               </div>
+                           )}
+                      </div>
+
+                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-slate-400">Resumo</label>
+                      <textarea rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-none font-bold resize-none" /></div>
+
+                      <div className="space-y-2"><label className="text-[10px] font-black uppercase text-slate-400">Conteúdo</label>
+                      <textarea rows={6} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-[32px] outline-none font-semibold resize-none" /></div>
+                      
+                      <div className="sticky bottom-0 bg-white pt-4">
+                          <button type="submit" disabled={isUploading} className="w-full bg-slate-900 text-white font-black py-5 rounded-[28px] hover:bg-green-600 shadow-xl transition-all disabled:opacity-50">
+                              {editingArticle ? 'Salvar Alterações' : 'Publicar Agora'}
+                          </button>
+                      </div>
+                  </form>
+              </div>
+           </div>
+      )}
+      </>
+      )}
     </div>
   );
 };

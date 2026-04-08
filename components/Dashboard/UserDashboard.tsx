@@ -325,8 +325,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
       {/* Article Modal */}
       {isArticleModalOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-              <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="flex justify-between items-center mb-4">
+              <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
+                  <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-2">
                       <h3 className="text-xl font-bold text-slate-800">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>
                       <div className="flex items-center gap-2">
                         {editingArticle && (
