@@ -39,7 +39,8 @@ import {
   ArrowLeft,
   Send,
   MessageCircle,
-  ExternalLink
+  ExternalLink,
+  Save
 } from 'lucide-react';
 import { formatBytes, getStorageStats, StorageStats, uploadToSupabase, listAllFiles, deleteFromSupabase, StorageFile } from '../../lib/storage';
 import { BackButton } from '../BackButton';
@@ -86,6 +87,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [newsletterContent, setNewsletterContent] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
+  const [viewingProspect, setViewingProspect] = useState<Prospect | null>(null);
 
   const handleUpdateField = async (id: string, field: keyof Prospect, value: string) => {
       setProspects(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
@@ -811,11 +813,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {prospects.filter(p => p.partner_id === user.id).map(p => (
+                        {prospects.filter(p => p.assigned_to === user.id).map(p => (
                             <tr key={p.id} className="hover:bg-slate-50/50 transition-all group">
                                 <td className="px-6 py-4">
-                                    <div className="font-black text-slate-900">{p.full_name}</div>
-                                    <div className="text-[10px] text-slate-400 font-bold">{new Date(p.created_at).toLocaleDateString()}</div>
+                                    <button 
+                                      onClick={() => setViewingProspect(p)}
+                                      className="text-left group/prospect"
+                                    >
+                                      <div className="font-black text-slate-900 group-hover/prospect:text-green-600 transition-colors">{p.full_name}</div>
+                                      <div className="text-[10px] text-slate-400 font-bold">Ver detalhes</div>
+                                    </button>
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="text-slate-600 font-bold">{p.email || '-'}</div>
@@ -836,7 +843,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                 </td>
                             </tr>
                         ))}
-                        {prospects.filter(p => p.partner_id === user.id).length === 0 && (
+                        {prospects.filter(p => p.assigned_to === user.id).length === 0 && (
                             <tr>
                                 <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-bold uppercase text-xs opacity-50 tracking-widest">Nenhum prospecto disponível para este usuário</td>
                             </tr>
@@ -1421,8 +1428,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                           <td className="px-6 py-4 align-top">
                               {editingProspect === prospect.id ? (
                                   <input autoFocus className="w-full border rounded px-2 py-1 outline-none font-bold" defaultValue={prospect.full_name} onChange={(e) => handleUpdateField(prospect.id, 'full_name', e.target.value)} />
-                              ) : ( <div className="font-bold text-slate-900">{prospect.full_name}</div> )}
-                              <div className="text-xs text-slate-500 mt-1">ID: {prospect.id.slice(0, 8)}</div>
+                              ) : ( 
+                                <button 
+                                  onClick={() => setViewingProspect(prospect)}
+                                  className="text-left group/admin-prospect"
+                                >
+                                  <div className="font-bold text-slate-900 group-hover/admin-prospect:text-green-600 transition-colors">{prospect.full_name}</div> 
+                                  <div className="text-[10px] text-slate-400 mt-1">Ver detalhado</div>
+                                </button>
+                              )}
                           </td>
                           <td className="px-6 py-4 align-top">
                               <div className="flex flex-col gap-2">

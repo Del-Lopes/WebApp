@@ -19,6 +19,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'materials' | 'prospects' | 'links'>('materials');
   const [viewingAsset, setViewingAsset] = useState<MarketingAsset | null>(null);
+  const [viewingProspect, setViewingProspect] = useState<any | null>(null);
 
   // Prospects State
   const [prospects, setProspects] = useState<any[]>([]);
@@ -229,6 +230,114 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
   };
 
   if (loading) return <div className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">Carregando...</div>;
+
+  if (viewingProspect) {
+    return (
+        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 pb-20">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => setViewingProspect(null)}
+                        className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                        <h2 className="text-2xl font-bold text-slate-900 mb-1">{viewingProspect.full_name}</h2>
+                        <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${
+                                viewingProspect.status === 'new' ? 'bg-blue-100 text-blue-700' :
+                                viewingProspect.status === 'converted' ? 'bg-green-100 text-green-700' :
+                                'bg-slate-100 text-slate-600'
+                            }`}>
+                                {viewingProspect.status}
+                            </span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-tight">
+                                Cadastrado em: {new Date(viewingProspect.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => handleDeleteProspect(viewingProspect.id)}
+                        className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all shadow-sm flex items-center gap-2 text-xs font-bold"
+                    >
+                        <Trash2 size={18} /> Excluir
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Info Cards */}
+                <div className="lg:col-span-1 space-y-6">
+                    <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+                        <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Informações de Contato</h4>
+                        
+                        <div className="space-y-4">
+                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">E-mail</label>
+                                <div className="flex items-center gap-3 text-slate-800">
+                                    <Mail size={18} className="text-indigo-500" />
+                                    <span className="font-bold">{viewingProspect.email || 'Não informado'}</span>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Telefone / WhatsApp</label>
+                                <div className="flex items-center gap-3 text-slate-800">
+                                    <Phone size={18} className="text-green-500" />
+                                    <span className="font-bold">{viewingProspect.phone || 'Não informado'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-100">
+                            <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block">Alterar Status</label>
+                            <select 
+                                value={viewingProspect.status}
+                                onChange={(e) => {
+                                    handleUpdateProspectField(viewingProspect.id, 'status', e.target.value);
+                                    setViewingProspect({...viewingProspect, status: e.target.value});
+                                }}
+                                className="w-full p-4 bg-slate-100 border-none rounded-2xl font-black text-sm uppercase tracking-widest focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="new">Novo Lead</option>
+                                <option value="contacted">Contatado</option>
+                                <option value="negotiating">Negociando</option>
+                                <option value="converted">Convertido</option>
+                                <option value="lost">Perdido</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Notes/Detailed Area */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-8">
+                            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Anotações e Histórico</h4>
+                            <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold">
+                                <Calendar size={14} /> Atualizado automaticamente
+                            </div>
+                        </div>
+                        
+                        <textarea 
+                            className="flex-1 w-full p-8 bg-slate-50 border-2 border-slate-100 rounded-[32px] outline-none font-medium text-slate-700 leading-relaxed focus:bg-white focus:border-indigo-500 transition-all resize-none min-h-[400px]"
+                            placeholder="Escreva aqui detalhes sobre o atendimento, preferências do cliente ou próximos passos..."
+                            defaultValue={viewingProspect.notes}
+                            onBlur={(e) => handleUpdateProspectField(viewingProspect.id, 'notes', e.target.value)}
+                        />
+                        
+                        <div className="mt-6 flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl text-indigo-700 text-xs font-bold">
+                            <Save size={16} /> As anotações são salvas assim que você clica fora da caixa de texto.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+  }
 
   if (viewingAsset) {
       return (
@@ -473,10 +582,13 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                           }}
                         />
                       ) : (
-                        <div>
-                          <div className="font-black text-slate-900 text-base">{prospect.full_name}</div>
+                        <button 
+                            onClick={() => setViewingProspect(prospect)}
+                            className="text-left group/name"
+                        >
+                          <div className="font-black text-slate-900 text-base group-hover/name:text-indigo-600 transition-colors">{prospect.full_name}</div>
                           <div className="text-[10px] text-slate-400 mt-1 uppercase font-black tracking-widest">ID: {prospect.id.slice(0, 8)}</div>
-                        </div>
+                        </button>
                       )}
                     </td>
                     <td className="px-8 py-6 align-top">
