@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Download, FileText, Image as ImageIcon, Share2, Edit2, Plus, Trash2, Save, X, Eye, ArrowLeft, Calendar, Search, Mail, Phone } from 'lucide-react';
+import { Download, FileText, Image as ImageIcon, Share2, Edit2, Plus, Trash2, Save, X, Eye, ArrowLeft, Calendar, Search, Mail, Phone, Link as LinkIcon, Copy, ExternalLink, Check } from 'lucide-react';
 import { MOCK_ASSETS } from '../constants';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
@@ -17,13 +17,19 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
   const [partnerRequest, setPartnerRequest] = useState<any>(null);
   const [assets, setAssets] = useState<MarketingAsset[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'materials' | 'prospects'>('materials');
+  const [activeTab, setActiveTab] = useState<'materials' | 'prospects' | 'links'>('materials');
   const [viewingAsset, setViewingAsset] = useState<MarketingAsset | null>(null);
 
   // Prospects State
   const [prospects, setProspects] = useState<any[]>([]);
   const [editingProspectId, setEditingProspectId] = useState<string | null>(null);
   const [prospectSearchTerm, setProspectSearchTerm] = useState('');
+  
+  // Links State
+  const [links, setLinks] = useState<any[]>([]);
+  const [showAddLink, setShowAddLink] = useState(false);
+  const [newLink, setNewLink] = useState({ title: '', url: '' });
+  const [copyingId, setCopyingId] = useState<string | null>(null);
 
   // New Asset Form State
   const [newAsset, setNewAsset] = useState<{
@@ -70,6 +76,14 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
             
             const { data: prospectsData } = await query.order('created_at', { ascending: false });
             if (prospectsData) setProspects(prospectsData);
+
+            // Fetch Useful Links
+            const { data: linksData } = await supabase
+               .from('partner_links')
+               .select('*')
+               .eq('user_id', user.id)
+               .order('created_at', { ascending: false });
+            if (linksData) setLinks(linksData);
         }
     } catch (error) {
         console.error("Error fetching marketing data", error);
@@ -176,6 +190,44 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
   const isApprovedPartner = partnerRequest?.status === 'approved';
   const canViewContent = isPrivileged || isApprovedPartner;
 
+  const handleCopyLink = (url: string, id: string) => {
+    navigator.clipboard.writeText(url);
+    setCopyingId(id);
+    setTimeout(() => setCopyingId(null), 2000);
+  };
+
+  const handleAddLink = async () => {
+    if (!newLink.title || !newLink.url) return;
+    try {
+      const { data, error } = await supabase
+        .from('partner_links')
+        .insert([{ 
+            ...newLink, 
+            user_id: user?.id 
+        }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      if (data) setLinks([data, ...links]);
+      setNewLink({ title: '', url: '' });
+      setShowAddLink(false);
+    } catch (e: any) {
+      alert('Erro ao adicionar link: ' + e.message);
+    }
+  };
+
+  const handleDeleteLink = async (id: string) => {
+    if (!window.confirm('Excluir este link?')) return;
+    try {
+      const { error } = await supabase.from('partner_links').delete().eq('id', id);
+      if (error) throw error;
+      setLinks(links.filter(l => l.id !== id));
+    } catch (e: any) {
+      alert('Erro ao excluir: ' + e.message);
+    }
+  };
+
   if (loading) return <div className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">Carregando...</div>;
 
   if (viewingAsset) {
@@ -262,27 +314,40 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {/* Navigation Tabs - Refined Style */}
-      <div className="flex items-center gap-1 bg-slate-100/50 p-1 rounded-2xl w-fit">
+      {/* Primary Navigation Pills */}
+      <div className="flex gap-2 p-1.5 bg-slate-100/50 rounded-2xl w-fit border border-slate-200 shadow-inner">
         <button
           onClick={() => setActiveTab('materials')}
-          className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
             activeTab === 'materials'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-800'
+              ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200 translate-y-[1px]'
+              : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
           }`}
         >
-          <FileText size={14} /> Materiais
+          <ImageIcon size={18} />
+          Materiais
         </button>
         <button
           onClick={() => setActiveTab('prospects')}
-          className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
             activeTab === 'prospects'
-              ? 'bg-white text-slate-900 shadow-sm'
-              : 'text-slate-500 hover:text-slate-800'
+              ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200 translate-y-[1px]'
+              : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
           }`}
         >
-          <Search size={14} /> Prospectos
+          <Share2 size={18} />
+          Prospectos
+        </button>
+        <button
+          onClick={() => setActiveTab('links')}
+          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+            activeTab === 'links'
+              ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200 translate-y-[1px]'
+              : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
+          }`}
+        >
+          <LinkIcon size={18} />
+          Links Úteis
         </button>
       </div>
 
@@ -612,6 +677,107 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                   </form>
               </div>
           </div>
+      )}
+
+      {activeTab === 'links' && (
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-xl font-bold text-slate-800">Seus Links Úteis</h3>
+              <p className="text-slate-500 text-sm">Gerencie seu repositório pessoal de links rápidos.</p>
+            </div>
+            <button
+                onClick={() => setShowAddLink(true)}
+                className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-indigo-200 active:scale-95"
+            >
+              <Plus size={18} /> Novo Link
+            </button>
+          </div>
+
+          {showAddLink && (
+            <div className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-50/50 animate-in zoom-in-95 duration-200">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Título (ex: Grupo VIP WhatsApp)"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                  value={newLink.title}
+                  onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
+                />
+                <input
+                  type="text"
+                  placeholder="URL Completa (https://...)"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                  value={newLink.url}
+                  onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-3 mt-4 justify-end">
+                <button
+                  onClick={() => setShowAddLink(false)}
+                  className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleAddLink}
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-500 transition-all shadow-md active:scale-95"
+                >
+                  Salvar Link
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {links.length === 0 ? (
+                <div className="col-span-full py-12 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
+                    <LinkIcon className="mx-auto text-slate-300 mb-4" size={48} />
+                    <p className="text-slate-500 font-medium">Você ainda não salvou nenhum link.</p>
+                </div>
+            ) : (
+                links.map((link) => (
+                    <div key={link.id} className="group bg-white p-5 rounded-2xl border border-slate-200 hover:border-indigo-200 transition-all hover:shadow-xl hover:shadow-indigo-50/30">
+                        <div className="flex justify-between items-start mb-3">
+                            <div className="p-2 bg-indigo-50 rounded-lg">
+                                <LinkIcon className="text-indigo-600" size={20} />
+                            </div>
+                            <div className="flex gap-1 items-center">
+                                <button
+                                    onClick={() => handleCopyLink(link.url, link.id)}
+                                    className={`p-2 rounded-lg transition-all ${
+                                        copyingId === link.id 
+                                            ? 'bg-green-50 text-green-600' 
+                                            : 'hover:bg-slate-100 text-slate-400 group-hover:text-indigo-600'
+                                    }`}
+                                    title="Copiar Link"
+                                >
+                                    {copyingId === link.id ? <Check size={18} /> : <Copy size={18} />}
+                                </button>
+                                <button
+                                    onClick={() => handleDeleteLink(link.id)}
+                                    className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-all"
+                                    title="Remover"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
+                            </div>
+                        </div>
+                        <h4 className="font-bold text-slate-800 mb-1 truncate">{link.title}</h4>
+                        <p className="text-xs text-slate-400 mb-4 truncate italic">{link.url}</p>
+                        <a 
+                            href={link.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="w-full py-2 bg-slate-50 border border-slate-100 text-slate-600 hover:bg-slate-100 hover:text-indigo-600 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
+                        >
+                            Abrir Link <ExternalLink size={14} />
+                        </a>
+                    </div>
+                ))
+            )}
+          </div>
+        </div>
       )}
     </div>
   );
