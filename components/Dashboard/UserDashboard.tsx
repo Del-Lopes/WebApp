@@ -2,8 +2,28 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
-import { Cpu, GraduationCap, TrendingUp, AlertCircle, Clock, Plus, Edit2, Trash2, X, Save, Map, ChevronRight, Download, Calendar, CheckCircle2 } from 'lucide-react';
-import { LicenseRequest, Article, View } from '../../types';
+import { 
+  Cpu, 
+  GraduationCap, 
+  TrendingUp, 
+  AlertCircle, 
+  Clock, 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  X, 
+  Save, 
+  Map, 
+  ChevronRight, 
+  Download, 
+  Calendar, 
+  CheckCircle2,
+  Database,
+  ShieldAlert,
+  HardDrive
+} from 'lucide-react';
+import { LicenseRequest, Article, View, Profile } from '../../types';
+import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
 
 interface UserDashboardProps {
   onNavigate: (view: View) => void;
@@ -23,13 +43,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [articleForm, setArticleForm] = useState({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise', gallery_urls: [] as string[] });
   const [isUploading, setIsUploading] = useState(false);
+  const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     if (user) {
         fetchDashboardData();
         fetchContentData();
+        fetchStorageStats();
+        fetchCurrentUser();
     }
   }, [user]);
+
+  const fetchStorageStats = async () => {
+    const stats = await getStorageStats();
+    setStorageStats(stats);
+  };
+
+  const fetchCurrentUser = async () => {
+    if (!user) return;
+    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+    setCurrentUserProfile(data);
+  };
 
   const fetchDashboardData = async () => {
     try {
@@ -101,39 +136,42 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
       } catch(e: any) { alert("Erro: " + e.message); }
   };
 
-  const handleUploadToSeaweed = async (files: FileList | null) => {
+  const handleUploadToSupabase = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    
+    // Check if user has permission
+    const role = currentUserProfile?.role;
+    if (role !== 'admin' && role !== 'first_mate') {
+      alert('Apenas Admin e First Mate podem fazer upload de arquivos.');
+      return;
+    }
+
+    if (storageStats?.isFull) {
+        alert('Erro: Limite de armazenamento do Supabase (1GB) atingido. Remova arquivos antigos primeiro.');
+        return;
+    }
+
     setIsUploading(true);
-    const uploadedUrls: string[] = [];
-
     try {
+      const newUrls: string[] = [];
+      const category = articleForm.category.toLowerCase().includes('análise') || articleForm.category.toLowerCase().includes('analise') 
+        ? 'analyses' 
+        : 'articles';
+
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const filename = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-        // Endpoint Admin (Filer) com Basic Auth
-        const uploadUrl = `https://admin-u5jwkfdyqrzqj39vcpf8nk9n.137.131.134.214.sslip.io/trade/${filename}`;
-
-        const response = await fetch(uploadUrl, {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'Authorization': 'Basic ' + btoa('nGXocdX6kUwpBXdJ:5Xy97eHINXVyRktkI9t4KY8JIjHXMqJE')
-          }
-        });
-
-        if (response.ok) {
-          uploadedUrls.push(uploadUrl);
-        }
+        const url = await uploadToSupabase(files[i], category);
+        newUrls.push(url);
       }
-
+      
       setArticleForm(prev => ({
         ...prev,
-        gallery_urls: [...prev.gallery_urls, ...uploadedUrls],
-        image_url: prev.image_url || uploadedUrls[0] || ''
+        gallery_urls: [...prev.gallery_urls, ...newUrls],
+        image_url: prev.image_url || newUrls[0]
       }));
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Erro ao fazer upload para o storage.');
+      
+      fetchStorageStats(); // Refresh usage
+    } catch (e: any) {
+      alert('Erro no upload: ' + e.message);
     } finally {
       setIsUploading(false);
     }
@@ -394,11 +432,45 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                           <textarea rows={6} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="Texto completo da análise..." />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium mb-1 text-slate-600">Fotos (SeaweedFS)</label>
-                        <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-4 cursor-pointer hover:bg-green-50 hover:border-green-400 transition-all ${isUploading ? 'bg-slate-50 cursor-wait' : 'bg-green-50/10 border-slate-200'}`}>
-                            <Plus size={24} className={`${isUploading ? 'text-slate-300 animate-spin' : 'text-green-500'}`} />
-                            <span className="text-xs font-bold text-slate-500 mt-1">{isUploading ? 'Enviando...' : 'Adicionar Fotos'}</span>
-                            <input type="file" multiple accept="image/*" onChange={(e) => handleUploadToSeaweed(e.target.files)} className="hidden" disabled={isUploading} />
+                        <label className="block text-sm font-medium mb-1 text-slate-600">Fotos (Supabase Storage)</label>
+                        
+                        {/* Mini Storage Monitor */}
+                        {storageStats && (
+                            <div className="mb-3 p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                                <div className="flex justify-between items-center mb-1.5">
+                                    <span className="text-[10px] font-black uppercase text-slate-400 flex items-center gap-1">
+                                        <Database size={10} /> Armazenamento
+                                    </span>
+                                    <span className={`text-[10px] font-bold ${storageStats.isFull ? 'text-red-500' : 'text-slate-500'}`}>
+                                        {formatBytes(storageStats.usedBytes)} / 1GB
+                                    </span>
+                                </div>
+                                <div className="h-1.5 w-full bg-white rounded-full overflow-hidden border border-slate-200 relative">
+                                    <div 
+                                        className={`h-full transition-all duration-1000 ${
+                                            storageStats.percentage >= 95 ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]' : 
+                                            storageStats.percentage >= 80 ? 'bg-orange-400' : 
+                                            'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.3)]'
+                                        }`}
+                                        style={{ width: `${Math.min(storageStats.percentage, 100)}%` }}
+                                    >
+                                        <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px]" />
+                                    </div>
+                                </div>
+                                {storageStats.isFull && (
+                                    <p className="text-[9px] text-red-500 font-bold mt-1.5 flex items-center gap-1 animate-pulse">
+                                        <ShieldAlert size={10} /> Limite de armazenamento atingido.
+                                    </p>
+                                )}
+                            </div>
+                        )}
+
+                        <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-xl p-4 cursor-pointer hover:bg-green-50 hover:border-green-400 transition-all ${isUploading || storageStats?.isFull ? 'bg-slate-50 cursor-not-allowed text-slate-300' : 'bg-green-50/10 border-slate-200'}`}>
+                            <Plus size={24} className={`${isUploading ? 'text-slate-300 animate-spin' : storageStats?.isFull ? 'text-red-200' : 'text-green-500'}`} />
+                            <span className="text-xs font-bold text-slate-500 mt-1">
+                                {isUploading ? 'Enviando...' : storageStats?.isFull ? 'Limite Atingido' : 'Adicionar Fotos'}
+                            </span>
+                            <input type="file" multiple accept="image/*" onChange={(e) => handleUploadToSupabase(e.target.files)} className="hidden" disabled={isUploading || storageStats?.isFull} />
                         </label>
                         
                         {articleForm.gallery_urls.length > 0 && (
