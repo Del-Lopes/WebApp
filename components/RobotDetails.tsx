@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Download, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2, ExternalLink, ZoomIn } from 'lucide-react';
+import { ArrowLeft, Download, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2, ExternalLink, ZoomIn, Upload } from 'lucide-react';
 import { Robot, UserRole } from '../types';
+import { uploadToSupabase } from '../lib/storage';
 
 interface RobotDetailsProps {
   robot: Robot;
@@ -13,6 +14,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<Robot>(robot);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Sync state if prop changes
   useEffect(() => {
@@ -35,13 +37,32 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
   };
 
   // Image handlers
-  const addImage = (type: 'images' | 'manualImages') => {
-    const url = window.prompt("Insira a URL da imagem:");
-    if (url) {
-      setFormData(prev => ({
-        ...prev,
-        [type]: [...(prev[type] || []), url]
-      }));
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar_url' | 'images' | 'manualImages') => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      const urls: string[] = [];
+      for (const file of Array.from(files) as File[]) {
+        const url = await uploadToSupabase(file, 'strategies');
+        urls.push(url);
+      }
+
+      if (type === 'avatar_url') {
+        setFormData(prev => ({ ...prev, avatar_url: urls[0] }));
+      } else {
+        setFormData(prev => ({
+          ...prev,
+          [type]: [...(prev[type] || []), ...urls]
+        }));
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Falha no upload');
+    } finally {
+      setIsUploading(false);
+      // Reset input
+      e.target.value = '';
     }
   };
 
@@ -151,14 +172,12 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                         />
                       </div>
                       <div>
-                         <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">URL do Avatar</label>
-                         <input 
-                          type="text" 
-                          value={formData.avatar_url || ''}
-                          onChange={(e) => handleChange('avatar_url', e.target.value)}
-                          className="w-full border border-slate-300 rounded px-2 py-1.5 text-sm"
-                          placeholder="https://..."
-                        />
+                         <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Upload de Avatar</label>
+                         <label className={`flex items-center gap-2 px-4 py-1.5 border border-slate-300 rounded text-sm cursor-pointer hover:bg-slate-50 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                            <Upload size={14} className={isUploading ? 'animate-spin' : ''} />
+                            {isUploading ? 'Enviando...' : 'Selecionar Arquivo'}
+                            <input type="file" accept="image/*" className="hidden" disabled={isUploading} onChange={(e) => handleUpload(e, 'avatar_url')} />
+                         </label>
                       </div>
                     </div>
                   </div>
@@ -312,13 +331,11 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
             </div>
           ))}
           {isEditing && (
-            <button 
-              onClick={() => addImage('images')}
-              className="border-2 border-dashed border-slate-300 hover:border-green-500 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:text-green-600 bg-slate-50 hover:bg-green-50 transition-colors aspect-[4/3]"
-            >
-              <Plus size={32} />
-              <span className="text-sm font-medium">Adicionar Imagem</span>
-            </button>
+            <label className="border-2 border-dashed border-slate-300 hover:border-green-500 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:text-green-600 bg-slate-50 hover:bg-green-50 transition-colors aspect-[4/3] cursor-pointer">
+              {isUploading ? <Activity size={32} className="animate-spin" /> : <Plus size={32} />}
+              <span className="text-sm font-medium">{isUploading ? 'Subindo...' : 'Adicionar Imagem'}</span>
+              <input type="file" multiple accept="image/*" className="hidden" disabled={isUploading} onChange={(e) => handleUpload(e, 'images')} />
+            </label>
           )}
           {(!formData.images?.length && !isEditing) && <p className="text-slate-500 italic p-4 col-span-full">Nenhuma imagem disponível.</p>}
         </div>
@@ -332,12 +349,11 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
             Manual de Instalação e Parâmetros
           </h3>
            {isEditing && (
-              <button 
-                onClick={() => addImage('manualImages')}
-                className="flex items-center gap-1 text-sm font-semibold text-green-600 hover:underline"
-              >
-                <Plus size={16} /> Adicionar Página
-              </button>
+              <label className={`flex items-center gap-1 text-sm font-semibold text-green-600 hover:underline cursor-pointer ${isUploading ? 'opacity-50' : ''}`}>
+                <Plus size={16} /> 
+                {isUploading ? 'Carregando...' : 'Adicionar Página'}
+                <input type="file" multiple accept="image/*" className="hidden" disabled={isUploading} onChange={(e) => handleUpload(e, 'manualImages')} />
+              </label>
           )}
         </div>
         
@@ -379,13 +395,11 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
             </div>
           ))}
            {isEditing && (
-            <button 
-              onClick={() => addImage('manualImages')}
-              className="border-2 border-dashed border-slate-300 hover:border-green-500 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:text-green-600 bg-slate-50 hover:bg-green-50 transition-colors min-h-[200px]"
-            >
-              <Plus size={32} />
-              <span className="text-sm font-medium">Adicionar Página do Manual</span>
-            </button>
+            <label className="border-2 border-dashed border-slate-300 hover:border-green-500 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:text-green-600 bg-slate-50 hover:bg-green-50 transition-colors min-h-[200px] cursor-pointer">
+              {isUploading ? <Activity size={32} className="animate-spin" /> : <Plus size={32} />}
+              <span className="text-sm font-medium">{isUploading ? 'Subindo...' : 'Adicionar Página do Manual'}</span>
+              <input type="file" multiple accept="image/*" className="hidden" disabled={isUploading} onChange={(e) => handleUpload(e, 'manualImages')} />
+            </label>
           )}
           {(!formData.manualImages?.length && !isEditing) && <p className="text-slate-500 italic p-4 col-span-full">Manual indisponível.</p>}
         </div>

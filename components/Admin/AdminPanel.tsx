@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
-import { LicenseRequest, PartnerRequest, Profile, Prospect, LicenseTitle, Article } from '../../types';
+import { LicenseRequest, PartnerRequest, Profile, Prospect, LicenseTitle, Article, Robot } from '../../types';
 import { 
   Users, 
   Settings, 
@@ -38,9 +38,10 @@ import {
   Play,
   ArrowLeft,
   Send,
-  MessageCircle
+  MessageCircle,
+  ExternalLink
 } from 'lucide-react';
-import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
+import { formatBytes, getStorageStats, StorageStats, uploadToSupabase, listAllFiles, deleteFromSupabase, StorageFile } from '../../lib/storage';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
@@ -56,6 +57,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [partnerRequests, setPartnerRequests] = useState<PartnerRequest[]>([]);
   const [users, setUsers] = useState<Profile[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [robots, setRobots] = useState<Robot[]>([]);
+  const [storageFiles, setStorageFiles] = useState<StorageFile[]>([]);
+  const [legacyItems, setLegacyItems] = useState<{id: string, title: string, type: 'Artigo' | 'Produto', url: string}[]>([]);
+  const [isRefreshingFiles, setIsRefreshingFiles] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
@@ -95,6 +100,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     fetchData();
     fetchStorageStats();
     fetchCurrentUser();
+    const init = async () => {
+        await fetchStorageStats();
+        if (activeTab === 'content') {
+            await fetchStorageFiles();
+            await findLegacyItems();
+        }
+    };
+    init();
   }, [activeTab]);
 
   const fetchCurrentUser = async () => {
@@ -159,13 +172,37 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         if (error) throw error;
         setProspects(data as Prospect[] || []);
       } else if (activeTab === 'content') {
-        const { data, error } = await supabase
+        const { data: articlesData, error: articlesError } = await supabase
           .from('articles')
           .select('*')
           .order('created_at', { ascending: false });
         
-        if (error) throw error;
-        setArticles(data as Article[] || []);
+        if (articlesError) throw articlesError;
+        setArticles(articlesData as Article[] || []);
+
+        const { data: robotsData, error: robotsError } = await supabase
+          .from('products')
+          .select('*')
+          .eq('type', 'ea')
+          .order('title', { ascending: true });
+        
+        if (robotsError) throw robotsError;
+        
+        const mappedRobots: Robot[] = (robotsData || []).map((item: any) => ({
+          id: item.id,
+          name: item.title,
+          description: item.description,
+          version: item.metadata?.version || '1.0',
+          pair: item.metadata?.pair || 'UNK',
+          status: item.metadata?.status || 'Em Análise',
+          profitability: item.metadata?.profitability || '0.0%',
+          images: item.metadata?.images || [],
+          manualImages: item.metadata?.manualImages || [],
+          avatar_url: item.metadata?.avatar_url || '',
+          external_url: item.metadata?.external_url || '',
+          myfxbook_url: item.metadata?.myfxbook_url || ''
+        }));
+        setRobots(mappedRobots);
       }
     } catch (error: any) {
       console.error('Error fetching admin data:', error);
@@ -549,6 +586,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     }
   };
 
+  const fetchStorageFiles = async () => {
+    setIsRefreshingFiles(true);
+    try {
+        const files = await listAllFiles();
+        setStorageFiles(files);
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setIsRefreshingFiles(false);
+    }
+  };
+
+  const handleDeleteStorageFile = async (url: string) => {
+    if (!window.confirm("Certeza que deseja excluir este arquivo PERMANENTEMENTE do storage?")) return;
+    
+    try {
+        await deleteFromSupabase(url);
+        setStorageFiles(prev => prev.filter(f => f.url !== url));
+        fetchStorageStats();
+    } catch (err) {
+        alert('Erro ao excluir arquivo');
+    }
+  };
+
+  const findLegacyItems = async () => {
+    try {
+        const { data: articlesData } = await supabase.from('articles').select('id, title, image_url, gallery_urls');
+        const { data: productsData } = await supabase.from('products').select('id, title, image_url, metadata');
+        
+        const legacy: typeof legacyItems = [];
+        const legacyPattern = /sslip\.io|tradexperience\.com\.br\/wp-content/;
+
+        articlesData?.forEach(a => {
+            if (a.image_url?.match(legacyPattern)) legacy.push({ id: a.id, title: a.title, type: 'Artigo', url: a.image_url });
+            a.gallery_urls?.forEach((url: string) => {
+                if (url.match(legacyPattern)) legacy.push({ id: a.id, title: `${a.title} (Galeria)`, type: 'Artigo', url });
+            });
+        });
+
+        productsData?.forEach(p => {
+            if (p.image_url?.match(legacyPattern)) legacy.push({ id: p.id, title: p.title, type: 'Produto', url: p.image_url });
+            const meta = p.metadata as any;
+            if (meta?.avatar_url?.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Avatar)`, type: 'Produto', url: meta.avatar_url });
+            meta?.images?.forEach((url: string) => {
+                if (url.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Imagem)`, type: 'Produto', url });
+            });
+            meta?.manualImages?.forEach((url: string) => {
+                if (url.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Manual)`, type: 'Produto', url });
+            });
+        });
+
+        setLegacyItems(legacy);
+    } catch (err) {
+        console.error('Error finding legacy items:', err);
+    }
+  };
+
   const handleSaveArticle = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -765,7 +859,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 activeTab === 'content' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
               }`}
             >
-              Blog / Conteúdo
+              Storage
             </button>
           </div>
 
@@ -1325,7 +1419,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
             </div>
           </div>
         ) : activeTab === 'content' ? (
-          <div className="space-y-6">
+          <div className="space-y-12 p-2">
             
             <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm overflow-hidden relative group">
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
@@ -1372,7 +1466,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 </div>
 
                 <div className="mt-8 relative">
-                    {/* Progress Bar Container */}
                     <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-50 relative">
                         <div 
                             className={`h-full transition-all duration-1000 ease-out relative ${
@@ -1382,10 +1475,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             }`}
                             style={{ width: `${Math.min(storageStats?.percentage || 0, 100)}%` }}
                         >
-                            {/* Animated scanner effect */}
                             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
-                            
-                            {/* Glass overlay */}
                             <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px]" />
                         </div>
                     </div>
@@ -1408,50 +1498,279 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 )}
             </div>
 
-            <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-sm">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
-                <tr>
-                  <th className="px-6 py-4 font-medium">Artigo</th>
-                  <th className="px-6 py-4 font-medium">Categoria</th>
-                  <th className="px-6 py-4 font-medium">Imagens</th>
-                  <th className="px-6 py-4 font-medium">Data</th>
-                  <th className="px-6 py-4 font-medium text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {articles.filter(a => {
-                    if (!searchTerm) return true;
-                    return a.title.toLowerCase().includes(searchTerm.toLowerCase()) || a.category?.toLowerCase().includes(searchTerm.toLowerCase());
-                }).map(article => (
-                  <tr key={article.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="font-bold text-slate-900">{article.title}</div>
-                      <div className="text-xs text-slate-500 line-clamp-1">{article.excerpt}</div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold uppercase tracking-wider">{article.category || 'Geral'}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                       <div className="flex -space-x-2">
-                          {article.image_url && <img src={article.image_url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />}
-                          {article.gallery_urls?.slice(0, 3).map((url, i) => (
-                             <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />
-                          ))}
-                       </div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-500">{new Date(article.created_at || '').toLocaleDateString()}</td>
-                    <td className="px-6 py-4 text-right">
-                       <div className="flex justify-end gap-2">
-                          <button onClick={() => { setEditingArticle(article); setArticleForm({ title: article.title, excerpt: article.excerpt, content: article.content || '', image_url: article.image_url || '', category: article.category || '', gallery_urls: article.gallery_urls || [] }); setIsArticleModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 rounded-lg"><Edit2 size={18} /></button>
-                          <button onClick={() => handleDeleteArticle(article.id)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg"><Trash2 size={18} /></button>
-                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+            {/* Articles List */}
+            <div>
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <FileText size={24} className="text-slate-400" />
+                        Postagens do Blog / Conteúdo
+                    </h3>
+                    <button 
+                        onClick={() => { setEditingArticle(null); setArticleForm({ title: '', excerpt: '', content: '', image_url: '', category: '', gallery_urls: [] }); setIsArticleModalOpen(true); }}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 text-sm font-bold transition-all shadow-lg"
+                    >
+                        <Plus size={16} /> Nova Postagem
+                    </button>
+                </div>
+
+                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                            <tr>
+                                <th className="px-6 py-4 font-medium">Artigo</th>
+                                <th className="px-6 py-4 font-medium">Categoria</th>
+                                <th className="px-6 py-4 font-medium">Imagens</th>
+                                <th className="px-6 py-4 font-medium">Data</th>
+                                <th className="px-6 py-4 font-medium text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {articles.filter(a => {
+                                if (!searchTerm) return true;
+                                return a.title.toLowerCase().includes(searchTerm.toLowerCase()) || a.category?.toLowerCase().includes(searchTerm.toLowerCase());
+                            }).map(article => (
+                                <tr key={article.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="font-bold text-slate-900">{article.title}</div>
+                                        <div className="text-xs text-slate-500 line-clamp-1">{article.excerpt}</div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold uppercase tracking-wider">{article.category || 'Geral'}</span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex -space-x-2">
+                                            {article.image_url && <img src={article.image_url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />}
+                                            {article.gallery_urls?.slice(0, 3).map((url, i) => (
+                                                <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />
+                                            ))}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-500">{new Date(article.created_at || '').toLocaleDateString()}</td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={() => { setEditingArticle(article); setArticleForm({ title: article.title, excerpt: article.excerpt, content: article.content || '', image_url: article.image_url || '', category: article.category || '', gallery_urls: article.gallery_urls || [] }); setIsArticleModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 rounded-lg"><Edit2 size={18} /></button>
+                                            <button onClick={() => handleDeleteArticle(article.id)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg"><Trash2 size={18} /></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Strategy Assets List */}
+            <div className="pt-8 border-t border-slate-100">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <Activity size={24} className="text-green-600" />
+                        Arquivos de Estratégias
+                    </h3>
+                    <span className="text-xs font-bold text-slate-400 uppercase bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                        {robots.length} Robôs Configurados
+                    </span>
+                </div>
+
+                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                    <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                        <tr>
+                        <th className="px-6 py-4 font-medium">Estratégia</th>
+                        <th className="px-6 py-4 font-medium">Avatar</th>
+                        <th className="px-6 py-4 font-medium">Galeria</th>
+                        <th className="px-6 py-4 font-medium">Manual</th>
+                        <th className="px-6 py-4 font-medium text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {robots.map(robot => (
+                        <tr key={robot.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-4">
+                            <div className="font-bold text-slate-900">{robot.name}</div>
+                            <div className="text-xs text-slate-400 font-mono uppercase tracking-tighter">{robot.pair} v{robot.version}</div>
+                            </td>
+                            <td className="px-6 py-4">
+                                {robot.avatar_url ? (
+                                    <div className="w-10 h-10 rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                                        <img src={robot.avatar_url} className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="w-10 h-10 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center text-slate-300">
+                                        <User size={16} />
+                                    </div>
+                                )}
+                            </td>
+                            <td className="px-6 py-4">
+                                <div className="flex -space-x-2">
+                                    {robot.images?.slice(0, 3).map((url, i) => (
+                                        <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />
+                                    ))}
+                                    {(robot.images?.length || 0) > 3 && (
+                                        <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-900 text-white text-[8px] font-black flex items-center justify-center shadow-sm">
+                                            +{robot.images!.length - 3}
+                                        </div>
+                                    )}
+                                    {(!robot.images || robot.images.length === 0) && <span className="text-[10px] font-bold text-slate-300">Nenhuma</span>}
+                                </div>
+                            </td>
+                            <td className="px-6 py-4">
+                                <div className="flex items-center gap-1.5 font-bold text-slate-500">
+                                    <FileText size={14} className="text-slate-400" />
+                                    {robot.manualImages?.length || 0} páginas
+                                </div>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                    robot.status === 'Operacional' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'
+                                }`}>
+                                    {robot.status}
+                                </span>
+                            </td>
+                        </tr>
+                        ))}
+                        {robots.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Nenhuma estratégia encontrada.</td>
+                            </tr>
+                        )}
+                    </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Global File Management */}
+            <div className="pt-8 border-t border-slate-100 pb-10">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <Database size={24} className="text-blue-600" />
+                        Gestão Geral de Arquivos
+                    </h3>
+                    <div className="flex items-center gap-3">
+                        <button 
+                            type="button"
+                            onClick={fetchStorageFiles}
+                            className={`p-2 text-slate-400 hover:text-green-600 transition-all ${isRefreshingFiles ? 'animate-spin' : ''}`}
+                        >
+                            <RefreshCw size={18} />
+                        </button>
+                        <span className="text-xs font-bold text-slate-400 uppercase bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                            {storageFiles.length} Arquivos no Bucket
+                        </span>
+                    </div>
+                </div>
+
+                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                    <table className="w-full text-left text-sm">
+                        <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                            <tr>
+                                <th className="px-6 py-4 font-medium">Visualização</th>
+                                <th className="px-6 py-4 font-medium">Nome / Caminho</th>
+                                <th className="px-6 py-4 font-medium">Tamanho</th>
+                                <th className="px-6 py-4 font-medium px-12">Data</th>
+                                <th className="px-6 py-4 font-medium text-right">Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {storageFiles.map(file => (
+                                <tr key={file.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex items-center justify-center">
+                                            {file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                                                <img src={file.url} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <FileText size={20} className="text-slate-400" />
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="font-bold text-slate-900 line-clamp-1">{file.name}</div>
+                                        <div className="text-[10px] text-slate-400 font-mono">{file.path}</div>
+                                    </td>
+                                    <td className="px-6 py-4 font-medium text-slate-600">
+                                        {formatBytes(file.size || 0)}
+                                    </td>
+                                    <td className="px-6 py-4 text-slate-400 text-xs text-center">
+                                        {new Date(file.created_at).toLocaleDateString()}
+                                    </td>
+                                    <td className="px-6 py-4 text-right">
+                                        <div className="flex justify-end gap-2">
+                                            <a 
+                                                href={file.url} 
+                                                target="_blank" 
+                                                rel="noopener noreferrer" 
+                                                className="p-2 text-slate-300 hover:text-blue-600 transition-colors"
+                                                title="Ver arquivo"
+                                            >
+                                                <ExternalLink size={18} />
+                                            </a>
+                                            <button 
+                                                onClick={() => handleDeleteStorageFile(file.url)}
+                                                className="p-2 text-slate-300 hover:text-red-600 transition-colors"
+                                                title="Excluir do Storage"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                            {storageFiles.length === 0 && (
+                                <tr>
+                                    <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
+                                        {isRefreshingFiles ? 'Carregando arquivos...' : 'Nenhum arquivo encontrado no storage.'}
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Legacy Content Alert */}
+            {legacyItems.length > 0 && (
+                <div className="pt-8 border-t border-slate-100">
+                    <div className="bg-orange-50/50 border border-orange-100 rounded-[32px] p-8">
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <ShieldAlert size={24} className="text-orange-600" />
+                                <div>
+                                    <h3 className="text-xl font-black text-slate-900 tracking-tight">Detectados Links Legados</h3>
+                                    <p className="text-sm text-slate-500 font-bold">Arquivos hospedados no SeaweedFS ou Servidores Antigos.</p>
+                                </div>
+                            </div>
+                            <span className="px-4 py-1.5 bg-orange-100 text-orange-700 rounded-full text-xs font-black uppercase">
+                                {legacyItems.length} Itens Encontrados
+                            </span>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {legacyItems.map((item, idx) => (
+                                <div key={idx} className="bg-white p-4 rounded-2xl border border-orange-100 shadow-sm flex items-center justify-between group hover:border-orange-300 transition-all">
+                                    <div className="overflow-hidden">
+                                        <div className="text-[10px] font-black uppercase text-orange-600 mb-1">{item.type}</div>
+                                        <div className="text-sm font-bold text-slate-800 truncate mb-1">{item.title}</div>
+                                        <div className="text-[9px] text-slate-400 font-mono truncate">{item.url}</div>
+                                    </div>
+                                    <a 
+                                        href={item.url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer" 
+                                        className="p-2 text-slate-300 hover:text-orange-600 transition-colors"
+                                    >
+                                        <ExternalLink size={18} />
+                                    </a>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="mt-6 flex items-center gap-3 p-4 bg-orange-100/30 rounded-2xl">
+                             <TrendingUp size={16} className="text-orange-600" />
+                             <p className="text-xs font-bold text-orange-800 italic">
+                                Recomendação: Re-faça o upload destes arquivos utilizando o novo sistema para migrá-los ao Supabase. Após migrar, os links antigos deixarão de aparecer aqui.
+                             </p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
         ) : null}
       </div>

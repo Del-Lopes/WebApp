@@ -51,7 +51,7 @@ export async function getStorageStats(): Promise<StorageStats> {
  */
 export async function uploadToSupabase(
   file: File, 
-  category: 'articles' | 'analyses' | 'other' = 'other'
+  category: 'articles' | 'analyses' | 'strategies' | 'other' = 'other'
 ): Promise<string> {
   // Check limit first
   const stats = await getStorageStats();
@@ -93,4 +93,79 @@ export function formatBytes(bytes: number, decimals = 2) {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+/**
+ * Deletes a file from Supabase Storage given its public URL
+ */
+export async function deleteFromSupabase(url: string): Promise<void> {
+  try {
+    // Extract path from public URL
+    // Public URL format: https://.../storage/v1/object/public/content/category/filename
+    const pathParts = url.split(`/public/${BUCKET_NAME}/`);
+    if (pathParts.length < 2) return;
+    
+    const filePath = pathParts[1];
+    
+    const { error } = await supabase.storage
+      .from(BUCKET_NAME)
+      .remove([filePath]);
+
+    if (error) throw error;
+  } catch (err) {
+    console.error('Error deleting from storage:', err);
+    throw err;
+  }
+}
+
+export interface StorageFile {
+    name: string;
+    id: string;
+    updated_at: string;
+    created_at: string;
+    last_accessed_at: string;
+    metadata: any;
+    url: string;
+    path: string;
+    size?: number;
+}
+
+/**
+ * Lists all files in the storage bucket (recursive)
+ */
+export async function listAllFiles(path: string = ''): Promise<StorageFile[]> {
+    const { data, error } = await supabase.storage
+        .from(BUCKET_NAME)
+        .list(path, {
+            limit: 100,
+            offset: 0,
+            sortBy: { column: 'name', order: 'asc' }
+        });
+
+    if (error) throw error;
+
+    let files: StorageFile[] = [];
+
+    for (const item of data || []) {
+        const itemPath = path ? `${path}/${item.name}` : item.name;
+        
+        // Supabase list returns objects without id for folders
+        if (!item.id) {
+            const folderFiles = await listAllFiles(itemPath);
+            files = [...files, ...folderFiles];
+        } else {
+             const { data: { publicUrl } } = supabase.storage
+                .from(BUCKET_NAME)
+                .getPublicUrl(itemPath);
+
+            files.push({
+                ...item,
+                path: itemPath,
+                url: publicUrl,
+                size: item.metadata?.size
+            } as any);
+        }
+    }
+
+    return files.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 }
