@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Play, FileText, Clock, ChevronRight, Loader2, Plus, Edit2, Trash2, Save, X, MoreVertical, Layout, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
+import { Play, FileText, Clock, ChevronRight, Loader2, Plus, Edit2, Trash2, Save, X, MoreVertical, Layout, ChevronDown, ChevronUp, ArrowLeft, Upload, Image as ImageIcon } from 'lucide-react';
 import { MOCK_ARTICLES } from '../constants';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, Module, Lesson, Article } from '../types';
 import { ArticleView } from './Dashboard/ArticleView';
 import { BackButton } from './BackButton';
+import { uploadToSupabase } from '../lib/storage';
 import { type } from 'os';
 
 interface EducationProps {
@@ -47,6 +48,7 @@ export const Education: React.FC<EducationProps> = ({ onBack }) => {
 
   // Module Expansion State for Viewer
   const [expandedModules, setExpandedModules] = useState<{[key: string]: boolean}>({});
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -342,6 +344,33 @@ export const Education: React.FC<EducationProps> = ({ onBack }) => {
       </div>
   );
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'course' | 'article' | 'gallery') => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      setIsUploading(true);
+      try {
+          const category = type === 'course' ? 'courses' : 'articles';
+          const url = await uploadToSupabase(file, category);
+          
+          if (type === 'course') {
+              setCourseForm(prev => ({ ...prev, image_url: url }));
+          } else if (type === 'article') {
+              setArticleForm(prev => ({ ...prev, image_url: url }));
+          } else if (type === 'gallery') {
+              setArticleForm(prev => ({ 
+                  ...prev, 
+                  gallery_urls_input: prev.gallery_urls_input ? `${prev.gallery_urls_input}\n${url}` : url 
+              }));
+          }
+      } catch (err: any) {
+          alert(err.message);
+      } finally {
+          setIsUploading(false);
+          e.target.value = '';
+      }
+  };
+
   const renderCourseModal = () => (
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8">
@@ -364,8 +393,49 @@ export const Education: React.FC<EducationProps> = ({ onBack }) => {
               <div className="p-6 space-y-6">
                   <form id="course-form" onSubmit={handleSaveCourse} className="space-y-4">
                       <div><label className="block text-sm font-medium mb-1">Título</label><input type="text" required value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
-                      <div><label className="block text-sm font-medium mb-1">Descrição</label><textarea rows={3} value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
-                      <div><label className="block text-sm font-medium mb-1">Imagem URL</label><input type="text" value={courseForm.image_url} onChange={e => setCourseForm({...courseForm, image_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
+                      <div><label className="block text-sm font-medium mb-1 text-slate-700">Descrição</label><textarea rows={3} value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all" /></div>
+                      
+                      <div className="space-y-2">
+                        <label className="block text-sm font-medium text-slate-700">Imagem de Capa</label>
+                        <div className="flex gap-4 items-start">
+                            {courseForm.image_url ? (
+                                <div className="relative w-32 aspect-video rounded-lg overflow-hidden border border-slate-200 group">
+                                    <img src={courseForm.image_url} alt="" className="w-full h-full object-cover" />
+                                    <button 
+                                        type="button"
+                                        onClick={() => setCourseForm(prev => ({ ...prev, image_url: '' }))}
+                                        className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="w-32 aspect-video rounded-lg bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400">
+                                    <ImageIcon size={24} />
+                                </div>
+                            )}
+                            <div className="flex-1">
+                                <label className="flex flex-col items-center justify-center w-full h-12 px-4 transition bg-white border-2 border-slate-200 border-dashed rounded-xl cursor-copy hover:border-green-500 group">
+                                    <div className="flex items-center space-x-2">
+                                        {isUploading ? <Loader2 className="animate-spin text-green-600" size={18} /> : <Upload className="text-slate-400 group-hover:text-green-600" size={18} />}
+                                        <span className="text-xs font-bold text-slate-500 group-hover:text-green-600">
+                                            {isUploading ? 'Enviando...' : 'Clique para subir imagem'}
+                                        </span>
+                                    </div>
+                                    <input type="file" className="hidden" accept="image/*" disabled={isUploading} onChange={(e) => handleFileUpload(e, 'course')} />
+                                </label>
+                                <div className="mt-2">
+                                    <input 
+                                        type="text" 
+                                        placeholder="Ou cole a URL aqui" 
+                                        value={courseForm.image_url} 
+                                        onChange={e => setCourseForm({...courseForm, image_url: e.target.value})} 
+                                        className="w-full text-[10px] border-b border-slate-200 bg-transparent py-1 outline-none focus:border-green-500" 
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                      </div>
                   </form>
 
                   {editingCourse && (
@@ -649,17 +719,52 @@ export const Education: React.FC<EducationProps> = ({ onBack }) => {
                   <form onSubmit={handleSaveArticle} className="space-y-4">
                       <input type="text" placeholder="Título" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
                       <input type="text" placeholder="Categoria" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
-                      <textarea placeholder="Resumo" rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
-                      <textarea placeholder="Conteúdo Completo" rows={5} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
-                      <input type="text" placeholder="Imagem URL de Capa" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
-                      <textarea 
-                        placeholder="Galeria de Imagens (Uma URL por linha)" 
-                        rows={3} 
-                        value={articleForm.gallery_urls_input} 
-                        onChange={e => setArticleForm({...articleForm, gallery_urls_input: e.target.value})} 
-                        className="w-full border rounded-lg px-3 py-2" 
-                      />
-                      <button type="submit" className="w-full bg-green-600 text-white font-bold py-2 rounded-lg hover:bg-green-500">Salvar Artigo</button>
+                      <textarea placeholder="Resumo" rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2" />
+                      <textarea placeholder="Conteúdo Completo" rows={5} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2" />
+                      
+                      <div className="space-y-4 pt-2 border-t border-slate-100">
+                          <label className="block text-sm font-black text-slate-700 uppercase tracking-wider">Imagens e Galeria</label>
+                          
+                          {/* Main Image */}
+                          <div className="space-y-2">
+                              <span className="text-xs font-bold text-slate-500">Imagem de Capa</span>
+                              <div className="flex gap-4">
+                                  {articleForm.image_url && (
+                                      <img src={articleForm.image_url} alt="" className="w-20 h-20 object-cover rounded-lg border border-slate-200" />
+                                  )}
+                                  <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl hover:border-green-500 cursor-pointer transition-all bg-slate-50/50">
+                                      <div className="flex items-center gap-2">
+                                          {isUploading ? <Loader2 className="animate-spin text-green-600" size={16} /> : <Upload size={16} className="text-slate-400" />}
+                                          <span className="text-xs font-bold text-slate-600">Subir Capa</span>
+                                      </div>
+                                      <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'article')} />
+                                  </label>
+                              </div>
+                              <input type="text" placeholder="URL da Capa" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} className="w-full text-[10px] border-b border-slate-100 py-1" />
+                          </div>
+
+                          {/* Gallery */}
+                          <div className="space-y-2">
+                              <div className="flex justify-between items-center">
+                                  <span className="text-xs font-bold text-slate-500">Galeria de Imagens</span>
+                                  <label className="text-[10px] font-black text-green-600 hover:text-green-700 cursor-pointer flex items-center gap-1">
+                                      <Plus size={12} /> ADICIONAR À GALERIA
+                                      <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'gallery')} />
+                                  </label>
+                              </div>
+                              <textarea 
+                                placeholder="URLs da Galeria (uma por linha)" 
+                                rows={3} 
+                                value={articleForm.gallery_urls_input} 
+                                onChange={e => setArticleForm({...articleForm, gallery_urls_input: e.target.value})} 
+                                className="w-full border border-slate-200 rounded-xl px-4 py-2 text-xs font-mono" 
+                              />
+                          </div>
+                      </div>
+
+                      <button type="submit" disabled={isUploading} className="w-full bg-green-600 disabled:opacity-50 text-white font-black py-4 rounded-2xl hover:bg-green-500 shadow-xl shadow-green-500/20 transition-all transform hover:-translate-y-1 mt-4">
+                          {isUploading ? 'ENVIANDO...' : (editingArticle ? 'SALVAR ALTERAÇÕES' : 'PUBLICAR ARTIGO')}
+                      </button>
                   </form>
               </div>
           </div>
