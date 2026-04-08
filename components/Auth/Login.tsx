@@ -21,7 +21,7 @@ export const Login: React.FC = () => {
 
     try {
       if (mode === 'signup') {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -32,6 +32,17 @@ export const Login: React.FC = () => {
           },
         });
         if (error) throw error;
+
+        // Ensure profile is created/updated with email and full_name
+        if (data.user) {
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            email: email,
+            full_name: fullName,
+            role: 'client'
+          });
+        }
+
         setMessage('Cadastro realizado! Verifique seu email para confirmar.');
       } else if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({

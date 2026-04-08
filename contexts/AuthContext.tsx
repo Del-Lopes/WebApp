@@ -80,9 +80,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserRole = async (userId: string) => {
     try {
+      // Select both role and email to check for sync issues
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('role, email')
         .eq('id', userId)
         .single();
       
@@ -92,9 +93,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         let userRole = (data?.role as UserRole) || 'client';
         
-        // We rely on the DB role now. The partner request check should ideally be handled by a trigger or admin action updating the profile role.
-        // However, keeping this check for legacy compatibility or if the upgrade logic is strictly frontend-based (not recommended).
-        // Since we now update profile.role directly in AdminPanel, the DB source of truth is profiles.role.
+        // Sync email if missing in profiles table
+        if (session?.user?.email && !data?.email) {
+          console.log("Syncing missing email to profile...");
+          await supabase
+            .from('profiles')
+            .update({ email: session.user.email })
+            .eq('id', userId);
+        }
         
         setRole(userRole);
       }
