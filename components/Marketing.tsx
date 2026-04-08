@@ -254,35 +254,35 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-8 pb-20">
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">Marketing <span className="text-green-500 text-sm ml-2">v.2.0</span></h2>
-          <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px] mt-3 bg-slate-100 inline-block px-3 py-1 rounded-full">Painel de Parceiros Ativo</p>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">Marketing</h2>
+          <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px] mt-3 bg-slate-100 inline-block px-3 py-1.5 rounded-full">Painel de Parceiros</p>
         </div>
         <BackButton onClick={onBack} />
       </div>
 
-      {/* Navigation Tabs - Match AdminPanel Style */}
-      <div className="flex overflow-x-auto no-scrollbar border-b border-white/10 bg-white/5 p-1.5 rounded-[24px] max-w-fit">
+      {/* Navigation Tabs - Refined Style */}
+      <div className="flex items-center gap-1 bg-slate-100/50 p-1 rounded-2xl w-fit">
         <button
           onClick={() => setActiveTab('materials')}
-          className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-3 ${
+          className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
             activeTab === 'materials'
-              ? 'bg-white text-slate-900 shadow-xl'
-              : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <FileText size={16} /> Materiais
+          <FileText size={14} /> Materiais
         </button>
         <button
           onClick={() => setActiveTab('prospects')}
-          className={`px-8 py-3 rounded-2xl text-xs font-black uppercase tracking-widest transition-all whitespace-nowrap flex items-center gap-3 ${
+          className={`px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
             activeTab === 'prospects'
-              ? 'bg-white text-slate-900 shadow-xl'
-              : 'text-slate-400 hover:text-slate-600 hover:bg-white/50'
+              ? 'bg-white text-slate-900 shadow-sm'
+              : 'text-slate-500 hover:text-slate-800'
           }`}
         >
-          <Search size={16} /> Meus Prospectos
+          <Search size={14} /> Prospectos
         </button>
       </div>
 
