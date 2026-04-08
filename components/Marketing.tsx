@@ -215,27 +215,34 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
   if (!canViewContent) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[70vh] text-center space-y-8 animate-in fade-in duration-700">
-            <div className="w-24 h-24 bg-green-50 rounded-[40px] flex items-center justify-center text-green-600 shadow-xl shadow-green-100/50 rotate-12">
-                <Share2 size={48} />
+        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-10 animate-in fade-in zoom-in duration-700">
+            <div className="relative">
+                <div className="absolute inset-0 bg-green-500 blur-3xl opacity-20 animate-pulse" />
+                <div className="relative w-32 h-32 bg-white rounded-[40px] flex items-center justify-center text-green-600 shadow-2xl shadow-green-200/50 -rotate-6">
+                    <Share2 size={56} className="animate-bounce-slow" />
+                </div>
             </div>
-            <div>
-                <h2 className="text-4xl font-black text-slate-900 tracking-tighter mb-4">Área de Parceria</h2>
-                <p className="max-w-md text-slate-500 font-medium text-lg leading-relaxed">
-                    Torne-se um parceiro oficial e tenha acesso a materiais exclusivos e gestão de leads personalizada.
+            <div className="space-y-4">
+                <h2 className="text-5xl font-black text-slate-900 tracking-tighter">Seja um Parceiro</h2>
+                <p className="max-w-md mx-auto text-slate-500 font-medium text-lg leading-relaxed">
+                    Desbloqueie ferramentas exclusivas de CRM, materiais de marketing premium e comece a escalar suas conversões hoje mesmo.
                 </p>
             </div>
             {partnerRequest && partnerRequest.status === 'pending' ? (
-                 <div className="bg-slate-900 text-white px-8 py-5 rounded-[32px] flex items-center gap-4 shadow-2xl shadow-slate-200">
-                     <span className="w-3 h-3 bg-yellow-400 rounded-full animate-ping" />
-                     <span className="font-black uppercase tracking-widest text-sm">Solicitação em Análise</span>
+                 <div className="bg-slate-900 text-white px-10 py-6 rounded-[32px] flex flex-col items-center gap-2 shadow-2xl shadow-slate-200">
+                     <div className="flex items-center gap-3">
+                        <span className="w-3 h-3 bg-yellow-400 rounded-full animate-ping" />
+                        <span className="font-black uppercase tracking-widest text-sm">Em Análise</span>
+                     </div>
+                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Nossa equipe está avaliando seu perfil</p>
                  </div>
             ) : (
                 <button 
                   onClick={handleRequestPartner}
-                  className="bg-green-600 hover:bg-green-500 text-white px-10 py-5 rounded-[32px] font-black text-lg shadow-2xl shadow-green-200 hover:shadow-green-300 transition-all transform hover:-translate-y-1 uppercase tracking-widest"
+                  className="group bg-[#16a34a] hover:bg-green-700 text-white px-12 py-6 rounded-[32px] font-black text-xl shadow-2xl shadow-green-200 hover:shadow-green-400 transition-all transform hover:-translate-y-2 uppercase tracking-widest flex items-center gap-4"
                 >
-                    Solicitar Acesso
+                    Solicitar Parceria 
+                    <ArrowLeft size={24} className="rotate-180 group-hover:translate-x-2 transition-transform" />
                 </button>
             )}
         </div>
@@ -372,10 +379,11 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
               <thead className="bg-[#f8fafc] text-slate-400 border-b border-slate-100 uppercase text-[10px] font-black tracking-[0.2em]">
                 <tr>
                   <th className="px-8 py-5 w-[25%] font-black">Prospecto</th>
-                  <th className="px-8 py-5 w-[25%] font-black">Contato</th>
-                  <th className="px-8 py-5 w-[15%] font-black">Status</th>
-                  <th className="px-8 py-5 w-[25%] font-black">Anotações</th>
-                  <th className="px-8 py-5 text-right w-[10%] font-black pr-12">Ações</th>
+                  <th className="px-8 py-5 w-[20%] font-black">Contato</th>
+                  <th className="px-8 py-5 w-[15%] font-black">Responsável</th>
+                  <th className="px-8 py-5 w-[12%] font-black">Status</th>
+                  <th className="px-8 py-5 w-[20%] font-black">Anotações</th>
+                  <th className="px-8 py-5 text-right w-[8%] font-black pr-12">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -431,6 +439,14 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                             <span className="font-bold text-slate-700">{prospect.phone || '—'}</span>
                           )}
                         </div>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 align-top">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-green-50 rounded-full flex items-center justify-center text-green-600">
+                           <div className="w-1.5 h-1.5 bg-green-600 rounded-full" />
+                        </div>
+                        <span className="font-black text-[10px] text-slate-700 uppercase tracking-tighter">Eu (Parceiro)</span>
                       </div>
                     </td>
                     <td className="px-8 py-6 align-top">
