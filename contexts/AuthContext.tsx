@@ -93,14 +93,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         let userRole = (data?.role as UserRole) || 'client';
         
-        // Sync email if missing in profiles table
+        // Update last_login timestamp and sync email if missing
+        const updateFields: any = { last_login: new Date().toISOString() };
         if (session?.user?.email && !data?.email) {
           console.log("Syncing missing email to profile...");
-          await supabase
-            .from('profiles')
-            .update({ email: session.user.email })
-            .eq('id', userId);
+          updateFields.email = session.user.email;
         }
+
+        await supabase
+          .from('profiles')
+          .update(updateFields)
+          .eq('id', userId);
         
         setRole(userRole);
       }

@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, PartnerRequest, Profile, Prospect, LicenseTitle } from '../../types';
-import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor, Trash2, Calendar, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor, Trash2, Calendar, ArrowUpDown, ChevronUp, ChevronDown, X, ArrowLeft } from 'lucide-react';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
@@ -19,6 +19,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedUser, setSelectedUser] = useState<Profile | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [editingProspect, setEditingProspect] = useState<string | null>(null);
   const [editingUserRole, setEditingUserRole] = useState<string | null>(null);
@@ -399,75 +400,202 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          {onBack && <BackButton onClick={onBack} />}
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">Painel Administrativo</h2>
-            <p className="text-slate-500 text-sm">Gerencie usuários, licenças e conteúdo.</p>
+  const handleDeleteUser = async (userId: string) => {
+    if (!window.confirm('TEM CERTEZA? Isso excluirá permanentemente o perfil e todas as licenças do usuário. Esta ação não tem volta.')) return;
+    
+    setLoading(true);
+    try {
+        await supabase.from('license_requests').delete().eq('user_id', userId);
+        await supabase.from('partner_requests').delete().eq('user_id', userId);
+        const { error } = await supabase.from('profiles').delete().eq('id', userId);
+
+        if (error) throw error;
+
+        setUsers(prev => prev.filter(u => u.id !== userId));
+        setPartners(prev => prev.filter(p => p.id !== userId));
+        setSelectedUser(null);
+        alert('Usuário excluído com sucesso.');
+    } catch (error: any) {
+        alert('Erro ao excluir: ' + error.message);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  const renderUserDetails = (user: Profile) => {
+    const userLicenses = licenses.filter(l => l.user_id === user.id);
+    
+    return (
+      <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300 pb-20">
+        <div className="flex flex-col md:flex-row md:items-center justify-between bg-white p-6 rounded-3xl border border-slate-200 shadow-sm gap-4">
+          <div className="flex items-center gap-4">
+            <button 
+              onClick={() => setSelectedUser(null)}
+              className="p-3 hover:bg-slate-100 rounded-2xl transition-all group"
+              title="Voltar para a lista"
+            >
+              <ArrowLeft size={24} className="text-slate-400 group-hover:text-slate-900" />
+            </button>
+            <div>
+              <h2 className="text-2xl font-black text-slate-900 leading-tight">{user.full_name || 'Usuário'}</h2>
+              <div className="flex items-center gap-2 mt-1">
+                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+                    user.role === 'admin' ? 'bg-purple-100 text-purple-700 border-purple-200' :
+                    user.role === 'first_mate' ? 'bg-blue-100 text-blue-700 border-blue-200' :
+                    user.role === 'partner' ? 'bg-green-100 text-green-700 border-green-200' :
+                    'bg-slate-100 text-slate-700 border-slate-200'
+                  }`}>
+                    {user.role}
+                 </span>
+                 <span className="text-xs text-slate-400 font-medium tracking-wide">ID: {user.id.slice(0, 8)}...</span>
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={() => handleDeleteUser(user.id)}
+            className="flex items-center justify-center gap-2 px-6 py-4 bg-red-50 text-red-600 rounded-2xl hover:bg-red-600 hover:text-white transition-all font-bold text-sm border border-red-100 hover:border-red-600 border-dashed"
+          >
+            <Trash2 size={18} /> Excluir permanentemente este registro
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <h3 className="font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+              <User size={18} className="text-green-600" /> Informações
+            </h3>
+            <div className="space-y-4">
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Email</span>
+                <span className="text-slate-700 font-bold break-all">{user.email}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Membro Desde</span>
+                <span className="text-slate-700 font-bold">{new Date(user.created_at).toLocaleDateString()}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Último Acesso</span>
+                <span className="text-slate-700 font-bold">
+                   {(user as any).last_login ? new Date((user as any).last_login).toLocaleString() : 'Sem registros'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="md:col-span-2 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <h3 className="font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity size={18} className="text-green-600" /> Licenças Ativas
+              </div>
+              <span className="bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-0.5 rounded-lg uppercase">{userLicenses.length} Ativas</span>
+            </h3>
+            {userLicenses.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {userLicenses.map(lic => (
+                  <div key={lic.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border border-slate-100 hover:border-green-200 transition-colors group">
+                    <div>
+                      <div className="font-mono font-black text-slate-800 text-lg">{lic.mt5_account}</div>
+                      <div className="text-[10px] text-slate-400 uppercase font-black tracking-tighter">{lic.license_title || 'Expert Advisor'}</div>
+                    </div>
+                    <div className="text-right flex flex-col items-end gap-1">
+                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase tracking-widest ${
+                        lic.status === 'approved' ? 'bg-green-100 text-green-700' :
+                        lic.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {lic.status}
+                      </span>
+                      <div className="text-[9px] font-bold text-slate-500">Validade: {lic.expires_at ? new Date(lic.expires_at).toLocaleDateString() : 'Vitalicío'}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                  <Activity size={32} className="opacity-20" />
+                </div>
+                <p className="text-sm font-bold uppercase tracking-widest opacity-50">Nenhuma licença encontrada</p>
+              </div>
+            )}
           </div>
         </div>
-        
-        {onShowTour && (
-            <button 
-                onClick={onShowTour}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-medium transition-colors"
+      </div>
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      {selectedUser ? (
+        renderUserDetails(selectedUser)
+      ) : (
+        <>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="flex items-center gap-4">
+              {onBack && <BackButton onClick={onBack} />}
+              <div>
+                <h1 className="text-2xl font-black text-slate-900 ">Painel Administrativo</h1>
+                <p className="text-slate-500 text-sm">Gerencie usuários, licenças e conteúdo.</p>
+              </div>
+            </div>
+            
+            {onShowTour && (
+              <button
+                 onClick={onShowTour}
+                 className="flex items-center gap-2 px-4 py-2 bg-slate-50 text-slate-600 rounded-xl hover:bg-slate-100 transition-all font-bold text-sm border border-slate-200"
+              >
+                <Play size={16} fill="currentColor" /> Ver Tour
+              </button>
+            )}
+          </div>
+
+          <div className="flex border-b border-slate-200">
+            <button
+              onClick={() => setActiveTab('licenses')}
+              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === 'licenses' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
             >
-                <Play size={16} /> Ver Tour
+              Licenças
             </button>
-        )}
-      </div>
+            <button
+              onClick={() => setActiveTab('partners')}
+              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === 'partners' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Parceiros
+            </button>
+            <button
+              onClick={() => setActiveTab('users')}
+              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === 'users' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Usuários
+            </button>
+            <button
+              onClick={() => setActiveTab('prospects')}
+              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === 'prospects' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Prospectos
+            </button>
+          </div>
 
-      {/* Tabs */}
-      <div className="flex border-b border-slate-200">
-        <button
-          onClick={() => setActiveTab('licenses')}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'licenses' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Licenças
-        </button>
-        <button
-          onClick={() => setActiveTab('partners')}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'partners' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Parceiros
-        </button>
-        <button
-          onClick={() => setActiveTab('users')}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'users' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Usuários
-        </button>
-        <button
-          onClick={() => setActiveTab('prospects')}
-          className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
-            activeTab === 'prospects' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
-          }`}
-        >
-          Prospectos
-        </button>
-      </div>
-
-      {(activeTab === 'licenses' || activeTab === 'partners' || activeTab === 'users' || activeTab === 'prospects') && (
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-          <input
-            type="text"
-            placeholder={activeTab === 'licenses' ? "Buscar por nome, email ou conta MT5..." : "Buscar por nome, email ou telefone..."}
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
-          />
-        </div>
-      )}
+          {(activeTab === 'licenses' || activeTab === 'partners' || activeTab === 'users' || activeTab === 'prospects') && (
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input
+                type="text"
+                placeholder={activeTab === 'licenses' ? "Buscar por nome, email ou conta MT5..." : "Buscar por nome, email ou telefone..."}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
+              />
+            </div>
+          )}
 
       <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
         {errorMsg && (
@@ -683,6 +811,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                         </td>
                                     </tr>
                                 ))}
+                                {partnerRequests.length === 0 && (
+                                    <tr><td colSpan={3} className="px-6 py-3 text-center text-slate-400">Nenhuma solicitação pendente.</td></tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
@@ -697,6 +828,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     <tr>
                     <th className="px-6 py-4 font-medium">Parceiro</th>
                     <th className="px-6 py-4 font-medium">Email</th>
+                    <th className="px-6 py-4 font-medium">Último Login</th>
                     <th 
                         className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
                         onClick={() => handleSort('created_at')}
@@ -729,10 +861,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 <tbody className="divide-y divide-slate-100">
                     {sortedPartners.map((partner) => (
                     <tr key={partner.id} className="hover:bg-slate-50 transition-colors">
-                        <td className="px-6 py-4 font-medium text-slate-900">
-                            {partner.full_name || 'Usuário'}
+                        <td className="px-6 py-4">
+                           <button 
+                             onClick={() => setSelectedUser(partner)}
+                             className="text-left hover:text-green-600 transition-colors group"
+                           >
+                             <div className="font-bold text-slate-900 group-hover:underline">{partner.full_name || 'Usuário'}</div>
+                             <div className="text-[10px] text-slate-400 font-normal">Clique para ver detalhes</div>
+                           </button>
                         </td>
-                        <td className="px-6 py-4 text-slate-600">{partner.email}</td>
+                        <td className="px-6 py-4 text-slate-600 font-medium">{partner.email}</td>
+                        <td className="px-6 py-4 text-slate-500 text-xs">
+                          {(partner as any).last_login ? new Date((partner as any).last_login).toLocaleString() : '---'}
+                        </td>
                         <td className="px-6 py-4 text-slate-500">{new Date(partner.created_at).toLocaleDateString()}</td>
                         <td className="px-6 py-4">
                         {editingUserRole === partner.id ? (
@@ -776,7 +917,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     </tr>
                     ))}
                     {partners.length === 0 && (
-                        <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum parceiro encontrado na lista ativa.</td></tr>
+                        <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">Nenhum parceiro encontrado na lista ativa.</td></tr>
                     )}
                 </tbody>
                 </table>
@@ -789,12 +930,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 <tr>
                   <th className="px-6 py-4 font-medium">Nome</th>
                   <th className="px-6 py-4 font-medium">Email</th>
+                  <th className="px-6 py-4 font-medium">Último Login</th>
                   <th 
                     className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
                     onClick={() => handleSort('created_at')}
                   >
                     <div className="flex items-center gap-1">
-                        Data de Cadastro
+                        Cadastro
                         {sortConfig?.key === 'created_at' ? (
                             sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
                         ) : (
@@ -821,13 +963,24 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               <tbody className="divide-y divide-slate-100">
                 {sortedUsers.map((user) => (
                   <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
-                         <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
-                            <User size={16} />
-                         </div>
-                         {user.full_name || 'Sem nome'}
+                    <td className="px-6 py-4">
+                        <button 
+                          onClick={() => setSelectedUser(user)}
+                          className="flex items-center gap-3 text-left hover:text-green-600 transition-colors group"
+                        >
+                          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                             <User size={16} />
+                          </div>
+                          <div>
+                            <div className="font-bold text-slate-900 group-hover:underline leading-none">{user.full_name || 'Sem nome'}</div>
+                            <span className="text-[10px] text-slate-400 font-normal">Ver detalhes</span>
+                          </div>
+                        </button>
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{user.email}</td>
+                    <td className="px-6 py-4 text-slate-600 font-medium">{user.email}</td>
+                    <td className="px-6 py-4 text-slate-500 text-xs">
+                      {(user as any).last_login ? new Date((user as any).last_login).toLocaleString() : '---'}
+                    </td>
                     <td className="px-6 py-4 text-slate-500">{new Date(user.created_at).toLocaleDateString()}</td>
                     <td className="px-6 py-4">
                       {editingUserRole === user.id ? (
@@ -871,7 +1024,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                   </tr>
                 ))}
                 {users.length === 0 && (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhum usuário encontrado.</td></tr>
+                    <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">Nenhum usuário encontrado.</td></tr>
                 )}
               </tbody>
             </table>
@@ -1046,6 +1199,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           </div>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 };
+
+export default AdminPanel;
