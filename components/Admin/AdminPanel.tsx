@@ -1,8 +1,46 @@
-
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, PartnerRequest, Profile, Prospect, LicenseTitle, Article } from '../../types';
-import { CheckCircle, XCircle, Users, Activity, User, Search, Phone, Mail, Send, FileText, MessageCircle, Plus, Edit2, Play, Crown, Anchor, Trash2, Calendar, ArrowUpDown, ChevronUp, ChevronDown, X, ArrowLeft } from 'lucide-react';
+import { 
+  Users, 
+  Settings, 
+  HelpCircle, 
+  Search, 
+  Mail, 
+  DollarSign, 
+  TrendingUp, 
+  MoreHorizontal, 
+  Filter, 
+  Download, 
+  RefreshCw,
+  Edit2,
+  Trash2,
+  CheckCircle,
+  XCircle,
+  Clock,
+  Layout,
+  FileText,
+  User,
+  Plus,
+  ArrowUpDown,
+  ChevronDown,
+  ChevronUp,
+  Mail as MailIcon,
+  Phone,
+  Calendar,
+  Anchor,
+  Crown,
+  X,
+  Database,
+  ShieldAlert,
+  HardDrive,
+  Activity,
+  Play,
+  ArrowLeft,
+  Send,
+  MessageCircle
+} from 'lucide-react';
+import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
 import { BackButton } from '../BackButton';
 
 interface AdminPanelProps {
@@ -36,15 +74,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [articleForm, setArticleForm] = useState({ 
     title: '', excerpt: '', content: '', image_url: '', category: '', gallery_urls: [] as string[] 
   });
+  const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRefreshingStats, setIsRefreshingStats] = useState(false);
   const [newsletterSubject, setNewsletterSubject] = useState('');
   const [newsletterContent, setNewsletterContent] = useState('');
   const [isSending, setIsSending] = useState(false);
+  const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
 
   const handleUpdateField = async (id: string, field: keyof Prospect, value: string) => {
-      // Optimistic Update
       setProspects(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
-      
       try {
           await supabase.from('prospects').update({ [field]: value }).eq('id', id);
       } catch (err) {
@@ -54,7 +93,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
   useEffect(() => {
     fetchData();
+    fetchStorageStats();
+    fetchCurrentUser();
   }, [activeTab]);
+
+  const fetchCurrentUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      setCurrentUserProfile(data);
+    }
+  };
+
+  const fetchStorageStats = async () => {
+    const stats = await getStorageStats();
+    setStorageStats(stats);
+  };
 
   const fetchData = async () => {
     setLoading(true);
@@ -70,7 +124,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         setLicenses(data as unknown as LicenseRequest[] || []);
 
       } else if (activeTab === 'partners') {
-        // Fetch existing partners (profiles with relevant roles)
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
           .select('*')
@@ -80,7 +133,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         if (profilesError) throw profilesError;
         setPartners(profiles as Profile[] || []);
 
-        // Fetch pending partner requests
         const { data: requests, error: requestsError } = await supabase
             .from('partner_requests')
             .select('*, profiles(full_name, email)')
@@ -193,7 +245,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         return 0;
       });
     } else {
-        // Default hierarchy sorting for partners tab if no explicit sort
         sortableData.sort((a, b) => {
             const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2, 'client': 3 };
             const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 4;
@@ -208,7 +259,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const sortedUsers = React.useMemo(() => {
     let sortableUsers = [...users];
     
-    // First apply search filter
     if (searchTerm) {
       const searchLower = searchTerm.toLowerCase();
       sortableUsers = sortableUsers.filter(user => {
@@ -218,13 +268,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       });
     }
 
-    // Then apply sorting
     if (sortConfig !== null) {
       sortableUsers.sort((a, b) => {
         const aValue = (a as any)[sortConfig.key] || '';
         const bValue = (b as any)[sortConfig.key] || '';
 
-        // Hierarchy for roles if sorting by role
         if (sortConfig.key === 'role') {
             const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2, 'client': 3 };
             const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 4;
@@ -253,7 +301,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       if (expires_at) updateData.expires_at = expires_at;
       
       await supabase.from('license_requests').update(updateData).eq('id', id);
-      fetchData(); // Refresh
+      fetchData();
     } catch (error) {
       console.error('Error updating license:', error);
     }
@@ -319,7 +367,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
   const handlePartnerRequestAction = async (request: PartnerRequest, status: 'approved' | 'rejected') => {
       try {
-          // Update request status
           const { error: reqError } = await supabase
             .from('partner_requests')
             .update({ status })
@@ -327,7 +374,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           
           if (reqError) throw reqError;
 
-          // If approved, update user role to partner
           if (status === 'approved') {
               const { error: roleError } = await supabase
                 .from('profiles')
@@ -347,7 +393,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
   const handleUpdateUserRole = async (userId: string, newRole: string) => {
     try {
-      // 1. Update the profile role
       const { error } = await supabase
         .from('profiles')
         .update({ role: newRole })
@@ -355,10 +400,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
       if (error) throw error;
 
-      // 2. Sync partner_requests status to maintain consistency
       if (newRole === 'client') {
-          // If downgrading to client, revoke any approved partner status
-          // This ensures they lose access effectively even if the marketing panel checks this table
           const { error: reqError } = await supabase
             .from('partner_requests')
             .update({ status: 'rejected' }) 
@@ -368,8 +410,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           if (reqError) console.error("Error revoking partner request:", reqError);
 
       } else if (['partner', 'first_mate', 'admin'].includes(newRole)) {
-          // If promoting manually, ensure any PENDING request is approved
-          // This prevents a "pending" badge from showing up for an actual partner
           const { error: reqError } = await supabase
             .from('partner_requests')
             .update({ status: 'approved' }) 
@@ -379,16 +419,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           if (reqError) console.error("Error approving partner request:", reqError);
       }
       
-      // Optimistic update for users tab
       setUsers(prev => prev.map(u => u.id === userId ? { ...u, role: newRole as any } : u));
       
-      // Handle partners list update
       if (activeTab === 'partners') {
           if (newRole === 'client') {
-              // Remove if demoted to client
               setPartners(prev => prev.filter(p => p.id !== userId));
           } else {
-               // Update role and re-sort local list
                setPartners(prev => {
                    const updated = prev.map(p => p.id === userId ? { ...p, role: newRole as any } : p);
                    return updated;
@@ -412,7 +448,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
       if (error) throw error;
       
-      // Optimistic update
       setProspects(prev => prev.map(p => p.id === id ? { ...p, status } : p));
     } catch (error: any) {
       alert('Erro ao atualizar status: ' + error.message);
@@ -449,7 +484,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
     setIsSending(true);
     try {
-      // Create broadcast record for history
       const { data: broadcast, error: broadcastError } = await supabase
         .from('broadcasts')
         .insert({
@@ -461,10 +495,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         .single();
 
       if (broadcastError) throw broadcastError;
-
-      // NOTE: In Phase 3 (motor de disparo), here we would trigger the Edge Function 
-      // or loop through selected emails to send via provider.
-      // For now, we simulate success for UI testing.
       
       alert(`Comunicado enviado com sucesso para ${selectedIds.length} usuários.`);
       setIsNewsletterOpen(false);
@@ -478,39 +508,42 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     }
   };
 
-  const handleUploadToSeaweed = async (files: FileList | null) => {
+  const handleUploadToSupabase = async (files: FileList | null) => {
     if (!files || files.length === 0) return;
+    
+    // Check if user has permission
+    const role = currentUserProfile?.role;
+    if (role !== 'admin' && role !== 'first_mate') {
+      alert('Apenas Admin e First Mate podem fazer upload de arquivos.');
+      return;
+    }
+
+    if (storageStats?.isFull) {
+        alert('Erro: Limite de armazenamento do Supabase (1GB) atingido. Remova arquivos antigos primeiro.');
+        return;
+    }
+
     setIsUploading(true);
-    const uploadedUrls: string[] = [];
-
     try {
+      const newUrls: string[] = [];
+      const category = articleForm.category.toLowerCase().includes('análise') || articleForm.category.toLowerCase().includes('analise') 
+        ? 'analyses' 
+        : 'articles';
+
       for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const filename = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-        // Endpoint Admin (Filer) com Basic Auth
-        const uploadUrl = `https://admin-u5jwkfdyqrzqj39vcpf8nk9n.137.131.134.214.sslip.io/trade/${filename}`;
-
-        const response = await fetch(uploadUrl, {
-          method: 'PUT',
-          body: file,
-          headers: {
-            'Authorization': 'Basic ' + btoa('nGXocdX6kUwpBXdJ:5Xy97eHINXVyRktkI9t4KY8JIjHXMqJE')
-          }
-        });
-
-        if (response.ok) {
-          uploadedUrls.push(uploadUrl);
-        }
+        const url = await uploadToSupabase(files[i], category);
+        newUrls.push(url);
       }
-
+      
       setArticleForm(prev => ({
         ...prev,
-        gallery_urls: [...prev.gallery_urls, ...uploadedUrls],
-        image_url: prev.image_url || uploadedUrls[0] || ''
+        gallery_urls: [...prev.gallery_urls, ...newUrls],
+        image_url: prev.image_url || newUrls[0]
       }));
-    } catch (error) {
-      console.error('Upload error:', error);
-      alert('Erro ao fazer upload para o storage.');
+      
+      fetchStorageStats();
+    } catch (e: any) {
+      alert('Erro no upload: ' + e.message);
     } finally {
       setIsUploading(false);
     }
@@ -789,11 +822,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                   <tr key={lic.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                         <div className="font-medium text-slate-900">
-                            {/* @ts-ignore: join profile data */}
                             {lic.profiles?.full_name || 'Usuário'}
                         </div>
                         <div className="text-xs text-slate-400">
-                            {/* @ts-ignore */}
                             {lic.profiles?.email}
                         </div>
                     </td>
@@ -910,7 +941,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                   </tr>
                 ))}
                 {licenses.length === 0 && (
-                    <tr><td colSpan={5} className="px-6 py-8 text-center text-slate-400">Nenhuma solicitação encontrada.</td></tr>
+                    <tr><td colSpan={8} className="px-6 py-8 text-center text-slate-400">Nenhuma solicitação encontrada.</td></tr>
                 )}
               </tbody>
             </table>
@@ -918,7 +949,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         ) : activeTab === 'partners' ? (
           <div className="space-y-6">
             
-            {/* 1. Pending Partner Requests Section */}
             {partnerRequests.length > 0 && (
                 <div className="bg-yellow-50/50 border-b border-yellow-100">
                     <div className="px-6 py-4 border-b border-yellow-100">
@@ -940,9 +970,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                 {partnerRequests.map(req => (
                                     <tr key={req.id} className="hover:bg-yellow-50 transition-colors">
                                         <td className="px-6 py-3 text-slate-800 font-medium">
-                                            {/* @ts-ignore */}
                                             {req.profiles?.full_name}
-                                            <div className="text-xs text-slate-500 font-normal">{/* @ts-ignore */}{req.profiles?.email}</div>
+                                            <div className="text-xs text-slate-500 font-normal">{req.profiles?.email}</div>
                                         </td>
                                         <td className="px-6 py-3 text-slate-500">{new Date(req.created_at).toLocaleDateString()}</td>
                                         <td className="px-6 py-3 text-right">
@@ -963,18 +992,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                         </td>
                                     </tr>
                                 ))}
-                                {partnerRequests.length === 0 && (
-                                    <tr><td colSpan={3} className="px-6 py-3 text-center text-slate-400">Nenhuma solicitação pendente.</td></tr>
-                                )}
                             </tbody>
                         </table>
                     </div>
                 </div>
             )}
 
-            {/* 2. Active Partners List */}
             <div className="overflow-x-auto">
-
                 <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                     <tr>
@@ -1084,9 +1108,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                         </td>
                     </tr>
                     ))}
-                    {partners.length === 0 && (
-                        <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">Nenhum parceiro encontrado na lista ativa.</td></tr>
-                    )}
                 </tbody>
                 </table>
             </div>
@@ -1207,9 +1228,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     </td>
                   </tr>
                 ))}
-                {users.length === 0 && (
-                    <tr><td colSpan={6} className="px-6 py-8 text-center text-slate-400">Nenhum usuário encontrado.</td></tr>
-                )}
               </tbody>
             </table>
           </div>
@@ -1307,7 +1325,90 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
             </div>
           </div>
         ) : activeTab === 'content' ? (
-          <div className="overflow-x-auto">
+          <div className="space-y-6">
+            
+            <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm overflow-hidden relative group">
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                    <Database size={80} className="text-slate-900" />
+                </div>
+                
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+                    <div className="flex items-center gap-5">
+                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${
+                            storageStats?.percentage! >= 95 ? 'bg-red-500 shadow-red-200 animate-pulse' : 
+                            storageStats?.percentage! >= 80 ? 'bg-orange-500 shadow-orange-200' : 
+                            'bg-green-600 shadow-green-200'
+                        } text-white transition-all duration-500`}>
+                            {storageStats?.percentage! >= 95 ? <ShieldAlert size={28} /> : <HardDrive size={28} />}
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                                Armazenamento Supabase
+                                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase ${
+                                    storageStats?.isFull ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'
+                                }`}>
+                                    {storageStats?.isFull ? 'Crítico' : 'Operacional'}
+                                </span>
+                            </h3>
+                            <p className="text-sm text-slate-500 font-medium">Capacidade total: 1.0 GB disponível</p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col gap-1 items-end">
+                        <div className="text-2xl font-black text-slate-900 tabular-nums">
+                            {storageStats ? formatBytes(storageStats.usedBytes) : '0 Bytes'}
+                            <span className="text-slate-300 mx-2">/</span>
+                            1.0 GB
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <RefreshCw 
+                                size={14} 
+                                className={`text-slate-400 cursor-pointer hover:text-green-600 transition-colors ${isRefreshingStats ? 'animate-spin' : ''}`}
+                                onClick={() => { setIsRefreshingStats(true); fetchStorageStats().finally(() => setIsRefreshingStats(false)); }}
+                            />
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Sincronizado agora</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="mt-8 relative">
+                    {/* Progress Bar Container */}
+                    <div className="h-4 w-full bg-slate-100 rounded-full overflow-hidden border border-slate-50 relative">
+                        <div 
+                            className={`h-full transition-all duration-1000 ease-out relative ${
+                                storageStats?.percentage! >= 95 ? 'bg-gradient-to-r from-red-500 to-red-600 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 
+                                storageStats?.percentage! >= 80 ? 'bg-gradient-to-r from-orange-400 to-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.4)]' : 
+                                'bg-gradient-to-r from-green-400 to-green-600 shadow-[0_0_15px_rgba(34,197,94,0.3)]'
+                            }`}
+                            style={{ width: `${Math.min(storageStats?.percentage || 0, 100)}%` }}
+                        >
+                            {/* Animated scanner effect */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full animate-[shimmer_2s_infinite]" />
+                            
+                            {/* Glass overlay */}
+                            <div className="absolute inset-0 bg-white/20 backdrop-blur-[1px]" />
+                        </div>
+                    </div>
+
+                    <div className="flex justify-between mt-2 px-1">
+                        <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">0%</span>
+                        <div className="flex gap-12">
+                            <span className={`text-[9px] font-black uppercase tracking-tighter ${storageStats?.percentage! >= 50 ? 'text-slate-600' : 'text-slate-300'}`}>50%</span>
+                            <span className={`text-[9px] font-black uppercase tracking-tighter ${storageStats?.percentage! >= 80 ? 'text-orange-500' : 'text-slate-300'}`}>80% Warning</span>
+                        </div>
+                        <span className={`text-[9px] font-black uppercase tracking-tighter ${storageStats?.percentage! >= 95 ? 'text-red-500 animate-pulse' : 'text-slate-300'}`}>95% Critical</span>
+                    </div>
+                </div>
+
+                {storageStats?.isFull && (
+                    <div className="mt-6 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3 animate-bounce">
+                        <ShieldAlert className="text-red-600" size={20} />
+                        <p className="text-xs font-bold text-red-700">Storage esgotado! Não será possível realizar novos uploads até que arquivos sejam removidos.</p>
+                    </div>
+                )}
+            </div>
+
+            <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-sm">
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                 <tr>
@@ -1351,10 +1452,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               </tbody>
             </table>
           </div>
+        </div>
         ) : null}
       </div>
 
-      {/* Hub de Comunicação: Barra de Seleção Suspensa */}
       {selectedIds.length > 0 && (
            <div className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-slate-900/95 text-white px-8 py-5 rounded-[32px] shadow-3xl flex items-center gap-8 animate-in slide-in-from-bottom-12 duration-500 z-50 backdrop-blur-xl border border-white/10">
                 <div className="flex items-center gap-4">
@@ -1369,7 +1470,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
            </div>
       )}
 
-      {/* Modal de Disparo (Newsletter) */}
       {isNewsletterOpen && (
            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4">
               <div className="bg-white w-full max-w-2xl rounded-[48px] shadow-3xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -1389,7 +1489,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
            </div>
       )}
 
-      {/* Modal de Artigo (Hub de Conteúdo) */}
       {isArticleModalOpen && (
            <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/80 backdrop-blur-md p-4 animate-in fade-in">
               <div className="bg-white w-full max-w-3xl rounded-[48px] shadow-3xl overflow-hidden flex flex-col max-h-[95vh]">
@@ -1407,12 +1506,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                       </div>
 
                       <div className="space-y-2">
-                           <label className="text-[10px] font-black uppercase text-slate-400">Imagens (Galeria SeaweedFS)</label>
-                           <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-[32px] p-6 cursor-pointer hover:bg-green-50 hover:border-green-400 transition-all ${isUploading ? 'bg-slate-50 cursor-wait' : 'bg-green-50/30 border-green-200'}`}>
-                              <Plus size={32} className={`${isUploading ? 'text-slate-300 animate-spin' : 'text-green-500'}`} />
-                              <span className="text-sm font-black text-slate-700">{isUploading ? 'Enviando...' : 'Adicionar Fotos'}</span>
-                              <input type="file" multiple accept="image/*" onChange={(e) => handleUploadToSeaweed(e.target.files)} className="hidden" disabled={isUploading} />
-                           </label>
+                           <label className="text-[10px] font-black uppercase text-slate-400">Imagens</label>
+                           <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-[32px] p-6 cursor-pointer hover:bg-green-50 hover:border-green-400 transition-all ${isUploading || storageStats?.isFull ? 'bg-slate-50 cursor-not-allowed' : 'bg-green-50/30 border-green-200'}`}>
+                               <Plus size={32} className={`${isUploading ? 'text-slate-300 animate-spin' : storageStats?.isFull ? 'text-red-300' : 'text-green-500'}`} />
+                               <span className="text-sm font-black text-slate-700">
+                                   {isUploading ? 'Enviando...' : storageStats?.isFull ? 'Limite Atingido' : 'Adicionar Fotos'}
+                               </span>
+                               <input type="file" multiple accept="image/*" onChange={(e) => handleUploadToSupabase(e.target.files)} className="hidden" disabled={isUploading || storageStats?.isFull} />
+                            </label>
                            {articleForm.gallery_urls.length > 0 && (
                                <div className="grid grid-cols-5 gap-2 mt-4">
                                   {articleForm.gallery_urls.map((url, i) => (

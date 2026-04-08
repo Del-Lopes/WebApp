@@ -72,3 +72,8 @@ h1, h2, h3, h4, .font-display {
   transform: translateY(-2px);
   box-shadow: 0 10px 20px -5px rgba(22, 163, 74, 0.3);
 }
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
