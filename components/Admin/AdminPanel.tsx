@@ -1559,85 +1559,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 </div>
             </div>
 
-            {/* Strategy Assets List */}
-            <div className="pt-8 border-t border-slate-100">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                        <Activity size={24} className="text-green-600" />
-                        Arquivos de Estratégias
-                    </h3>
-                    <span className="text-xs font-bold text-slate-400 uppercase bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
-                        {robots.length} Robôs Configurados
-                    </span>
-                </div>
-
-                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-sm">
-                    <table className="w-full text-left text-sm">
-                    <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
-                        <tr>
-                        <th className="px-6 py-4 font-medium">Estratégia</th>
-                        <th className="px-6 py-4 font-medium">Avatar</th>
-                        <th className="px-6 py-4 font-medium">Galeria</th>
-                        <th className="px-6 py-4 font-medium">Manual</th>
-                        <th className="px-6 py-4 font-medium text-right">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                        {robots.map(robot => (
-                        <tr key={robot.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="px-6 py-4">
-                            <div className="font-bold text-slate-900">{robot.name}</div>
-                            <div className="text-xs text-slate-400 font-mono uppercase tracking-tighter">{robot.pair} v{robot.version}</div>
-                            </td>
-                            <td className="px-6 py-4">
-                                {robot.avatar_url ? (
-                                    <div className="w-10 h-10 rounded-xl border border-slate-100 overflow-hidden shadow-sm">
-                                        <img src={robot.avatar_url} className="w-full h-full object-cover" />
-                                    </div>
-                                ) : (
-                                    <div className="w-10 h-10 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center text-slate-300">
-                                        <User size={16} />
-                                    </div>
-                                )}
-                            </td>
-                            <td className="px-6 py-4">
-                                <div className="flex -space-x-2">
-                                    {robot.images?.slice(0, 3).map((url, i) => (
-                                        <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />
-                                    ))}
-                                    {(robot.images?.length || 0) > 3 && (
-                                        <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-900 text-white text-[8px] font-black flex items-center justify-center shadow-sm">
-                                            +{robot.images!.length - 3}
-                                        </div>
-                                    )}
-                                    {(!robot.images || robot.images.length === 0) && <span className="text-[10px] font-bold text-slate-300">Nenhuma</span>}
-                                </div>
-                            </td>
-                            <td className="px-6 py-4">
-                                <div className="flex items-center gap-1.5 font-bold text-slate-500">
-                                    <FileText size={14} className="text-slate-400" />
-                                    {robot.manualImages?.length || 0} páginas
-                                </div>
-                            </td>
-                            <td className="px-6 py-4 text-right">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                    robot.status === 'Operacional' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'
-                                }`}>
-                                    {robot.status}
-                                </span>
-                            </td>
-                        </tr>
-                        ))}
-                        {robots.length === 0 && (
-                            <tr>
-                                <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Nenhuma estratégia encontrada.</td>
-                            </tr>
-                        )}
-                    </tbody>
-                    </table>
-                </div>
-            </div>
-
             {/* Global File Management */}
             <div className="pt-8 border-t border-slate-100 pb-10">
                 <div className="flex items-center justify-between mb-6">
@@ -1722,6 +1643,85 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                 </tr>
                             )}
                         </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {/* Strategy Assets List */}
+            <div className="pt-8 border-t border-slate-100 pb-10">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xl font-black text-slate-900 tracking-tight flex items-center gap-2">
+                        <Activity size={24} className="text-green-600" />
+                        Arquivos de Estratégias
+                    </h3>
+                    <span className="text-xs font-bold text-slate-400 uppercase bg-slate-50 px-3 py-1 rounded-full border border-slate-100">
+                        {robots.length} Robôs Configurados
+                    </span>
+                </div>
+
+                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                    <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
+                        <tr>
+                        <th className="px-6 py-4 font-medium">Estratégia</th>
+                        <th className="px-6 py-4 font-medium">Avatar</th>
+                        <th className="px-6 py-4 font-medium">Galeria</th>
+                        <th className="px-6 py-4 font-medium">Manual</th>
+                        <th className="px-6 py-4 font-medium text-right">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {robots.map(robot => (
+                        <tr key={robot.id} className="hover:bg-slate-50 transition-colors">
+                            <td className="px-6 py-4">
+                            <div className="font-bold text-slate-900">{robot.name}</div>
+                            <div className="text-xs text-slate-400 font-mono uppercase tracking-tighter">{robot.pair} v{robot.version}</div>
+                            </td>
+                            <td className="px-6 py-4">
+                                {robot.avatar_url ? (
+                                    <div className="w-10 h-10 rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                                        <img src={robot.avatar_url} className="w-full h-full object-cover" />
+                                    </div>
+                                ) : (
+                                    <div className="w-10 h-10 rounded-xl border border-slate-100 bg-slate-50 flex items-center justify-center text-slate-300">
+                                        <User size={16} />
+                                    </div>
+                                )}
+                            </td>
+                            <td className="px-6 py-4">
+                                <div className="flex -space-x-2">
+                                    {robot.images?.slice(0, 3).map((url, i) => (
+                                        <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />
+                                    ))}
+                                    {(robot.images?.length || 0) > 3 && (
+                                        <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-900 text-white text-[8px] font-black flex items-center justify-center shadow-sm">
+                                            +{robot.images!.length - 3}
+                                        </div>
+                                    )}
+                                    {(!robot.images || robot.images.length === 0) && <span className="text-[10px] font-bold text-slate-300">Nenhuma</span>}
+                                </div>
+                            </td>
+                            <td className="px-6 py-4">
+                                <div className="flex items-center gap-1.5 font-bold text-slate-500">
+                                    <FileText size={14} className="text-slate-400" />
+                                    {robot.manualImages?.length || 0} páginas
+                                </div>
+                            </td>
+                            <td className="px-6 py-4 text-right">
+                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                    robot.status === 'Operacional' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'
+                                }`}>
+                                    {robot.status}
+                                </span>
+                            </td>
+                        </tr>
+                        ))}
+                        {robots.length === 0 && (
+                            <tr>
+                                <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Nenhuma estratégia encontrada.</td>
+                            </tr>
+                        )}
+                    </tbody>
                     </table>
                 </div>
             </div>
