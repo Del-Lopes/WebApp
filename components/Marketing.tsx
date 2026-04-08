@@ -59,14 +59,18 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
            setPartnerRequest(reqData);
        }
 
-       if (user) {
-           const { data: prospectsData } = await supabase
-               .from('prospects')
-               .select('*')
-               .eq('partner_id', user.id)
-               .order('created_at', { ascending: false });
-           if (prospectsData) setProspects(prospectsData);
-       }
+        if (user) {
+            let query = supabase.from('prospects').select('*');
+            
+            // Se for parceiro, vê apenas os seus
+            if (role === 'partner') {
+                query = query.eq('partner_id', user.id);
+            }
+            // Se for admin, vê TODOS (incluindo os antigos sem partner_id)
+            
+            const { data: prospectsData } = await query.order('created_at', { ascending: false });
+            if (prospectsData) setProspects(prospectsData);
+        }
     } catch (error) {
         console.error("Error fetching marketing data", error);
     } finally {
@@ -343,34 +347,35 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
       ) : (
         /* PROSPECTS VIEW - Match AdminPanel Inline Table Style */
         <div className="bg-white rounded-[40px] shadow-2xl shadow-slate-100 border border-slate-100 overflow-hidden animate-in slide-in-from-bottom duration-500">
-          <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6 bg-slate-50/30">
+          <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6 bg-[#f8fafc]/30">
+            <h3 className="text-lg font-black text-slate-900 shrink-0">Lista de Prospectos</h3>
             <div className="relative flex-1 w-full max-w-xl">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={20} />
+              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
               <input 
                 type="text"
-                placeholder="Buscar prospectos..."
-                className="w-full pl-14 pr-6 py-4 bg-white border border-slate-200 rounded-2xl outline-none focus:border-green-500 font-bold text-sm transition-all shadow-sm"
+                placeholder="Buscar por nome, email ou telefone..."
+                className="w-full pl-14 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl outline-none focus:border-green-500 font-medium text-sm transition-all shadow-sm"
                 value={prospectSearchTerm}
                 onChange={(e) => setProspectSearchTerm(e.target.value)}
               />
             </div>
             <button 
               onClick={handleAddNewProspect}
-              className="flex items-center gap-3 px-8 py-4 bg-slate-900 text-white rounded-2xl hover:bg-green-600 text-sm font-black transition-all shadow-xl shadow-slate-200 uppercase tracking-widest"
+              className="flex items-center gap-2 px-6 py-3.5 bg-[#16a34a] text-white rounded-2xl hover:bg-green-700 text-sm font-black transition-all shadow-lg shadow-green-100 uppercase tracking-widest"
             >
-              <Plus size={20} /> Novo Prospecto
+              <Plus size={18} /> Novo
             </button>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-slate-50/80 text-slate-400 border-b border-slate-100 uppercase text-[10px] font-black tracking-[0.2em]">
+              <thead className="bg-[#f8fafc] text-slate-400 border-b border-slate-100 uppercase text-[10px] font-black tracking-[0.2em]">
                 <tr>
-                  <th className="px-8 py-5 w-[25%] font-black">Informações</th>
+                  <th className="px-8 py-5 w-[25%] font-black">Prospecto</th>
                   <th className="px-8 py-5 w-[25%] font-black">Contato</th>
                   <th className="px-8 py-5 w-[15%] font-black">Status</th>
-                  <th className="px-8 py-5 w-[25%] font-black">Observações</th>
-                  <th className="px-8 py-5 text-right w-[10%] font-black pr-12">Painel</th>
+                  <th className="px-8 py-5 w-[25%] font-black">Anotações</th>
+                  <th className="px-8 py-5 text-right w-[10%] font-black pr-12">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">

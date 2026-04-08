@@ -164,13 +164,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         if (error) throw error;
         setUsers(data as Profile[] || []);
       } else if (activeTab === 'prospects') {
-        const { data, error } = await supabase
+        const { data: prospectsData, error } = await supabase
           .from('prospects')
-          .select('*, profiles:partner_id(full_name)')
+          .select('*')
           .order('created_at', { ascending: false });
         
         if (error) throw error;
-        setProspects(data as (Prospect & { profiles?: { full_name: string } })[] || []);
+        setProspects(prospectsData as (Prospect & { profiles?: { full_name: string } })[] || []);
       } else if (activeTab === 'content') {
         const { data: articlesData, error: articlesError } = await supabase
           .from('articles')
