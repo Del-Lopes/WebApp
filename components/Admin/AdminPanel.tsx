@@ -166,11 +166,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       } else if (activeTab === 'prospects') {
         const { data, error } = await supabase
           .from('prospects')
-          .select('*')
+          .select('*, profiles:partner_id(full_name)')
           .order('created_at', { ascending: false });
         
         if (error) throw error;
-        setProspects(data as Prospect[] || []);
+        setProspects(data as (Prospect & { profiles?: { full_name: string } })[] || []);
       } else if (activeTab === 'content') {
         const { data: articlesData, error: articlesError } = await supabase
           .from('articles')
@@ -791,6 +791,60 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
             )}
           </div>
         </div>
+
+        <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm space-y-6">
+            <h3 className="font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Users size={18} className="text-green-600" /> Lista de Prospectos (CRM)
+              </div>
+              <span className="bg-slate-100 text-slate-500 text-[10px] font-black px-2 py-0.5 rounded-lg uppercase">Visualização de Admin</span>
+            </h3>
+            
+            <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-slate-50 text-slate-500 border-b border-slate-100 font-black uppercase text-[10px] tracking-widest">
+                        <tr>
+                            <th className="px-6 py-4">Nome</th>
+                            <th className="px-6 py-4">Contato</th>
+                            <th className="px-6 py-4">Status</th>
+                            <th className="px-6 py-4">Anotações</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                        {prospects.filter(p => p.partner_id === user.id).map(p => (
+                            <tr key={p.id} className="hover:bg-slate-50/50 transition-all group">
+                                <td className="px-6 py-4">
+                                    <div className="font-black text-slate-900">{p.full_name}</div>
+                                    <div className="text-[10px] text-slate-400 font-bold">{new Date(p.created_at).toLocaleDateString()}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <div className="text-slate-600 font-bold">{p.email || '-'}</div>
+                                    <div className="text-[10px] text-slate-400">{p.phone || '-'}</div>
+                                </td>
+                                <td className="px-6 py-4">
+                                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
+                                        p.status === 'converted' ? 'bg-green-100 text-green-700' :
+                                        p.status === 'lost' ? 'bg-red-100 text-red-700' :
+                                        p.status === 'negotiating' ? 'bg-blue-100 text-blue-700' :
+                                        'bg-slate-100 text-slate-500'
+                                    }`}>
+                                        {p.status}
+                                    </span>
+                                </td>
+                                <td className="px-6 py-4 max-w-xs">
+                                    <p className="text-xs text-slate-500 line-clamp-2 italic">{p.notes || 'Sem observações'}</p>
+                                </td>
+                            </tr>
+                        ))}
+                        {prospects.filter(p => p.partner_id === user.id).length === 0 && (
+                            <tr>
+                                <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-bold uppercase text-xs opacity-50 tracking-widest">Nenhum prospecto disponível para este usuário</td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
       </div>
     );
   };
@@ -1349,10 +1403,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               <table className="w-full text-left text-sm">
                 <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                   <tr>
-                    <th className="px-6 py-4 font-medium w-[25%]">Prospecto</th>
-                    <th className="px-6 py-4 font-medium w-[25%]">Contato</th>
+                    <th className="px-6 py-4 font-medium w-[20%]">Prospecto</th>
+                    <th className="px-6 py-4 font-medium w-[20%]">Contato</th>
+                    <th className="px-6 py-4 font-medium w-[15%]">Responsável</th>
                     <th className="px-6 py-4 font-medium w-[15%]">Status</th>
-                    <th className="px-6 py-4 font-medium w-[25%]">Anotações</th>
+                    <th className="px-6 py-4 font-medium w-[20%]">Anotações</th>
                     <th className="px-6 py-4 font-medium text-right w-[10%]">Ações</th>
                   </tr>
                 </thead>
@@ -1385,18 +1440,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                   </div>
                               </div>
                           </td>
-                          <td className="px-6 py-4 align-top">
-                               <select 
-                                  value={prospect.status}
-                                  onChange={(e) => handleProspectStatus(prospect.id, e.target.value as Prospect['status'])}
-                                  className="w-full px-2 py-1.5 rounded text-xs font-bold border outline-none"
-                               >
-                                   <option value="new">Novo</option>
-                                   <option value="contacted">Contatado</option>
-                                   <option value="negotiating">Negociando</option>
-                                   <option value="converted">Convertido</option>
-                                   <option value="lost">Perdido</option>
-                               </select>
+                           <td className="px-6 py-4 align-top">
+                               <div className="text-xs font-bold text-slate-700">
+                                   {(prospect as any).profiles?.full_name || 'Admin / Sem Atribuição'}
+                               </div>
+                           </td>
+                           <td className="px-6 py-4 align-top">
+                                <select 
+                                   value={prospect.status}
+                                   onChange={(e) => handleProspectStatus(prospect.id, e.target.value as Prospect['status'])}
+                                   className="w-full px-2 py-1.5 rounded text-xs font-bold border outline-none font-mono tracking-tighter"
+                                >
+                                    <option value="new">NOVO</option>
+                                    <option value="contacted">CONTATADO</option>
+                                    <option value="negotiating">NEGOCIANDO</option>
+                                    <option value="converted">CONVERTIDO</option>
+                                    <option value="lost">PERDIDO</option>
+                                </select>
                           </td>
                           <td className="px-6 py-4 align-top">
                               {editingProspect === prospect.id ? (
