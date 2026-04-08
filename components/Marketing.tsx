@@ -171,7 +171,10 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
       }
   };
 
-  const canViewContent = role === 'admin' || role === 'first_mate' || role === 'partner' || (partnerRequest?.status === 'approved');
+  // Lógica de Acesso Reforçada
+  const isPrivileged = role === 'admin' || role === 'first_mate' || role === 'partner';
+  const isApprovedPartner = partnerRequest?.status === 'approved';
+  const canViewContent = isPrivileged || isApprovedPartner;
 
   if (loading) return <div className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">Carregando...</div>;
 
@@ -253,8 +256,8 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
     <div className="space-y-8 pb-20">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">Marketing</h2>
-          <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px] mt-3 bg-slate-100 inline-block px-3 py-1 rounded-full">Sistema de Afiliados</p>
+          <h2 className="text-4xl font-black text-slate-900 tracking-tighter leading-none">Marketing <span className="text-green-500 text-sm ml-2">v.2.0</span></h2>
+          <p className="text-slate-400 font-bold uppercase tracking-[0.2em] text-[10px] mt-3 bg-slate-100 inline-block px-3 py-1 rounded-full">Painel de Parceiros Ativo</p>
         </div>
         <BackButton onClick={onBack} />
       </div>
