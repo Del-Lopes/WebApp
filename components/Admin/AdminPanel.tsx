@@ -91,11 +91,39 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
   const handleUpdateField = async (id: string, field: keyof Prospect, value: string) => {
       setProspects(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+      if (viewingProspect && viewingProspect.id === id) {
+          setViewingProspect({ ...viewingProspect, [field]: value });
+      }
       try {
           await supabase.from('prospects').update({ [field]: value }).eq('id', id);
       } catch (err) {
           console.error(err);
       }
+  };
+
+  const handleDeleteProspect = async (id: string) => {
+    if (!window.confirm('Excluir este prospecto?')) return;
+    try {
+        const { error } = await supabase.from('prospects').delete().eq('id', id);
+        if (error) throw error;
+        setProspects(prev => prev.filter(p => p.id !== id));
+        setViewingProspect(null);
+    } catch (err: any) {
+        alert('Erro ao excluir: ' + err.message);
+    }
+  };
+
+  const handleProspectStatus = async (id: string, status: Prospect['status']) => {
+    try {
+        const { error } = await supabase.from('prospects').update({ status }).eq('id', id);
+        if (error) throw error;
+        setProspects(prev => prev.map(p => p.id === id ? { ...p, status } : p));
+        if (viewingProspect && viewingProspect.id === id) {
+            setViewingProspect({ ...viewingProspect, status });
+        }
+    } catch (err: any) {
+        console.error('Error updating status:', err);
+    }
   };
 
   useEffect(() => {
@@ -478,21 +506,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     }
   };
 
-  const handleProspectStatus = async (id: string, status: Prospect['status']) => {
-    try {
-      const { error } = await supabase
-        .from('prospects')
-        .update({ status })
-        .eq('id', id);
-
-      if (error) throw error;
-      
-      setProspects(prev => prev.map(p => p.id === id ? { ...p, status } : p));
-    } catch (error: any) {
-      alert('Erro ao atualizar status: ' + error.message);
-    }
-  };
-
   const handleDeleteUser = async (userId: string) => {
     if (!window.confirm('TEM CERTEZA? Isso excluirá permanentemente o perfil e todas as licenças do usuário. Esta ação não tem volta.')) return;
     
@@ -813,7 +826,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                        {prospects.filter(p => p.assigned_to === user.id).map(p => (
+                        {prospects.map(p => (
                             <tr key={p.id} className="hover:bg-slate-50/50 transition-all group">
                                 <td className="px-6 py-4">
                                     <button 
@@ -856,9 +869,116 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     );
   };
 
+  const renderProspectDetail = (prospect: Prospect) => {
+    return (
+        <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 pb-20 mt-8">
+            <div className="flex items-center justify-between px-4">
+                <div className="flex items-center gap-4">
+                    <button 
+                        onClick={() => setViewingProspect(null)}
+                        className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-green-600 hover:border-green-200 transition-all shadow-sm"
+                    >
+                        <ArrowLeft size={20} />
+                    </button>
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-900 mb-1">{prospect.full_name}</h2>
+                        <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${
+                                prospect.status === 'new' ? 'bg-blue-100 text-blue-700' :
+                                prospect.status === 'converted' ? 'bg-green-100 text-green-700' :
+                                'bg-slate-100 text-slate-600'
+                            }`}>
+                                {prospect.status}
+                            </span>
+                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-tight">
+                                Cadastrado em: {new Date(prospect.created_at).toLocaleDateString('pt-BR')}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => handleDeleteProspect(prospect.id)}
+                        className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all shadow-sm flex items-center gap-2 text-xs font-bold"
+                    >
+                        <Trash2 size={18} /> Excluir
+                    </button>
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-4">
+                {/* Info Cards */}
+                <div className="lg:col-span-1 space-y-6">
+                    <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm space-y-6">
+                        <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.15em]">Informações de Contato</h4>
+                        
+                        <div className="space-y-4">
+                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">E-mail</label>
+                                <div className="flex items-center gap-3 text-slate-800">
+                                    <Mail size={18} className="text-green-600" />
+                                    <span className="font-bold break-all">{prospect.email || 'Não informado'}</span>
+                                </div>
+                            </div>
+
+                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Telefone / WhatsApp</label>
+                                <div className="flex items-center gap-3 text-slate-800">
+                                    <Phone size={18} className="text-green-500" />
+                                    <span className="font-bold">{prospect.phone || 'Não informado'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="pt-4 border-t border-slate-100">
+                            <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block">Modificar Status</label>
+                            <select 
+                                value={prospect.status}
+                                onChange={(e) => handleProspectStatus(prospect.id, e.target.value as any)}
+                                className="w-full p-4 bg-slate-100 border-none rounded-2xl font-black text-sm uppercase tracking-widest focus:ring-2 focus:ring-green-500 transition-all appearance-none cursor-pointer"
+                            >
+                                <option value="new">Novo Lead</option>
+                                <option value="contacted">Contatado</option>
+                                <option value="negotiating">Negociando</option>
+                                <option value="converted">Convertido</option>
+                                <option value="lost">Perdido</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Notes/Detailed Area */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm h-full flex flex-col">
+                        <div className="flex items-center justify-between mb-8">
+                            <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.15em]">Área de Trabalho / Anotações</h4>
+                            <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold">
+                                <Calendar size={14} /> Atualização em Tempo Real
+                            </div>
+                        </div>
+                        
+                        <textarea 
+                            className="flex-1 w-full p-8 bg-slate-50 border-2 border-slate-100 rounded-[32px] outline-none font-medium text-slate-700 leading-relaxed focus:bg-white focus:border-green-500 transition-all resize-none min-h-[400px]"
+                            placeholder="Adicione observações administrativas aqui..."
+                            defaultValue={prospect.notes}
+                            onBlur={(e) => handleUpdateField(prospect.id, 'notes', e.target.value)}
+                        />
+                        
+                        <div className="mt-6 flex items-center gap-3 p-4 bg-green-50 rounded-2xl text-green-700 text-xs font-bold">
+                            <Save size={16} /> Suas anotações são salvas assim que você clica fora da área de texto.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+  };
+
   return (
     <div className="space-y-6">
-      {selectedUser ? (
+      {viewingProspect ? (
+          renderProspectDetail(viewingProspect)
+      ) : selectedUser ? (
         renderUserDetails(selectedUser)
       ) : (
         <>

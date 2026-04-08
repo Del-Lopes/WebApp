@@ -95,26 +95,26 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
   const handleUpdateProspectField = async (id: string, field: string, value: any) => {
     try {
-      const { error } = await supabase
-        .from('prospects')
-        .update({ [field]: value })
-        .eq('id', id);
-
+      const { error } = await supabase.from('prospects').update({ [field]: value }).eq('id', id);
       if (error) throw error;
       setProspects(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
-    } catch (e: any) {
-      alert('Erro ao atualizar: ' + e.message);
+      if (viewingProspect && viewingProspect.id === id) {
+        setViewingProspect({ ...viewingProspect, [field]: value });
+      }
+    } catch (err: any) {
+      console.error('Error updating prospect:', err);
     }
   };
 
   const handleDeleteProspect = async (id: string) => {
-    if (!window.confirm('Tem certeza que deseja excluir este prospecto?')) return;
+    if (!window.confirm('Excluir este prospecto?')) return;
     try {
       const { error } = await supabase.from('prospects').delete().eq('id', id);
       if (error) throw error;
       setProspects(prev => prev.filter(p => p.id !== id));
-    } catch (e: any) {
-      alert('Erro ao excluir: ' + e.message);
+      setViewingProspect(null);
+    } catch (err: any) {
+      alert('Erro ao excluir: ' + err.message);
     }
   };
 
@@ -228,6 +228,8 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
       alert('Erro ao excluir: ' + e.message);
     }
   };
+
+
 
   if (loading) return <div className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">Carregando...</div>;
 
