@@ -1,6 +1,7 @@
 <?php
 /**
- * AFK Trade - AFK TRADER License Verification API
+ * AFK Trade - AFK TRADER License Verification API (ROBUST VERSION)
+ * Este script é mais tolerante a falhas de cabeçalhos do Expert Advisor.
  */
 
 // --- 1. CONFIGURAÇÕES DO SUPABASE ---
@@ -8,7 +9,7 @@ $supabase_url = "https://armhlcnmaqgudqivkpgt.supabase.co";
 $supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzkzODcsImV4cCI6MjA4NTA1NTM4N30.Ak1kG41SU72X-O3L8RVdxM4nZSMIG2sbJKt0HsZy8xs";
 $table_name = "license_requests"; // Base AFK Trader
 
-// --- 2. CAPTURA DE DADOS ---
+// --- 2. CAPTURA DE DADOS (MEGA COMPATÍVEL) ---
 $account_no = "";
 if (!empty($_POST["account_no"])) {
     $account_no = $_POST["account_no"];
@@ -26,7 +27,7 @@ if (!$account_no) {
     die("Falha no login. Conta nao encontrada.");
 }
 
-// --- 3. LISTA DE CONTAS LEGADAS (Opcional) ---
+// --- 3. LISTA DE CONTAS LEGADAS ---
 $valid_accounts = array(
     array(221976, '2034-08-31'),
 );
@@ -47,6 +48,8 @@ function verificarLicencaLocal($account_no, $valid_accounts) {
 $local_result = verificarLicencaLocal($account_no, $valid_accounts);
 if ($local_result === "SUCCESS") {
     die("success");
+} elseif ($local_result === "EXPIRED") {
+    die(" Falha no login. Licenca expirada."); 
 }
 
 // --- 4. CONSULTA DINÂMICA NO SUPABASE ---
