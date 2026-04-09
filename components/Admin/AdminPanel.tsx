@@ -52,6 +52,7 @@ interface AdminPanelProps {
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) => {
   const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users' | 'content'>('licenses');
+  const [activeLicenseSubTab, setActiveLicenseSubTab] = useState<'AFK TRADER' | 'SNOW BOW' | 'BOLETA PRO'>('AFK TRADER');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<Profile[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
@@ -1045,15 +1046,35 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           </div>
 
           {(activeTab === 'licenses' || activeTab === 'partners' || activeTab === 'users' || activeTab === 'prospects') && (
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-              <input
-                type="text"
-                placeholder={activeTab === 'licenses' ? "Buscar por nome, email ou conta MT5..." : "Buscar por nome, email ou telefone..."}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all"
-              />
+            <div className="space-y-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input
+                  type="text"
+                  placeholder={activeTab === 'licenses' ? "Buscar por nome, email ou conta MT5..." : "Buscar por nome, email ou telefone..."}
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm"
+                />
+              </div>
+
+              {activeTab === 'licenses' && (
+                <div className="flex bg-slate-100 p-1 rounded-2xl w-fit gap-1 border border-slate-200 shadow-sm">
+                  {(['AFK TRADER', 'SNOW BOW', 'BOLETA PRO'] as const).map((tab) => (
+                    <button
+                      key={tab}
+                      onClick={() => setActiveLicenseSubTab(tab)}
+                      className={`px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all ${
+                        activeLicenseSubTab === tab 
+                          ? 'bg-white text-green-600 shadow-md transform scale-105' 
+                          : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'
+                      }`}
+                    >
+                      {tab}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
@@ -1093,7 +1114,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {sortedLicenses.map((lic) => (
+                {(activeLicenseSubTab === 'AFK TRADER' ? sortedLicenses : []).map((lic) => (
                   <tr key={lic.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                         <div className="font-medium text-slate-900">
@@ -1166,50 +1187,54 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        {editingLicenseId === lic.id ? (
-                          <>
-                            <button 
-                              onClick={() => handleUpdateLicenseAccount(lic.id)}
-                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Salvar">
-                              <CheckCircle size={18} />
-                            </button>
-                            <button 
-                              onClick={() => setEditingLicenseId(null)}
-                              className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors" title="Cancelar">
-                              <XCircle size={18} />
-                            </button>
-                          </>
+                        {activeLicenseSubTab === 'AFK TRADER' ? (
+                          editingLicenseId === lic.id ? (
+                            <>
+                              <button 
+                                onClick={() => handleUpdateLicenseAccount(lic.id)}
+                                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Salvar">
+                                <CheckCircle size={18} />
+                              </button>
+                              <button 
+                                onClick={() => setEditingLicenseId(null)}
+                                className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors" title="Cancelar">
+                                <XCircle size={18} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {lic.status === 'pending' && (
+                                <>
+                                  <button 
+                                    onClick={() => handleLicenseAction(lic.id, 'approved')}
+                                    className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Aprovar">
+                                    <CheckCircle size={18} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleLicenseAction(lic.id, 'rejected')}
+                                    className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Rejeitar">
+                                    <XCircle size={18} />
+                                  </button>
+                                </>
+                              )}
+                              <button 
+                                onClick={() => {
+                                     setEditingLicenseId(lic.id);
+                                     setEditLicenseValue(lic.mt5_account);
+                                     setEditLicenseTitle(lic.license_title || 'MT5');
+                                 }}
+                                 className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar Conta">
+                                <Edit2 size={18} />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteLicense(lic.id)}
+                                className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir Licença">
+                                <Trash2 size={18} />
+                              </button>
+                            </>
+                          )
                         ) : (
-                          <>
-                            {lic.status === 'pending' && (
-                              <>
-                                <button 
-                                  onClick={() => handleLicenseAction(lic.id, 'approved')}
-                                  className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Aprovar">
-                                  <CheckCircle size={18} />
-                                </button>
-                                <button 
-                                  onClick={() => handleLicenseAction(lic.id, 'rejected')}
-                                  className="p-1.5 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Rejeitar">
-                                  <XCircle size={18} />
-                                </button>
-                              </>
-                            )}
-                            <button 
-                              onClick={() => {
-                                   setEditingLicenseId(lic.id);
-                                   setEditLicenseValue(lic.mt5_account);
-                                   setEditLicenseTitle(lic.license_title || 'MT5');
-                               }}
-                               className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Editar Conta">
-                              <Edit2 size={18} />
-                            </button>
-                            <button 
-                              onClick={() => handleDeleteLicense(lic.id)}
-                              className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Excluir Licença">
-                              <Trash2 size={18} />
-                            </button>
-                          </>
+                          <div className="text-[10px] text-slate-300 font-bold uppercase italic">Somente Leitura</div>
                         )}
                       </div>
                     </td>
