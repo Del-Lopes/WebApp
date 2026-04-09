@@ -139,7 +139,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         }
     };
     init();
-  }, [activeTab]);
+  }, [activeTab, activeLicenseSubTab]);
 
   const fetchCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -159,8 +159,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     setErrorMsg(null);
     try {
       if (activeTab === 'licenses') {
+        const tableName = getLicenseTableName();
         const { data, error } = await supabase
-          .from('license_requests')
+          .from(tableName)
           .select('*, profiles:user_id (full_name, email)') 
           .order('created_at', { ascending: false });
         
@@ -368,7 +369,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       const updateData: any = { status };
       if (expires_at) updateData.expires_at = expires_at;
       
-      await supabase.from('license_requests').update(updateData).eq('id', id);
+      const tableName = getLicenseTableName();
+      await supabase.from(tableName).update(updateData).eq('id', id);
       fetchData();
     } catch (error) {
       console.error('Error updating license:', error);
@@ -378,8 +380,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const handleUpdateLicenseAccount = async (id: string) => {
     if (!editLicenseValue) return;
     try {
+      const tableName = getLicenseTableName();
       const { error } = await supabase
-        .from('license_requests')
+        .from(tableName)
         .update({ 
             mt5_account: editLicenseValue,
             license_title: editLicenseTitle
@@ -397,7 +400,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const handleDeleteLicense = async (id: string) => {
     if (!window.confirm('Tem certeza que deseja excluir esta licença permanentemente?')) return;
     try {
-      const { error } = await supabase.from('license_requests').delete().eq('id', id);
+      const tableName = getLicenseTableName();
+      const { error } = await supabase.from(tableName).delete().eq('id', id);
       if (error) throw error;
       setLicenses(prev => prev.filter(l => l.id !== id));
     } catch (error: any) {
@@ -407,8 +411,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
   const handleUpdateLicenseExpiration = async (id: string, date: string) => {
       try {
+          const tableName = getLicenseTableName();
           const { error } = await supabase
-            .from('license_requests')
+            .from(tableName)
             .update({ expires_at: date })
             .eq('id', id);
           
@@ -421,8 +426,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
   const handleUpdateLicenseNotes = async (id: string, notes: string) => {
       try {
+          const tableName = getLicenseTableName();
           const { error } = await supabase
-            .from('license_requests')
+            .from(tableName)
             .update({ notes })
             .eq('id', id);
           
@@ -1114,7 +1120,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {(activeLicenseSubTab === 'AFK TRADER' ? sortedLicenses : []).map((lic) => (
+                {sortedLicenses.map((lic) => (
                   <tr key={lic.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-6 py-4">
                         <div className="font-medium text-slate-900">
@@ -1187,23 +1193,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        {activeLicenseSubTab === 'AFK TRADER' ? (
-                          editingLicenseId === lic.id ? (
+                        {editingLicenseId === lic.id ? (
+                          <>
+                            <button 
+                              onClick={() => handleUpdateLicenseAccount(lic.id)}
+                              className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Salvar">
+                              <CheckCircle size={18} />
+                            </button>
+                            <button 
+                              onClick={() => setEditingLicenseId(null)}
+                              className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors" title="Cancelar">
+                              <XCircle size={18} />
+                            </button>
+                          </>
+                        ) : (
                             <>
-                              <button 
-                                onClick={() => handleUpdateLicenseAccount(lic.id)}
-                                className="p-1.5 text-green-600 hover:bg-green-50 rounded-lg transition-colors" title="Salvar">
-                                <CheckCircle size={18} />
-                              </button>
-                              <button 
-                                onClick={() => setEditingLicenseId(null)}
-                                className="p-1.5 text-slate-400 hover:bg-slate-100 rounded-lg transition-colors" title="Cancelar">
-                                <XCircle size={18} />
-                              </button>
-                            </>
-                          ) : (
-                            <>
-                              {lic.status === 'pending' && (
+                               {lic.status === 'pending' && (
                                 <>
                                   <button 
                                     onClick={() => handleLicenseAction(lic.id, 'approved')}
@@ -1232,9 +1237,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                 <Trash2 size={18} />
                               </button>
                             </>
-                          )
-                        ) : (
-                          <div className="text-[10px] text-slate-300 font-bold uppercase italic">Somente Leitura</div>
                         )}
                       </div>
                     </td>
