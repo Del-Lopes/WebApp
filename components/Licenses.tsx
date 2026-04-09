@@ -22,6 +22,13 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
   const [editValue, setEditValue] = useState('');
   const [showTitleManager, setShowTitleManager] = useState(false);
   const [newTitleName, setNewTitleName] = useState('');
+  const [selectedEA, setSelectedEA] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO'>('AFK TRADER');
+
+  const eaConfig = {
+    'AFK TRADER': { table: 'license_requests', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+    'SNOW BALL': { table: 'license_requests_snowball', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+    'BOLETA PRO': { table: 'license_requests_boletapro', color: 'bg-orange-100 text-orange-700 border-orange-200' }
+  };
 
   useEffect(() => {
     if (user) {
@@ -47,13 +54,20 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
   const fetchRequests = async () => {
     try {
-      const { data, error } = await supabase
-        .from('license_requests')
-        .select('*')
-        .order('created_at', { ascending: false });
+      // Pequeno hack para buscar de todas as tabelas em paralelo
+      const [afk, snowball, boleta] = await Promise.all([
+        supabase.from('license_requests').select('*').order('created_at', { ascending: false }),
+        supabase.from('license_requests_snowball').select('*').order('created_at', { ascending: false }),
+        supabase.from('license_requests_boletapro').select('*').order('created_at', { ascending: false })
+      ]);
 
-      if (error) throw error;
-      setRequests(data || []);
+      const allRequests = [
+        ...(afk.data || []).map(r => ({ ...r, ea: 'AFK TRADER' })),
+        ...(snowball.data || []).map(r => ({ ...r, ea: 'SNOW BALL' })),
+        ...(boleta.data || []).map(r => ({ ...r, ea: 'BOLETA PRO' }))
+      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+      setRequests(allRequests as any[]);
     } catch (err) {
       console.error('Error fetching requests:', err);
     }
@@ -67,13 +81,14 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
     setError(null);
 
     try {
+      const targetTable = eaConfig[selectedEA].table;
       const { error } = await supabase
-        .from('license_requests')
+        .from(targetTable)
         .insert([
           { 
             user_id: user.id,
             mt5_account: mt5Account,
-            license_title: selectedTitle,
+            license_title: selectedEA, // Usar o nome do robô como título padrão
             status: 'pending'
           }
         ]);
@@ -100,8 +115,11 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
     setLoading(true);
     
     try {
+      const license = requests.find(r => r.id === id);
+      const targetTable = (license as any)?.ea ? eaConfig[(license as any).ea as keyof typeof eaConfig].table : 'license_requests';
+      
       const { error } = await supabase
-        .from('license_requests')
+        .from(targetTable)
         .update({ 
           mt5_account: editValue,
           status: 'pending',
@@ -187,6 +205,26 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
+                <label className="block text-sm font-medium text-slate-700">Selecione o Expert Advisor</label>
+                <div className="grid grid-cols-3 gap-2">
+                    {(Object.keys(eaConfig) as Array<keyof typeof eaConfig>).map((ea) => (
+                        <button
+                            key={ea}
+                            type="button"
+                            onClick={() => setSelectedEA(ea)}
+                            className={`py-2 px-1 text-[10px] font-bold rounded-xl border transition-all ${
+                                selectedEA === ea 
+                                ? 'bg-green-600 text-white border-green-600 shadow-md shadow-green-600/20' 
+                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
+                            }`}
+                        >
+                            {ea}
+                        </button>
+                    ))}
+                </div>
+              </div>
+
+              <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-700">Número da Conta</label>
                 <div className="relative group">
                   <input
@@ -236,8 +274,8 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                   <div key={req.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors">
                     <div className="flex-1 mr-4">
                       <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase tracking-wider">
-                              {req.license_title || 'MT5'}
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${eaConfig[(req as any).ea as keyof typeof eaConfig]?.color || 'bg-slate-200 text-slate-600'}`}>
+                              {(req as any).ea || 'AFK'}
                           </span>
                           <span className="block font-mono font-medium text-slate-700">Conta: {req.mt5_account}</span>
                       </div>
@@ -286,9 +324,9 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                           ) : (
                             <div className="flex items-center gap-3">
                               <span className="block font-mono font-bold text-lg text-slate-900">{req.mt5_account}</span>
-                              <div className="flex items-center gap-1.5 text-[9px] font-bold bg-green-100/60 text-green-700 px-2.5 py-1 rounded-lg uppercase tracking-wider border border-green-200/50">
+                              <div className={`flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider border ${eaConfig[(req as any).ea as keyof typeof eaConfig]?.color || 'bg-green-100/60 text-green-700 border-green-200/50'}`}>
                                   <Key size={10} className="shrink-0" />
-                                  <span className="truncate max-w-[120px]">{req.license_title || 'MT5'}</span>
+                                  <span className="truncate max-w-[120px]">{(req as any).ea || 'AFK TRADER'}</span>
                               </div>
                             </div>
                           )}

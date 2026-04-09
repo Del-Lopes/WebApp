@@ -68,13 +68,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
 
   const fetchDashboardData = async () => {
     try {
-      const { data } = await supabase
-        .from('license_requests')
-        .select('*')
-        .eq('user_id', user?.id)
-        .eq('status', 'approved');
+      const [afk, snowball, boleta] = await Promise.all([
+        supabase.from('license_requests').select('*').eq('user_id', user?.id).eq('status', 'approved'),
+        supabase.from('license_requests_snowball').select('*').eq('user_id', user?.id).eq('status', 'approved'),
+        supabase.from('license_requests_boletapro').select('*').eq('user_id', user?.id).eq('status', 'approved')
+      ]);
+
+      const allApproved = [
+        ...(afk.data || []).map(r => ({ ...r, ea: 'AFK TRADER' })),
+        ...(snowball.data || []).map(r => ({ ...r, ea: 'SNOW BALL' })),
+        ...(boleta.data || []).map(r => ({ ...r, ea: 'BOLETA PRO' }))
+      ];
       
-      setActiveLicenses(data || []);
+      setActiveLicenses(allApproved as any[]);
     } catch (error) {
       console.error('Error fetching dashboard:', error);
     } finally {
@@ -308,7 +314,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                         <span className="font-mono font-black text-slate-900 text-xl tracking-tight">{license.mt5_account}</span>
                       </div>
                       <span className="text-[10px] font-bold bg-slate-200 text-slate-500 px-3 py-1 rounded-xl uppercase tracking-widest border border-slate-300/30">
-                        {license.license_title || 'MT5'}
+                        {(license as any).ea || license.license_title || 'MT5'}
                       </span>
                     </div>
 
