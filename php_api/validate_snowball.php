@@ -1,12 +1,12 @@
 <?php
 /**
- * AFK Trade - SNOW BOW License Verification API
+ * AFK Trade - SNOW BALL License Verification API
  */
 
 // --- 1. CONFIGURAÇÕES DO SUPABASE ---
 $supabase_url = "https://armhlcnmaqgudqivkpgt.supabase.co"; 
 $supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzkzODcsImV4cCI6MjA4NTA1NTM4N30.Ak1kG41SU72X-O3L8RVdxM4nZSMIG2sbJKt0HsZy8xs";
-$table_name = "license_requests_snowbow"; // Base Snow Bow
+$table_name = "license_requests_snowball"; // Base Snow Ball
 
 // --- 2. CAPTURA DE DADOS ---
 $account_no = "";

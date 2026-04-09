@@ -52,7 +52,7 @@ interface AdminPanelProps {
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) => {
   const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users' | 'content'>('licenses');
-  const [activeLicenseSubTab, setActiveLicenseSubTab] = useState<'AFK TRADER' | 'SNOW BOW' | 'BOLETA PRO'>('AFK TRADER');
+  const [activeLicenseSubTab, setActiveLicenseSubTab] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO'>('AFK TRADER');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<Profile[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
@@ -140,6 +140,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     };
     init();
   }, [activeTab, activeLicenseSubTab]);
+
+  const getLicenseTableName = () => {
+    if (activeLicenseSubTab === 'SNOW BALL') return 'license_requests_snowball';
+    if (activeLicenseSubTab === 'BOLETA PRO') return 'license_requests_boletapro';
+    return 'license_requests';
+  };
 
   const fetchCurrentUser = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -1066,7 +1072,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
               {activeTab === 'licenses' && (
                 <div className="flex bg-slate-100 p-1 rounded-2xl w-fit gap-1 border border-slate-200 shadow-sm">
-                  {(['AFK TRADER', 'SNOW BOW', 'BOLETA PRO'] as const).map((tab) => (
+                  {(['AFK TRADER', 'SNOW BALL', 'BOLETA PRO'] as const).map((tab) => (
                     <button
                       key={tab}
                       onClick={() => setActiveLicenseSubTab(tab)}
