@@ -362,7 +362,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             
             {articles.length > 0 ? (
                 <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
-                  {articles.slice(0, 3).map((article) => (
+                  {articles.map((article) => (
                     <div
                       key={article.id}
                       onClick={() => onReadArticle(article)}
