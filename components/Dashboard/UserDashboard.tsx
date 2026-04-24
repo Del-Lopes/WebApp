@@ -7,9 +7,10 @@ import {
   GraduationCap, 
   TrendingUp, 
   AlertCircle, 
-  Clock, 
-  Plus, 
-  Edit2, 
+  Clock,
+  FileText,
+  Plus,
+  Edit2,
   Trash2, 
   X, 
   Save, 
@@ -360,36 +361,53 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             </div>
             
             {articles.length > 0 ? (
-                <div className="space-y-4">
-                  {articles.map((article) => (
-                    <div 
-                      key={article.id} 
+                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+                  {articles.slice(0, 3).map((article) => (
+                    <div
+                      key={article.id}
                       onClick={() => onReadArticle(article)}
-                      className="group p-4 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer relative"
+                      className="group flex items-start gap-3 p-3 bg-slate-50 hover:bg-white border border-slate-200 hover:border-slate-300 rounded-xl transition-all cursor-pointer relative"
                     >
-                      <div className="flex justify-between items-start gap-3">
-                          <div className="space-y-1 flex-1">
-                            <h4 className="text-sm font-semibold text-slate-800 group-hover:text-green-600 transition-colors">{article.title}</h4>
-                            <p className="text-xs text-slate-500 line-clamp-2">{article.excerpt}</p>
+                      {/* Thumbnail */}
+                      <div className="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-slate-200">
+                        {article.image_url ? (
+                          <img
+                            src={article.image_url}
+                            alt=""
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400">
+                            <FileText size={20} />
                           </div>
+                        )}
                       </div>
-                      
-                      <div className="mt-2 flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-[10px] text-slate-400">
-                             <Clock size={10} /><span>{new Date(article.created_at || Date.now()).toLocaleDateString()}</span>
-                             <span>•</span><span className="text-green-600/80 uppercase font-semibold">{article.category || 'Geral'}</span>
-                          </div>
-                          
-                          {role === 'admin' && (
-                              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <button 
-                                    onClick={(e) => { e.stopPropagation(); openArticleModal(article); }}
-                                    className="p-1 text-slate-400 hover:text-green-600 hover:bg-white rounded shadow-sm"
-                                  >
-                                      <Edit2 size={12} />
-                                  </button>
-                              </div>
+
+                      {/* Content */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <h4 className="text-sm font-semibold text-slate-800 group-hover:text-green-600 transition-colors line-clamp-1">{article.title}</h4>
+                          {(article as any).ai_generated && (
+                            <span className="shrink-0 px-1.5 py-0.5 bg-violet-100 text-violet-600 text-[9px] font-black rounded-full uppercase tracking-wide">IA</span>
                           )}
+                        </div>
+                        <p className="text-xs text-slate-500 line-clamp-2 mb-1">{article.excerpt}</p>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                            <Clock size={10} /><span>{new Date(article.created_at || Date.now()).toLocaleDateString()}</span>
+                            <span>•</span><span className="text-green-600/80 uppercase font-semibold">{article.category || 'Geral'}</span>
+                          </div>
+                          {role === 'admin' && (
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <button
+                                onClick={(e) => { e.stopPropagation(); openArticleModal(article); }}
+                                className="p-1 text-slate-400 hover:text-green-600 hover:bg-white rounded shadow-sm"
+                              >
+                                <Edit2 size={12} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}

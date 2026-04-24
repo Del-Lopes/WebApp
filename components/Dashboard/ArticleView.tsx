@@ -42,9 +42,14 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6 md:p-8 text-white">
-               <span className="inline-block px-3 py-1 bg-green-500 text-xs font-bold rounded-full mb-3 shadow-lg">
-                  {article.category || 'Geral'}
-               </span>
+               <div className="flex items-center gap-2 mb-3">
+                 <span className="inline-block px-3 py-1 bg-green-500 text-xs font-bold rounded-full shadow-lg">
+                   {article.category || 'Geral'}
+                 </span>
+                 {(article as any).ai_generated && (
+                   <span className="inline-block px-2 py-1 bg-violet-500 text-white text-xs font-black rounded-full shadow-lg uppercase">IA</span>
+                 )}
+               </div>
                <h1 className="text-3xl md:text-4xl font-bold leading-tight shadow-sm text-shadow-sm">
                  {article.title}
                </h1>
@@ -55,9 +60,14 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
         <div className="p-6 md:p-10">
           {!article.image_url && (
              <div className="mb-8 border-b border-slate-100 pb-8">
-                <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full mb-3">
-                  {article.category || 'Geral'}
-               </span>
+               <div className="flex items-center gap-2 mb-3">
+                 <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                   {article.category || 'Geral'}
+                 </span>
+                 {(article as any).ai_generated && (
+                   <span className="inline-block px-2 py-1 bg-violet-100 text-violet-700 text-xs font-black rounded-full uppercase">IA</span>
+                 )}
+               </div>
                <h1 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">
                  {article.title}
                </h1>

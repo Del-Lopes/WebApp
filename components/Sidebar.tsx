@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Shield, User, Map, Download, DollarSign } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Shield, User, Map, Download, DollarSign, FileText } from 'lucide-react';
 import { View, UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
@@ -77,6 +77,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <Map size={20} />
             <span className="font-medium">Comece Aqui</span>
+          </button>
+
+          <button
+            onClick={() => handleViewChange('education')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              currentView === 'education' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <FileText size={20} />
+            <span className="font-medium">Artigos e Análises</span>
           </button>
 
           <button
