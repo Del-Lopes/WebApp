@@ -673,9 +673,6 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                       <FileText size={36} />
                     </div>
                   )}
-                  {(article as any).ai_generated && (
-                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-violet-500 text-white text-[10px] font-black rounded-full uppercase">IA</span>
-                  )}
                 </div>
 
                 <div className="p-4 flex-1 flex flex-col">

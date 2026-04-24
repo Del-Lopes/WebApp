@@ -305,7 +305,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             {loading ? (
                  <p className="text-slate-400">Carregando...</p>
             ) : activeLicenses.length > 0 ? (
-              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
                 {activeLicenses.map((license) => (
                   <div key={license.id} className="p-5 bg-slate-50/50 rounded-3xl border border-slate-100 hover:bg-slate-50 transition-all space-y-3 group">
                     {/* Linha 1: Conta e Título */}
@@ -387,9 +387,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-0.5">
                           <h4 className="text-sm font-semibold text-slate-800 group-hover:text-green-600 transition-colors line-clamp-1">{article.title}</h4>
-                          {(article as any).ai_generated && (
-                            <span className="shrink-0 px-1.5 py-0.5 bg-violet-100 text-violet-600 text-[9px] font-black rounded-full uppercase tracking-wide">IA</span>
-                          )}
                         </div>
                         <p className="text-xs text-slate-500 line-clamp-2 mb-1">{article.excerpt}</p>
                         <div className="flex items-center justify-between">

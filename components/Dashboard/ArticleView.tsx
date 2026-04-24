@@ -46,9 +46,6 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
                  <span className="inline-block px-3 py-1 bg-green-500 text-xs font-bold rounded-full shadow-lg">
                    {article.category || 'Geral'}
                  </span>
-                 {(article as any).ai_generated && (
-                   <span className="inline-block px-2 py-1 bg-violet-500 text-white text-xs font-black rounded-full shadow-lg uppercase">IA</span>
-                 )}
                </div>
                <h1 className="text-3xl md:text-4xl font-bold leading-tight shadow-sm text-shadow-sm">
                  {article.title}
@@ -64,9 +61,6 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
                  <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
                    {article.category || 'Geral'}
                  </span>
-                 {(article as any).ai_generated && (
-                   <span className="inline-block px-2 py-1 bg-violet-100 text-violet-700 text-xs font-black rounded-full uppercase">IA</span>
-                 )}
                </div>
                <h1 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">
                  {article.title}
