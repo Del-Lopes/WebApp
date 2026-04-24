@@ -42,62 +42,85 @@ async function scrapePage(url: string): Promise<ScrapedPage> {
 
   const html = await res.text()
 
-  // Extract visible text: strip tags, collapse whitespace
-  const text = html
+  // Extract body content (strip head, nav, footer, scripts, styles — keep article body)
+  const bodyMatch = html.match(/<body[\s\S]*?<\/body>/i)
+  const bodyHtml = bodyMatch ? bodyMatch[0] : html
+
+  const cleanBody = bodyHtml
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<script[\s\S]*?<\/script>/gi, '')
+    .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+    .replace(/<header[\s\S]*?<\/header>/gi, '')
+
+  // Extract visible text
+  const text = cleanBody
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s{2,}/g, ' ')
     .trim()
-    .slice(0, 12000) // cap context to keep tokens lean
+    .slice(0, 14000)
 
-  // Extract <img src> and <meta og:image> URLs
-  const imgMatches = [...html.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)]
+  // Extract og:image (cover)
   const ogMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
     ?? html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i)
 
-  const rawImages = [
-    ogMatch?.[1],
-    ...imgMatches.map((m) => m[1]),
-  ]
-    .filter(Boolean)
-    .map((src) => {
-      try {
-        return new URL(src as string, url).href
-      } catch {
-        return null
-      }
-    })
-    .filter((src): src is string => !!src && (src.startsWith('http://') || src.startsWith('https://')))
-    // Skip tiny icons/tracking pixels (heuristic: skip URLs with "pixel", "icon", "logo", "avatar", "1x1", "spacer")
-    .filter((src) => !/pixel|icon|logo|avatar|1x1|spacer|sprite/i.test(src))
-    .slice(0, 6)
+  // Extract all <img src> from body (preserves order = position in article)
+  const imgMatches = [...cleanBody.matchAll(/<img[^>]+src=["']([^"']+)["']/gi)]
 
-  return { text, images: rawImages }
+  const resolveUrl = (src: string): string | null => {
+    try { return new URL(src, url).href } catch { return null }
+  }
+
+  const isUsable = (src: string) =>
+    (src.startsWith('http://') || src.startsWith('https://')) &&
+    !/pixel|icon|logo|avatar|1x1|spacer|sprite|svg\?|\.svg$/i.test(src)
+
+  const allImages = [
+    ogMatch?.[1] ? resolveUrl(ogMatch[1]) : null,
+    ...imgMatches.map((m) => resolveUrl(m[1])),
+  ]
+    .filter((src): src is string => !!src && isUsable(src))
+    // Deduplicate preserving order
+    .filter((src, idx, arr) => arr.indexOf(src) === idx)
+    .slice(0, 12)
+
+  return { text, images: allImages }
 }
 
 // ─── AI providers ─────────────────────────────────────────────────────────────
 
 function buildSystemPrompt(persona: string): string {
   return `Você é ${persona}.
-Sua tarefa é criar um artigo educacional em Português Brasileiro (pt-BR) para uma plataforma exclusiva de membros focada em trading algorítmico.
-O artigo deve ser prático, com linguagem acessível para traders intermediários, e baseado no conteúdo de referência fornecido.
-Retorne APENAS um objeto JSON válido — sem markdown, sem texto extra.`
+Sua tarefa é traduzir e adaptar artigos para Português Brasileiro (pt-BR) para uma plataforma exclusiva de membros focada em trading algorítmico.
+Seja fiel à estrutura e conteúdo do original. Use linguagem acessível para traders intermediários.
+Retorne APENAS um objeto JSON válido — sem markdown, sem código-fonte extra fora do JSON.`
 }
 
-function buildArticlePrompt(sourceText: string, category: string, sourceUrl: string): string {
-  return `Use o seguinte conteúdo de referência (extraído de ${sourceUrl}) como base para criar um novo artigo educacional em Português Brasileiro:
+function buildArticlePrompt(sourceText: string, category: string, sourceUrl: string, images: string[]): string {
+  const imageListBlock = images.length > 0
+    ? `\nImagens disponíveis extraídas do artigo original (use-as inline no HTML na posição relevante via <img src="URL" alt="descrição" style="max-width:100%;border-radius:8px;margin:16px 0">):\n${images.map((u, i) => `${i + 1}. ${u}`).join('\n')}\n`
+    : ''
 
----CONTEÚDO DE REFERÊNCIA---
+  return `Traduza e adapte fielmente o seguinte artigo para Português Brasileiro, mantendo a mesma estrutura, sequência de tópicos, exemplos e profundidade do original. O objetivo é que o leitor receba a mesma informação do artigo original, em pt-BR, com clareza.
+
+Fonte: ${sourceUrl}
+
+---CONTEÚDO ORIGINAL---
 ${sourceText}
 ---FIM DO CONTEÚDO---
-
-Crie um artigo adaptado e aprimorado em pt-BR para traders. Não copie o texto original — reescreva com suas próprias palavras, acrescente clareza e exemplos práticos.
+${imageListBlock}
+Instruções:
+- Mantenha a mesma estrutura de seções e ordem dos tópicos do original
+- Traduza e adapte o texto com fidelidade — não invente tópicos novos
+- Use HTML semântico: <h2>, <h3>, <p>, <ul>/<ol>, <strong>
+- Insira as imagens listadas acima inline no HTML no ponto relevante do texto usando a tag <img> fornecida
+- Sem tags <html>/<body>/<head>/<script>
+- Mínimo 600 palavras
 
 Retorne JSON com EXATAMENTE estes campos:
 {
-  "title": "título do artigo (máximo 80 caracteres)",
-  "content": "artigo completo em HTML semântico: use <h2>, <h3>, <p>, <ul>/<ol>. Mínimo 600 palavras. Sem tags <html>/<body>/<script>.",
+  "title": "título fiel ao original, em pt-BR (máximo 80 caracteres)",
+  "content": "artigo completo em HTML semântico com imagens inline",
   "excerpt": "resumo em uma frase (máximo 160 caracteres)",
   "category": "${category}"
 }`
@@ -229,7 +252,7 @@ Deno.serve(async (req: Request) => {
 
     // 2. Generate article via AI
     const systemPrompt = buildSystemPrompt(persona)
-    const userPrompt = buildArticlePrompt(sourceText, category, body.source_url)
+    const userPrompt = buildArticlePrompt(sourceText, category, body.source_url, sourceImages)
 
     const { text: rawAI, model: modelUsed } = await generateText(systemPrompt, userPrompt)
     const parsed = parseAIJson(rawAI) as ArticlePayload

@@ -83,16 +83,14 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
             </div>
           </div>
 
-          <div className="prose prose-slate prose-lg max-w-none prose-headings:text-slate-900 prose-a:text-green-600 hover:prose-a:text-green-700">
-             {/* Simple paragraph splitting for basic formatting if no markdown parser is available yet */}
-             {article.content ? (
-               article.content.split('\n').map((paragraph, index) => (
-                 paragraph.trim() && <p key={index} className="mb-4 text-slate-600 leading-relaxed">{paragraph}</p>
-               ))
-             ) : (
-                <p className="text-slate-500 italic">Conteúdo indisponível.</p>
-             )}
-          </div>
+          <div
+            className="prose prose-slate prose-lg max-w-none prose-headings:text-slate-900 prose-a:text-green-600 hover:prose-a:text-green-700 prose-img:rounded-xl prose-img:shadow-md prose-img:mx-auto"
+            dangerouslySetInnerHTML={
+              article.content
+                ? { __html: article.content }
+                : { __html: '<p class="text-slate-500 italic">Conteúdo indisponível.</p>' }
+            }
+          />
 
           {/* Image Gallery Carousel */}
           {article.gallery_urls && article.gallery_urls.length > 0 && (
