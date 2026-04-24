@@ -80,9 +80,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
 
           <button
-            onClick={() => handleViewChange('education')}
+            onClick={() => handleViewChange('articles')}
             className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-              currentView === 'education' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              currentView === 'articles' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
             }`}
           >
             <FileText size={20} />

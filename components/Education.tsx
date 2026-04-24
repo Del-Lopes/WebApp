@@ -11,9 +11,10 @@ import { type } from 'os';
 
 interface EducationProps {
   onBack?: () => void;
+  articlesOnly?: boolean;
 }
 
-export const Education: React.FC<EducationProps> = ({ onBack }) => {
+export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = false }) => {
   const { role } = useAuth();
   const [courses, setCourses] = useState<Product[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -632,7 +633,105 @@ export const Education: React.FC<EducationProps> = ({ onBack }) => {
   }
 
 
-  // List View
+  // Articles-only view
+  if (articlesOnly) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            {onBack && <BackButton onClick={onBack} />}
+            <div>
+              <h2 className="text-2xl font-bold text-slate-900 mb-1">Artigos e Análises</h2>
+              <p className="text-slate-500 text-sm">Conteúdo educacional e análises de mercado.</p>
+            </div>
+          </div>
+          {role === 'admin' && (
+            <button onClick={() => openArticleModal()} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+              <Plus size={18} /> Novo Artigo
+            </button>
+          )}
+        </div>
+
+        {loading ? (
+          <div className="flex justify-center py-12"><Loader2 className="animate-spin text-green-600" size={32} /></div>
+        ) : articles.length === 0 ? (
+          <div className="text-center py-16 bg-slate-50 rounded-xl text-slate-500">Nenhum artigo disponível.</div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {articles.map((article) => (
+              <div
+                key={article.id}
+                onClick={() => setSelectedArticle(article)}
+                className="group flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+              >
+                {/* Cover image */}
+                <div className="relative aspect-video bg-slate-100">
+                  {article.image_url ? (
+                    <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                      <FileText size={36} />
+                    </div>
+                  )}
+                  {(article as any).ai_generated && (
+                    <span className="absolute top-2 left-2 px-2 py-0.5 bg-violet-500 text-white text-[10px] font-black rounded-full uppercase">IA</span>
+                  )}
+                </div>
+
+                <div className="p-4 flex-1 flex flex-col">
+                  <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider mb-1">{article.category || 'Geral'}</span>
+                  <h4 className="text-sm font-bold text-slate-900 mb-1 line-clamp-2 group-hover:text-green-600 transition-colors">{article.title}</h4>
+                  <p className="text-xs text-slate-500 line-clamp-2 flex-1">{article.excerpt}</p>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+                    <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                      <Clock size={10} />
+                      <span>{new Date(article.created_at || Date.now()).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                    {role === 'admin' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); openArticleModal(article); }}
+                        className="p-1 text-slate-400 hover:text-green-600 rounded transition-colors"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {isArticleModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold text-slate-800">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>
+                <div className="flex items-center gap-2">
+                  {editingArticle && (
+                    <button type="button" onClick={() => handleDeleteArticle(editingArticle.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors mr-2"><Trash2 size={20} /></button>
+                  )}
+                  <button onClick={() => setIsArticleModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+                </div>
+              </div>
+              <form onSubmit={handleSaveArticle} className="space-y-3">
+                <input type="text" placeholder="Título" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                <input type="text" placeholder="Categoria" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
+                <textarea placeholder="Resumo" rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full border rounded-xl px-3 py-2" />
+                <textarea placeholder="Conteúdo" rows={5} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border rounded-xl px-3 py-2" />
+                <input type="text" placeholder="URL da Capa" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 text-sm" />
+                <button type="submit" className="w-full bg-green-600 text-white font-black py-3 rounded-xl hover:bg-green-500 mt-2">
+                  {editingArticle ? 'Salvar Alterações' : 'Publicar Artigo'}
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // List View (Biblioteca — cursos)
   return (
     <div className="space-y-8">
       {/* Header */}

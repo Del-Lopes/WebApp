@@ -89,6 +89,7 @@ function AppContent() {
       case 'dashboard': return 'Início - Trader AFK';
       case 'strategies': return 'Estratégias - Trader AFK';
       case 'education': return 'Biblioteca - Trader AFK';
+      case 'articles': return 'Artigos e Análises - Trader AFK';
       case 'course_player': return 'Aula - Trader AFK';
       case 'marketing': return 'Marketing - Trader AFK';
       case 'licenses': return 'Licenças - Trader AFK';
@@ -146,6 +147,8 @@ function AppContent() {
               );
       
             case 'education': return <Education onBack={() => setCurrentView('dashboard')} />;
+            case 'articles': return <Education onBack={() => setCurrentView('dashboard')} articlesOnly />;
+
             case 'course_player': return <CoursePlayer onBack={() => setCurrentView('education')} />;
             case 'marketing': return <Marketing onBack={() => setCurrentView('dashboard')} />;
             case 'licenses': return <Licenses onBack={() => setCurrentView('dashboard')} />;
