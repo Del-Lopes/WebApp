@@ -22,12 +22,13 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
   const [editValue, setEditValue] = useState('');
   const [showTitleManager, setShowTitleManager] = useState(false);
   const [newTitleName, setNewTitleName] = useState('');
-  const [selectedEA, setSelectedEA] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO'>('AFK TRADER');
+  const [selectedEA, setSelectedEA] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO' | 'FX SQUAD'>('AFK TRADER');
 
   const eaConfig = {
     'AFK TRADER': { table: 'license_requests', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
     'SNOW BALL': { table: 'license_requests_snowball', color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    'BOLETA PRO': { table: 'license_requests_boletapro', color: 'bg-orange-100 text-orange-700 border-orange-200' }
+    'BOLETA PRO': { table: 'license_requests_boletapro', color: 'bg-orange-100 text-orange-700 border-orange-200' },
+    'FX SQUAD': { table: 'license_requests_fxsquad', color: 'bg-green-100 text-green-700 border-green-200' }
   };
 
   useEffect(() => {
@@ -55,16 +56,18 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
   const fetchRequests = async () => {
     try {
       // Pequeno hack para buscar de todas as tabelas em paralelo
-      const [afk, snowball, boleta] = await Promise.all([
+      const [afk, snowball, boleta, fxsquad] = await Promise.all([
         supabase.from('license_requests').select('*').order('created_at', { ascending: false }),
         supabase.from('license_requests_snowball').select('*').order('created_at', { ascending: false }),
-        supabase.from('license_requests_boletapro').select('*').order('created_at', { ascending: false })
+        supabase.from('license_requests_boletapro').select('*').order('created_at', { ascending: false }),
+        supabase.from('license_requests_fxsquad').select('*').order('created_at', { ascending: false })
       ]);
 
       const allRequests = [
         ...(afk.data || []).map(r => ({ ...r, ea: 'AFK TRADER' })),
         ...(snowball.data || []).map(r => ({ ...r, ea: 'SNOW BALL' })),
-        ...(boleta.data || []).map(r => ({ ...r, ea: 'BOLETA PRO' }))
+        ...(boleta.data || []).map(r => ({ ...r, ea: 'BOLETA PRO' })),
+        ...(fxsquad.data || []).map(r => ({ ...r, ea: 'FX SQUAD' }))
       ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setRequests(allRequests as any[]);
@@ -206,7 +209,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
                 <label className="block text-sm font-medium text-slate-700">Selecione o Expert Advisor</label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {(Object.keys(eaConfig) as Array<keyof typeof eaConfig>).map((ea) => (
                         <button
                             key={ea}

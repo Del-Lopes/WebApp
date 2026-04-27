@@ -5,8 +5,8 @@ Este documento traça a evolução estratégica do **Trader AFK**, focando em in
 ---
 
 ## ✅ Concluído: Multi-Base & Proteção de IP
-- [x] Migração para arquitetura de licenças isoladas por produto (AFK, Snow Ball, Boleta Pro).
-- [x] Endpoints PHP robustos e compatíveis com MT5.
+- [x] Migração para arquitetura de licenças isoladas por produto (AFK, Snow Ball, Boleta Pro, FX SQUAD).
+- [x] Endpoints PHP robustos e compatíveis com MT5 para todas as bases.
 - [x] Painel Admin com sub-abas dinâmicas para gestão de bases.
 
 ---
@@ -56,4 +56,4 @@ Este documento traça a evolução estratégica do **Trader AFK**, focando em in
 
 ---
 
-*Última atualização: 09/04/2026*
+*Última atualização: 27/04/2026*

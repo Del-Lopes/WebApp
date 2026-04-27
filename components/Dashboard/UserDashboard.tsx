@@ -72,16 +72,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
 
   const fetchDashboardData = async () => {
     try {
-      const [afk, snowball, boleta] = await Promise.all([
+      const [afk, snowball, boleta, fxsquad] = await Promise.all([
         supabase.from('license_requests').select('*').eq('user_id', user?.id).eq('status', 'approved'),
         supabase.from('license_requests_snowball').select('*').eq('user_id', user?.id).eq('status', 'approved'),
-        supabase.from('license_requests_boletapro').select('*').eq('user_id', user?.id).eq('status', 'approved')
+        supabase.from('license_requests_boletapro').select('*').eq('user_id', user?.id).eq('status', 'approved'),
+        supabase.from('license_requests_fxsquad').select('*').eq('user_id', user?.id).eq('status', 'approved')
       ]);
 
       const allApproved = [
         ...(afk.data || []).map(r => ({ ...r, ea: 'AFK TRADER' })),
         ...(snowball.data || []).map(r => ({ ...r, ea: 'SNOW BALL' })),
-        ...(boleta.data || []).map(r => ({ ...r, ea: 'BOLETA PRO' }))
+        ...(boleta.data || []).map(r => ({ ...r, ea: 'BOLETA PRO' })),
+        ...(fxsquad.data || []).map(r => ({ ...r, ea: 'FX SQUAD' }))
       ];
       
       setActiveLicenses(allApproved as any[]);
