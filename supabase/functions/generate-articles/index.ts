@@ -175,20 +175,46 @@ async function callGroq(systemPrompt: string, userPrompt: string, apiKey: string
 async function generateText(
   systemPrompt: string,
   userPrompt: string,
-  config: { gemini_api_key?: string, gemini_model?: string, groq_api_key?: string, groq_model?: string }
+  config: { 
+    gemini_api_key?: string, 
+    gemini_model?: string, 
+    gemini_model_2?: string, 
+    gemini_model_3?: string, 
+    groq_api_key?: string, 
+    groq_model?: string 
+  }
 ): Promise<{ text: string; model: string }> {
-  // Try Gemini first
   const geminiKey = config.gemini_api_key || GEMINI_API_KEY
+  
   if (geminiKey) {
+    // 1. Try Gemini Model 1
     try {
       const model = config.gemini_model || 'gemini-2.0-flash-lite'
       return { text: await callGemini(systemPrompt, userPrompt, geminiKey, model), model: `gemini/${model}` }
     } catch (e) {
-      console.error('Gemini failed:', e instanceof Error ? e.message : JSON.stringify(e))
+      console.error('Gemini Model 1 failed:', e instanceof Error ? e.message : JSON.stringify(e))
+    }
+
+    // 2. Try Gemini Model 2 (Cascata)
+    if (config.gemini_model_2) {
+      try {
+        return { text: await callGemini(systemPrompt, userPrompt, geminiKey, config.gemini_model_2), model: `gemini/${config.gemini_model_2}` }
+      } catch (e) {
+        console.error('Gemini Model 2 failed:', e instanceof Error ? e.message : JSON.stringify(e))
+      }
+    }
+
+    // 3. Try Gemini Model 3 (Cascata)
+    if (config.gemini_model_3) {
+      try {
+        return { text: await callGemini(systemPrompt, userPrompt, geminiKey, config.gemini_model_3), model: `gemini/${config.gemini_model_3}` }
+      } catch (e) {
+        console.error('Gemini Model 3 failed:', e instanceof Error ? e.message : JSON.stringify(e))
+      }
     }
   }
 
-  // Fallback to Groq
+  // 4. Final Fallback to Groq
   const groqKey = config.groq_api_key || GROQ_API_KEY
   if (groqKey) {
     try {
@@ -291,7 +317,7 @@ Deno.serve(async (req: Request) => {
         excerpt: parsed.excerpt ?? '',
         category,
         image_url: coverImageUrl,
-        gallery_urls: galleryUrls,
+        gallery_urls: sourceImages,
         author: 'IA Trader AFK',
         ai_generated: true,
       })

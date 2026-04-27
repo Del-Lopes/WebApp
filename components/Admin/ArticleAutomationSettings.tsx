@@ -42,6 +42,8 @@ interface AIConfiguration {
   id: string
   gemini_api_key: string | null
   gemini_model: string | null
+  gemini_model_2: string | null
+  gemini_model_3: string | null
   groq_api_key: string | null
   groq_model: string | null
 }
@@ -62,6 +64,8 @@ export const ArticleAutomationSettings: React.FC = () => {
     id: '00000000-0000-0000-0000-000000000001',
     gemini_api_key: '',
     gemini_model: 'gemini-2.0-flash-lite',
+    gemini_model_2: 'gemini-2.0-flash',
+    gemini_model_3: 'gemini-1.5-pro',
     groq_api_key: '',
     groq_model: 'llama-3.3-70b-versatile',
   })
@@ -195,13 +199,33 @@ export const ArticleAutomationSettings: React.FC = () => {
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Modelo</label>
+                <label className="text-[10px] font-black uppercase text-slate-400">Modelo Principal</label>
                 <input 
                   type="text" 
                   value={aiConfig.gemini_model || ''} 
                   onChange={e => setAiConfig({...aiConfig, gemini_model: e.target.value})}
                   className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
                   placeholder="gemini-2.0-flash-lite"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Cascata 2 (Fallback 1)</label>
+                <input 
+                  type="text" 
+                  value={aiConfig.gemini_model_2 || ''} 
+                  onChange={e => setAiConfig({...aiConfig, gemini_model_2: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="gemini-2.0-flash"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Cascata 3 (Fallback 2)</label>
+                <input 
+                  type="text" 
+                  value={aiConfig.gemini_model_3 || ''} 
+                  onChange={e => setAiConfig({...aiConfig, gemini_model_3: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="gemini-1.5-pro"
                 />
               </div>
             </div>

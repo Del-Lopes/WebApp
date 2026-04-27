@@ -1785,7 +1785,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                     <td className="px-6 py-4 text-slate-500">{new Date(article.created_at || '').toLocaleDateString()}</td>
                                     <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2">
-                                            <button onClick={() => { setEditingArticle(article); setArticleForm({ title: article.title, excerpt: article.excerpt, content: article.content || '', image_url: article.image_url || '', category: article.category || '', gallery_urls: article.gallery_urls || [] }); setIsArticleModalOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 rounded-lg"><Edit2 size={18} /></button>
+                                            <button onClick={() => { 
+                                                setEditingArticle(article); 
+                                                const initialGallery = article.gallery_urls || [];
+                                                const galleryWithCover = (article.image_url && !initialGallery.includes(article.image_url)) 
+                                                    ? [article.image_url, ...initialGallery] 
+                                                    : initialGallery;
+                                                setArticleForm({ 
+                                                    title: article.title, 
+                                                    excerpt: article.excerpt, 
+                                                    content: article.content || '', 
+                                                    image_url: article.image_url || '', 
+                                                    category: article.category || '', 
+                                                    gallery_urls: galleryWithCover 
+                                                }); 
+                                                setIsArticleModalOpen(true); 
+                                            }} className="p-2 text-slate-400 hover:text-blue-600 rounded-lg"><Edit2 size={18} /></button>
                                             <button onClick={() => handleDeleteArticle(article.id)} className="p-2 text-slate-400 hover:text-red-600 rounded-lg"><Trash2 size={18} /></button>
                                         </div>
                                     </td>

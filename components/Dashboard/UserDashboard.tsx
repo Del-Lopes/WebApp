@@ -148,13 +148,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
   const openArticleModal = (article?: Article) => {
       if (article) {
           setEditingArticle(article);
+          const initialGallery = article.gallery_urls || [];
+          const galleryWithCover = (article.image_url && !initialGallery.includes(article.image_url)) 
+            ? [article.image_url, ...initialGallery] 
+            : initialGallery;
+
           setArticleForm({ 
             title: article.title, 
             excerpt: article.excerpt, 
             content: article.content || '', 
             image_url: article.image_url || '', 
             category: article.category || 'Análise',
-            gallery_urls: article.gallery_urls || []
+            gallery_urls: galleryWithCover
           });
       } else {
           setEditingArticle(null);
