@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Map, LayoutDashboard, Cpu, GraduationCap, Key, Users } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Map, LayoutDashboard, Cpu, GraduationCap, Key, Users, Download } from 'lucide-react';
 
 interface PlatformTourProps {
   onClose: () => void;
