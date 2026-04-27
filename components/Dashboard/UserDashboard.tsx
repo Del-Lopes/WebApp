@@ -15,6 +15,7 @@ import {
   X, 
   Save, 
   Map, 
+  LayoutDashboard,
   ChevronRight, 
   Download, 
   Calendar, 
@@ -29,10 +30,12 @@ import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } fro
 interface UserDashboardProps {
   onNavigate: (view: View) => void;
   onReadArticle: (article: Article) => void;
+  onShowTour?: () => void;
 }
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onReadArticle }) => {
+export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onReadArticle, onShowTour }) => {
   const { user, role } = useAuth();
+
   const [activeLicenses, setActiveLicenses] = useState<LicenseRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -204,22 +207,22 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Journey Card (Start Here) */}
         <div 
-          onClick={() => onNavigate('journey')}
+          onClick={() => onShowTour ? onShowTour() : onNavigate('journey')}
           className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 rounded-2xl border border-transparent shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 cursor-pointer group relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
           
           <div className="flex items-center gap-4 mb-4 relative z-10">
             <div className="p-3 bg-white/20 text-white rounded-xl backdrop-blur-sm group-hover:bg-white group-hover:text-indigo-600 transition-colors">
-              <Map size={24} />
+              <LayoutDashboard size={24} />
             </div>
             <div>
               <p className="text-sm text-indigo-100 font-medium">Novo por aqui?</p>
-              <h3 className="text-lg font-bold text-white">Comece Por Aqui</h3>
+              <h3 className="text-lg font-bold text-white">Conheça a Plataforma</h3>
             </div>
           </div>
           <div className="text-xs text-indigo-100 relative z-10 flex items-center gap-1 font-medium">
-            <span>Siga a trilha do sucesso</span>
+            <span>Apresentação das sessões</span>
             <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform" />
           </div>
         </div>
@@ -298,55 +301,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Recent Activity / Licenses List */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-6">Suas Contas</h3>
-            
-            {loading ? (
-                 <p className="text-slate-400">Carregando...</p>
-            ) : activeLicenses.length > 0 ? (
-              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
-                {activeLicenses.map((license) => (
-                  <div key={license.id} className="p-5 bg-slate-50/50 rounded-3xl border border-slate-100 hover:bg-slate-50 transition-all space-y-3 group">
-                    {/* Linha 1: Conta e Título */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
-                        <span className="font-mono font-black text-slate-900 text-xl tracking-tight">{license.mt5_account}</span>
-                      </div>
-                      <span className="text-[10px] font-bold bg-slate-200 text-slate-500 px-3 py-1 rounded-xl uppercase tracking-widest border border-slate-300/30">
-                        {(license as any).ea || license.license_title || 'MT5'}
-                      </span>
-                    </div>
-
-                    {/* Linha 2: Ativo e Validade (Invertidos) */}
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
-                      <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black rounded-lg border border-green-200/50 shadow-sm uppercase tracking-[0.2em]">
-                        <CheckCircle2 size={10} />
-                        <span>ATIVO</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-400">
-                        <Calendar size={12} className="shrink-0" />
-                        <span className="text-[11px] font-medium uppercase tracking-wider">
-                          Validade: <span className="text-slate-700 font-bold ml-1">{license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'Não definida'}</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
-                   <AlertCircle className="text-slate-400" />
-                </div>
-                <p className="text-slate-500 mb-2">Você ainda não tem licenças ativas.</p>
-                <p className="text-sm text-green-600 font-medium">Vá até a aba Licenças para solicitar.</p>
-              </div>
-            )}
-          </div>
-
-          {/* Articles Section (Migrated) */}
+          {/* Articles Section (Now on the left) */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center justify-between mb-6">
                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">Artigos e Análises Recentes</h3>
@@ -411,6 +366,54 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                 </div>
             ) : (
                 <div className="text-center py-8 text-slate-500">Nenhum artigo recente.</div>
+            )}
+          </div>
+
+          {/* Recent Activity / Licenses List (Now on the right) */}
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+            <h3 className="text-lg font-bold text-slate-900 mb-6">Suas Contas</h3>
+            
+            {loading ? (
+                 <p className="text-slate-400">Carregando...</p>
+            ) : activeLicenses.length > 0 ? (
+              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2 custom-scrollbar">
+                {activeLicenses.map((license) => (
+                  <div key={license.id} className="p-5 bg-slate-50/50 rounded-3xl border border-slate-100 hover:bg-slate-50 transition-all space-y-3 group">
+                    {/* Linha 1: Conta e Título */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
+                        <span className="font-mono font-black text-slate-900 text-xl tracking-tight">{license.mt5_account}</span>
+                      </div>
+                      <span className="text-[10px] font-bold bg-slate-200 text-slate-500 px-3 py-1 rounded-xl uppercase tracking-widest border border-slate-300/30">
+                        {(license as any).ea || license.license_title || 'MT5'}
+                      </span>
+                    </div>
+
+                    {/* Linha 2: Ativo e Validade */}
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black rounded-lg border border-green-200/50 shadow-sm uppercase tracking-[0.2em]">
+                        <CheckCircle2 size={10} />
+                        <span>ATIVO</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-slate-400">
+                        <Calendar size={12} className="shrink-0" />
+                        <span className="text-[11px] font-medium uppercase tracking-wider">
+                          Validade: <span className="text-slate-700 font-bold ml-1">{license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'Não definida'}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3">
+                   <AlertCircle className="text-slate-400" />
+                 </div>
+                <p className="text-slate-500 mb-2">Você ainda não tem licenças ativas.</p>
+                <p className="text-sm text-green-600 font-medium">Vá até a aba Licenças para solicitar.</p>
+              </div>
             )}
           </div>
       </div>

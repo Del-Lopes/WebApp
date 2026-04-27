@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx supabase *)",
+      "Bash(curl -s 'https://armhlcnmaqgudqivkpgt.supabase.co/rest/v1/articles?id=eq.bcc132cc-6ecb-469d-a04f-8429317151d3&select=id,title,category,ai_generated,image_url,created_at' -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzkzODcsImV4cCI6MjA4NTA1NTM4N30.Ak1kG41SU72X-O3L8RVdxM4nZSMIG2sbJKt0HsZy8xs' -H 'apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzkzODcsImV4cCI6MjA4NTA1NTM4N30.Ak1kG41SU72X-O3L8RVdxM4nZSMIG2sbJKt0HsZy8xs')",
+      "Bash(curl -s -X POST https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/generate-articles -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzkzODcsImV4cCI6MjA4NTA1NTM4N30.Ak1kG41SU72X-O3L8RVdxM4nZSMIG2sbJKt0HsZy8xs' -H 'Content-Type: application/json' -d '{\"source_url\": \"https://en.wikipedia.org/wiki/Bollinger_Bands\"}')",
+      "Bash(curl -s -X POST https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/generate-articles -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzkzODcsImV4cCI6MjA4NTA1NTM4N30.Ak1kG41SU72X-O3L8RVdxM4nZSMIG2sbJKt0HsZy8xs' -H 'Content-Type: application/json' -d '{\"source_url\": \"https://en.wikipedia.org/wiki/Relative_strength_index\"}')",
+      "Bash(SUPABASE_ACCESS_TOKEN=sbp_d833e4927cbb4ec17041dbcc8fa9c388f9255993 npx supabase secrets list --project-ref armhlcnmaqgudqivkpgt)",
+      "Bash(curl -s -X POST https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/generate-articles -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzkzODcsImV4cCI6MjA4NTA1NTM4N30.Ak1kG41SU72X-O3L8RVdxM4nZSMIG2sbJKt0HsZy8xs' -H 'Content-Type: application/json' -d '{\"source_url\": \"https://en.wikipedia.org/wiki/MACD\"}')",
+      "Bash(git checkout *)",
+      "Bash(git merge *)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -X GET \"https://api.supabase.com/v1/projects\" -H \"Authorization: Bearer sbp_d833e4927cbb4ec17041dbcc8fa9c388f9255993\")",
+      "Bash(curl -s \"https://api.supabase.com/v1/projects\" -H \"Authorization: Bearer sbp_d833e4927cbb4ec17041dbcc8fa9c388f9255993\")",
+      "Bash(python3 -c \"import sys,json; [print\\(p['id'], p['name']\\) for p in json.load\\(sys.stdin\\)]\")"
+    ]
+  }
+}

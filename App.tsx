@@ -126,14 +126,14 @@ function AppContent() {
       }>
         {(() => {
           switch (currentView) {
-            case 'dashboard': return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+            case 'dashboard': return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} onShowTour={() => setShowTour(true)} />;
             case 'article': 
               return selectedArticle ? (
                 <ArticleView 
                   article={selectedArticle} 
                   onBack={() => setCurrentView('dashboard')} 
                 />
-              ) : <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+              ) : <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} onShowTour={() => setShowTour(true)} />;
             case 'strategies': 
               return (
                 <Strategies 

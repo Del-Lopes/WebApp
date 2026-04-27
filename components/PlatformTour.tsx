@@ -8,34 +8,46 @@ interface PlatformTourProps {
 
 const TOUR_STEPS = [
   {
-    title: "Bem-vindo à Trader AFK",
-    description: "Sua plataforma completa de trading algorítmico. Vamos fazer um tour rápido para você conhecer tudo!",
+    title: "Bem-vindo à Tradexperience",
+    description: "Sua central de inteligência para trading algorítmico. Preparamos este tour para você dominar todas as ferramentas disponíveis.",
     icon: <LayoutDashboard size={48} className="text-green-500" />,
-    image: "https://images.unsplash.com/photo-1611974765270-ca12586343bb?q=80&w=600&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1611974765270-ca12586343bb?q=80&w=800&auto=format&fit=crop"
   },
   {
-    title: "Dashboard & Jornada",
-    description: "Aqui no início você tem um resumo da sua conta e acesso à sua Jornada Trader, o passo-a-passo para começar.",
-    icon: <Map size={48} className="text-blue-500" />,
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=600&auto=format&fit=crop"
+    title: "Painel de Controle",
+    description: "No Dashboard, você tem uma visão rápida das suas contas ativas e os últimos artigos e análises do mercado para guiar seu dia.",
+    icon: <LayoutDashboard size={48} className="text-blue-500" />,
+    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop"
   },
   {
     title: "Estratégias (Robôs)",
-    description: "Nossa vitrine de I.A.s de trading. Escolha, analise e conecte robôs diretamente em sua conta.",
+    description: "Conheça nossa vitrine de robôs. Aqui você escolhe a estratégia que melhor se adapta ao seu perfil e a conecta à sua conta.",
     icon: <Cpu size={48} className="text-purple-500" />,
-    image: "https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=600&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1642790106117-e829e14a795f?q=80&w=800&auto=format&fit=crop"
   },
   {
-    title: "Biblioteca Educacional",
-    description: "Cursos, tutoriais e artigos exclusivos para elevar seu nível de conhecimento no mercado.",
+    title: "Biblioteca de Conteúdo",
+    description: "Acesse cursos exclusivos, tutoriais técnicos e análises aprofundadas. O conhecimento é a chave para o sucesso no trading.",
     icon: <GraduationCap size={48} className="text-yellow-500" />,
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=600&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop"
   },
   {
-    title: "Licenciamento",
-    description: "Gerencie suas contas conectadas e verifique o status das suas licenças ativas em tempo real.",
+    title: "Gestão de Licenças",
+    description: "Acompanhe o status de cada licença, gerencie seus números de conta MT5 e garanta que tudo esteja operando perfeitamente.",
     icon: <Key size={48} className="text-emerald-500" />,
-    image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=600&auto=format&fit=crop"
+    image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    title: "Central de Downloads",
+    description: "Baixe o MetaTrader 5, indicadores exclusivos, templates e manuais de instalação para configurar seu ambiente.",
+    icon: <Download size={48} className="text-indigo-500" />,
+    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop"
+  },
+  {
+    title: "Marketing e Comunidade",
+    description: "Acesse materiais de apoio, participe da nossa comunidade e fique por dentro das novidades da Tradexperience.",
+    icon: <Users size={48} className="text-pink-500" />,
+    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=800&auto=format&fit=crop"
   }
 ];
 
