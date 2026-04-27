@@ -22,7 +22,8 @@ import {
   CheckCircle2,
   Database,
   ShieldAlert,
-  HardDrive
+  HardDrive,
+  Loader2
 } from 'lucide-react';
 import { LicenseRequest, Article, View, Profile } from '../../types';
 import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
@@ -94,17 +95,53 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
     }
   };
 
-  const fetchContentData = async () => {
-      try {
-          // Fetch Courses Count
-          const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('type', 'course');
-          setCoursesCount(count || 0);
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const PAGE_SIZE = 5;
 
-          // Fetch Recent Articles
-          const { data: articlesData } = await supabase.from('articles').select('*').order('created_at', {ascending: false}).limit(5);
-          if (articlesData) setArticles(articlesData);
+  const fetchContentData = async (reset = true) => {
+      try {
+          if (reset) {
+              // Fetch Courses Count
+              const { count } = await supabase.from('products').select('*', { count: 'exact', head: true }).eq('type', 'course');
+              setCoursesCount(count || 0);
+              setPage(0);
+              setHasMore(true);
+          }
+
+          const currentPage = reset ? 0 : page + 1;
+          const from = currentPage * PAGE_SIZE;
+          const to = from + PAGE_SIZE - 1;
+
+          // Fetch Articles with pagination
+          const { data: articlesData } = await supabase
+            .from('articles')
+            .select('*')
+            .order('created_at', {ascending: false})
+            .range(from, to);
+
+          if (articlesData) {
+              if (reset) {
+                  setArticles(articlesData);
+              } else {
+                  setArticles(prev => [...prev, ...articlesData]);
+                  setPage(currentPage);
+              }
+              
+              if (articlesData.length < PAGE_SIZE) {
+                  setHasMore(false);
+              }
+          }
 
       } catch (e) { console.error(e); }
+  };
+
+  const loadMoreArticles = async () => {
+      if (loadingMore || !hasMore) return;
+      setLoadingMore(true);
+      await fetchContentData(false);
+      setLoadingMore(false);
   };
 
   // Article Management Functions
@@ -318,7 +355,15 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             </div>
             
             {articles.length > 0 ? (
-                <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar">
+                <div 
+                  className="space-y-3 max-h-[420px] overflow-y-auto pr-1 custom-scrollbar"
+                  onScroll={(e) => {
+                    const target = e.currentTarget;
+                    if (target.scrollHeight - target.scrollTop <= target.clientHeight + 50) {
+                      loadMoreArticles();
+                    }
+                  }}
+                >
                   {articles.map((article) => (
                     <div
                       key={article.id}
@@ -365,6 +410,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                       </div>
                     </div>
                   ))}
+                  
+                  {loadingMore && (
+                    <div className="flex justify-center py-4">
+                      <Loader2 className="animate-spin text-green-600" size={20} />
+                    </div>
+                  )}
+
+                  {!hasMore && articles.length > 5 && (
+                    <div className="text-center py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                      Você chegou ao fim
+                    </div>
+                  )}
                 </div>
             ) : (
                 <div className="text-center py-8 text-slate-500">Nenhum artigo recente.</div>

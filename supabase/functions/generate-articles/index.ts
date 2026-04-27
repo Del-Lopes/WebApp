@@ -126,9 +126,10 @@ Retorne JSON com EXATAMENTE estes campos:
 }`
 }
 
-async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
+async function callGemini(systemPrompt: string, userPrompt: string, apiKey: string, model: string): Promise<string> {
+  const modelName = model || 'gemini-2.0-flash-lite'
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${GEMINI_API_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -146,15 +147,16 @@ async function callGemini(systemPrompt: string, userPrompt: string): Promise<str
   return text
 }
 
-async function callGroq(systemPrompt: string, userPrompt: string): Promise<string> {
+async function callGroq(systemPrompt: string, userPrompt: string, apiKey: string, model: string): Promise<string> {
+  const modelName = model || 'llama-3.3-70b-versatile'
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${GROQ_API_KEY}`,
+      Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model: modelName,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
@@ -173,24 +175,31 @@ async function callGroq(systemPrompt: string, userPrompt: string): Promise<strin
 async function generateText(
   systemPrompt: string,
   userPrompt: string,
+  config: { gemini_api_key?: string, gemini_model?: string, groq_api_key?: string, groq_model?: string }
 ): Promise<{ text: string; model: string }> {
-  if (GEMINI_API_KEY) {
+  // Try Gemini first
+  const geminiKey = config.gemini_api_key || GEMINI_API_KEY
+  if (geminiKey) {
     try {
-      return { text: await callGemini(systemPrompt, userPrompt), model: 'gemini-2.0-flash-lite' }
+      const model = config.gemini_model || 'gemini-2.0-flash-lite'
+      return { text: await callGemini(systemPrompt, userPrompt, geminiKey, model), model: `gemini/${model}` }
     } catch (e) {
       console.error('Gemini failed:', e instanceof Error ? e.message : JSON.stringify(e))
     }
-  } else {
-    console.warn('GEMINI_API_KEY not set — skipping Gemini')
   }
-  if (GROQ_API_KEY) {
+
+  // Fallback to Groq
+  const groqKey = config.groq_api_key || GROQ_API_KEY
+  if (groqKey) {
     try {
-      return { text: await callGroq(systemPrompt, userPrompt), model: 'groq/llama-3.3-70b-versatile' }
+      const model = config.groq_model || 'llama-3.3-70b-versatile'
+      return { text: await callGroq(systemPrompt, userPrompt, groqKey, model), model: `groq/${model}` }
     } catch (e) {
       console.error('Groq failed:', e)
     }
   }
-  throw new Error('All AI providers failed — check GEMINI_API_KEY or GROQ_API_KEY')
+
+  throw new Error('All AI providers failed — check AI configurations in Admin Panel or Environment Variables')
 }
 
 // ─── JSON parser ──────────────────────────────────────────────────────────────
@@ -239,6 +248,14 @@ Deno.serve(async (req: Request) => {
       return json({ error: 'source_url is not a valid URL' }, 400)
     }
 
+    // 0. Fetch AI Config from DB
+    const { data: aiConfig, error: configError } = await supabase
+      .from('ai_configurations')
+      .select('*')
+      .maybeSingle();
+    
+    if (configError) console.warn('Could not fetch ai_configurations:', configError);
+
     const persona = body.writer_persona
       ?? 'um educador especialista em trading algorítmico, programação MQL5, análise técnica e gestão de risco para traders de varejo'
     const category = body.default_category ?? 'Análise Geral'
@@ -254,7 +271,7 @@ Deno.serve(async (req: Request) => {
     const systemPrompt = buildSystemPrompt(persona)
     const userPrompt = buildArticlePrompt(sourceText, category, body.source_url, sourceImages)
 
-    const { text: rawAI, model: modelUsed } = await generateText(systemPrompt, userPrompt)
+    const { text: rawAI, model: modelUsed } = await generateText(systemPrompt, userPrompt, aiConfig || {})
     const parsed = parseAIJson(rawAI) as ArticlePayload
 
     if (!parsed.title || !parsed.content) {

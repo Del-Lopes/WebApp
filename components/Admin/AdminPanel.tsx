@@ -2054,7 +2054,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               <div className="bg-white w-full max-w-3xl rounded-[48px] shadow-3xl overflow-hidden flex flex-col max-h-[95vh]">
                   <div className="bg-slate-50/50 px-10 py-6 border-b border-slate-100 flex justify-between items-center">
                       <h2 className="text-2xl font-black text-slate-900 tracking-tighter">{editingArticle ? 'Editar Conteúdo' : 'Nova Postagem'}</h2>
-                      <button onClick={() => setIsArticleModalOpen(false)} className="p-3 hover:bg-slate-200 rounded-xl transition-all"><X size={24} className="text-slate-400" /></button>
+                      <div className="flex items-center gap-3">
+                          {editingArticle && (
+                              <button 
+                                  type="button" 
+                                  onClick={() => handleDeleteArticle((editingArticle as any).id)}
+                                  className="p-3 text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                                  title="Excluir Artigo"
+                              >
+                                  <Trash2 size={24} />
+                              </button>
+                          )}
+                          <button onClick={() => setIsArticleModalOpen(false)} className="p-3 hover:bg-slate-200 rounded-xl transition-all"><X size={24} className="text-slate-400" /></button>
+                      </div>
                   </div>
                   
                   <form onSubmit={handleSaveArticle} className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-6">
@@ -2066,7 +2078,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                       </div>
 
                       <div className="space-y-2">
-                           <label className="text-[10px] font-black uppercase text-slate-400">Imagens</label>
+                           <div className="flex justify-between items-end">
+                               <label className="text-[10px] font-black uppercase text-slate-400">Imagens</label>
+                               {storageStats && (
+                                   <div className="flex items-center gap-2 mb-1">
+                                       <div className="w-24 h-1 bg-slate-100 rounded-full overflow-hidden border border-slate-50">
+                                           <div 
+                                               className={`h-full ${storageStats.percentage >= 90 ? 'bg-red-500' : 'bg-green-500'}`}
+                                               style={{ width: `${Math.min(storageStats.percentage, 100)}%` }}
+                                           />
+                                       </div>
+                                       <span className="text-[9px] font-bold text-slate-400">{formatBytes(storageStats.usedBytes)} / 1GB</span>
+                                   </div>
+                               )}
+                           </div>
                            <label className={`flex flex-col items-center justify-center border-2 border-dashed rounded-[32px] p-6 cursor-pointer hover:bg-green-50 hover:border-green-400 transition-all ${isUploading || storageStats?.isFull ? 'bg-slate-50 cursor-not-allowed' : 'bg-green-50/30 border-green-200'}`}>
                                <Plus size={32} className={`${isUploading ? 'text-slate-300 animate-spin' : storageStats?.isFull ? 'text-red-300' : 'text-green-500'}`} />
                                <span className="text-sm font-black text-slate-700">

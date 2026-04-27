@@ -1,59 +1,66 @@
-# 🗺️ Roadmap Trader AFK 2026
+# Roadmap - Trader AFK WebApp
 
-Este documento traça a evolução estratégica do **Trader AFK**, focando em inteligência artificial, automação comercial e experiência do usuário premium.
+## Em Especulação
+
+### Chatbot de IA
+**Status:** Especulação | **Prioridade:** Futura
+
+Adicionar um assistente de IA conversacional integrado à plataforma, acessível em todas as telas via widget flutuante.
+
+#### Motivação
+- Reduzir carga de suporte respondendo dúvidas comuns (licenças, robôs, jornada)
+- Melhorar experiência de onboarding dos novos clientes
+- Aproveitar a infraestrutura de IA (Gemini) já existente no projeto
+
+#### Arquitetura Planejada
+
+```
+Frontend (React)
+  └── ChatWidget.tsx        — botão flutuante, canto inferior direito
+       └── ChatWindow.tsx   — histórico de mensagens + campo de input
+
+Backend
+  └── Supabase Edge Function: /chat-assistant
+       ├── Recebe: mensagem + contexto do usuário (role, licenças ativas)
+       ├── Chama: Gemini 2.0 Flash (já configurado no projeto)
+       └── Retorna: resposta contextualizada sobre a plataforma
+
+Banco de Dados
+  └── Nova tabela: chat_messages
+       └── Campos: user_id, role (user/assistant), content, created_at
+```
+
+#### Fases
+
+**Fase 1 — MVP (estimativa: 1-2 semanas)**
+- [ ] Criar tabela `chat_messages` no Supabase
+- [ ] Criar Edge Function `chat-assistant` com Gemini e system prompt base
+- [ ] Componente `ChatWidget` flutuante sem histórico persistido (apenas sessão)
+
+**Fase 2 — Contexto e Memória (estimativa: 1 semana)**
+- [ ] System prompt dinâmico com dados do usuário (licenças, robô, plano)
+- [ ] Persistir histórico de conversa no banco por usuário
+- [ ] Bot capacitado a responder: ativação de licença, dúvidas sobre robôs, jornada
+
+**Fase 3 — UX e Inteligência (estimativa: 1 semana)**
+- [ ] Sugestões de perguntas rápidas pré-definidas
+- [ ] Integração com artigos — bot cita artigos relevantes da plataforma
+- [ ] Streaming de resposta (indicador de digitação)
+- [ ] Histórico navegável por sessão
+
+#### Decisões Pendentes
+- **LLM:** Gemini (já integrado, setup zero) vs. Claude API (melhor qualidade conversacional, nova integração necessária). Recomendação: Gemini para MVP, Claude depois se necessário.
+- **Escopo do bot:** Suporte geral à plataforma? Apenas onboarding? Dúvidas de trading?
+- **Visibilidade por role:** Disponível para todos os usuários ou apenas clientes com licença ativa?
 
 ---
 
-## ✅ Concluído: Multi-Base & Proteção de IP
-- [x] Migração para arquitetura de licenças isoladas por produto (AFK, Snow Ball, Boleta Pro, FX SQUAD).
-- [x] Endpoints PHP robustos e compatíveis com MT5 para todas as bases.
-- [x] Painel Admin com sub-abas dinâmicas para gestão de bases.
+## Backlog
+
+*(Adicionar próximas ideias aqui)*
 
 ---
 
-## 🔔 Fase 1: Sistema de Retenção (Alertas de Expiração)
-**Objetivo**: Automatizar notificações de renovação para evitar interrupções no trading do cliente.
-- [ ] **Supabase**: Configurar cron diário via Edge Function para checar vencimentos.
-- [ ] **Canais**: E-mail automático e Notificação interna no Dashboard (Badge e Modal).
-- [ ] **Intervalos**: Alertas com 15, 5 e 1 dia de antecedência.
+## Concluído
 
----
-
-## 📢 Fase 2: Hub de Comunicação (Broadcast)
-**Objetivo**: Permitir o disparo de comunicados e novidades diretamente para os usuários.
-- [ ] **Admin Panel**: Interface de seleção múltipla (Checkboxes) para usuários e parceiros.
-- [ ] **Composição**: Modal de escrita com suporte a Markdown.
-- [ ] **Motor**: Implementar fila de disparos para evitar sobrecarga.
-
----
-
-## 🤖 Fase 3: Suporte Inteligente (AI Chat)
-**Objetivo**: Oferecer suporte em tempo real 24/7 através de Inteligência Artificial.
-- [ ] **Chat Widget**: Integrar chat flutuante no Dashboard do usuário.
-- [ ] **Base de Conhecimento**: Treinar a IA com documentos técnicos dos robôs e FAQs.
-- [ ] **Escalonamento**: Botão para falar com suporte humano caso a IA não resolva.
-
----
-
-## 🏗️ Fase 4: Ecossistema Organizado (Vitrine & Categorização)
-**Objetivo**: Transformar a plataforma em um Marketplace profissional.
-- [ ] **Ferramentas**: Categorizar a biblioteca de downloads (Indicadores, Utilitários, EAs).
-- [ ] **Marketplace**: Criar vitrine/showcase de produtos com detalhes, capturas de tela e links de compra.
-
----
-
-## ⚡ Fase 5: Tier de Automação (Tokens & Análise)
-**Objetivo**: Introduzir serviços de análise de dados automatizados.
-- [ ] **Sistema de Tokens**: Implementar saldo de tokens para usuários solicitarem análises.
-- [ ] **Análise Automática**: Desenvolver motor de análise de trades/gráficos que consome tokens por uso.
-- [ ] **Integração**: Relatórios gerados pela IA enviados diretamente para o e-mail do usuário.
-
----
-
-## 📉 Fase 6: Auditoria e UX Avançada
-- [ ] **Logs de Tentativas**: Registrar bloqueios de robôs para identificar compartilhamentos indevidos.
-- [ ] **Progresso Visual**: Barra de tempo restante para expiração da licença.
-
----
-
-*Última atualização: 27/04/2026*
+*(Funcionalidades entregues serão movidas para cá)*

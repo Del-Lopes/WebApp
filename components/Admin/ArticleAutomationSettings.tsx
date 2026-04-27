@@ -38,6 +38,14 @@ interface GenerateResult {
   error?: string
 }
 
+interface AIConfiguration {
+  id: string
+  gemini_api_key: string | null
+  gemini_model: string | null
+  groq_api_key: string | null
+  groq_model: string | null
+}
+
 const DEFAULT_PERSONA =
   'um educador especialista em trading algorítmico, programação MQL5, análise técnica e gestão de risco para traders de varejo'
 
@@ -49,11 +57,32 @@ export const ArticleAutomationSettings: React.FC = () => {
     writer_persona: DEFAULT_PERSONA,
     default_category: 'Análise Geral',
   })
+  
+  const [aiConfig, setAiConfig] = useState<AIConfiguration>({
+    id: '00000000-0000-0000-0000-000000000001',
+    gemini_api_key: '',
+    gemini_model: 'gemini-2.0-flash-lite',
+    groq_api_key: '',
+    groq_model: 'llama-3.3-70b-versatile',
+  })
+  const [configLoading, setConfigLoading] = useState(true)
+  const [savingConfig, setSavingConfig] = useState(false)
+
   const [logs, setLogs] = useState<AutomationLog[]>([])
   const [logsLoading, setLogsLoading] = useState(true)
 
   const [generating, setGenerating] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+
+  const fetchConfig = useCallback(async () => {
+    setConfigLoading(true)
+    const { data } = await supabase
+      .from('ai_configurations')
+      .select('*')
+      .maybeSingle()
+    if (data) setAiConfig(data as AIConfiguration)
+    setConfigLoading(false)
+  }, [])
 
   const fetchLogs = useCallback(async () => {
     setLogsLoading(true)
@@ -68,7 +97,23 @@ export const ArticleAutomationSettings: React.FC = () => {
 
   useEffect(() => {
     fetchLogs()
-  }, [fetchLogs])
+    fetchConfig()
+  }, [fetchLogs, fetchConfig])
+
+  const handleUpdateConfig = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSavingConfig(true)
+    const { error } = await supabase
+      .from('ai_configurations')
+      .upsert(aiConfig)
+    setSavingConfig(false)
+    if (error) {
+      alert('Erro ao salvar: ' + error.message)
+    } else {
+      setResult({ type: 'success', message: 'Configurações de IA salvas com sucesso!' })
+      setTimeout(() => setResult(null), 3000)
+    }
+  }
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -119,15 +164,101 @@ export const ArticleAutomationSettings: React.FC = () => {
   return (
     <div className="space-y-8 max-w-3xl">
 
+      {/* AI Configuration Section */}
+      <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm overflow-hidden relative group">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">Configurações de Automação IA</h3>
+            <p className="text-sm text-slate-500 font-medium">Gerencie chaves de API e modelos para geração de conteúdo.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleUpdateConfig} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Gemini Config */}
+            <div className="space-y-4 p-6 bg-slate-50 rounded-[24px] border border-slate-100">
+              <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                Google Gemini
+              </h4>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">API Key</label>
+                <input 
+                  type="password" 
+                  value={aiConfig.gemini_api_key || ''} 
+                  onChange={e => setAiConfig({...aiConfig, gemini_api_key: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="Sk-..."
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Modelo</label>
+                <input 
+                  type="text" 
+                  value={aiConfig.gemini_model || ''} 
+                  onChange={e => setAiConfig({...aiConfig, gemini_model: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="gemini-2.0-flash-lite"
+                />
+              </div>
+            </div>
+
+            {/* Groq Config */}
+            <div className="space-y-4 p-6 bg-slate-50 rounded-[24px] border border-slate-100">
+              <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-orange-500" />
+                Groq (Fallback)
+              </h4>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">API Key</label>
+                <input 
+                  type="password" 
+                  value={aiConfig.groq_api_key || ''} 
+                  onChange={e => setAiConfig({...aiConfig, groq_api_key: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="gsk_..."
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Modelo</label>
+                <input 
+                  type="text" 
+                  value={aiConfig.groq_model || ''} 
+                  onChange={e => setAiConfig({...aiConfig, groq_model: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="llama-3.3-70b-versatile"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={savingConfig || configLoading}
+              className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-[20px] font-black hover:bg-green-600 transition-all shadow-xl disabled:opacity-50"
+            >
+              {savingConfig ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
+              Salvar Configurações
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <div className="h-[1px] w-full bg-slate-100 my-8" />
+
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-10 h-10 bg-violet-100 rounded-xl flex items-center justify-center">
-          <Bot size={22} className="text-violet-600" />
+        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center">
+          <Bot size={24} className="text-slate-600" />
         </div>
         <div>
-          <h3 className="text-lg font-bold text-slate-900">Geração de Artigos via IA</h3>
-          <p className="text-sm text-slate-500">
-            Cole a URL de uma postagem didática e gere um artigo adaptado automaticamente.
+          <h3 className="text-xl font-black text-slate-900 tracking-tight">Gerar Novo Artigo</h3>
+          <p className="text-sm text-slate-500 font-medium">
+            Cole a URL de uma postagem e gere um artigo adaptado.
           </p>
         </div>
       </div>
