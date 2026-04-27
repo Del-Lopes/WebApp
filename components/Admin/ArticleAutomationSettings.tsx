@@ -159,10 +159,13 @@ export const ArticleAutomationSettings: React.FC = () => {
 
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+        
+        if (value) {
+          buffer += decoder.decode(value, { stream: true })
+        }
 
-        buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
+        // Keep the last chunk as buffer (might be an incomplete line)
         buffer = lines.pop() || ''
 
         for (const line of lines) {
@@ -176,6 +179,7 @@ export const ArticleAutomationSettings: React.FC = () => {
                 type: 'success',
                 message: `Artigo "${data.title}" gerado com sucesso via ${data.model}. ${data.images_found ?? 0} imagem(ns) importada(s).`,
               })
+              setStatusMessage('Artigo gerado com sucesso!')
               setSourceUrl('')
               await fetchLogs()
             } else if (data.type === 'error') {
@@ -185,15 +189,38 @@ export const ArticleAutomationSettings: React.FC = () => {
             console.error('Erro ao processar chunk:', e, line)
           }
         }
+        
+        if (done) {
+          // Process any remaining data in the buffer just in case
+          if (buffer.trim()) {
+            try {
+              const data = JSON.parse(buffer)
+              if (data.type === 'progress') setStatusMessage(data.status)
+              else if (data.type === 'result') {
+                setResult({
+                  type: 'success',
+                  message: `Artigo "${data.title}" gerado com sucesso via ${data.model}. ${data.images_found ?? 0} imagem(ns) importada(s).`,
+                })
+                setStatusMessage('Artigo gerado com sucesso!')
+                setSourceUrl('')
+                await fetchLogs()
+              }
+              else if (data.type === 'error') throw new Error(data.error)
+            } catch (e) {
+               console.error('Erro ao processar chunk final:', e, buffer)
+            }
+          }
+          break
+        }
       }
     } catch (err: unknown) {
       setResult({
         type: 'error',
         message: err instanceof Error ? err.message : 'Erro desconhecido',
       })
+      setStatusMessage('Falha ao gerar.')
     } finally {
       setGenerating(false)
-      setStatusMessage('')
       setTimeout(() => setResult(null), 8000)
     }
   }
