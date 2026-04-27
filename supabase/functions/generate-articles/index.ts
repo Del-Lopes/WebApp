@@ -276,128 +276,169 @@ Deno.serve(async (req: Request) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
-  const json = (body: unknown, status = 200) =>
-    new Response(JSON.stringify(body), {
-      status,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    })
+  const streamEncoder = new TextEncoder()
+  let streamController: ReadableStreamDefaultController | null = null
 
-  try {
-    const body: GenerateRequest = await req.json()
-
-    if (!body.source_url) {
-      return json({ error: 'source_url is required' }, 400)
+  const stream = new ReadableStream({
+    start(controller) {
+      streamController = controller
     }
+  })
 
-    // Validate URL format
-    try { new URL(body.source_url) } catch {
-      return json({ error: 'source_url is not a valid URL' }, 400)
+  const sendProgress = (status: string) => {
+    if (streamController) {
+      streamController.enqueue(streamEncoder.encode(JSON.stringify({ type: 'progress', status }) + '\n'))
     }
-
-    // 0. Fetch AI Config from DB
-    const { data: aiConfig, error: configError } = await supabase
-      .from('ai_configurations')
-      .select('*')
-      .maybeSingle();
-    
-    if (configError) console.warn('Could not fetch ai_configurations:', configError);
-
-    const persona = body.writer_persona
-      ?? 'um educador especialista em trading algorítmico, programação MQL5, análise técnica e gestão de risco para traders de varejo'
-    const category = body.default_category ?? 'Análise Geral'
-
-    // 1. Scrape source page
-    console.log('Scraping URL:', body.source_url)
-    const { text: sourceText, images: sourceImages } = await scrapePage(body.source_url)
-    console.log('Scrape done. Text length:', sourceText.length)
-
-    if (sourceText.length < 200) {
-      return json({ error: 'Source page returned too little text to generate an article' }, 422)
-    }
-
-    // 2. Generate article via AI
-    const systemPrompt = buildSystemPrompt(persona)
-    const userPrompt = buildArticlePrompt(sourceText, category, body.source_url, sourceImages)
-
-    let modelUsed = 'unknown'
-    let rawAI = ''
-
-    try {
-      const result = await generateText(systemPrompt, userPrompt, aiConfig || {})
-      rawAI = result.text
-      modelUsed = result.model
-    } catch (e) {
-      // If generateText itself fails (all providers fail)
-      throw e
-    }
-
-    const parsed = parseAIJson(rawAI) as ArticlePayload
-
-    if (!parsed.title || !parsed.content) {
-      throw new Error('AI response missing title or content')
-    }
-
-    // 3. Use images extracted directly from source page (first one = cover)
-    const coverImageUrl = sourceImages[0] ?? null
-    const galleryUrls = sourceImages.slice(1)
-
-    // 4. Insert article
-    const { data: articleData, error: insertError } = await supabase
-      .from('articles')
-      .insert({
-        title: parsed.title,
-        content: parsed.content,
-        excerpt: parsed.excerpt ?? '',
-        category,
-        image_url: coverImageUrl,
-        gallery_urls: sourceImages,
-        author: 'IA Trader AFK',
-        ai_generated: true,
-      })
-      .select('id')
-      .single()
-
-    if (insertError) throw new Error(`DB insert failed: ${insertError.message ?? JSON.stringify(insertError)}`)
-
-    // 5. Log execution
-    await supabase.from('article_automation_logs').insert({
-      article_id: articleData?.id ?? null,
-      topic: body.source_url,
-      model_used: modelUsed,
-      status: 'success',
-    })
-
-    return json({
-      ok: true,
-      article_id: articleData?.id,
-      title: parsed.title,
-      model: modelUsed,
-      images_found: sourceImages.length,
-    })
-  } catch (err: unknown) {
-    const msg = err instanceof Error
-      ? err.message
-      : (typeof err === 'object' && err !== null && 'message' in err)
-        ? String((err as { message: unknown }).message)
-        : JSON.stringify(err)
-    console.error('generate-articles error:', msg)
-
-    // Best-effort error log
-    try {
-      await supabase.from('article_automation_logs').insert({
-        article_id: null,
-        topic: body?.source_url ?? '(erro antes do scraping)',
-        model_used: (globalThis as any).lastModelUsed || 'unknown',
-        status: 'error',
-        error_message: msg,
-        // We could add a raw_response column to the DB if we wanted, 
-        // but for now let's just make sure we log what we can.
-      })
-    } catch { /* ignore secondary failure */ }
-
-    return new Response(
-      JSON.stringify({ error: msg }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-    )
   }
+
+  const sendResult = (data: any) => {
+    if (streamController) {
+      streamController.enqueue(streamEncoder.encode(JSON.stringify({ type: 'result', ...data }) + '\n'))
+      streamController.close()
+    }
+  }
+
+  const sendError = (error: string) => {
+    if (streamController) {
+      streamController.enqueue(streamEncoder.encode(JSON.stringify({ type: 'error', error }) + '\n'))
+      streamController.close()
+    }
+  }
+
+  // Helper to respond with the stream
+  const streamResponse = () => new Response(stream, {
+    headers: { 
+      ...corsHeaders, 
+      'Content-Type': 'application/x-ndjson',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  })
+
+  // Start processing in background
+  const process = async () => {
+    let sourceUrlForLog = '(não informado)'
+    try {
+      const body: GenerateRequest = await req.json()
+      sourceUrlForLog = body.source_url || '(não informado)'
+
+      if (!body.source_url) {
+        return sendError('source_url is required')
+      }
+
+      // Validate URL format
+      try { new URL(body.source_url) } catch {
+        return sendError('source_url is not a valid URL')
+      }
+
+      sendProgress('Buscando configurações...')
+
+      // 0. Fetch AI Config from DB
+      const { data: aiConfig, error: configError } = await supabase
+        .from('ai_configurations')
+        .select('*')
+        .maybeSingle();
+      
+      if (configError) console.warn('Could not fetch ai_configurations:', configError);
+
+      const persona = body.writer_persona
+        ?? 'um educador especialista em trading algorítmico, programação MQL5, análise técnica e gestão de risco para traders de varejo'
+      const category = body.default_category ?? 'Análise Geral'
+
+      // 1. Scrape source page
+      sendProgress('Extraindo conteúdo da URL...')
+      console.log('Scraping URL:', body.source_url)
+      const { text: sourceText, images: sourceImages } = await scrapePage(body.source_url)
+      console.log('Scrape done. Text length:', sourceText.length)
+
+      if (sourceText.length < 200) {
+        return sendError('Source page returned too little text to generate an article')
+      }
+
+      // 2. Generate article via AI
+      sendProgress('Gerando artigo com IA...')
+      const systemPrompt = buildSystemPrompt(persona)
+      const userPrompt = buildArticlePrompt(sourceText, category, body.source_url, sourceImages)
+
+      let modelUsed = 'unknown'
+      let rawAI = ''
+
+      try {
+        const result = await generateText(systemPrompt, userPrompt, aiConfig || {})
+        rawAI = result.text
+        modelUsed = result.model
+      } catch (e) {
+        throw e
+      }
+
+      sendProgress('Finalizando e salvando...')
+      const parsed = parseAIJson(rawAI) as ArticlePayload
+
+      if (!parsed.title || !parsed.content) {
+        throw new Error('AI response missing title or content')
+      }
+
+      // 3. Use images extracted directly from source page (first one = cover)
+      const coverImageUrl = sourceImages[0] ?? null
+
+      // 4. Insert article
+      const { data: articleData, error: insertError } = await supabase
+        .from('articles')
+        .insert({
+          title: parsed.title,
+          content: parsed.content,
+          excerpt: parsed.excerpt ?? '',
+          category,
+          image_url: coverImageUrl,
+          gallery_urls: sourceImages,
+          author: 'IA Trader AFK',
+          ai_generated: true,
+        })
+        .select('id')
+        .single()
+
+      if (insertError) throw new Error(`DB insert failed: ${insertError.message ?? JSON.stringify(insertError)}`)
+
+      // 5. Log execution
+      await supabase.from('article_automation_logs').insert({
+        article_id: articleData?.id ?? null,
+        topic: body.source_url,
+        model_used: modelUsed,
+        status: 'success',
+      })
+
+      sendResult({
+        ok: true,
+        article_id: articleData?.id,
+        title: parsed.title,
+        model: modelUsed,
+        images_found: sourceImages.length,
+      })
+    } catch (err: unknown) {
+      const msg = err instanceof Error
+        ? err.message
+        : (typeof err === 'object' && err !== null && 'message' in err)
+          ? String((err as { message: unknown }).message)
+          : JSON.stringify(err)
+      console.error('generate-articles error:', msg)
+
+      // Best-effort error log
+      try {
+        await supabase.from('article_automation_logs').insert({
+          article_id: null,
+          topic: sourceUrlForLog,
+          model_used: (globalThis as any).lastModelUsed || 'unknown',
+          status: 'error',
+          error_message: msg,
+        })
+      } catch { /* ignore secondary failure */ }
+
+      sendError(msg)
+    }
+  }
+
+  process() // Start async process
+
+  return streamResponse()
+
 })

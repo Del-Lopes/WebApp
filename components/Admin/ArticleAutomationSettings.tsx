@@ -76,6 +76,7 @@ export const ArticleAutomationSettings: React.FC = () => {
   const [logsLoading, setLogsLoading] = useState(true)
 
   const [generating, setGenerating] = useState(false)
+  const [statusMessage, setStatusMessage] = useState('')
   const [result, setResult] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const fetchConfig = useCallback(async () => {
@@ -124,12 +125,13 @@ export const ArticleAutomationSettings: React.FC = () => {
     if (!session || !sourceUrl.trim()) return
 
     setGenerating(true)
+    setStatusMessage('Iniciando...')
     setResult(null)
 
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 
     try {
-      const res = await fetch(`${supabaseUrl}/functions/v1/generate-articles`, {
+      const response = await fetch(`${supabaseUrl}/functions/v1/generate-articles`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${session.access_token}`,
@@ -142,18 +144,48 @@ export const ArticleAutomationSettings: React.FC = () => {
         }),
       })
 
-      const data: GenerateResult = await res.json()
-
-      if (!res.ok || data.error) {
-        throw new Error(data.error ?? `HTTP ${res.status}`)
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}` }))
+        throw new Error(errorData.error || `Erro na requisição: ${response.status}`)
       }
 
-      setResult({
-        type: 'success',
-        message: `Artigo "${data.title}" gerado com sucesso via ${data.model}. ${data.images_found ?? 0} imagem(ns) importada(s) da URL.`,
-      })
-      setSourceUrl('')
-      await fetchLogs()
+      if (!response.body) {
+        throw new Error('Resposta sem corpo')
+      }
+
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (!line.trim()) continue
+          try {
+            const data = JSON.parse(line)
+            if (data.type === 'progress') {
+              setStatusMessage(data.status)
+            } else if (data.type === 'result') {
+              setResult({
+                type: 'success',
+                message: `Artigo "${data.title}" gerado com sucesso via ${data.model}. ${data.images_found ?? 0} imagem(ns) importada(s).`,
+              })
+              setSourceUrl('')
+              await fetchLogs()
+            } else if (data.type === 'error') {
+              throw new Error(data.error)
+            }
+          } catch (e) {
+            console.error('Erro ao processar chunk:', e, line)
+          }
+        }
+      }
     } catch (err: unknown) {
       setResult({
         type: 'error',
@@ -161,6 +193,7 @@ export const ArticleAutomationSettings: React.FC = () => {
       })
     } finally {
       setGenerating(false)
+      setStatusMessage('')
       setTimeout(() => setResult(null), 8000)
     }
   }
@@ -254,7 +287,7 @@ export const ArticleAutomationSettings: React.FC = () => {
           ) : (
             <Sparkles size={16} />
           )}
-          {generating ? 'Gerando artigo...' : 'Gerar artigo'}
+          {generating ? statusMessage : 'Gerar artigo'}
         </button>
       </form>
 
