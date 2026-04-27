@@ -121,13 +121,21 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
       const license = requests.find(r => r.id === id);
       const targetTable = (license as any)?.ea ? eaConfig[(license as any).ea as keyof typeof eaConfig].table : 'license_requests';
       
+      const isApproved = license?.status === 'approved';
+      const updateData: any = { 
+        mt5_account: editValue
+      };
+
+      // Se não estiver aprovada, garantimos que volte para pendente e limpe a expiração
+      // Se estiver aprovada, mantemos o status e a expiração (auto-aceite)
+      if (!isApproved) {
+        updateData.status = 'pending';
+        updateData.expires_at = null;
+      }
+
       const { error } = await supabase
         .from(targetTable)
-        .update({ 
-          mt5_account: editValue,
-          status: 'pending',
-          expires_at: null
-        })
+        .update(updateData)
         .eq('id', id);
 
       if (error) throw error;
