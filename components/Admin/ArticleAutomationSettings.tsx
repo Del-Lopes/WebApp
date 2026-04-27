@@ -168,112 +168,6 @@ export const ArticleAutomationSettings: React.FC = () => {
   return (
     <div className="space-y-8 max-w-3xl">
 
-      {/* AI Configuration Section */}
-      <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm overflow-hidden relative group">
-        <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
-            <Sparkles size={24} />
-          </div>
-          <div>
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">Configurações de Automação IA</h3>
-            <p className="text-sm text-slate-500 font-medium">Gerencie chaves de API e modelos para geração de conteúdo.</p>
-          </div>
-        </div>
-
-        <form onSubmit={handleUpdateConfig} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Gemini Config */}
-            <div className="space-y-4 p-6 bg-slate-50 rounded-[24px] border border-slate-100">
-              <h4 className="font-bold text-slate-700 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-500" />
-                Google Gemini
-              </h4>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">API Key</label>
-                <input 
-                  type="password" 
-                  value={aiConfig.gemini_api_key || ''} 
-                  onChange={e => setAiConfig({...aiConfig, gemini_api_key: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
-                  placeholder="Sk-..."
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Modelo Principal</label>
-                <input 
-                  type="text" 
-                  value={aiConfig.gemini_model || ''} 
-                  onChange={e => setAiConfig({...aiConfig, gemini_model: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
-                  placeholder="gemini-2.0-flash-lite"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Cascata 2 (Fallback 1)</label>
-                <input 
-                  type="text" 
-                  value={aiConfig.gemini_model_2 || ''} 
-                  onChange={e => setAiConfig({...aiConfig, gemini_model_2: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
-                  placeholder="gemini-2.0-flash"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Cascata 3 (Fallback 2)</label>
-                <input 
-                  type="text" 
-                  value={aiConfig.gemini_model_3 || ''} 
-                  onChange={e => setAiConfig({...aiConfig, gemini_model_3: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
-                  placeholder="gemini-1.5-pro"
-                />
-              </div>
-            </div>
-
-            {/* Groq Config */}
-            <div className="space-y-4 p-6 bg-slate-50 rounded-[24px] border border-slate-100">
-              <h4 className="font-bold text-slate-700 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-orange-500" />
-                Groq (Fallback)
-              </h4>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">API Key</label>
-                <input 
-                  type="password" 
-                  value={aiConfig.groq_api_key || ''} 
-                  onChange={e => setAiConfig({...aiConfig, groq_api_key: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
-                  placeholder="gsk_..."
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Modelo</label>
-                <input 
-                  type="text" 
-                  value={aiConfig.groq_model || ''} 
-                  onChange={e => setAiConfig({...aiConfig, groq_model: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
-                  placeholder="llama-3.3-70b-versatile"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end pt-2">
-            <button
-              type="submit"
-              disabled={savingConfig || configLoading}
-              className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-[20px] font-black hover:bg-green-600 transition-all shadow-xl disabled:opacity-50"
-            >
-              {savingConfig ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
-              Salvar Configurações
-            </button>
-          </div>
-        </form>
-      </div>
-
-      <div className="h-[1px] w-full bg-slate-100 my-8" />
-
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center">
@@ -381,6 +275,112 @@ export const ArticleAutomationSettings: React.FC = () => {
           <span>{result.message}</span>
         </div>
       )}
+
+      <div className="h-[1px] w-full bg-slate-100 my-8" />
+
+      {/* AI Configuration Section */}
+      <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm overflow-hidden relative group">
+        <div className="flex items-center gap-4 mb-8">
+          <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+            <Sparkles size={24} />
+          </div>
+          <div>
+            <h3 className="text-xl font-black text-slate-900 tracking-tight">Configurações de Automação IA</h3>
+            <p className="text-sm text-slate-500 font-medium">Gerencie chaves de API e modelos para geração de conteúdo.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleUpdateConfig} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Gemini Config */}
+            <div className="space-y-4 p-6 bg-slate-50 rounded-[24px] border border-slate-100">
+              <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                Google Gemini
+              </h4>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">API Key</label>
+                <input 
+                  type="password" 
+                  value={aiConfig.gemini_api_key || ''} 
+                  onChange={e => setAiConfig({...aiConfig, gemini_api_key: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="Sk-..."
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Modelo Principal</label>
+                <input 
+                  type="text" 
+                  value={aiConfig.gemini_model || ''} 
+                  onChange={e => setAiConfig({...aiConfig, gemini_model: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="gemini-2.0-flash-lite"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Cascata 2 (Fallback 1)</label>
+                <input 
+                  type="text" 
+                  value={aiConfig.gemini_model_2 || ''} 
+                  onChange={e => setAiConfig({...aiConfig, gemini_model_2: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="gemini-2.0-flash"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Cascata 3 (Fallback 2)</label>
+                <input 
+                  type="text" 
+                  value={aiConfig.gemini_model_3 || ''} 
+                  onChange={e => setAiConfig({...aiConfig, gemini_model_3: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="gemini-1.5-pro"
+                />
+              </div>
+            </div>
+
+            {/* Groq Config */}
+            <div className="space-y-4 p-6 bg-slate-50 rounded-[24px] border border-slate-100">
+              <h4 className="font-bold text-slate-700 flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-orange-500" />
+                Groq (Fallback)
+              </h4>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">API Key</label>
+                <input 
+                  type="password" 
+                  value={aiConfig.groq_api_key || ''} 
+                  onChange={e => setAiConfig({...aiConfig, groq_api_key: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="gsk_..."
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black uppercase text-slate-400">Modelo</label>
+                <input 
+                  type="text" 
+                  value={aiConfig.groq_model || ''} 
+                  onChange={e => setAiConfig({...aiConfig, groq_model: e.target.value})}
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  placeholder="llama-3.3-70b-versatile"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <button
+              type="submit"
+              disabled={savingConfig || configLoading}
+              className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-[20px] font-black hover:bg-green-600 transition-all shadow-xl disabled:opacity-50"
+            >
+              {savingConfig ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
+              Salvar Configurações
+            </button>
+          </div>
+        </form>
+      </div>
 
       {/* Execution Logs */}
       <div>
