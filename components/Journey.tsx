@@ -1,312 +1,250 @@
-import React, { useState } from 'react';
-import { ArrowLeft, CheckCircle2, ChevronRight, Lock, Map, Milestone, TrendingUp, Wallet, UserCheck, Play, Edit2, Save, X, Plus, Trash2 } from 'lucide-react';
-import { useAuth } from '../contexts/AuthContext';
+import React from 'react';
+import { 
+  ArrowLeft, 
+  LayoutDashboard, 
+  Cpu, 
+  GraduationCap, 
+  TrendingUp, 
+  Download, 
+  Users, 
+  ChevronRight,
+  Info,
+  ShieldCheck,
+  Zap,
+  Target
+} from 'lucide-react';
+import { View } from '../types';
 
 interface JourneyProps {
   onBack: () => void;
+  onNavigate: (view: View) => void;
 }
 
-type StepStatus = 'completed' | 'current' | 'upcoming';
-
-interface Step {
-  id: number;
+interface PlatformSession {
+  id: string;
   title: string;
+  subtitle: string;
   description: string;
-  status: StepStatus;
-  iconType: 'UserCheck' | 'Milestone' | 'Wallet' | 'TrendingUp';
-  actionLabel: string;
-  actionType: 'modal' | 'link';
-  actionData?: string;
+  longDescription: string;
+  icon: React.ReactNode;
+  color: string;
+  view: View;
+  features: string[];
 }
 
-// Initial default steps
-const INITIAL_STEPS: Step[] = [
+const SESSIONS: PlatformSession[] = [
   {
-    id: 1,
-    title: "Boas-vindas à Trader AFK",
-    description: "Você já deu o primeiro passo! Agora você faz parte da elite do trading automatizado.",
-    status: "completed",
-    iconType: 'UserCheck',
-    actionLabel: "Ver Introdução",
-    actionType: 'modal'
+    id: 'dashboard',
+    title: "Painel de Controle",
+    subtitle: "Sua Central de Inteligência",
+    description: "Uma visão 360º de tudo o que acontece na sua conta em tempo real.",
+    longDescription: "O Dashboard foi projetado para ser o seu centro de comando. Aqui você acompanha o status de suas contas MT5, visualiza as últimas análises de mercado da nossa equipe e tem acesso rápido às ferramentas que mais utiliza. É o ponto de partida para qualquer operação.",
+    icon: <LayoutDashboard size={32} />,
+    color: "indigo",
+    view: 'dashboard',
+    features: [
+      "Status das Contas MT5",
+      "Feed de Notícias e Análises",
+      "Monitor de Armazenamento",
+      "Atalhos de Navegação Rápida"
+    ]
   },
   {
-    id: 2,
-    title: "Abrir Conta na Corretora",
-    description: "Escolha uma de nossas corretoras parceiras para garantir os melhores spreads e execução.",
-    status: "current", // Unlocked as requested
-    iconType: 'Milestone',
-    actionLabel: "Escolher Corretora",
-    actionType: 'modal',
-    actionData: 'broker-tutorial'
+    id: 'strategies',
+    title: "Estratégias (Robôs)",
+    subtitle: "Automação de Alta Performance",
+    description: "Gerencie e configure seus algoritmos de trading de forma simplificada.",
+    longDescription: "Nesta sessão, você encontra o 'cérebro' das nossas operações. Você pode visualizar todos os robôs disponíveis (como o AFK Trader e Snow Ball), entender o perfil de risco de cada um e gerenciar quais estratégias estão ativas em suas contas vinculadas.",
+    icon: <Cpu size={32} />,
+    color: "blue",
+    view: 'strategies',
+    features: [
+      "Catálogo de Algoritmos",
+      "Configurações de Risco",
+      "Monitor de Performance",
+      "Gestão de Parâmetros"
+    ]
   },
   {
-    id: 3,
-    title: "Realizar Depósito",
-    description: "Aporte capital na sua conta da corretora para começar a operar.",
-    status: "current", // Unlocked as requested
-    iconType: 'Wallet',
-    actionLabel: "Ver Tutorial de Depósito",
-    actionType: 'modal',
-    actionData: 'deposit-tutorial'
+    id: 'education',
+    title: "Biblioteca (Cursos)",
+    subtitle: "Conhecimento é Poder",
+    description: "Aprenda as metodologias por trás das estratégias e domine o mercado.",
+    longDescription: "Não acreditamos em 'caixa preta'. Na Biblioteca, você tem acesso a todo o material educativo da Tradexperience. Desde tutoriais básicos de instalação até mentorias avançadas sobre como os robôs funcionam e como otimizar seus resultados manualmente.",
+    icon: <GraduationCap size={32} />,
+    color: "purple",
+    view: 'education',
+    features: [
+      "Aulas em Vídeo",
+      "E-books e Manuais",
+      "Mentorias Gravadas",
+      "Certificações"
+    ]
   },
   {
-    id: 4,
-    title: "Conectar Estratégia",
-    description: "Escolha o robô que melhor se adapta ao seu perfil e conecte sua conta.",
-    status: "current", // Unlocked as requested
-    iconType: 'TrendingUp',
-    actionLabel: "Ver Estratégias",
-    actionType: 'link',
-    actionData: 'strategies'
+    id: 'licenses',
+    title: "Gestão de Licenças",
+    subtitle: "Controle Total das suas Contas",
+    description: "Vincule suas contas de corretora e acompanhe suas permissões de uso.",
+    longDescription: "Aqui é onde você oficializa sua operação. Você pode solicitar novas chaves de licença, vincular números de contas MT5 específicos e verificar a validade de cada assinatura. É o portal que garante que seus robôs tenham permissão total para rodar nos servidores.",
+    icon: <TrendingUp size={32} />,
+    color: "green",
+    view: 'licenses',
+    features: [
+      "Vínculo de Contas MT5",
+      "Renovação de Assinaturas",
+      "Histórico de Solicitações",
+      "Status de Aprovação"
+    ]
+  },
+  {
+    id: 'downloads',
+    title: "Central de Downloads",
+    subtitle: "Kit de Ferramentas Completo",
+    description: "Tudo o que você precisa instalar para começar a operar.",
+    longDescription: "Sua caixa de ferramentas técnica. Aqui você baixa o MetaTrader 5 customizado, nossos indicadores exclusivos, arquivos de configuração (.set) otimizados e as versões mais recentes dos robôs que você adquiriu.",
+    icon: <Download size={32} />,
+    color: "slate",
+    view: 'downloads',
+    features: [
+      "Instalador MT5",
+      "Indicadores Proprietários",
+      "Arquivos de Setup (.set)",
+      "Updates de Software"
+    ]
+  },
+  {
+    id: 'marketing',
+    title: "Comunidade & Afiliados",
+    subtitle: "Cresça com a Tradexperience",
+    description: "Explore nosso ecossistema de marketing e rede de parceiros.",
+    longDescription: "A Tradexperience é mais que uma plataforma, é uma comunidade. Nesta sessão, você entende como funciona nosso programa de afiliados, acessa materiais de divulgação e entende como escalar seus ganhos indicando a plataforma para outros traders.",
+    icon: <Users size={32} />,
+    color: "orange",
+    view: 'marketing',
+    features: [
+      "Painel de Afiliado",
+      "Materiais de Apoio",
+      "Redes Sociais",
+      "Suporte Direto"
+    ]
   }
 ];
 
-export const Journey: React.FC<JourneyProps> = ({ onBack }) => {
-  const { role } = useAuth();
-  const [steps, setSteps] = useState<Step[]>(INITIAL_STEPS);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingStep, setEditingStep] = useState<Step | null>(null);
-
-  // Icon mapping helper
-  const getIcon = (type: string, className: string) => {
-    switch (type) {
-      case 'UserCheck': return <UserCheck size={24} className={className} />;
-      case 'Milestone': return <Milestone size={24} className={className} />;
-      case 'Wallet': return <Wallet size={24} className={className} />;
-      case 'TrendingUp': return <TrendingUp size={24} className={className} />;
-      default: return <Milestone size={24} className={className} />;
-    }
-  };
-
-  const handleAction = (step: Step) => {
-    if (step.status === 'upcoming' && role !== 'admin') return;
-    alert(`Ação: ${step.actionLabel}\nTipo: ${step.actionType}\nDados: ${step.actionData}`);
-  };
-
-  const handleSaveStep = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingStep) return;
-
-    setSteps(prev => prev.map(s => s.id === editingStep.id ? editingStep : s));
-    setEditingStep(null);
-  };
-
-  const handleDeleteStep = (id: number) => {
-      if(!confirm("Tem certeza?")) return;
-      setSteps(prev => prev.filter(s => s.id !== id));
-      setEditingStep(null);
-  }
-
-  const handleAddNewStep = () => {
-      const newStep: Step = {
-          id: Date.now(),
-          title: "Novo Passo",
-          description: "Descrição do novo passo",
-          status: "upcoming",
-          iconType: "Milestone",
-          actionLabel: "Ação",
-          actionType: "link"
-      };
-      setSteps([...steps, newStep]);
-      setEditingStep(newStep);
-  }
-
+export const Journey: React.FC<JourneyProps> = ({ onBack, onNavigate }) => {
   return (
-    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12 relative">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       {/* Header */}
       <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-4">
-            <button 
+          <button 
             onClick={onBack}
             className="p-2 hover:bg-slate-100 rounded-lg transition-colors group"
-            >
+          >
             <ArrowLeft className="text-slate-400 group-hover:text-slate-600 transition-colors" />
-            </button>
-            <div>
+          </button>
+          <div>
             <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-                <Map className="text-green-600" />
-                Sua Jornada Trader
+              <Zap className="text-indigo-600" />
+              Manual da Plataforma
             </h1>
-            <p className="text-slate-500">Veja como é simples o passo a passo.</p>
-            </div>
-        </div>
-        
-        {role === 'admin' && (
-            <button 
-                onClick={() => setIsEditing(!isEditing)}
-                className={`p-2 rounded-lg transition-colors flex items-center gap-2 font-bold text-sm ${isEditing ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}
-            >
-                <Edit2 size={16} />
-                {isEditing ? 'Modo Edição Ativo' : 'Editar Trilha'}
-            </button>
-        )}
-      </div>
-
-      {/* Intro Card */}
-      <div className="bg-gradient-to-r from-green-600 to-green-500 p-8 rounded-2xl text-white shadow-lg shadow-green-500/20 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -mr-16 -mt-16"></div>
-        <div className="relative z-10">
-          <h2 className="text-3xl font-bold mb-2">Bem-vindo à jornada</h2>
-          <p className="text-green-50 max-w-xl text-lg opacity-90">
-            Preparamos um caminho simples e fácil para você atingir a consistência. 
-            Complete as missões abaixo para começar a lucrar no piloto automático.
-          </p>
-        </div>
-      </div>
-
-      {/* Timeline */}
-      <div className="max-w-4xl mx-auto pt-8">
-        <div className="relative">
-          {/* Vertical Line */}
-          <div className="absolute left-8 top-8 bottom-8 w-1 bg-slate-100 rounded-full"></div>
-
-          <div className="space-y-12">
-            {steps.map((step, index) => {
-              const isCompleted = step.status === 'completed';
-              const isCurrent = step.status === 'current';
-              const isUpcoming = step.status === 'upcoming';
-              const isLocked = isUpcoming && !isEditing;
-
-              return (
-                <div key={step.id} className="relative pl-24 group">
-                  {/* Status Indicator */}
-                  <div className={`
-                    absolute left-0 top-0 w-16 h-16 flex items-center justify-center rounded-2xl border-4 transition-all duration-500 z-10 shadow-sm
-                    ${isCompleted ? 'bg-green-500 border-white ring-4 ring-green-100' : ''}
-                    ${isCurrent ? 'bg-blue-600 border-white ring-4 ring-blue-100 scale-110' : ''}
-                    ${isUpcoming ? 'bg-slate-200 border-white ring-4 ring-slate-50' : ''}
-                  `}>
-                    {isCompleted ? <CheckCircle2 size={32} className="text-white" /> : getIcon(step.iconType, "text-white")}
-                  </div>
-
-                  {/* Content Card */}
-                  <div className={`
-                    relative bg-white p-6 rounded-2xl border transition-all duration-300
-                    ${isCurrent 
-                      ? 'border-blue-100 shadow-xl shadow-blue-500/10 scale-[1.02] opacity-100 ring-1 ring-blue-500/20' 
-                      : isCompleted
-                        ? 'border-green-100 bg-green-50/30 opacity-90 hover:opacity-100'
-                        : 'border-slate-100 opacity-60 grayscale hover:grayscale-0 hover:opacity-100'
-                    }
-                  `}>
-                    <div className="flex justify-between items-start mb-3">
-                      <span className={`
-                        text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full flex items-center gap-1
-                        ${isCompleted ? 'bg-green-100 text-green-700' : ''}
-                        ${isCurrent ? 'bg-blue-100 text-blue-700' : ''}
-                        ${isUpcoming ? 'bg-slate-100 text-slate-500' : ''}
-                      `}>
-                        {isCompleted && <CheckCircle2 size={12} />}
-                        Passo 0{index + 1}
-                      </span>
-                      {isLocked && <Lock size={16} className="text-slate-300" />}
-                      {isEditing && (
-                          <button onClick={() => setEditingStep(step)} className="p-1 hover:bg-slate-100 rounded text-blue-600">
-                              <Edit2 size={16} />
-                          </button>
-                      )}
-                    </div>
-                    
-                    <h3 className={`text-xl font-bold mb-2 ${isCurrent ? 'text-slate-900' : 'text-slate-700'}`}>
-                      {step.title}
-                    </h3>
-                    
-                    <p className="text-slate-500 text-sm mb-6 leading-relaxed border-b border-slate-100 pb-4">
-                      {step.description}
-                    </p>
-
-                    <div className="flex gap-3">
-                      <button 
-                        onClick={() => handleAction(step)}
-                        className={`
-                          px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all flex-1 justify-center
-                          ${isCurrent || !isLocked
-                            ? 'bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/20 hover:-translate-y-0.5' 
-                            : isCompleted
-                              ? 'bg-green-50 text-green-700 hover:bg-green-100'
-                              : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                          }
-                        `}
-                        disabled={isLocked}
-                      >
-                        {isLocked ? <Lock size={16} /> : <Play size={16} />}
-                        {step.actionLabel}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-             
-             {isEditing && (
-                 <div className="pl-24">
-                     <button onClick={handleAddNewStep} className="w-full py-4 border-2 border-dashed border-slate-300 rounded-2xl flex items-center justify-center gap-2 text-slate-500 hover:border-green-500 hover:text-green-500 transition-colors">
-                         <Plus size={24} />
-                         Adicionar Novo Passo
-                     </button>
-                 </div>
-             )}
+            <p className="text-slate-500">Conheça cada sessão da Tradexperience a fundo.</p>
           </div>
         </div>
       </div>
 
-      {/* Edit Modal */}
-      {editingStep && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-bold text-slate-800">Editar Passo</h3>
-                    <div className="flex gap-2">
-                        <button type="button" onClick={() => handleDeleteStep(editingStep.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-full"><Trash2 size={20}/></button>
-                        <button onClick={() => setEditingStep(null)}><X size={24} className="text-slate-400 hover:text-slate-600" /></button>
-                    </div>
-                </div>
-                <form onSubmit={handleSaveStep} className="space-y-4">
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-slate-600">Título</label>
-                        <input type="text" required value={editingStep.title} onChange={e => setEditingStep({...editingStep, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" />
-                    </div>
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-slate-600">Descrição</label>
-                        <textarea rows={3} required value={editingStep.description} onChange={e => setEditingStep({...editingStep, description: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium mb-1 text-slate-600">Status</label>
-                            <select value={editingStep.status} onChange={e => setEditingStep({...editingStep, status: e.target.value as StepStatus})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500">
-                                <option value="completed">Completado</option>
-                                <option value="current">Atual (Ativo)</option>
-                                <option value="upcoming">Bloqueado (Futuro)</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium mb-1 text-slate-600">Ícone</label>
-                            <select value={editingStep.iconType} onChange={e => setEditingStep({...editingStep, iconType: e.target.value as any})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500">
-                                <option value="UserCheck">UserCheck</option>
-                                <option value="Milestone">Milestone</option>
-                                <option value="Wallet">Wallet</option>
-                                <option value="TrendingUp">TrendingUp</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                         <div>
-                            <label className="block text-sm font-medium mb-1 text-slate-600">Label Botão</label>
-                            <input type="text" value={editingStep.actionLabel} onChange={e => setEditingStep({...editingStep, actionLabel: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" />
-                        </div>
-                         <div>
-                            <label className="block text-sm font-medium mb-1 text-slate-600">Action Data</label>
-                            <input type="text" value={editingStep.actionData || ''} onChange={e => setEditingStep({...editingStep, actionData: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" />
-                        </div>
-                    </div>
-                    <button type="submit" className="w-full bg-green-600 text-white font-bold py-3 rounded-lg hover:bg-green-500 transition-all mt-2">
-                        Salvar Alterações
-                    </button>
-                </form>
-            </div>
+      {/* Intro Hero */}
+      <div className="bg-slate-900 p-10 rounded-3xl text-white relative overflow-hidden shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px] -mr-32 -mt-32"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-500/10 rounded-full blur-[80px] -ml-20 -mb-20"></div>
+        
+        <div className="relative z-10 max-w-3xl">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur-sm border border-white/10">
+            <Info size={14} className="text-indigo-400" />
+            Guia do Ecossistema
+          </div>
+          <h2 className="text-4xl font-bold mb-4 tracking-tight">Onde a tecnologia encontra o lucro.</h2>
+          <p className="text-slate-400 text-lg leading-relaxed">
+            Navegue pelos módulos abaixo para entender como cada engrenagem da nossa plataforma foi desenhada para facilitar sua vida como trader e maximizar sua performance automatizada.
+          </p>
         </div>
-      )}
+      </div>
+
+      {/* Grid of Sessions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {SESSIONS.map((session) => (
+          <div 
+            key={session.id}
+            className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300 group flex flex-col"
+          >
+            <div className="p-8 flex-1">
+              {/* Header Card */}
+              <div className="flex items-start justify-between mb-6">
+                <div className={`p-4 rounded-2xl bg-${session.color}-50 text-${session.color}-600 group-hover:scale-110 transition-transform duration-500`}>
+                  {session.icon}
+                </div>
+                <div className="flex gap-2">
+                   <div className="w-2 h-2 rounded-full bg-slate-200"></div>
+                   <div className="w-2 h-2 rounded-full bg-slate-200"></div>
+                   <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <p className={`text-sm font-bold text-${session.color}-600 uppercase tracking-widest mb-1`}>
+                    {session.subtitle}
+                  </p>
+                  <h3 className="text-2xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                    {session.title}
+                  </h3>
+                </div>
+
+                <p className="text-slate-500 text-sm leading-relaxed">
+                  {session.longDescription}
+                </p>
+
+                <div className="pt-4">
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <Target size={12} /> O que você encontra aqui:
+                  </p>
+                  <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                    {session.features.map((feature, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                        <ShieldCheck size={14} className="text-green-500 shrink-0" />
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Card */}
+            <div className="p-4 bg-slate-50 border-t border-slate-100 mt-auto">
+              <button 
+                onClick={() => onNavigate(session.view)}
+                className="w-full bg-white border border-slate-200 py-3 rounded-xl text-slate-700 font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+              >
+                Acessar Sessão
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Final Action */}
+      <div className="bg-indigo-50 border border-indigo-100 p-8 rounded-3xl text-center">
+        <h3 className="text-xl font-bold text-indigo-900 mb-2">Ainda com dúvidas?</h3>
+        <p className="text-indigo-700/70 mb-6">Nossa equipe de suporte está pronta para te ajudar a configurar tudo.</p>
+        <button 
+          onClick={() => onNavigate('marketing')}
+          className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20"
+        >
+          Falar com Suporte
+        </button>
+      </div>
     </div>
   );
 };

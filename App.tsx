@@ -161,7 +161,7 @@ function AppContent() {
               }
               return <AdminPanel onBack={() => setCurrentView('dashboard')} onShowTour={() => setShowTour(true)} />;
             
-            case 'journey': return <Journey onBack={() => setCurrentView('dashboard')} />;
+            case 'journey': return <Journey onBack={() => setCurrentView('dashboard')} onNavigate={setCurrentView} />;
             case 'downloads': return <Downloads onBack={() => setCurrentView('dashboard')} />;
             
             case 'treasury': 

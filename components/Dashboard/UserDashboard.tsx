@@ -207,7 +207,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {/* Journey Card (Start Here) */}
         <div 
-          onClick={() => onShowTour ? onShowTour() : onNavigate('journey')}
+          onClick={() => onNavigate('journey')}
           className="bg-gradient-to-br from-indigo-600 to-indigo-700 p-6 rounded-2xl border border-transparent shadow-lg shadow-indigo-500/20 hover:shadow-xl hover:shadow-indigo-500/30 transition-all duration-300 cursor-pointer group relative overflow-hidden"
         >
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
