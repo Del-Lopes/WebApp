@@ -1,61 +1,59 @@
 # 🗺️ Roadmap Tradexperience 2026
 
-Este documento traça a evolução estratégica do **Tradexperience**, focando em segurança, experiência do usuário e automação de licenças.
+Este documento traça a evolução estratégica do **Tradexperience**, focando em inteligência artificial, automação comercial e experiência do usuário premium.
 
 ---
 
-## 🛡️ Fase 1: Proteção de IP (Diferenciação de Licenças)
-**Objetivo**: Garantir que as licenças sejam vinculadas a robôs específicos (Expert Advisors) sem alterar a ponte de integração (DLL).
-
-### 🛠️ Tarefas
-- [ ] **Supabase (Backend)**:
-    - [ ] Garantir que o campo `license_title` na tabela `license_requests` seja retornado na consulta de validação do EA.
-    - [ ] Adicionar um campo `robot_id` (opcional) na tabela `license_titles` para mapeamento técnico (ex: `AFK GOLD` -> `robot_gold_v1`).
-- [ ] **MQL (Expert Advisor)**:
-    - [ ] Adicionar constante global `EA_LICENSE_TITLE` (ex: "AFK GOLD").
-    - [ ] No `OnInit()`, comparar o título recebido do Supabase com a constante local.
-    - [ ] Lógica de Bloqueio: Interromper execução com alerta visual no gráfico se a licença não for para aquele robô.
-- [ ] **App (Admin)**:
-    - [ ] Adicionar aviso preventivo na tela de edição de títulos.
+## ✅ Concluído: Multi-Base & Proteção de IP
+- [x] Migração para arquitetura de licenças isoladas por produto (AFK, Snow Ball, Boleta Pro).
+- [x] Endpoints PHP robustos e compatíveis com MT5.
+- [x] Painel Admin com sub-abas dinâmicas para gestão de bases.
 
 ---
 
-## 🔔 Fase 2: Sistema de Retenção (Alertas de Expiração)
+## 🔔 Fase 1: Sistema de Retenção (Alertas de Expiração)
 **Objetivo**: Automatizar notificações de renovação para evitar interrupções no trading do cliente.
-
-### 🛠️ Tarefas
-- [ ] **Supabase (Infraestrutura)**:
-    - [ ] Criar tabela de notificações no app.
-    - [ ] Configurar cron diário via Edge Function.
-- [ ] **Estratégia de Intervados**:
-    - [ ] Meses: 3, 2, 1.
-    - [ ] Dias Críticos: 15, 10, 5, 3, 2, 1.
-- [ ] **Canais de Disparo**:
-    - [ ] E-mail automático (via Resend/Supabase Auth).
-    - [ ] Notificação interna no Dashboard (Badge e Modal).
+- [ ] **Supabase**: Configurar cron diário via Edge Function para checar vencimentos.
+- [ ] **Canais**: E-mail automático e Notificação interna no Dashboard (Badge e Modal).
+- [ ] **Intervalos**: Alertas com 15, 5 e 1 dia de antecedência.
 
 ---
 
-## 📢 Fase 3: Hub de Comunicação (Newsletter & Broadcast)
-**Objetivo**: Permitir o disparo de comunicados, atualizações de robôs e novidades diretamente para os usuários selecionados.
-
-### 🛠️ Tarefas
-- [ ] **Supabase (Backend)**:
-    - [ ] Criar tabela `broadcasts` (histórico de mensagens).
-    - [ ] Configurar integração com provedor de e-mail (Resend/SendGrid).
-- [ ] **App (Admin Panel)**:
-    - [ ] Interface de Checkboxes nas abas de Usuários e Parceiros para seleção múltipla.
-    - [ ] Modal de Composição: Campo "Assunto" e "Mensagem" (Suporte a Markdown).
-    - [ ] Filtros Dinâmicos: Botão de "Selecionar Todos" e segmentação por função (Admin, Parceiro, Cliente).
-- [ ] **Motor de Automação**:
-    - [ ] Implementar fila de disparos (Queue) para evitar sobrecarga do servidor.
+## 📢 Fase 2: Hub de Comunicação (Broadcast)
+**Objetivo**: Permitir o disparo de comunicados e novidades diretamente para os usuários.
+- [ ] **Admin Panel**: Interface de seleção múltipla (Checkboxes) para usuários e parceiros.
+- [ ] **Composição**: Modal de escrita com suporte a Markdown.
+- [ ] **Motor**: Implementar fila de disparos para evitar sobrecarga.
 
 ---
 
-## 📉 Fase 4: Auditoria e UX Avançada
-- [ ] **Logs de Tentativas**: Registrar no Supabase quando um robô for bloqueado para identificar possíveis compartilhamentos de licença indevidos.
-- [ ] **Painel de Usuário**: Exibir progresso visual de dias restantes para expiração no app.
+## 🤖 Fase 3: Suporte Inteligente (AI Chat)
+**Objetivo**: Oferecer suporte em tempo real 24/7 através de Inteligência Artificial.
+- [ ] **Chat Widget**: Integrar chat flutuante no Dashboard do usuário.
+- [ ] **Base de Conhecimento**: Treinar a IA com documentos técnicos dos robôs e FAQs.
+- [ ] **Escalonamento**: Botão para falar com suporte humano caso a IA não resolva.
 
 ---
 
-*Última atualização: 08/04/2026*
+## 🏗️ Fase 4: Ecossistema Organizado (Vitrine & Categorização)
+**Objetivo**: Transformar a plataforma em um Marketplace profissional.
+- [ ] **Ferramentas**: Categorizar a biblioteca de downloads (Indicadores, Utilitários, EAs).
+- [ ] **Marketplace**: Criar vitrine/showcase de produtos com detalhes, capturas de tela e links de compra.
+
+---
+
+## ⚡ Fase 5: Tier de Automação (Tokens & Análise)
+**Objetivo**: Introduzir serviços de análise de dados automatizados.
+- [ ] **Sistema de Tokens**: Implementar saldo de tokens para usuários solicitarem análises.
+- [ ] **Análise Automática**: Desenvolver motor de análise de trades/gráficos que consome tokens por uso.
+- [ ] **Integração**: Relatórios gerados pela IA enviados diretamente para o e-mail do usuário.
+
+---
+
+## 📉 Fase 6: Auditoria e UX Avançada
+- [ ] **Logs de Tentativas**: Registrar bloqueios de robôs para identificar compartilhamentos indevidos.
+- [ ] **Progresso Visual**: Barra de tempo restante para expiração da licença.
+
+---
+
+*Última atualização: 09/04/2026*
