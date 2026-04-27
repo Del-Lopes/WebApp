@@ -189,7 +189,8 @@ async function generateText(
   if (geminiKey) {
     // 1. Try Gemini Model 1
     try {
-      const model = config.gemini_model || 'gemini-2.0-flash-lite'
+      const model = config.gemini_model || 'gemini-2.0-flash-lite';
+      (globalThis as any).lastModelUsed = `gemini/${model}`;
       return { text: await callGemini(systemPrompt, userPrompt, geminiKey, model), model: `gemini/${model}` }
     } catch (e) {
       console.error('Gemini Model 1 failed:', e instanceof Error ? e.message : JSON.stringify(e))
@@ -198,6 +199,7 @@ async function generateText(
     // 2. Try Gemini Model 2 (Cascata)
     if (config.gemini_model_2) {
       try {
+        (globalThis as any).lastModelUsed = `gemini/${config.gemini_model_2}`;
         return { text: await callGemini(systemPrompt, userPrompt, geminiKey, config.gemini_model_2), model: `gemini/${config.gemini_model_2}` }
       } catch (e) {
         console.error('Gemini Model 2 failed:', e instanceof Error ? e.message : JSON.stringify(e))
@@ -207,6 +209,7 @@ async function generateText(
     // 3. Try Gemini Model 3 (Cascata)
     if (config.gemini_model_3) {
       try {
+        (globalThis as any).lastModelUsed = `gemini/${config.gemini_model_3}`;
         return { text: await callGemini(systemPrompt, userPrompt, geminiKey, config.gemini_model_3), model: `gemini/${config.gemini_model_3}` }
       } catch (e) {
         console.error('Gemini Model 3 failed:', e instanceof Error ? e.message : JSON.stringify(e))
@@ -218,7 +221,8 @@ async function generateText(
   const groqKey = config.groq_api_key || GROQ_API_KEY
   if (groqKey) {
     try {
-      const model = config.groq_model || 'llama-3.3-70b-versatile'
+      const model = config.groq_model || 'llama-3.3-70b-versatile';
+      (globalThis as any).lastModelUsed = `groq/${model}`;
       return { text: await callGroq(systemPrompt, userPrompt, groqKey, model), model: `groq/${model}` }
     } catch (e) {
       console.error('Groq failed:', e)
@@ -297,7 +301,18 @@ Deno.serve(async (req: Request) => {
     const systemPrompt = buildSystemPrompt(persona)
     const userPrompt = buildArticlePrompt(sourceText, category, body.source_url, sourceImages)
 
-    const { text: rawAI, model: modelUsed } = await generateText(systemPrompt, userPrompt, aiConfig || {})
+    let modelUsed = 'unknown'
+    let rawAI = ''
+
+    try {
+      const result = await generateText(systemPrompt, userPrompt, aiConfig || {})
+      rawAI = result.text
+      modelUsed = result.model
+    } catch (e) {
+      // If generateText itself fails (all providers fail)
+      throw e
+    }
+
     const parsed = parseAIJson(rawAI) as ArticlePayload
 
     if (!parsed.title || !parsed.content) {
@@ -349,14 +364,16 @@ Deno.serve(async (req: Request) => {
         : JSON.stringify(err)
     console.error('generate-articles error:', msg)
 
-    // Best-effort error log (source_url may not exist if body parse failed)
+    // Best-effort error log
     try {
       await supabase.from('article_automation_logs').insert({
         article_id: null,
-        topic: '(erro antes do scraping)',
-        model_used: 'unknown',
+        topic: body?.source_url ?? '(erro antes do scraping)',
+        model_used: (globalThis as any).lastModelUsed || 'unknown',
         status: 'error',
         error_message: msg,
+        // We could add a raw_response column to the DB if we wanted, 
+        // but for now let's just make sure we log what we can.
       })
     } catch { /* ignore secondary failure */ }
 
