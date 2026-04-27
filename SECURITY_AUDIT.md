@@ -1,4 +1,4 @@
-# Tradexperience WebApp — Relatório de Pentest (Gray-Box, Read-Only)
+# Trader AFK WebApp — Relatório de Pentest (Gray-Box, Read-Only)
 
 **Data do teste:** 2026-04-17
 **Alvo:** Produção — `https://armhlcnmaqgudqivkpgt.supabase.co`, `https://api.tradexperience.com.br`, `https://app.tradexperience.com.br`

@@ -486,7 +486,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                  
                  <h3 className="text-xl font-black text-slate-900 mb-3 truncate group-hover:text-green-600 transition-colors">{asset.title}</h3>
                  <p className="text-slate-500 text-sm font-medium mb-8 line-clamp-2 leading-relaxed">
-                   Material oficial para divulgação e suporte ao ecossistema Tradexperience.
+                   Material oficial para divulgação e suporte ao ecossistema Trader AFK.
                  </p>
 
                  <div className="mt-auto flex items-center gap-4">

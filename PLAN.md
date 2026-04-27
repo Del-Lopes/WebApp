@@ -1,4 +1,4 @@
-# PLAN.md — Remediação de Segurança Tradexperience WebApp
+# PLAN.md — Remediação de Segurança Trader AFK WebApp
 
 **Base:** [SECURITY_AUDIT.md](SECURITY_AUDIT.md) · 4 CRÍTICOS, 4 ALTOS, 5 MÉDIOS, 1 BAIXO
 **Princípios de execução:**

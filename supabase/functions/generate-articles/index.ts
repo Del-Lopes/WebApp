@@ -275,7 +275,7 @@ Deno.serve(async (req: Request) => {
         category,
         image_url: coverImageUrl,
         gallery_urls: galleryUrls,
-        author: 'IA Tradexperience',
+        author: 'IA Trader AFK',
         ai_generated: true,
       })
       .select('id')

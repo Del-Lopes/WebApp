@@ -1,6 +1,6 @@
-# 🗺️ Roadmap Tradexperience 2026
+# 🗺️ Roadmap Trader AFK 2026
 
-Este documento traça a evolução estratégica do **Tradexperience**, focando em inteligência artificial, automação comercial e experiência do usuário premium.
+Este documento traça a evolução estratégica do **Trader AFK**, focando em inteligência artificial, automação comercial e experiência do usuário premium.
 
 ---
 

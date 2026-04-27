@@ -70,7 +70,7 @@ const SESSIONS: PlatformSession[] = [
     title: "Biblioteca (Cursos)",
     subtitle: "Conhecimento é Poder",
     description: "Aprenda as metodologias por trás das estratégias e domine o mercado.",
-    longDescription: "Não acreditamos em 'caixa preta'. Na Biblioteca, você tem acesso a todo o material educativo da Tradexperience. Desde tutoriais básicos de instalação até mentorias avançadas sobre como os robôs funcionam e como otimizar seus resultados manualmente.",
+    longDescription: "Não acreditamos em 'caixa preta'. Na Biblioteca, você tem acesso a todo o material educativo da Trader AFK. Desde tutoriais básicos de instalação até mentorias avançadas sobre como os robôs funcionam e como otimizar seus resultados manualmente.",
     icon: <GraduationCap size={32} />,
     color: "purple",
     view: 'education',
@@ -116,9 +116,9 @@ const SESSIONS: PlatformSession[] = [
   {
     id: 'marketing',
     title: "Comunidade & Afiliados",
-    subtitle: "Cresça com a Tradexperience",
+    subtitle: "Cresça com a Trader AFK",
     description: "Explore nosso ecossistema de marketing e rede de parceiros.",
-    longDescription: "A Tradexperience é mais que uma plataforma, é uma comunidade. Nesta sessão, você entende como funciona nosso programa de afiliados, acessa materiais de divulgação e entende como escalar seus ganhos indicando a plataforma para outros traders.",
+    longDescription: "A Trader AFK é mais que uma plataforma, é uma comunidade. Nesta sessão, você entende como funciona nosso programa de afiliados, acessa materiais de divulgação e entende como escalar seus ganhos indicando a plataforma para outros traders.",
     icon: <Users size={32} />,
     color: "orange",
     view: 'marketing',
@@ -148,7 +148,7 @@ export const Journey: React.FC<JourneyProps> = ({ onBack, onNavigate }) => {
               <Zap className="text-indigo-600" />
               Manual da Plataforma
             </h1>
-            <p className="text-slate-500">Conheça cada sessão da Tradexperience a fundo.</p>
+            <p className="text-slate-500">Conheça cada sessão da Trader AFK a fundo.</p>
           </div>
         </div>
       </div>

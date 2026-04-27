@@ -33,7 +33,7 @@ create table if not exists public.articles (
   excerpt text,
   content text, -- Full text content
   image_url text,
-  author text default 'Equipe Tradexperience',
+  author text default 'Equipe Trader AFK',
   category text,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null
 );

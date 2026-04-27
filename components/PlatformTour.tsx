@@ -8,7 +8,7 @@ interface PlatformTourProps {
 
 const TOUR_STEPS = [
   {
-    title: "Bem-vindo à Tradexperience",
+    title: "Bem-vindo à Trader AFK",
     description: "Sua central de inteligência para trading algorítmico. Preparamos este tour para você dominar todas as ferramentas disponíveis.",
     icon: <LayoutDashboard size={48} className="text-green-500" />,
     image: "https://images.unsplash.com/photo-1611974765270-ca12586343bb?q=80&w=800&auto=format&fit=crop"
@@ -45,7 +45,7 @@ const TOUR_STEPS = [
   },
   {
     title: "Marketing e Comunidade",
-    description: "Acesse materiais de apoio, participe da nossa comunidade e fique por dentro das novidades da Tradexperience.",
+    description: "Acesse materiais de apoio, participe da nossa comunidade e fique por dentro das novidades da Trader AFK.",
     icon: <Users size={48} className="text-pink-500" />,
     image: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=800&auto=format&fit=crop"
   }
