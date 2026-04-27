@@ -128,48 +128,64 @@ Retorne JSON com EXATAMENTE estes campos:
 
 async function callGemini(systemPrompt: string, userPrompt: string, apiKey: string, model: string): Promise<string> {
   const modelName = model || 'gemini-2.0-flash-lite'
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-        generationConfig: { temperature: 0.6 },
-      }),
-    },
-  )
-  if (!res.ok) throw new Error(`Gemini HTTP ${res.status}: ${await res.text()}`)
-  const data = await res.json()
-  const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-  if (!text) throw new Error('Empty Gemini response')
-  return text
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 45000) // 45s timeout
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+          generationConfig: { temperature: 0.6 },
+        }),
+        signal: controller.signal,
+      },
+    )
+    if (!res.ok) throw new Error(`Gemini HTTP ${res.status}: ${await res.text()}`)
+    const data = await res.json()
+    const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
+    if (!text) throw new Error('Empty Gemini response')
+    return text
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 async function callGroq(systemPrompt: string, userPrompt: string, apiKey: string, model: string): Promise<string> {
   const modelName = model || 'llama-3.3-70b-versatile'
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: modelName,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.6,
-    }),
-  })
-  if (!res.ok) throw new Error(`Groq HTTP ${res.status}: ${await res.text()}`)
-  const data = await res.json()
-  const text: string = data.choices?.[0]?.message?.content ?? ''
-  if (!text) throw new Error('Empty Groq response')
-  return text
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 45000) // 45s timeout
+
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.6,
+      }),
+      signal: controller.signal,
+    })
+    if (!res.ok) throw new Error(`Groq HTTP ${res.status}: ${await res.text()}`)
+    const data = await res.json()
+    const text: string = data.choices?.[0]?.message?.content ?? ''
+    if (!text) throw new Error('Empty Groq response')
+    return text
+  } finally {
+    clearTimeout(timeout)
+  }
 }
 
 async function generateText(
@@ -291,7 +307,9 @@ Deno.serve(async (req: Request) => {
     const category = body.default_category ?? 'Análise Geral'
 
     // 1. Scrape source page
+    console.log('Scraping URL:', body.source_url)
     const { text: sourceText, images: sourceImages } = await scrapePage(body.source_url)
+    console.log('Scrape done. Text length:', sourceText.length)
 
     if (sourceText.length < 200) {
       return json({ error: 'Source page returned too little text to generate an article' }, 422)
