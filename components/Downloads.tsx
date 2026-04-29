@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Download, FileText, Smartphone, Monitor, TrendingUp, Plus, Trash2, Edit2, Check, X, Shield } from 'lucide-react';
+import { ArrowLeft, Download, FileText, Smartphone, Monitor, TrendingUp, Plus, Trash2, Edit2, Check, X, Shield, Bot, Book, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface DownloadsProps {
@@ -72,10 +72,12 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
   const getIcon = (type: string) => {
     switch (type) {
       case 'monitor': return <Monitor size={24} className="text-blue-600" />;
-      case 'smartphone': return <Smartphone size={24} className="text-green-600" />;
+      case 'smartphone': return <Smartphone size={24} className="text-emerald-600" />;
       case 'file-text': return <FileText size={24} className="text-red-500" />;
       case 'trending-up': return <TrendingUp size={24} className="text-purple-600" />;
-      case 'shield': return <Shield size={24} className="text-slate-600" />;
+      case 'shield': return <ShieldCheck size={24} className="text-green-500" />;
+      case 'bot': return <Bot size={24} className="text-indigo-600" />;
+      case 'book': return <Book size={24} className="text-orange-600" />;
       default: return <Download size={24} className="text-slate-600" />;
     }
   };
@@ -223,8 +225,10 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
               <option value="monitor">Monitor (Desktop)</option>
               <option value="smartphone">Smartphone (Mobile)</option>
               <option value="file-text">Documento (PDF)</option>
+              <option value="book">Ebook / Livro</option>
               <option value="trending-up">Gráfico (Indicador)</option>
-              <option value="shield">Escudo (Segurança)</option>
+              <option value="bot">Automação (Robô)</option>
+              <option value="shield">Segurança (Verificado)</option>
             </select>
             <textarea
               placeholder="Descrição"
@@ -300,10 +304,12 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
                         onChange={e => setEditValues({...editValues, icon_type: e.target.value})}
                       >
                         <option value="monitor">💻 Monitor</option>
-                        <option value="smartphone">📱 Smartphone</option>
+                        <option value="smartphone">📱 Celular</option>
                         <option value="file-text">📄 Documento</option>
+                        <option value="book">📚 Ebook</option>
                         <option value="trending-up">📈 Gráfico</option>
-                        <option value="shield">🛡️ Escudo</option>
+                        <option value="bot">🤖 Robô</option>
+                        <option value="shield">✅ Seguro</option>
                         <option value="download">📥 Padrão</option>
                       </select>
                    </div>
