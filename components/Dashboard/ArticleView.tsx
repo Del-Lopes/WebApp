@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import QuickPinchZoom, { make3dTransformValue } from 'react-quick-pinch-zoom';
 import { Calendar, User, Clock, X } from 'lucide-react';
 import { Article } from '../../types';
 import { BackButton } from '../BackButton';
@@ -12,6 +13,14 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  const onUpdate = useCallback(({ x, y, scale }: { x: number; y: number; scale: number }) => {
+    if (imgRef.current) {
+      const value = make3dTransformValue({ x, y, scale });
+      imgRef.current.style.setProperty('transform', value);
+    }
+  }, []);
 
   const openLightbox = (image: string) => {
     setLightboxImage(image);
@@ -123,18 +132,27 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
         >
            <button 
              onClick={() => setLightboxOpen(false)}
-             className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all hover:rotate-90 duration-300"
+             className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all hover:rotate-90 duration-300 z-[110]"
            >
              <X size={28} />
            </button>
            
-           <div className="relative max-w-5xl w-full flex items-center justify-center">
-             <img 
-               src={lightboxImage} 
-               alt="Full size" 
-               className="max-w-full max-h-[92vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-90 duration-300 ease-out"
-               onClick={(e) => e.stopPropagation()}
-             />
+           <div className="relative max-w-5xl w-full h-full flex items-center justify-center overflow-hidden">
+             <QuickPinchZoom 
+               onUpdate={onUpdate}
+               draggableUnZoomed={false}
+               enforceBounds={true}
+               tapZoomFactor={2}
+               maxZoom={5}
+             >
+               <img 
+                 ref={imgRef}
+                 src={lightboxImage} 
+                 alt="Full size" 
+                 className="max-w-full max-h-[92vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-90 duration-300 ease-out"
+                 onClick={(e) => e.stopPropagation()}
+               />
+             </QuickPinchZoom>
            </div>
         </div>
       )}
