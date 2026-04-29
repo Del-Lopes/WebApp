@@ -49,7 +49,7 @@ interface AIConfiguration {
 }
 
 const DEFAULT_PERSONA =
-  'um educador especialista em trading algorítmico, programação MQL5, análise técnica e gestão de risco para traders de varejo'
+  'um educador com linguagem simplificada e de fácil entendimento para traders novatos.'
 
 export const ArticleAutomationSettings: React.FC = () => {
   const { session } = useAuth()
