@@ -137,19 +137,22 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
              <X size={28} />
            </button>
            
-           <div className="relative max-w-5xl w-full h-full flex items-center justify-center overflow-hidden">
+           <div className="absolute inset-0 w-full h-full flex items-center justify-center">
              <QuickPinchZoom 
                onUpdate={onUpdate}
                draggableUnZoomed={false}
                enforceBounds={true}
                tapZoomFactor={2}
                maxZoom={5}
+               containerProps={{
+                 style: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+               }}
              >
                <img 
                  ref={imgRef}
                  src={lightboxImage} 
                  alt="Full size" 
-                 className="max-w-full max-h-[92vh] object-contain rounded-lg shadow-2xl animate-in zoom-in-90 duration-300 ease-out"
+                 className="max-w-full max-h-screen object-contain animate-in zoom-in-90 duration-300"
                  onClick={(e) => e.stopPropagation()}
                />
              </QuickPinchZoom>
