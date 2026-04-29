@@ -289,9 +289,30 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
               )}
 
               <div className="flex justify-between items-start mb-4">
-                <div className="p-3 bg-slate-50 rounded-xl group-hover:bg-blue-50 transition-colors">
-                  {getIcon(item.icon_type)}
-                </div>
+                {editingId === item.id ? (
+                   <div className="flex flex-col gap-2">
+                     <div className="p-3 bg-slate-50 rounded-xl">
+                       {getIcon(editValues.icon_type || item.icon_type)}
+                     </div>
+                     <select
+                        className="text-[10px] border rounded p-1 w-28"
+                        value={editValues.icon_type}
+                        onChange={e => setEditValues({...editValues, icon_type: e.target.value})}
+                      >
+                        <option value="monitor">💻 Monitor</option>
+                        <option value="smartphone">📱 Smartphone</option>
+                        <option value="file-text">📄 Documento</option>
+                        <option value="trending-up">📈 Gráfico</option>
+                        <option value="shield">🛡️ Escudo</option>
+                        <option value="download">📥 Padrão</option>
+                      </select>
+                   </div>
+                ) : (
+                  <div className="p-3 bg-slate-50 rounded-xl group-hover:bg-blue-50 transition-colors">
+                    {getIcon(item.icon_type)}
+                  </div>
+                )}
+
                 {editingId === item.id ? (
                    <select
                       className="text-xs border rounded p-1"
