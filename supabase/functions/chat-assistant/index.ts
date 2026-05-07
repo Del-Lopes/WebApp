@@ -268,10 +268,22 @@ async function loadKnowledgeBase(): Promise<KnowledgeEntry[]> {
 
 // ─── Gemini ───────────────────────────────────────────────────────────────────
 
-async function callGemini(systemPrompt: string, history: HistoryEntry[], userMessage: string): Promise<string> {
-  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY não configurada')
+// Cascata: tenta o modelo preferido primeiro; em caso de 503/429 ou falha
+// transitória, faz 1 retry rápido e cai para o modelo estável de fallback.
+const GEMINI_MODELS = [
+  'gemini-3.1-flash-lite-preview', // preferido — mais novo, pode dar 503 em horários de pico
+  'gemini-2.5-flash-lite',         // fallback estável — free tier ativo
+]
 
-  const modelName = 'gemini-3.1-flash-lite-preview'
+const TRANSIENT_STATUSES = new Set([429, 500, 502, 503, 504])
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms))
+
+async function callGeminiModel(
+  modelName: string,
+  systemPrompt: string,
+  history: HistoryEntry[],
+  userMessage: string,
+): Promise<string> {
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30000)
 
@@ -298,7 +310,12 @@ async function callGemini(systemPrompt: string, history: HistoryEntry[], userMes
         signal: controller.signal,
       },
     )
-    if (!res.ok) throw new Error(`Gemini HTTP ${res.status}: ${await res.text()}`)
+    if (!res.ok) {
+      const errBody = await res.text()
+      const err = new Error(`Gemini HTTP ${res.status}: ${errBody}`) as Error & { status: number }
+      err.status = res.status
+      throw err
+    }
     const data = await res.json()
     const text: string = data.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
     if (!text) throw new Error('Resposta vazia do Gemini')
@@ -306,6 +323,35 @@ async function callGemini(systemPrompt: string, history: HistoryEntry[], userMes
   } finally {
     clearTimeout(timeout)
   }
+}
+
+async function callGemini(systemPrompt: string, history: HistoryEntry[], userMessage: string): Promise<string> {
+  if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY não configurada')
+
+  let lastError: unknown = null
+  for (let i = 0; i < GEMINI_MODELS.length; i++) {
+    const modelName = GEMINI_MODELS[i]
+    // Para o modelo preferido, tenta uma vez, espera 1s e tenta de novo se for transitório
+    const maxAttempts = i === 0 ? 2 : 1
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const text = await callGeminiModel(modelName, systemPrompt, history, userMessage)
+        if (i > 0 || attempt > 1) {
+          console.log(`Gemini OK on fallback (model=${modelName}, attempt=${attempt})`)
+        }
+        return text
+      } catch (err) {
+        lastError = err
+        const status = (err as { status?: number })?.status
+        const msg = err instanceof Error ? err.message : String(err)
+        const isTransient = status !== undefined && TRANSIENT_STATUSES.has(status)
+        console.error(`Gemini ${modelName} attempt ${attempt}/${maxAttempts} failed:`, msg)
+        if (!isTransient) break // erro não-transitório → não vale tentar de novo nesse modelo
+        if (attempt < maxAttempts) await sleep(1000)
+      }
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error('Gemini falhou em todos os modelos')
 }
 
 // ─── Handler ──────────────────────────────────────────────────────────────────
