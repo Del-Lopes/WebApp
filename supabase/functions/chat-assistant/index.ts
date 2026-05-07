@@ -131,7 +131,7 @@ async function saveMessage(userId: string, role: 'user' | 'assistant', content: 
 async function callGemini(systemPrompt: string, history: HistoryEntry[], userMessage: string): Promise<string> {
   if (!GEMINI_API_KEY) throw new Error('GEMINI_API_KEY não configurada')
 
-  const modelName = 'gemini-2.0-flash-lite'
+  const modelName = 'gemini-1.5-flash'
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 30000)
 
