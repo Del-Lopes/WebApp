@@ -24,6 +24,7 @@ const ArticleView = React.lazy(() => import('./components/Dashboard/ArticleView'
 const Journey = React.lazy(() => import('./components/Journey').then(module => ({ default: module.Journey })));
 const PlatformTour = React.lazy(() => import('./components/PlatformTour').then(module => ({ default: module.PlatformTour })));
 const Treasury = React.lazy(() => import('./components/Treasury').then(module => ({ default: module.Treasury })));
+const ChatWidget = React.lazy(() => import('./components/Chat/ChatWidget').then(module => ({ default: module.ChatWidget })));
 
 function AppContent() {
   const { user, isLoading, role, isPasswordRecovery } = useAuth();
@@ -228,13 +229,18 @@ function AppContent() {
         {/* Platform Tour Modal */}
         {showTour && (
           <Suspense fallback={null}>
-            <PlatformTour 
-              onClose={handleTourClose} 
+            <PlatformTour
+              onClose={handleTourClose}
               onComplete={handleTourClose}
             />
           </Suspense>
         )}
       </main>
+
+      {/* AI Chat Widget — visível apenas após login */}
+      <Suspense fallback={null}>
+        <ChatWidget />
+      </Suspense>
     </div>
   );
 }
