@@ -25,6 +25,7 @@ const Journey = React.lazy(() => import('./components/Journey').then(module => (
 const PlatformTour = React.lazy(() => import('./components/PlatformTour').then(module => ({ default: module.PlatformTour })));
 const Treasury = React.lazy(() => import('./components/Treasury').then(module => ({ default: module.Treasury })));
 const ChatWidget = React.lazy(() => import('./components/Chat/ChatWidget').then(module => ({ default: module.ChatWidget })));
+const ChatModeration = React.lazy(() => import('./components/Admin/ChatModeration/ChatModeration').then(module => ({ default: module.ChatModeration })));
 
 function AppContent() {
   const { user, isLoading, role, isPasswordRecovery } = useAuth();
@@ -99,6 +100,7 @@ function AppContent() {
       case 'journey': return 'Sua Jornada - Trader AFK';
       case 'downloads': return 'Downloads - Trader AFK';
       case 'treasury': return 'Tesouraria - Trader AFK';
+      case 'chat_moderation': return 'Conversas IA - Trader AFK';
       case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
       default: return 'Trader AFK';
     }
@@ -165,13 +167,20 @@ function AppContent() {
             case 'journey': return <Journey onBack={() => setCurrentView('dashboard')} onNavigate={setCurrentView} />;
             case 'downloads': return <Downloads onBack={() => setCurrentView('dashboard')} />;
             
-            case 'treasury': 
+            case 'treasury':
               if (!['admin', 'first_mate'].includes(role || '')) {
                   // Redirect to dashboard if unauthorized
                   setTimeout(() => setCurrentView('dashboard'), 0);
                   return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
               }
               return <Treasury onBack={() => setCurrentView('dashboard')} />;
+
+            case 'chat_moderation':
+              if (!['admin', 'first_mate'].includes(role || '')) {
+                  setTimeout(() => setCurrentView('dashboard'), 0);
+                  return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+              }
+              return <ChatModeration onBack={() => setCurrentView('dashboard')} />;
             
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
