@@ -30,6 +30,29 @@ export interface ChatTopicSummary {
   generated_at: string;
 }
 
+export interface FeedbackItem {
+  id: string;
+  message_id: string;
+  user_id: string;
+  rating: 'up' | 'down';
+  created_at: string;
+  /** Resposta do bot (mensagem que recebeu o feedback) */
+  assistant_content: string;
+  assistant_created_at: string;
+  /** Pergunta do usuário que precedeu a resposta */
+  preceding_user_content: string | null;
+  /** Perfil de quem deu o feedback */
+  user_full_name: string | null;
+  user_email: string | null;
+}
+
+export interface FeedbackOverview {
+  total: number;
+  up: number;
+  down: number;
+  approvalRate: number; // 0..1
+}
+
 const startOfDayUtc = (d: Date) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
 
 function buildDateBuckets(periodDays: number): { date: string; count: number }[] {
@@ -47,6 +70,8 @@ export function useChatStats(periodDays: number) {
   const [overview, setOverview] = useState<ChatStatsOverview | null>(null);
   const [conversations, setConversations] = useState<ConversationSummary[]>([]);
   const [topics, setTopics] = useState<ChatTopicSummary[]>([]);
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
+  const [feedbackOverview, setFeedbackOverview] = useState<FeedbackOverview | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -144,6 +169,77 @@ export function useChatStats(periodDays: number) {
         .order('message_count', { ascending: false });
       if (topicsError) throw new Error(topicsError.message);
       setTopics((topicsData ?? []) as ChatTopicSummary[]);
+
+      // 5. Feedback no período
+      const { data: fbData, error: fbError } = await supabase
+        .from('chat_feedback')
+        .select('id, message_id, user_id, rating, created_at')
+        .gte('created_at', sinceIso)
+        .order('created_at', { ascending: false })
+        .limit(500);
+      if (fbError) throw new Error(fbError.message);
+      const feedbackRows = fbData ?? [];
+
+      const upCount = feedbackRows.filter((f: any) => f.rating === 'up').length;
+      const downCount = feedbackRows.filter((f: any) => f.rating === 'down').length;
+      const totalFb = upCount + downCount;
+      setFeedbackOverview({
+        total: totalFb,
+        up: upCount,
+        down: downCount,
+        approvalRate: totalFb > 0 ? upCount / totalFb : 0,
+      });
+
+      // Hidrata os items com a mensagem e a pergunta precedente
+      if (feedbackRows.length === 0) {
+        setFeedbackItems([]);
+      } else {
+        const messageIds = feedbackRows.map((f: any) => f.message_id);
+        const { data: msgsForFb } = await supabase
+          .from('chat_messages')
+          .select('id, user_id, content, role, created_at')
+          .in('id', messageIds);
+        const msgMap = new Map(((msgsForFb ?? []) as any[]).map((m) => [m.id, m]));
+
+        // Para cada mensagem do assistant, busca a última mensagem do usuário antes dela
+        // Coleta user_ids necessários para o profile
+        const userIds = Array.from(new Set(feedbackRows.map((f: any) => f.user_id)));
+        const { data: profsForFb } = await supabase
+          .from('profiles')
+          .select('id, full_name, email')
+          .in('id', userIds);
+        const profMap = new Map(((profsForFb ?? []) as any[]).map((p) => [p.id, p]));
+
+        // Para cada feedback, busca a pergunta precedente (1 mensagem do user anterior à do bot, do mesmo usuário)
+        const itemsWithPreceding: FeedbackItem[] = [];
+        for (const fb of feedbackRows as any[]) {
+          const msg = msgMap.get(fb.message_id);
+          if (!msg) continue; // mensagem deletada
+          const { data: prevMsg } = await supabase
+            .from('chat_messages')
+            .select('content')
+            .eq('user_id', msg.user_id)
+            .eq('role', 'user')
+            .lt('created_at', msg.created_at)
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          const prof = profMap.get(fb.user_id);
+          itemsWithPreceding.push({
+            id: fb.id,
+            message_id: fb.message_id,
+            user_id: fb.user_id,
+            rating: fb.rating,
+            created_at: fb.created_at,
+            assistant_content: msg.content,
+            assistant_created_at: msg.created_at,
+            preceding_user_content: prevMsg?.content ?? null,
+            user_full_name: prof?.full_name ?? null,
+            user_email: prof?.email ?? null,
+          });
+        }
+        setFeedbackItems(itemsWithPreceding);
+      }
     } catch (e: any) {
       setError(e?.message ?? 'Erro inesperado');
     } finally {
@@ -155,5 +251,10 @@ export function useChatStats(periodDays: number) {
     fetchAll();
   }, [fetchAll]);
 
-  return { overview, conversations, topics, loading, error, refresh: fetchAll };
+  return {
+    overview, conversations, topics,
+    feedbackOverview, feedbackItems,
+    loading, error,
+    refresh: fetchAll,
+  };
 }

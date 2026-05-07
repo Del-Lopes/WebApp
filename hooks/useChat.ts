@@ -2,11 +2,17 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
+export type FeedbackRating = 'up' | 'down';
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   created_at: string;
+  /** Feedback do usuário atual sobre essa mensagem (apenas mensagens do assistant). null = sem feedback. */
+  feedback?: FeedbackRating | null;
+  /** Indica se o ID é temporário (mensagem ainda não persistida com ID real). Não permite feedback. */
+  pending?: boolean;
 }
 
 interface UsageInfo {
@@ -44,9 +50,26 @@ export function useChat() {
       if (error) {
         console.error('Erro ao carregar histórico:', error.message);
         setMessages([]);
-      } else {
-        setMessages(((data ?? []) as ChatMessage[]).reverse());
+        return;
       }
+      const baseMessages = ((data ?? []) as ChatMessage[]).reverse();
+
+      // Carrega feedbacks do próprio usuário sobre essas mensagens
+      const assistantIds = baseMessages.filter((m) => m.role === 'assistant').map((m) => m.id);
+      let feedbackMap = new Map<string, FeedbackRating>();
+      if (assistantIds.length > 0) {
+        const { data: fbData } = await supabase
+          .from('chat_feedback')
+          .select('message_id, rating')
+          .eq('user_id', user.id)
+          .in('message_id', assistantIds);
+        feedbackMap = new Map((fbData ?? []).map((f: any) => [f.message_id, f.rating as FeedbackRating]));
+      }
+
+      setMessages(baseMessages.map((m) => ({
+        ...m,
+        feedback: m.role === 'assistant' ? feedbackMap.get(m.id) ?? null : undefined,
+      })));
     } finally {
       setIsLoadingHistory(false);
     }
@@ -77,6 +100,7 @@ export function useChat() {
       role: 'user',
       content: trimmed,
       created_at: new Date().toISOString(),
+      pending: true,
     };
     setMessages((prev) => [...prev, tempUserMsg]);
 
@@ -112,14 +136,27 @@ export function useChat() {
         return { ok: false, error: 'Resposta vazia do assistente.' };
       }
 
-      // Substitui a mensagem otimista e adiciona a resposta
+      // Substitui o ID temporário do usuário pelo real (se a função retornou)
+      // e adiciona a resposta do assistant com o ID real (necessário para feedback).
+      const realUserId: string | undefined = data.user_message_id ?? undefined;
+      const realAssistantId: string | undefined = data.assistant_message_id ?? undefined;
       const assistantMsg: ChatMessage = {
-        id: `temp-assistant-${Date.now()}`,
+        id: realAssistantId ?? `temp-assistant-${Date.now()}`,
         role: 'assistant',
         content: data.reply,
         created_at: new Date().toISOString(),
+        feedback: null,
+        pending: !realAssistantId,
       };
-      setMessages((prev) => [...prev, assistantMsg]);
+      setMessages((prev) => {
+        const next = prev.map((m) => (
+          m.id === tempUserMsg.id && realUserId
+            ? { ...m, id: realUserId, pending: false }
+            : m
+        ));
+        next.push(assistantMsg);
+        return next;
+      });
 
       if (data.usage) {
         setUsage({ count: data.usage.count, limit: data.usage.limit });
@@ -136,6 +173,45 @@ export function useChat() {
       setIsSending(false);
     }
   }, [user, session]);
+
+  const setMessageFeedback = useCallback(async (
+    messageId: string,
+    rating: FeedbackRating | null,
+  ): Promise<{ ok: boolean; error?: string }> => {
+    if (!user) return { ok: false, error: 'Não autenticado' };
+    if (messageId.startsWith('temp-')) {
+      return { ok: false, error: 'Mensagem ainda não persistida — aguarde a próxima resposta.' };
+    }
+
+    // Atualização otimista
+    const previous = messages.find((m) => m.id === messageId)?.feedback ?? null;
+    setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, feedback: rating } : m)));
+
+    try {
+      if (rating === null) {
+        const { error: err } = await supabase
+          .from('chat_feedback')
+          .delete()
+          .eq('message_id', messageId)
+          .eq('user_id', user.id);
+        if (err) throw err;
+      } else {
+        // Upsert para "trocar" entre up/down sem duplicar
+        const { error: err } = await supabase
+          .from('chat_feedback')
+          .upsert(
+            { message_id: messageId, user_id: user.id, rating },
+            { onConflict: 'message_id,user_id' },
+          );
+        if (err) throw err;
+      }
+      return { ok: true };
+    } catch (e: any) {
+      // Rollback
+      setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, feedback: previous } : m)));
+      return { ok: false, error: e?.message ?? 'Falha ao registrar feedback.' };
+    }
+  }, [user, messages]);
 
   const clearConversation = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
     if (!user || !session) {
@@ -168,6 +244,7 @@ export function useChat() {
     isLoadingHistory,
     isSending,
     sendMessage,
+    setMessageFeedback,
     clearConversation,
     reloadHistory: loadHistory,
   };

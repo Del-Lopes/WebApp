@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Send, Loader2, Bot, AlertTriangle, Trash2 } from 'lucide-react';
-import { useChat } from '../../hooks/useChat';
+import { X, Send, Loader2, Bot, AlertTriangle, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { useChat, type FeedbackRating } from '../../hooks/useChat';
 
 interface ChatWindowProps {
   onClose: () => void;
@@ -14,7 +14,7 @@ const QUICK_PROMPTS = [
 ];
 
 export function ChatWindow({ onClose }: ChatWindowProps) {
-  const { messages, usage, isLoadingHistory, isSending, sendMessage, clearConversation } = useChat();
+  const { messages, usage, isLoadingHistory, isSending, sendMessage, setMessageFeedback, clearConversation } = useChat();
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'info' | 'error'; text: string } | null>(null);
   const [isClearing, setIsClearing] = useState(false);
@@ -44,6 +44,15 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
   };
 
   const handleSend = () => submit(input);
+
+  const handleFeedback = async (messageId: string, target: FeedbackRating, current: FeedbackRating | null) => {
+    // Toggle: clicar no mesmo remove o feedback
+    const newRating: FeedbackRating | null = current === target ? null : target;
+    const result = await setMessageFeedback(messageId, newRating);
+    if (!result.ok) {
+      setFeedback({ type: 'error', text: result.error ?? 'Falha ao registrar avaliação.' });
+    }
+  };
 
   const handleClear = async () => {
     if (isClearing || messages.length === 0) return;
@@ -135,7 +144,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
               >
                 <div
                   className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
@@ -146,6 +155,34 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
                 >
                   {msg.content}
                 </div>
+                {msg.role === 'assistant' && !msg.pending && (
+                  <div className="flex items-center gap-1 mt-1 ml-1">
+                    <button
+                      onClick={() => handleFeedback(msg.id, 'up', msg.feedback ?? null)}
+                      className={`p-1 rounded transition-colors ${
+                        msg.feedback === 'up'
+                          ? 'text-green-600 bg-green-50'
+                          : 'text-slate-400 hover:text-green-600 hover:bg-slate-100'
+                      }`}
+                      aria-label="Resposta útil"
+                      title={msg.feedback === 'up' ? 'Remover avaliação' : 'Útil'}
+                    >
+                      <ThumbsUp size={13} />
+                    </button>
+                    <button
+                      onClick={() => handleFeedback(msg.id, 'down', msg.feedback ?? null)}
+                      className={`p-1 rounded transition-colors ${
+                        msg.feedback === 'down'
+                          ? 'text-red-600 bg-red-50'
+                          : 'text-slate-400 hover:text-red-600 hover:bg-slate-100'
+                      }`}
+                      aria-label="Resposta não foi útil"
+                      title={msg.feedback === 'down' ? 'Remover avaliação' : 'Não foi útil'}
+                    >
+                      <ThumbsDown size={13} />
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
             {isSending && (

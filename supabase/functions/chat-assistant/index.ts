@@ -181,11 +181,17 @@ async function loadHistory(userId: string): Promise<HistoryEntry[]> {
   return (data ?? []).reverse() as HistoryEntry[]
 }
 
-async function saveMessage(userId: string, role: 'user' | 'assistant', content: string): Promise<void> {
-  const { error } = await supabaseAdmin
+async function saveMessage(userId: string, role: 'user' | 'assistant', content: string): Promise<string | null> {
+  const { data, error } = await supabaseAdmin
     .from('chat_messages')
     .insert({ user_id: userId, role, content })
-  if (error) console.error('saveMessage error:', error.message)
+    .select('id')
+    .maybeSingle()
+  if (error) {
+    console.error('saveMessage error:', error.message)
+    return null
+  }
+  return data?.id ?? null
 }
 
 async function clearHistory(userId: string): Promise<void> {
@@ -378,14 +384,14 @@ Deno.serve(async (req: Request) => {
     ])
 
     // 5. Salva mensagem do usuário
-    await saveMessage(user.id, 'user', message)
+    const userMessageId = await saveMessage(user.id, 'user', message)
 
     // 6. Chama Gemini com system prompt personalizado + base de conhecimento
     const systemPrompt = buildSystemPrompt(userCtx, knowledge)
     const reply = await callGemini(systemPrompt, history, message)
 
     // 7. Salva resposta + incrementa contador
-    await saveMessage(user.id, 'assistant', reply)
+    const assistantMessageId = await saveMessage(user.id, 'assistant', reply)
     const newCount = await incrementUsage(user.id)
 
     // 8. Avisa quando atingir 50% (15 mensagens)
@@ -393,6 +399,8 @@ Deno.serve(async (req: Request) => {
 
     return jsonResponse({
       reply,
+      user_message_id: userMessageId,
+      assistant_message_id: assistantMessageId,
       usage: { count: newCount, limit: DAILY_MESSAGE_LIMIT, warn_half: warnHalf },
     })
   } catch (err: unknown) {

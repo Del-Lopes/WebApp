@@ -2,8 +2,15 @@ import React, { useMemo, useState } from 'react';
 import {
   ArrowLeft, Loader2, MessageSquare, Users, Calendar, RefreshCw, Sparkles,
   AlertTriangle, BarChart3, MessagesSquare, Tag, BookPlus,
+  ThumbsUp, ThumbsDown, Trash2, Bot,
 } from 'lucide-react';
-import { useChatStats, type ConversationSummary, type ChatTopicSummary } from '../../../hooks/useChatStats';
+import { supabase } from '../../../lib/supabase';
+import {
+  useChatStats,
+  type ConversationSummary,
+  type ChatTopicSummary,
+  type FeedbackItem,
+} from '../../../hooks/useChatStats';
 import { useAuth } from '../../../contexts/AuthContext';
 import { ConversationDetail } from './ConversationDetail';
 import type { KnowledgeCategory, KnowledgeInput } from '../../../hooks/useKnowledge';
@@ -34,7 +41,7 @@ function topicToKnowledgeCategory(topic: string): KnowledgeCategory {
   return 'Outros';
 }
 
-type Tab = 'overview' | 'conversations' | 'topics';
+type Tab = 'overview' | 'conversations' | 'topics' | 'feedback';
 
 const PERIOD_OPTIONS = [
   { value: 7, label: '7 dias' },
@@ -51,12 +58,43 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
   const [selectedConv, setSelectedConv] = useState<ConversationSummary | null>(null);
   const [classifying, setClassifying] = useState(false);
   const [classifyError, setClassifyError] = useState<string | null>(null);
-  const { overview, conversations, topics, loading, error, refresh } = useChatStats(periodDays);
+  const {
+    overview, conversations, topics,
+    feedbackOverview, feedbackItems,
+    loading, error, refresh,
+  } = useChatStats(periodDays);
+  const [feedbackFilter, setFeedbackFilter] = useState<'all' | 'down' | 'up'>('down');
+  const [deletingFeedbackId, setDeletingFeedbackId] = useState<string | null>(null);
 
   const maxBarCount = useMemo(() => {
     if (!overview) return 1;
     return Math.max(1, ...overview.perDay.map((d) => d.count));
   }, [overview]);
+
+  const handleDeleteFeedback = async (id: string) => {
+    if (!window.confirm('Apagar esta avaliação? Ela não será mais contada nas estatísticas.')) return;
+    setDeletingFeedbackId(id);
+    const { error: err } = await supabase.from('chat_feedback').delete().eq('id', id);
+    setDeletingFeedbackId(null);
+    if (err) {
+      window.alert(err.message);
+      return;
+    }
+    await refresh();
+  };
+
+  const handleCreateKnowledgeFromBadFeedback = (item: FeedbackItem) => {
+    if (!onCreateKnowledge) return;
+    const title = item.preceding_user_content
+      ? item.preceding_user_content.slice(0, 200)
+      : 'Resposta marcada como inadequada';
+    const content = `Pergunta original do usuário:\n"${item.preceding_user_content ?? '(não disponível)'}"\n\nResposta atual do bot (avaliada como ❌ inadequada):\n${item.assistant_content}\n\n[Escreva aqui a resposta correta que o assistente deve dar para essa pergunta.]`;
+    onCreateKnowledge({
+      title,
+      content,
+      category: 'Outros',
+    });
+  };
 
   const handleCreateKnowledgeFromTopic = (t: ChatTopicSummary) => {
     if (!onCreateKnowledge) return;
@@ -157,6 +195,9 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
         <TabButton active={activeTab === 'topics'} onClick={() => setActiveTab('topics')} icon={<Tag size={16} />}>
           Tópicos
         </TabButton>
+        <TabButton active={activeTab === 'feedback'} onClick={() => setActiveTab('feedback')} icon={<ThumbsUp size={16} />}>
+          Feedback{feedbackOverview ? ` (${feedbackOverview.total})` : ''}
+        </TabButton>
       </div>
 
       {/* Overview tab */}
@@ -216,6 +257,38 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
                   })}
                 </div>
               </div>
+
+              {feedbackOverview && feedbackOverview.total > 0 && (
+                <div className="bg-white border border-slate-200 rounded-xl p-5">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-slate-800">Satisfação com as respostas</h3>
+                    <button
+                      onClick={() => setActiveTab('feedback')}
+                      className="text-xs text-green-700 hover:text-green-800 font-medium"
+                    >
+                      Ver todas →
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div>
+                      <div className="text-3xl font-bold text-slate-900 tabular-nums">
+                        {Math.round(feedbackOverview.approvalRate * 100)}%
+                      </div>
+                      <div className="text-xs text-slate-500">de aprovação</div>
+                    </div>
+                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-green-500"
+                        style={{ width: `${feedbackOverview.approvalRate * 100}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center gap-3 text-sm text-slate-600">
+                      <span className="flex items-center gap-1"><ThumbsUp size={14} className="text-green-600" />{feedbackOverview.up}</span>
+                      <span className="flex items-center gap-1"><ThumbsDown size={14} className="text-red-600" />{feedbackOverview.down}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {topics.length > 0 && (
                 <div>
@@ -366,6 +439,119 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
                 </div>
               ))}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Feedback tab */}
+      {activeTab === 'feedback' && (
+        <div className="space-y-4">
+          {feedbackOverview && feedbackOverview.total > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard icon={<ThumbsUp size={20} />} label="Total avaliações" value={feedbackOverview.total} hint={`últimos ${periodDays}d`} />
+              <StatCard icon={<ThumbsUp size={20} />} label="👍 Útil" value={feedbackOverview.up} />
+              <StatCard icon={<ThumbsDown size={20} />} label="👎 Não útil" value={feedbackOverview.down} />
+              <StatCard
+                icon={<BarChart3 size={20} />}
+                label="Taxa de aprovação"
+                value={Math.round(feedbackOverview.approvalRate * 100)}
+                hint="% de 👍 sobre o total"
+              />
+            </div>
+          ) : (
+            <div className="bg-white border border-slate-200 rounded-xl p-10 text-center text-sm text-slate-500">
+              Nenhum feedback registrado nos últimos {periodDays} dias.
+            </div>
+          )}
+
+          {feedbackOverview && feedbackOverview.total > 0 && (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-slate-600 mr-1">Mostrar:</span>
+                {(['down', 'up', 'all'] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setFeedbackFilter(opt)}
+                    className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                      feedbackFilter === opt
+                        ? 'bg-green-600 text-white'
+                        : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    {opt === 'down' ? '👎 Não útil' : opt === 'up' ? '👍 Útil' : 'Todas'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="space-y-3">
+                {feedbackItems
+                  .filter((item) => feedbackFilter === 'all' || item.rating === feedbackFilter)
+                  .map((item) => (
+                    <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-2 text-sm">
+                          {item.rating === 'up' ? (
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+                              <ThumbsUp size={12} /> Útil
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
+                              <ThumbsDown size={12} /> Não útil
+                            </span>
+                          )}
+                          <span className="text-slate-700 font-medium">
+                            {item.user_full_name || item.user_email || 'Usuário'}
+                          </span>
+                          <span className="text-slate-400 text-xs">
+                            {formatTimestamp(item.created_at)}
+                          </span>
+                        </div>
+                        <button
+                          onClick={() => handleDeleteFeedback(item.id)}
+                          disabled={deletingFeedbackId === item.id}
+                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          title="Apagar avaliação"
+                        >
+                          {deletingFeedbackId === item.id ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
+                        </button>
+                      </div>
+
+                      {item.preceding_user_content && (
+                        <div className="text-sm">
+                          <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium mb-1">Pergunta do usuário</p>
+                          <p className="text-slate-700 bg-slate-50 rounded-lg px-3 py-2 whitespace-pre-wrap">
+                            {item.preceding_user_content}
+                          </p>
+                        </div>
+                      )}
+
+                      <div className="text-sm">
+                        <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium mb-1 flex items-center gap-1.5">
+                          <Bot size={12} /> Resposta do bot
+                        </p>
+                        <p className={`text-slate-700 rounded-lg px-3 py-2 whitespace-pre-wrap ${
+                          item.rating === 'down' ? 'bg-red-50 border border-red-100' : 'bg-green-50 border border-green-100'
+                        }`}>
+                          {item.assistant_content}
+                        </p>
+                      </div>
+
+                      {item.rating === 'down' && onCreateKnowledge && (
+                        <div className="flex justify-end pt-1 border-t border-slate-100">
+                          <button
+                            onClick={() => handleCreateKnowledgeFromBadFeedback(item)}
+                            className="flex items-center gap-1.5 text-sm text-green-700 hover:text-green-800 font-medium"
+                            title="Cadastrar a resposta correta na Base de Conhecimento"
+                          >
+                            <BookPlus size={14} />
+                            Criar entrada na Base
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            </>
           )}
         </div>
       )}
