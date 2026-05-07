@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import { INITIAL_ROBOTS } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { View, UserRole, Robot, Article } from './types';
+import type { KnowledgeInput } from './hooks/useKnowledge';
 import { Logo } from './components/Logo';
 import { Login } from './components/Auth/Login';
 // Removed duplicate ArticleView import
@@ -26,6 +27,7 @@ const PlatformTour = React.lazy(() => import('./components/PlatformTour').then(m
 const Treasury = React.lazy(() => import('./components/Treasury').then(module => ({ default: module.Treasury })));
 const ChatWidget = React.lazy(() => import('./components/Chat/ChatWidget').then(module => ({ default: module.ChatWidget })));
 const ChatModeration = React.lazy(() => import('./components/Admin/ChatModeration/ChatModeration').then(module => ({ default: module.ChatModeration })));
+const KnowledgeBase = React.lazy(() => import('./components/Admin/Knowledge/KnowledgeBase').then(module => ({ default: module.KnowledgeBase })));
 
 function AppContent() {
   const { user, isLoading, role, isPasswordRecovery } = useAuth();
@@ -34,6 +36,12 @@ function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('admin'); // Legacy state, kept for prop compatibility
   const [showTour, setShowTour] = useState(false);
+  const [knowledgeDraft, setKnowledgeDraft] = useState<Partial<KnowledgeInput> | undefined>(undefined);
+
+  const handleCreateKnowledgeFromTopic = (draft: Partial<KnowledgeInput>) => {
+    setKnowledgeDraft(draft);
+    setCurrentView('knowledge');
+  };
 
   useEffect(() => {
     // Check for recovery hash in URL directly as fallback/primary method
@@ -101,6 +109,7 @@ function AppContent() {
       case 'downloads': return 'Downloads - Trader AFK';
       case 'treasury': return 'Tesouraria - Trader AFK';
       case 'chat_moderation': return 'Conversas IA - Trader AFK';
+      case 'knowledge': return 'Base de Conhecimento - Trader AFK';
       case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
       default: return 'Trader AFK';
     }
@@ -180,7 +189,24 @@ function AppContent() {
                   setTimeout(() => setCurrentView('dashboard'), 0);
                   return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
               }
-              return <ChatModeration onBack={() => setCurrentView('dashboard')} />;
+              return (
+                <ChatModeration
+                  onBack={() => setCurrentView('dashboard')}
+                  onCreateKnowledge={role === 'admin' ? handleCreateKnowledgeFromTopic : undefined}
+                />
+              );
+
+            case 'knowledge':
+              if (role !== 'admin') {
+                  setTimeout(() => setCurrentView('dashboard'), 0);
+                  return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+              }
+              return (
+                <KnowledgeBase
+                  onBack={() => { setKnowledgeDraft(undefined); setCurrentView('dashboard'); }}
+                  initialDraft={knowledgeDraft}
+                />
+              );
             
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;

@@ -38,6 +38,12 @@ interface UserContext {
   member_since: string | null
 }
 
+interface KnowledgeEntry {
+  title: string
+  content: string
+  category: string
+}
+
 const ROLE_LABELS: Record<string, string> = {
   admin: 'Administrador',
   client: 'Cliente',
@@ -45,7 +51,25 @@ const ROLE_LABELS: Record<string, string> = {
   first_mate: 'Imediato (suporte)',
 }
 
-function buildSystemPrompt(ctx: UserContext): string {
+function buildKnowledgeBlock(entries: KnowledgeEntry[]): string {
+  if (entries.length === 0) return ''
+  const grouped = new Map<string, KnowledgeEntry[]>()
+  for (const e of entries) {
+    const arr = grouped.get(e.category) ?? []
+    arr.push(e)
+    grouped.set(e.category, arr)
+  }
+  const blocks: string[] = []
+  for (const [category, items] of grouped) {
+    blocks.push(`### ${category}`)
+    for (const item of items) {
+      blocks.push(`- **${item.title}**\n  ${item.content.replace(/\n/g, '\n  ')}`)
+    }
+  }
+  return `\nBASE DE CONHECIMENTO INTERNA — use este conteúdo como FONTE PRIMÁRIA para responder. Quando a pergunta do usuário for coberta aqui, baseie a resposta nestas informações em vez de improvisar:\n\n${blocks.join('\n')}\n`
+}
+
+function buildSystemPrompt(ctx: UserContext, knowledge: KnowledgeEntry[]): string {
   const firstName = ctx.full_name?.split(' ')[0] ?? null
   const roleLabel = ctx.role ? ROLE_LABELS[ctx.role] ?? ctx.role : 'Cliente'
 
@@ -57,6 +81,8 @@ function buildSystemPrompt(ctx: UserContext): string {
     ? `Membro desde: ${ctx.member_since}.`
     : ''
 
+  const knowledgeBlock = buildKnowledgeBlock(knowledge)
+
   return `Você é o Assistente de Suporte da plataforma Trader AFK, uma plataforma de trading algorítmico para membros.
 
 CONTEXTO DO USUÁRIO ATUAL:
@@ -66,7 +92,7 @@ CONTEXTO DO USUÁRIO ATUAL:
 ${memberBlock ? `- ${memberBlock}` : ''}
 
 Use esse contexto para personalizar as respostas. Quando relevante, mencione as licenças ativas do usuário (ex: orientações específicas para o robô que ele tem). Não invente licenças que não estão na lista acima.
-
+${knowledgeBlock}
 ESCOPO ESTRITO — você responde APENAS sobre:
 - Como usar a plataforma Trader AFK (navegação, telas, recursos)
 - Ativação e gestão de licenças dos robôs
@@ -220,6 +246,20 @@ async function loadUserContext(userId: string): Promise<UserContext> {
   }
 }
 
+async function loadKnowledgeBase(): Promise<KnowledgeEntry[]> {
+  const { data, error } = await supabaseAdmin
+    .from('chat_knowledge_base')
+    .select('title, content, category')
+    .eq('is_active', true)
+    .order('category', { ascending: true })
+    .order('created_at', { ascending: true })
+  if (error) {
+    console.error('loadKnowledgeBase error:', error.message)
+    return []
+  }
+  return (data ?? []) as KnowledgeEntry[]
+}
+
 // ─── Gemini ───────────────────────────────────────────────────────────────────
 
 async function callGemini(systemPrompt: string, history: HistoryEntry[], userMessage: string): Promise<string> {
@@ -330,17 +370,18 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // 4. Carrega histórico recente + contexto do usuário em paralelo
-    const [history, userCtx] = await Promise.all([
+    // 4. Carrega histórico, contexto do usuário e base de conhecimento em paralelo
+    const [history, userCtx, knowledge] = await Promise.all([
       loadHistory(user.id),
       loadUserContext(user.id),
+      loadKnowledgeBase(),
     ])
 
     // 5. Salva mensagem do usuário
     await saveMessage(user.id, 'user', message)
 
-    // 6. Chama Gemini com system prompt personalizado
-    const systemPrompt = buildSystemPrompt(userCtx)
+    // 6. Chama Gemini com system prompt personalizado + base de conhecimento
+    const systemPrompt = buildSystemPrompt(userCtx, knowledge)
     const reply = await callGemini(systemPrompt, history, message)
 
     // 7. Salva resposta + incrementa contador

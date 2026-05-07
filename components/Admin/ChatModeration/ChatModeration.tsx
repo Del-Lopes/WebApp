@@ -1,14 +1,37 @@
 import React, { useMemo, useState } from 'react';
 import {
   ArrowLeft, Loader2, MessageSquare, Users, Calendar, RefreshCw, Sparkles,
-  AlertTriangle, BarChart3, MessagesSquare, Tag,
+  AlertTriangle, BarChart3, MessagesSquare, Tag, BookPlus,
 } from 'lucide-react';
-import { useChatStats, type ConversationSummary } from '../../../hooks/useChatStats';
+import { useChatStats, type ConversationSummary, type ChatTopicSummary } from '../../../hooks/useChatStats';
 import { useAuth } from '../../../contexts/AuthContext';
 import { ConversationDetail } from './ConversationDetail';
+import type { KnowledgeCategory, KnowledgeInput } from '../../../hooks/useKnowledge';
 
 interface ChatModerationProps {
   onBack: () => void;
+  /** Chamado quando o admin pede para criar uma entrada na Base de Conhecimento a partir de um tópico */
+  onCreateKnowledge?: (draft: Partial<KnowledgeInput>) => void;
+}
+
+const KNOWLEDGE_CATEGORIES_SET = new Set<KnowledgeCategory>([
+  'Licenças', 'Robôs', 'Pagamentos', 'Educação', 'Jornada', 'Marketing', 'Outros',
+]);
+
+function topicToKnowledgeCategory(topic: string): KnowledgeCategory {
+  // Tenta casar o nome do tópico com uma categoria fixa; senão "Outros"
+  const lower = topic.toLowerCase();
+  if (lower.includes('licen')) return 'Licenças';
+  if (lower.includes('robô') || lower.includes('robo') || lower.includes('instala')) return 'Robôs';
+  if (lower.includes('pag') || lower.includes('assina') || lower.includes('cobra')) return 'Pagamentos';
+  if (lower.includes('educa') || lower.includes('curso') || lower.includes('aula')) return 'Educação';
+  if (lower.includes('jorn') || lower.includes('onboard')) return 'Jornada';
+  if (lower.includes('market') || lower.includes('parc') || lower.includes('indic')) return 'Marketing';
+  // Match exato
+  for (const cat of KNOWLEDGE_CATEGORIES_SET) {
+    if (cat.toLowerCase() === lower) return cat;
+  }
+  return 'Outros';
 }
 
 type Tab = 'overview' | 'conversations' | 'topics';
@@ -21,7 +44,7 @@ const PERIOD_OPTIONS = [
   { value: 90, label: '90 dias' },
 ];
 
-export function ChatModeration({ onBack }: ChatModerationProps) {
+export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProps) {
   const { session } = useAuth();
   const [periodDays, setPeriodDays] = useState(7);
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -34,6 +57,18 @@ export function ChatModeration({ onBack }: ChatModerationProps) {
     if (!overview) return 1;
     return Math.max(1, ...overview.perDay.map((d) => d.count));
   }, [overview]);
+
+  const handleCreateKnowledgeFromTopic = (t: ChatTopicSummary) => {
+    if (!onCreateKnowledge) return;
+    const examples = t.sample_messages.length > 0
+      ? `\n\nPerguntas frequentes dos usuários sobre este tópico:\n${t.sample_messages.map((s) => `- "${s}"`).join('\n')}\n\n[Escreva aqui as orientações que o assistente deve dar para essas perguntas.]`
+      : '';
+    onCreateKnowledge({
+      title: t.topic.slice(0, 200),
+      content: `${t.description ?? ''}${examples}`.trim(),
+      category: topicToKnowledgeCategory(t.topic),
+    });
+  };
 
   const handleClassifyTopics = async () => {
     if (!session) return;
@@ -305,7 +340,7 @@ export function ChatModeration({ onBack }: ChatModerationProps) {
                   </div>
                   {t.description && <p className="text-sm text-slate-600 mb-3">{t.description}</p>}
                   {t.sample_messages.length > 0 && (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1.5 mb-3">
                       <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">Exemplos</p>
                       <ul className="space-y-1">
                         {t.sample_messages.map((s, i) => (
@@ -314,6 +349,18 @@ export function ChatModeration({ onBack }: ChatModerationProps) {
                           </li>
                         ))}
                       </ul>
+                    </div>
+                  )}
+                  {onCreateKnowledge && (
+                    <div className="flex justify-end pt-2 border-t border-slate-100">
+                      <button
+                        onClick={() => handleCreateKnowledgeFromTopic(t)}
+                        className="flex items-center gap-1.5 text-sm text-green-700 hover:text-green-800 font-medium"
+                        title="Criar uma entrada na Base de Conhecimento usando este tópico como ponto de partida"
+                      >
+                        <BookPlus size={14} />
+                        Criar entrada na Base
+                      </button>
                     </div>
                   )}
                 </div>
