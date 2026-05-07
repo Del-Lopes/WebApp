@@ -28,6 +28,7 @@ const Treasury = React.lazy(() => import('./components/Treasury').then(module =>
 const ChatWidget = React.lazy(() => import('./components/Chat/ChatWidget').then(module => ({ default: module.ChatWidget })));
 const ChatModeration = React.lazy(() => import('./components/Admin/ChatModeration/ChatModeration').then(module => ({ default: module.ChatModeration })));
 const KnowledgeBase = React.lazy(() => import('./components/Admin/Knowledge/KnowledgeBase').then(module => ({ default: module.KnowledgeBase })));
+const TradeJournal = React.lazy(() => import('./components/Journal/TradeJournal').then(module => ({ default: module.TradeJournal })));
 
 function AppContent() {
   const { user, isLoading, role, isPasswordRecovery } = useAuth();
@@ -110,6 +111,7 @@ function AppContent() {
       case 'treasury': return 'Tesouraria - Trader AFK';
       case 'chat_moderation': return 'Conversas IA - Trader AFK';
       case 'knowledge': return 'Base de Conhecimento - Trader AFK';
+      case 'journal': return 'Diário de Operações - Trader AFK';
       case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
       default: return 'Trader AFK';
     }
@@ -207,6 +209,9 @@ function AppContent() {
                   initialDraft={knowledgeDraft}
                 />
               );
+
+            case 'journal':
+              return <TradeJournal onBack={() => setCurrentView('dashboard')} />;
             
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;

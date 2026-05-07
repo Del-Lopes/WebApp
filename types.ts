@@ -1,4 +1,4 @@
-export type View = 'dashboard' | 'strategies' | 'education' | 'articles' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury' | 'chat_moderation' | 'knowledge';
+export type View = 'dashboard' | 'strategies' | 'education' | 'articles' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury' | 'chat_moderation' | 'knowledge' | 'journal';
 
 export type UserRole = 'admin' | 'client' | 'partner' | 'first_mate';
 
