@@ -81,28 +81,28 @@ export function useChat() {
     setMessages((prev) => [...prev, tempUserMsg]);
 
     try {
-      const { data, error } = await supabase.functions.invoke('chat-assistant', {
-        body: { message: trimmed },
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const response = await fetch(`${supabaseUrl}/functions/v1/chat-assistant`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ message: trimmed }),
       });
 
-      if (error) {
-        // Tenta extrair mensagem de erro do contexto
-        const ctx = (error as any).context;
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
         let errMsg = 'Falha ao enviar a mensagem. Tente novamente.';
         let limitReached = false;
-        if (ctx) {
-          try {
-            const parsed = typeof ctx === 'string' ? JSON.parse(ctx) : ctx;
-            if (parsed?.error === 'limit_reached') {
-              limitReached = true;
-              errMsg = parsed.message ?? errMsg;
-              if (parsed.usage) setUsage({ count: parsed.usage.count, limit: parsed.usage.limit });
-            } else if (parsed?.error) {
-              errMsg = parsed.message ?? parsed.error;
-            }
-          } catch { /* ignore */ }
+        if (data?.error === 'limit_reached') {
+          limitReached = true;
+          errMsg = data.message ?? errMsg;
+          if (data.usage) setUsage({ count: data.usage.count, limit: data.usage.limit });
+        } else if (data?.error) {
+          errMsg = data.message ?? data.error;
         }
-        // Remove a mensagem otimista
         setMessages((prev) => prev.filter((m) => m.id !== tempUserMsg.id));
         return { ok: false, error: errMsg, limitReached };
       }
