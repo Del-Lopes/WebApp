@@ -137,12 +137,38 @@ export function useChat() {
     }
   }, [user, session]);
 
+  const clearConversation = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
+    if (!user || !session) {
+      return { ok: false, error: 'Você precisa estar autenticado.' };
+    }
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+      const response = await fetch(`${supabaseUrl}/functions/v1/chat-assistant`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ action: 'clear' }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) {
+        return { ok: false, error: data?.error ?? 'Falha ao limpar a conversa.' };
+      }
+      setMessages([]);
+      return { ok: true };
+    } catch (e: any) {
+      return { ok: false, error: e?.message ?? 'Erro inesperado.' };
+    }
+  }, [user, session]);
+
   return {
     messages,
     usage,
     isLoadingHistory,
     isSending,
     sendMessage,
+    clearConversation,
     reloadHistory: loadHistory,
   };
 }

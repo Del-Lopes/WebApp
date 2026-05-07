@@ -20,7 +20,8 @@ const HISTORY_TURNS = 10 // últimas 10 mensagens enviadas como contexto
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 interface ChatRequest {
-  message: string
+  message?: string
+  action?: 'clear'
 }
 
 interface HistoryEntry {
@@ -30,7 +31,41 @@ interface HistoryEntry {
 
 // ─── System prompt restritivo ─────────────────────────────────────────────────
 
-const SYSTEM_PROMPT = `Você é o Assistente de Suporte da plataforma Trader AFK, uma plataforma de trading algorítmico para membros.
+interface UserContext {
+  full_name: string | null
+  role: string | null
+  active_licenses: string[]
+  member_since: string | null
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Administrador',
+  client: 'Cliente',
+  partner: 'Parceiro',
+  first_mate: 'Imediato (suporte)',
+}
+
+function buildSystemPrompt(ctx: UserContext): string {
+  const firstName = ctx.full_name?.split(' ')[0] ?? null
+  const roleLabel = ctx.role ? ROLE_LABELS[ctx.role] ?? ctx.role : 'Cliente'
+
+  const licensesBlock = ctx.active_licenses.length > 0
+    ? `Licenças ativas do usuário: ${ctx.active_licenses.join(', ')}.`
+    : 'O usuário não possui licenças ativas no momento.'
+
+  const memberBlock = ctx.member_since
+    ? `Membro desde: ${ctx.member_since}.`
+    : ''
+
+  return `Você é o Assistente de Suporte da plataforma Trader AFK, uma plataforma de trading algorítmico para membros.
+
+CONTEXTO DO USUÁRIO ATUAL:
+- Nome: ${ctx.full_name ?? 'não informado'}${firstName ? ` (chame-o pelo primeiro nome: ${firstName})` : ''}
+- Tipo de conta: ${roleLabel}
+- ${licensesBlock}
+${memberBlock ? `- ${memberBlock}` : ''}
+
+Use esse contexto para personalizar as respostas. Quando relevante, mencione as licenças ativas do usuário (ex: orientações específicas para o robô que ele tem). Não invente licenças que não estão na lista acima.
 
 ESCOPO ESTRITO — você responde APENAS sobre:
 - Como usar a plataforma Trader AFK (navegação, telas, recursos)
@@ -51,10 +86,11 @@ VOCÊ NÃO RESPONDE (recuse educadamente e redirecione para o escopo):
 
 REGRAS DE RESPOSTA:
 - Sempre em Português Brasileiro (pt-BR)
-- Tom cordial, direto e objetivo
+- Tom cordial, direto e objetivo${firstName ? ` — pode usar o primeiro nome (${firstName}) com naturalidade, sem exagero` : ''}
 - Máximo 4 parágrafos curtos por resposta
 - Se não souber a resposta exata sobre a plataforma, oriente o usuário a contatar o suporte humano
 - Quando recusar uma pergunta fora de escopo, seja breve e educado: "Sou o assistente de suporte da plataforma Trader AFK e respondo apenas sobre o uso da plataforma. Posso te ajudar com [sugestão de tópicos do escopo]."`
+}
 
 // ─── Auth helper ──────────────────────────────────────────────────────────────
 
@@ -124,6 +160,64 @@ async function saveMessage(userId: string, role: 'user' | 'assistant', content: 
     .from('chat_messages')
     .insert({ user_id: userId, role, content })
   if (error) console.error('saveMessage error:', error.message)
+}
+
+async function clearHistory(userId: string): Promise<void> {
+  const { error } = await supabaseAdmin
+    .from('chat_messages')
+    .delete()
+    .eq('user_id', userId)
+  if (error) throw new Error(`Falha ao limpar histórico: ${error.message}`)
+}
+
+// ─── Contexto do usuário (Fase 2) ─────────────────────────────────────────────
+
+const LICENSE_TABLES: { table: string; label: string }[] = [
+  { table: 'license_requests', label: 'AFK TRADER' },
+  { table: 'license_requests_snowball', label: 'SNOW BALL' },
+  { table: 'license_requests_boletapro', label: 'BOLETA PRO' },
+  { table: 'license_requests_fxsquad', label: 'FX SQUAD' },
+]
+
+async function loadUserContext(userId: string): Promise<UserContext> {
+  // Profile
+  const { data: profile, error: profileError } = await supabaseAdmin
+    .from('profiles')
+    .select('full_name, role, created_at')
+    .eq('id', userId)
+    .maybeSingle()
+  if (profileError) console.error('loadUserContext profile error:', profileError.message)
+
+  // Licenças ativas — varre cada tabela paralela
+  const nowIso = new Date().toISOString()
+  const activeLabels: string[] = []
+  for (const { table, label } of LICENSE_TABLES) {
+    const { data, error } = await supabaseAdmin
+      .from(table)
+      .select('id, expires_at, license_title')
+      .eq('user_id', userId)
+      .eq('status', 'approved')
+      .or(`expires_at.is.null,expires_at.gt.${nowIso}`)
+      .limit(1)
+    if (error) {
+      console.error(`loadUserContext ${table} error:`, error.message)
+      continue
+    }
+    if (data && data.length > 0) {
+      activeLabels.push(data[0].license_title || label)
+    }
+  }
+
+  const memberSince = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString('pt-BR', { year: 'numeric', month: 'long' })
+    : null
+
+  return {
+    full_name: profile?.full_name ?? null,
+    role: profile?.role ?? null,
+    active_licenses: activeLabels,
+    member_since: memberSince,
+  }
 }
 
 // ─── Gemini ───────────────────────────────────────────────────────────────────
@@ -205,6 +299,18 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'JSON inválido' }, 400)
   }
 
+  // Ação especial: limpar histórico do usuário
+  if (body.action === 'clear') {
+    try {
+      await clearHistory(user.id)
+      return jsonResponse({ ok: true, cleared: true })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : JSON.stringify(err)
+      console.error('clear history error:', msg)
+      return jsonResponse({ error: 'Falha ao limpar o histórico.' }, 500)
+    }
+  }
+
   const message = (body.message ?? '').trim()
   if (!message) {
     return jsonResponse({ error: 'Mensagem vazia' }, 400)
@@ -224,14 +330,18 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
-    // 4. Carrega histórico recente
-    const history = await loadHistory(user.id)
+    // 4. Carrega histórico recente + contexto do usuário em paralelo
+    const [history, userCtx] = await Promise.all([
+      loadHistory(user.id),
+      loadUserContext(user.id),
+    ])
 
     // 5. Salva mensagem do usuário
     await saveMessage(user.id, 'user', message)
 
-    // 6. Chama Gemini
-    const reply = await callGemini(SYSTEM_PROMPT, history, message)
+    // 6. Chama Gemini com system prompt personalizado
+    const systemPrompt = buildSystemPrompt(userCtx)
+    const reply = await callGemini(systemPrompt, history, message)
 
     // 7. Salva resposta + incrementa contador
     await saveMessage(user.id, 'assistant', reply)
