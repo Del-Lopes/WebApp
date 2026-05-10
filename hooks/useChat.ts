@@ -28,6 +28,27 @@ interface SendResult {
 }
 
 const HISTORY_LIMIT = 50;
+const ANCHOR_STORAGE_PREFIX = 'chat:anchor:';
+
+function getAnchorKey(userId: string) {
+  return `${ANCHOR_STORAGE_PREFIX}${userId}`;
+}
+
+function readAnchor(userId: string): string | null {
+  try {
+    return localStorage.getItem(getAnchorKey(userId));
+  } catch {
+    return null;
+  }
+}
+
+function writeAnchor(userId: string, isoTimestamp: string) {
+  try {
+    localStorage.setItem(getAnchorKey(userId), isoTimestamp);
+  } catch {
+    // ignore — storage indisponível não deve quebrar o reset visual
+  }
+}
 
 export function useChat() {
   const { user, session } = useAuth();
@@ -41,12 +62,17 @@ export function useChat() {
     if (!user) return;
     setIsLoadingHistory(true);
     try {
-      const { data, error } = await supabase
+      const anchor = readAnchor(user.id);
+      let query = supabase
         .from('chat_messages')
         .select('id, role, content, created_at')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .limit(HISTORY_LIMIT);
+      if (anchor) {
+        query = query.gt('created_at', anchor);
+      }
+      const { data, error } = await query;
       if (error) {
         console.error('Erro ao carregar histórico:', error.message);
         setMessages([]);
@@ -231,12 +257,23 @@ export function useChat() {
       if (!response.ok) {
         return { ok: false, error: data?.error ?? 'Falha ao limpar a conversa.' };
       }
+      try {
+        localStorage.removeItem(getAnchorKey(user.id));
+      } catch {
+        // ignore
+      }
       setMessages([]);
       return { ok: true };
     } catch (e: any) {
       return { ok: false, error: e?.message ?? 'Erro inesperado.' };
     }
   }, [user, session]);
+
+  const resetToHome = useCallback(() => {
+    if (!user) return;
+    writeAnchor(user.id, new Date().toISOString());
+    setMessages([]);
+  }, [user]);
 
   return {
     messages,
@@ -246,6 +283,7 @@ export function useChat() {
     sendMessage,
     setMessageFeedback,
     clearConversation,
+    resetToHome,
     reloadHistory: loadHistory,
   };
 }

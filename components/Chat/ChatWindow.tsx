@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Send, Loader2, Bot, AlertTriangle, Trash2, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { X, Send, Loader2, Bot, AlertTriangle, Trash2, ThumbsUp, ThumbsDown, Home } from 'lucide-react';
 import { useChat, type FeedbackRating } from '../../hooks/useChat';
 
 interface ChatWindowProps {
@@ -14,7 +14,7 @@ const QUICK_PROMPTS = [
 ];
 
 export function ChatWindow({ onClose }: ChatWindowProps) {
-  const { messages, usage, isLoadingHistory, isSending, sendMessage, setMessageFeedback, clearConversation } = useChat();
+  const { messages, usage, isLoadingHistory, isSending, sendMessage, setMessageFeedback, clearConversation, resetToHome } = useChat();
   const [input, setInput] = useState('');
   const [feedback, setFeedback] = useState<{ type: 'info' | 'error'; text: string } | null>(null);
   const [isClearing, setIsClearing] = useState(false);
@@ -66,6 +66,13 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
     }
   };
 
+  const handleResetToHome = () => {
+    if (messages.length === 0) return;
+    setFeedback(null);
+    setInput('');
+    resetToHome();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -91,11 +98,21 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
         <div className="flex items-center gap-1">
           {messages.length > 0 && (
             <button
+              onClick={handleResetToHome}
+              className="p-1.5 rounded-lg hover:bg-white/15 transition-colors"
+              aria-label="Voltar ao início"
+              title="Voltar ao início"
+            >
+              <Home size={16} />
+            </button>
+          )}
+          {messages.length > 0 && (
+            <button
               onClick={handleClear}
               disabled={isClearing}
               className="p-1.5 rounded-lg hover:bg-white/15 transition-colors disabled:opacity-50"
-              aria-label="Limpar conversa"
-              title="Limpar conversa"
+              aria-label="Apagar histórico"
+              title="Apagar histórico"
             >
               {isClearing ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
             </button>
