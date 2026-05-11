@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Shield, User, Map, Download, DollarSign, FileText } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Shield, User, Map, Download, DollarSign, FileText, MessagesSquare, BookOpen, Notebook } from 'lucide-react';
 import { View, UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
@@ -99,6 +99,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="font-medium">Downloads</span>
           </button>
 
+          <button
+            onClick={() => handleViewChange('journal')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              currentView === 'journal' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Notebook size={20} />
+            <span className="font-medium">Diário</span>
+          </button>
+
 
           <button
             onClick={() => handleViewChange('strategies')}
@@ -171,7 +181,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 <DollarSign size={20} />
                 <span className="font-medium">Tesouraria</span>
               </button>
+
+              <button
+                onClick={() => handleViewChange('chat_moderation')}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                  currentView === 'chat_moderation' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                }`}
+              >
+                <MessagesSquare size={20} />
+                <span className="font-medium">Conversas IA</span>
+              </button>
             </>
+          )}
+
+          {/* Knowledge Base - Admin only */}
+          {role === 'admin' && (
+            <button
+              onClick={() => handleViewChange('knowledge')}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+                currentView === 'knowledge' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+              }`}
+            >
+              <BookOpen size={20} />
+              <span className="font-medium">Base de Conhecimento</span>
+            </button>
           )}
 
           {/* Admin Panel - Accessible by Admin only */}

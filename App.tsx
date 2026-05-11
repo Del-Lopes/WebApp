@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import { INITIAL_ROBOTS } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { View, UserRole, Robot, Article } from './types';
+import type { KnowledgeInput } from './hooks/useKnowledge';
 import { Logo } from './components/Logo';
 import { Login } from './components/Auth/Login';
 // Removed duplicate ArticleView import
@@ -24,6 +25,10 @@ const ArticleView = React.lazy(() => import('./components/Dashboard/ArticleView'
 const Journey = React.lazy(() => import('./components/Journey').then(module => ({ default: module.Journey })));
 const PlatformTour = React.lazy(() => import('./components/PlatformTour').then(module => ({ default: module.PlatformTour })));
 const Treasury = React.lazy(() => import('./components/Treasury').then(module => ({ default: module.Treasury })));
+const ChatWidget = React.lazy(() => import('./components/Chat/ChatWidget').then(module => ({ default: module.ChatWidget })));
+const ChatModeration = React.lazy(() => import('./components/Admin/ChatModeration/ChatModeration').then(module => ({ default: module.ChatModeration })));
+const KnowledgeBase = React.lazy(() => import('./components/Admin/Knowledge/KnowledgeBase').then(module => ({ default: module.KnowledgeBase })));
+const TradeJournal = React.lazy(() => import('./components/Journal/TradeJournal').then(module => ({ default: module.TradeJournal })));
 
 function AppContent() {
   const { user, isLoading, role, isPasswordRecovery } = useAuth();
@@ -32,6 +37,12 @@ function AppContent() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userRole, setUserRole] = useState<UserRole>('admin'); // Legacy state, kept for prop compatibility
   const [showTour, setShowTour] = useState(false);
+  const [knowledgeDraft, setKnowledgeDraft] = useState<Partial<KnowledgeInput> | undefined>(undefined);
+
+  const handleCreateKnowledgeFromTopic = (draft: Partial<KnowledgeInput>) => {
+    setKnowledgeDraft(draft);
+    setCurrentView('knowledge');
+  };
 
   useEffect(() => {
     // Check for recovery hash in URL directly as fallback/primary method
@@ -98,6 +109,9 @@ function AppContent() {
       case 'journey': return 'Sua Jornada - Trader AFK';
       case 'downloads': return 'Downloads - Trader AFK';
       case 'treasury': return 'Tesouraria - Trader AFK';
+      case 'chat_moderation': return 'Conversas IA - Trader AFK';
+      case 'knowledge': return 'Base de Conhecimento - Trader AFK';
+      case 'journal': return 'Diário de Operações - Trader AFK';
       case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
       default: return 'Trader AFK';
     }
@@ -164,13 +178,40 @@ function AppContent() {
             case 'journey': return <Journey onBack={() => setCurrentView('dashboard')} onNavigate={setCurrentView} />;
             case 'downloads': return <Downloads onBack={() => setCurrentView('dashboard')} />;
             
-            case 'treasury': 
+            case 'treasury':
               if (!['admin', 'first_mate'].includes(role || '')) {
                   // Redirect to dashboard if unauthorized
                   setTimeout(() => setCurrentView('dashboard'), 0);
                   return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
               }
               return <Treasury onBack={() => setCurrentView('dashboard')} />;
+
+            case 'chat_moderation':
+              if (!['admin', 'first_mate'].includes(role || '')) {
+                  setTimeout(() => setCurrentView('dashboard'), 0);
+                  return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+              }
+              return (
+                <ChatModeration
+                  onBack={() => setCurrentView('dashboard')}
+                  onCreateKnowledge={role === 'admin' ? handleCreateKnowledgeFromTopic : undefined}
+                />
+              );
+
+            case 'knowledge':
+              if (role !== 'admin') {
+                  setTimeout(() => setCurrentView('dashboard'), 0);
+                  return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+              }
+              return (
+                <KnowledgeBase
+                  onBack={() => { setKnowledgeDraft(undefined); setCurrentView('dashboard'); }}
+                  initialDraft={knowledgeDraft}
+                />
+              );
+
+            case 'journal':
+              return <TradeJournal onBack={() => setCurrentView('dashboard')} />;
             
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
@@ -228,13 +269,18 @@ function AppContent() {
         {/* Platform Tour Modal */}
         {showTour && (
           <Suspense fallback={null}>
-            <PlatformTour 
-              onClose={handleTourClose} 
+            <PlatformTour
+              onClose={handleTourClose}
               onComplete={handleTourClose}
             />
           </Suspense>
         )}
       </main>
+
+      {/* AI Chat Widget — visível apenas após login */}
+      <Suspense fallback={null}>
+        <ChatWidget />
+      </Suspense>
     </div>
   );
 }

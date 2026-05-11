@@ -50,8 +50,8 @@ export async function getStorageStats(): Promise<StorageStats> {
  * Uploads a file to Supabase Storage organized by folder
  */
 export async function uploadToSupabase(
-  file: File, 
-  category: 'articles' | 'analyses' | 'strategies' | 'courses' | 'other' = 'other'
+  file: File,
+  category: 'articles' | 'analyses' | 'strategies' | 'courses' | 'trade-journal' | 'other' = 'other'
 ): Promise<string> {
   // Check limit first
   const stats = await getStorageStats();
