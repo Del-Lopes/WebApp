@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Send, Loader2, Bot, AlertTriangle, Trash2, ThumbsUp, ThumbsDown, Home } from 'lucide-react';
+import { X, Send, Loader2, AlertTriangle, Trash2, ThumbsUp, ThumbsDown, Home } from 'lucide-react';
+
+const ASSISTANT_AVATAR_SRC = '/images/logo-icon.png';
 import { useChat, type FeedbackRating } from '../../hooks/useChat';
 
 interface ChatWindowProps {
@@ -8,9 +10,9 @@ interface ChatWindowProps {
 
 const QUICK_PROMPTS = [
   'Como ativo minha licença?',
-  'Onde encontro os robôs disponíveis?',
-  'Como funciona a Jornada do usuário?',
-  'Onde fica a área de Educação?',
+  'Mensagem de Licença inválida no metatrader',
+  'Como Permitir WebRequest?',
+  'Como instalar um robô?',
 ];
 
 export function ChatWindow({ onClose }: ChatWindowProps) {
@@ -87,8 +89,8 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center">
-            <Bot size={20} />
+          <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+            <img src={ASSISTANT_AVATAR_SRC} alt="Assistente Trader AFK" className="w-7 h-7 object-contain" />
           </div>
           <div>
             <h3 className="font-semibold text-sm leading-tight">Assistente Trader AFK</h3>
@@ -135,8 +137,8 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-2">
-            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3">
-              <Bot className="text-green-600" size={26} />
+            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3 overflow-hidden">
+              <img src={ASSISTANT_AVATAR_SRC} alt="Assistente Trader AFK" className="w-10 h-10 object-contain" />
             </div>
             <h4 className="font-semibold text-slate-800 mb-1">Olá! Como posso ajudar?</h4>
             <p className="text-sm text-slate-500 leading-relaxed mb-4 px-2">
