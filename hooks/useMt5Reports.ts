@@ -109,8 +109,15 @@ export function useMt5Reports() {
         return { ok: false, error: 'Arquivo muito grande (limite: 20 MB).' };
       }
 
-      // 1. Cria o registro inicial em mt5_reports (status=processing)
-      const tempPath = `${user.id}/${crypto.randomUUID()}-${file.name}`;
+      // 1. Cria o registro inicial em mt5_reports (status=processing).
+      // Sanitiza o nome para o storage: remove acentos, espaços e caracteres especiais
+      // (Supabase Storage só aceita um subset de ASCII como key).
+      const safeName = file.name
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .replace(/[^a-zA-Z0-9._-]/g, '_')
+        .replace(/_+/g, '_');
+      const tempPath = `${user.id}/${crypto.randomUUID()}-${safeName}`;
       const { data: created, error: createErr } = await supabase
         .from('mt5_reports')
         .insert({
