@@ -118,3 +118,35 @@ export interface Prospect {
   notes?: string;
   created_at: string;
 }
+
+export interface StrategyMt5Link {
+  strategy_id: string;
+  user_id: string;
+  account_login: number;
+  broker_display: string | null;
+  api_key_prefix: string;
+  api_key_created_at: string;
+  api_key_revoked_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface StrategyMt5Status {
+  strategy_id: string;
+  user_id: string;
+  account_login: number;
+  account_currency: string | null;
+  account_company: string | null;
+  account_server: string | null;
+  balance: number | null;
+  equity: number | null;
+  floating_pnl: number | null;
+  daily_pnl: number | null;
+  open_positions: number | null;
+  last_trade_at: string | null;
+  ea_version: string | null;
+  terminal_hash: string | null;
+  reported_at: string;
+  received_at: string;
+  updated_at: string;
+}
