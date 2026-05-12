@@ -13,11 +13,15 @@
 #property description "Monitor somente-leitura. Envia telemetria da conta para a Tradexperience."
 
 //--- Inputs visiveis pro usuario ao anexar o EA
-input string ApiUrl       = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/mt5-ingest"; // URL do endpoint
+//    Apenas a ApiKey aparece no dialogo. Os demais parametros sao constantes
+//    embutidas no .ex5 pra simplificar a configuracao pelo trader.
 input string ApiKey       = "";    // Chave gerada na plataforma Tradexperience
-input int    IntervalSec  = 5;     // Frequencia de envio (segundos)
-input int    HeartbeatSec = 30;    // Heartbeat mesmo sem mudancas (segundos)
-input bool   VerboseLog   = false; // Log detalhado no Experts (debug)
+
+//--- Constantes internas (nao visiveis no dialogo do EA)
+const string ApiUrl       = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/mt5-ingest";
+const int    IntervalSec  = 5;     // Frequencia de envio (segundos)
+const int    HeartbeatSec = 30;    // Heartbeat mesmo sem mudancas (segundos)
+const bool   VerboseLog   = false; // Log detalhado no Experts (debug)
 
 //--- Constantes
 #define EA_VERSION       "1.0.0"
