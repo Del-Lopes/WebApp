@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Download, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2, ExternalLink, ZoomIn, Upload } from 'lucide-react';
 import { Robot, UserRole } from '../types';
 import { uploadToSupabase } from '../lib/storage';
+import { useStrategyMt5Status } from '../hooks/useStrategyMt5Status';
+import { Mt5StatusCard } from './Mt5Connection/Mt5StatusCard';
 
 interface RobotDetailsProps {
   robot: Robot;
@@ -15,6 +17,8 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
   const [formData, setFormData] = useState<Robot>(robot);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  const { link: mt5Link, status: mt5Status, loading: mt5Loading, refetch: refetchMt5 } = useStrategyMt5Status(robot.id);
 
   // Sync state if prop changes
   useEffect(() => {
@@ -143,10 +147,13 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
         </div>
       </div>
 
+      {/* Main grid: info card + MT5 sidebar */}
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
+
       {/* Main Info Card */}
       <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
         <div className="flex flex-col lg:flex-row gap-8">
-          
+
           {/* Left Column: Info & Description */}
           <div className="flex-1 space-y-6">
             <div>
@@ -273,7 +280,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
 
             {!isEditing && (
               <div className="pt-4 flex gap-4">
-                <a 
+                <a
                   href={formData.external_url ? (formData.external_url.startsWith('http') ? formData.external_url : `https://${formData.external_url}`) : '#'}
                   target="_blank"
                   rel="noreferrer"
@@ -286,6 +293,19 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
             )}
           </div>
         </div>
+      </div>
+
+        {/* MT5 sidebar */}
+        <aside className="space-y-4">
+          <Mt5StatusCard
+            strategyId={robot.id}
+            strategyName={robot.name}
+            link={mt5Link}
+            status={mt5Status}
+            loading={mt5Loading}
+            onChange={refetchMt5}
+          />
+        </aside>
       </div>
 
       {/* Operational Gallery */}

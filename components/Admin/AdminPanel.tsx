@@ -314,8 +314,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
             return sortConfig.direction === 'asc' ? aOrder - bOrder : bOrder - aOrder;
         }
 
-        const aValue = (a as any)[sortConfig.key] || '';
-        const bValue = (b as any)[sortConfig.key] || '';
+        const aRaw = (a as any)[sortConfig.key];
+        const bRaw = (b as any)[sortConfig.key];
+
+        if (sortConfig.key === 'created_at' || sortConfig.key === 'last_login') {
+            const aTime = aRaw ? new Date(aRaw).getTime() : 0;
+            const bTime = bRaw ? new Date(bRaw).getTime() : 0;
+            return sortConfig.direction === 'asc' ? aTime - bTime : bTime - aTime;
+        }
+
+        const aValue = (aRaw ?? '').toString().toLowerCase();
+        const bValue = (bRaw ?? '').toString().toLowerCase();
 
         if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
         if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -347,18 +356,27 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
     if (sortConfig !== null) {
       sortableUsers.sort((a, b) => {
-        const aValue = (a as any)[sortConfig.key] || '';
-        const bValue = (b as any)[sortConfig.key] || '';
-
         if (sortConfig.key === 'role') {
             const roleOrder = { 'admin': 0, 'first_mate': 1, 'partner': 2, 'client': 3 };
             const aOrder = roleOrder[a.role as keyof typeof roleOrder] ?? 4;
             const bOrder = roleOrder[b.role as keyof typeof roleOrder] ?? 4;
-            
+
             if (aOrder < bOrder) return sortConfig.direction === 'asc' ? -1 : 1;
             if (aOrder > bOrder) return sortConfig.direction === 'asc' ? 1 : -1;
             return 0;
         }
+
+        const aRaw = (a as any)[sortConfig.key];
+        const bRaw = (b as any)[sortConfig.key];
+
+        if (sortConfig.key === 'created_at' || sortConfig.key === 'last_login') {
+            const aTime = aRaw ? new Date(aRaw).getTime() : 0;
+            const bTime = bRaw ? new Date(bRaw).getTime() : 0;
+            return sortConfig.direction === 'asc' ? aTime - bTime : bTime - aTime;
+        }
+
+        const aValue = (aRaw ?? '').toString().toLowerCase();
+        const bValue = (bRaw ?? '').toString().toLowerCase();
 
         if (aValue < bValue) {
           return sortConfig.direction === 'asc' ? -1 : 1;
@@ -1328,10 +1346,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                           className="rounded border-slate-300 text-green-600 focus:ring-green-500"
                         />
                     </th>
-                    <th className="px-6 py-4 font-medium">Parceiro</th>
-                    <th className="px-6 py-4 font-medium">Email</th>
-                    <th className="px-6 py-4 font-medium">Último Login</th>
-                    <th 
+                    <th
+                        className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                        onClick={() => handleSort('full_name')}
+                    >
+                        <div className="flex items-center gap-1">
+                            Parceiro
+                            {sortConfig?.key === 'full_name' ? (
+                                sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                            ) : (
+                                <ArrowUpDown size={14} className="text-slate-300" />
+                            )}
+                        </div>
+                    </th>
+                    <th
+                        className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                        onClick={() => handleSort('email')}
+                    >
+                        <div className="flex items-center gap-1">
+                            Email
+                            {sortConfig?.key === 'email' ? (
+                                sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                            ) : (
+                                <ArrowUpDown size={14} className="text-slate-300" />
+                            )}
+                        </div>
+                    </th>
+                    <th
+                        className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                        onClick={() => handleSort('last_login')}
+                    >
+                        <div className="flex items-center gap-1">
+                            Último Login
+                            {sortConfig?.key === 'last_login' ? (
+                                sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                            ) : (
+                                <ArrowUpDown size={14} className="text-slate-300" />
+                            )}
+                        </div>
+                    </th>
+                    <th
                         className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
                         onClick={() => handleSort('created_at')}
                     >
@@ -1344,7 +1398,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             )}
                         </div>
                     </th>
-                    <th 
+                    <th
                         className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
                         onClick={() => handleSort('role')}
                     >
@@ -1443,10 +1497,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                       className="rounded border-slate-300 text-green-600 focus:ring-green-500"
                     />
                   </th>
-                  <th className="px-6 py-4 font-medium">Nome</th>
-                  <th className="px-6 py-4 font-medium">Email</th>
-                  <th className="px-6 py-4 font-medium">Último Login</th>
-                  <th 
+                  <th
+                    className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                    onClick={() => handleSort('full_name')}
+                  >
+                    <div className="flex items-center gap-1">
+                        Nome
+                        {sortConfig?.key === 'full_name' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                        ) : (
+                            <ArrowUpDown size={14} className="text-slate-300" />
+                        )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                    onClick={() => handleSort('email')}
+                  >
+                    <div className="flex items-center gap-1">
+                        Email
+                        {sortConfig?.key === 'email' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                        ) : (
+                            <ArrowUpDown size={14} className="text-slate-300" />
+                        )}
+                    </div>
+                  </th>
+                  <th
+                    className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
+                    onClick={() => handleSort('last_login')}
+                  >
+                    <div className="flex items-center gap-1">
+                        Último Login
+                        {sortConfig?.key === 'last_login' ? (
+                            sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />
+                        ) : (
+                            <ArrowUpDown size={14} className="text-slate-300" />
+                        )}
+                    </div>
+                  </th>
+                  <th
                     className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
                     onClick={() => handleSort('created_at')}
                   >
@@ -1459,7 +1549,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                         )}
                     </div>
                   </th>
-                  <th 
+                  <th
                     className="px-6 py-4 font-medium cursor-pointer hover:text-slate-700 transition-colors"
                     onClick={() => handleSort('role')}
                   >

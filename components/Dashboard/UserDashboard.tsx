@@ -450,7 +450,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                         <span className="font-mono font-black text-slate-900 text-xl tracking-tight">{license.mt5_account}</span>
                       </div>
                       <span className="text-[10px] font-bold bg-slate-200 text-slate-500 px-3 py-1 rounded-xl uppercase tracking-widest border border-slate-300/30">
-                        {(license as any).ea || license.license_title || 'MT5'}
+                        {license.license_title || (license as any).ea || 'MT5'}
                       </span>
                     </div>
 

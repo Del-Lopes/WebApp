@@ -286,7 +286,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                     <div className="flex-1 mr-4">
                       <div className="flex items-center gap-2 mb-1">
                           <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${eaConfig[(req as any).ea as keyof typeof eaConfig]?.color || 'bg-slate-200 text-slate-600'}`}>
-                              {(req as any).ea || 'AFK'}
+                              {req.license_title || (req as any).ea || 'AFK'}
                           </span>
                           <span className="block font-mono font-medium text-slate-700">Conta: {req.mt5_account}</span>
                       </div>
@@ -337,7 +337,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                               <span className="block font-mono font-bold text-lg text-slate-900">{req.mt5_account}</span>
                               <div className={`flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider border ${eaConfig[(req as any).ea as keyof typeof eaConfig]?.color || 'bg-green-100/60 text-green-700 border-green-200/50'}`}>
                                   <Key size={10} className="shrink-0" />
-                                  <span className="truncate max-w-[120px]">{(req as any).ea || 'AFK TRADER'}</span>
+                                  <span className="truncate max-w-[120px]">{req.license_title || (req as any).ea || 'AFK TRADER'}</span>
                               </div>
                             </div>
                           )}
