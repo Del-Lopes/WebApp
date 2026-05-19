@@ -304,6 +304,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
             status={mt5Status}
             loading={mt5Loading}
             onChange={refetchMt5}
+            userRole={userRole}
           />
         </aside>
       </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Activity, Settings, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide-react';
-import type { StrategyMt5Link, StrategyMt5Status } from '../../types';
+import type { StrategyMt5Link, StrategyMt5Status, UserRole } from '../../types';
 import { Mt5ConnectModal } from './Mt5ConnectModal';
 import { Mt5ManageModal } from './Mt5ManageModal';
 
@@ -11,6 +11,7 @@ interface Mt5StatusCardProps {
   status: StrategyMt5Status | null;
   loading: boolean;
   onChange: () => void; // chamado após connect/rotate/disconnect pra refetch
+  userRole?: UserRole;
 }
 
 const STALE_THRESHOLD_SEC = 30;
@@ -48,7 +49,9 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
   status,
   loading,
   onChange,
+  userRole,
 }) => {
+  const isAdmin = userRole === 'admin';
   const [connectOpen, setConnectOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
 
@@ -58,6 +61,11 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
     const id = setInterval(() => setTick((t) => t + 1), 5000);
     return () => clearInterval(id);
   }, []);
+
+  // Não-admin sem link/status: nada pra mostrar (não polui a aba de divulgação)
+  if (!isAdmin && !loading && !link) {
+    return null;
+  }
 
   // ─── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -75,7 +83,7 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
     );
   }
 
-  // ─── Estado A: não conectada ───────────────────────────────────────────────
+  // ─── Estado A: não conectada (somente admin vê — para não-admin já retornamos null acima) ─
   if (!link) {
     return (
       <>
@@ -122,13 +130,15 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <Activity size={16} className="text-green-600" /> Conexão MT5
             </h3>
-            <button
-              onClick={() => setManageOpen(true)}
-              className="text-slate-400 hover:text-slate-700 transition-colors"
-              title="Gerenciar"
-            >
-              <Settings size={16} />
-            </button>
+            {isAdmin && (
+              <button
+                onClick={() => setManageOpen(true)}
+                className="text-slate-400 hover:text-slate-700 transition-colors"
+                title="Gerenciar"
+              >
+                <Settings size={16} />
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2 text-amber-700 text-sm mb-3">
             <RefreshCw size={14} className="animate-spin" />
