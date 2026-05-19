@@ -5,9 +5,10 @@
 //|  Somente leitura. Pode alimentar SIMULTANEAMENTE:                  |
 //|   - Estrategia (payload completo)                                 |
 //|   - Tesouraria (apenas equity utilizado pelo backend)             |
-//|  Cada destino tem seu proprio par (Enable + ApiKey). Estados de   |
-//|  backoff/auth sao independentes — falha em um nao bloqueia o      |
-//|  outro. Nao abre, modifica ou fecha ordens.                       |
+//|   - Live Portfolio (payload completo, endpoint dedicado)          |
+//|  Cada destino tem seu proprio par (Enable + ApiKey + URL).        |
+//|  Estados de backoff/auth sao independentes — falha em um nao      |
+//|  bloqueia os outros. Nao abre, modifica ou fecha ordens.          |
 //+------------------------------------------------------------------+
 #property copyright "Tradexperience"
 #property link      "https://tradexperience.com.br"
@@ -16,13 +17,16 @@
 #property description "Monitor unico (Estrategia + Tesouraria). Somente leitura."
 
 //--- Inputs visiveis pro usuario ao anexar o EA
-input bool   EnableStrategy = true;   // Enviar telemetria de Estrategia
-input string StrategyApiKey = "";     // Chave da Estrategia (txp_live_...)
-input bool   EnableTreasury = false;  // Enviar telemetria de Tesouraria
-input string TreasuryApiKey = "";     // Chave da Tesouraria (txp_treas_...)
+input bool   EnableStrategy  = true;   // Enviar telemetria de Estrategia
+input string StrategyApiKey  = "";     // Chave da Estrategia (txp_live_...)
+input bool   EnableTreasury  = false;  // Enviar telemetria de Tesouraria
+input string TreasuryApiKey  = "";     // Chave da Tesouraria (txp_treas_...)
+input bool   EnablePortfolio = false;  // Enviar telemetria de Live Portfolio
+input string PortfolioApiKey = "";     // Chave do Portfolio (txp_port_...)
 
 //--- Constantes internas (nao visiveis no dialogo do EA)
-const string ApiUrl       = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/mt5-ingest";
+const string IngestUrlMain      = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/mt5-ingest";
+const string IngestUrlPortfolio = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/portfolio-mt5-ingest";
 const int    IntervalSec  = 300;   // Frequencia de envio (segundos)
 const int    HeartbeatSec = 330;   // Heartbeat mesmo sem mudancas (segundos)
 const bool   VerboseLog   = false;
@@ -32,13 +36,14 @@ const bool   VerboseLog   = false;
 #define HTTP_TIMEOUT_MS  5000
 #define BACKOFF_MAX_SEC  60
 
-//--- Estado por canal (Estrategia / Tesouraria) ---------------------
+//--- Estado por canal (Estrategia / Tesouraria / Portfolio) --------
 struct ChannelState
 {
    string   label;
    string   key;
+   string   url;                // endpoint pra POST
    bool     enabled;
-   bool     full_payload;       // true = Estrategia (payload completo)
+   bool     full_payload;       // true = payload completo (Estrategia/Portfolio); false = so equity (Tesouraria)
    bool     url_not_allowed;
    bool     auth_blocked;
 
@@ -57,13 +62,15 @@ struct ChannelState
 
 ChannelState g_strategy;
 ChannelState g_treasury;
+ChannelState g_portfolio;
 
 //+------------------------------------------------------------------+
 void InitChannel(ChannelState &ch, const string label, const string key,
-                 bool enabled, bool full_payload)
+                 const string url, bool enabled, bool full_payload)
 {
    ch.label           = label;
    ch.key             = key;
+   ch.url             = url;
    ch.enabled         = enabled;
    ch.full_payload    = full_payload;
    ch.url_not_allowed = false;
@@ -82,15 +89,17 @@ void InitChannel(ChannelState &ch, const string label, const string key,
 //+------------------------------------------------------------------+
 int OnInit()
 {
-   InitChannel(g_strategy, "Estrategia", StrategyApiKey,
+   InitChannel(g_strategy, "Estrategia", StrategyApiKey, IngestUrlMain,
                EnableStrategy && StringLen(StrategyApiKey) >= 10, true);
-   InitChannel(g_treasury, "Tesouraria", TreasuryApiKey,
+   InitChannel(g_treasury, "Tesouraria", TreasuryApiKey, IngestUrlMain,
                EnableTreasury && StringLen(TreasuryApiKey) >= 10, false);
+   InitChannel(g_portfolio, "Portfolio", PortfolioApiKey, IngestUrlPortfolio,
+               EnablePortfolio && StringLen(PortfolioApiKey) >= 10, true);
 
-   if(!g_strategy.enabled && !g_treasury.enabled)
+   if(!g_strategy.enabled && !g_treasury.enabled && !g_portfolio.enabled)
    {
       Comment("Tradexperience MT5: nenhum canal habilitado.\n"
-              "Habilite Estrategia e/ou Tesouraria e cole as respectivas chaves.");
+              "Habilite Estrategia, Tesouraria e/ou Portfolio e cole as chaves.");
       Print("[Tradexperience] Nenhum canal habilitado. EA parado.");
       return(INIT_FAILED);
    }
@@ -99,12 +108,15 @@ int OnInit()
       Print("[Tradexperience] Estrategia habilitada mas chave invalida — canal desativado.");
    if(EnableTreasury && StringLen(TreasuryApiKey) < 10)
       Print("[Tradexperience] Tesouraria habilitada mas chave invalida — canal desativado.");
+   if(EnablePortfolio && StringLen(PortfolioApiKey) < 10)
+      Print("[Tradexperience] Portfolio habilitado mas chave invalida — canal desativado.");
 
    EventSetTimer(IntervalSec);
    UpdateStatusComment("Iniciando...");
    Print("[Tradexperience] Iniciado. v", EA_VERSION,
          " | strategy=", g_strategy.enabled ? "on" : "off",
          " | treasury=", g_treasury.enabled ? "on" : "off",
+         " | portfolio=", g_portfolio.enabled ? "on" : "off",
          " | conta=", AccountInfoInteger(ACCOUNT_LOGIN));
 
    // Primeiro envio imediato (depois o EventSetTimer cuida do ritmo de 300s).
@@ -136,6 +148,8 @@ void OnTimer()
       ProcessChannel(g_strategy, balance, equity, floating_pnl, daily_pnl, open_count, last_trade);
    if(g_treasury.enabled)
       ProcessChannel(g_treasury, balance, equity, floating_pnl, daily_pnl, open_count, last_trade);
+   if(g_portfolio.enabled)
+      ProcessChannel(g_portfolio, balance, equity, floating_pnl, daily_pnl, open_count, last_trade);
 
    RefreshStatusComment(equity, floating_pnl, open_count);
 }
@@ -294,7 +308,7 @@ bool SendPayload(ChannelState &ch, const string json)
    if(ArraySize(post) > json_len) ArrayResize(post, json_len);
 
    ResetLastError();
-   int status = WebRequest("POST", ApiUrl, headers, HTTP_TIMEOUT_MS,
+   int status = WebRequest("POST", ch.url, headers, HTTP_TIMEOUT_MS,
                            post, result, result_headers);
 
    if(status == -1)
@@ -367,14 +381,15 @@ void UpdateStatusComment(const string status)
 void RefreshStatusComment(double equity, double floating, int positions)
 {
    string url_warning = "";
-   if(g_strategy.url_not_allowed || g_treasury.url_not_allowed)
-      url_warning = "\n!! Adicione a URL em Ferramentas > Opcoes > Expert Advisors !!";
+   if(g_strategy.url_not_allowed || g_treasury.url_not_allowed || g_portfolio.url_not_allowed)
+      url_warning = "\n!! Adicione as URLs em Ferramentas > Opcoes > Expert Advisors !!";
 
    Comment("Tradexperience MT5 v", EA_VERSION, " (somente leitura)\n",
            "Conta: ", AccountInfoInteger(ACCOUNT_LOGIN), "\n",
            StringFormat("Equity: %.2f | Flut: %.2f | Pos: %d", equity, floating, positions), "\n",
            "Estrategia: ", ChannelStatusText(g_strategy), "\n",
-           "Tesouraria: ", ChannelStatusText(g_treasury),
+           "Tesouraria: ", ChannelStatusText(g_treasury), "\n",
+           "Portfolio:  ", ChannelStatusText(g_portfolio),
            url_warning);
 }
 
