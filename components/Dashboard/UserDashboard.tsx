@@ -25,7 +25,8 @@ import {
   HardDrive,
   Loader2,
   Notebook,
-  BarChart3
+  BarChart3,
+  Activity
 } from 'lucide-react';
 import { LicenseRequest, Article, View, Profile } from '../../types';
 import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
@@ -339,6 +340,23 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             </div>
           </div>
           <div className="text-xs text-slate-400">Métricas e relatórios MT5</div>
+        </div>
+
+        {/* Live Portfolio Card */}
+        <div
+          onClick={() => onNavigate('live_portfolio')}
+          className="bg-emerald-50 p-6 rounded-2xl border border-emerald-100 shadow-lg shadow-emerald-500/10 hover:shadow-xl hover:shadow-emerald-500/20 transition-all duration-300 cursor-pointer group"
+        >
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-emerald-100 text-emerald-600 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+              <Activity size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 font-medium">Live Portfólio</p>
+              <h3 className="text-lg font-bold text-slate-900">Tempo real</h3>
+            </div>
+          </div>
+          <div className="text-xs text-slate-400">Suas contas MT5 ao vivo</div>
         </div>
 
         {/* Licenses Card */}
