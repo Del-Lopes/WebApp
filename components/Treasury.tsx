@@ -537,22 +537,31 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                     {isStaff && (
                       <td className="px-6 py-4 whitespace-nowrap text-center">
                         {mt5Links[account.id] ? (
-                          <button
-                            onClick={() => handleDisconnectMt5(account.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 hover:bg-red-50 hover:text-red-600 border border-green-200 hover:border-red-200 rounded-lg transition-colors"
-                            title="Desconectar do MT5"
-                          >
-                            <Link2Off size={14} />
-                            <span>Conectado</span>
-                          </button>
+                          <div className="relative group/mt5 inline-block">
+                            <button
+                              onClick={() => handleDisconnectMt5(account.id)}
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-full border bg-green-50 text-green-600 border-green-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                              aria-label="Desconectar do MT5"
+                            >
+                              <Link2 size={16} />
+                            </button>
+                            <div className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1 bg-slate-900 text-white text-[11px] font-semibold rounded-md shadow-xl opacity-0 pointer-events-none group-hover/mt5:opacity-100 transition-opacity whitespace-nowrap">
+                              Desconectar do MT5
+                            </div>
+                          </div>
                         ) : (
-                          <button
-                            onClick={() => setConnectingAccount(account)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-50 text-slate-700 hover:bg-slate-900 hover:text-white border border-slate-200 hover:border-slate-900 rounded-lg transition-colors"
-                          >
-                            <Link2 size={14} />
-                            <span>Conectar ao MT5</span>
-                          </button>
+                          <div className="relative group/mt5 inline-block">
+                            <button
+                              onClick={() => setConnectingAccount(account)}
+                              className="inline-flex items-center justify-center h-8 w-8 rounded-full border bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-colors"
+                              aria-label="Conectar ao MT5"
+                            >
+                              <Link2Off size={16} />
+                            </button>
+                            <div className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-2 px-2.5 py-1 bg-slate-900 text-white text-[11px] font-semibold rounded-md shadow-xl opacity-0 pointer-events-none group-hover/mt5:opacity-100 transition-opacity whitespace-nowrap">
+                              Conectar ao MT5
+                            </div>
+                          </div>
                         )}
                       </td>
                     )}
