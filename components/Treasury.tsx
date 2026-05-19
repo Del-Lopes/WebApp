@@ -465,15 +465,16 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                               <button
                                 type="button"
                                 onClick={() => setEditValues(prev => ({ ...prev, is_cent: !prev.is_cent }))}
-                                title="Ative se a conta MT5 é em centavos. O equity recebido será dividido por 100 ao gravar o saldo."
-                                className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                                title={editValues.is_cent
+                                  ? 'Conta cent ativa — o equity recebido será dividido por 100 ao gravar o saldo. Clique para desativar.'
+                                  : 'Ative se a conta MT5 é em centavos. O equity recebido será dividido por 100 ao gravar o saldo.'}
+                                className={`shrink-0 inline-flex items-center justify-center p-1.5 rounded-lg border transition-colors ${
                                   editValues.is_cent
                                     ? 'bg-amber-50 text-amber-700 hover:bg-slate-50 hover:text-slate-700 border-amber-200 hover:border-slate-200'
                                     : 'bg-slate-50 text-slate-700 hover:bg-amber-50 hover:text-amber-700 border-slate-200 hover:border-amber-200'
                                 }`}
                               >
                                 <Coins size={14} />
-                                <span>{editValues.is_cent ? 'Cent' : 'Normal'}</span>
                               </button>
                             </>
                           ) : (
@@ -532,20 +533,18 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                         {mt5Links[account.id] ? (
                           <button
                             onClick={() => handleDisconnectMt5(account.id)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 hover:bg-red-50 hover:text-red-600 border border-green-200 hover:border-red-200 rounded-lg transition-colors"
+                            className="inline-flex items-center justify-center p-1.5 bg-green-50 text-green-700 hover:bg-red-50 hover:text-red-600 border border-green-200 hover:border-red-200 rounded-lg transition-colors"
                             title="Desconectar do MT5"
                           >
                             <Link2 size={14} />
-                            <span>Conectado</span>
                           </button>
                         ) : (
                           <button
                             onClick={() => setConnectingAccount(account)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-50 text-slate-700 hover:bg-slate-900 hover:text-white border border-slate-200 hover:border-slate-900 rounded-lg transition-colors"
+                            className="inline-flex items-center justify-center p-1.5 bg-slate-50 text-slate-700 hover:bg-slate-900 hover:text-white border border-slate-200 hover:border-slate-900 rounded-lg transition-colors"
                             title="Conectar ao MT5"
                           >
                             <Link2Off size={14} />
-                            <span>Desconectado</span>
                           </button>
                         )}
                       </td>
