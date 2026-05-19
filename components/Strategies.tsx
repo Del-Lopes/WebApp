@@ -4,6 +4,9 @@ import { Robot, UserRole, Product } from '../types';
 import { RobotDetails } from './RobotDetails';
 import { BackButton } from './BackButton';
 import { supabase } from '../lib/supabase';
+import { useStrategiesMt5Status } from '../hooks/useStrategiesMt5Status';
+
+const LIVE_THRESHOLD_SEC = 360;
 
 interface StrategiesProps {
   userRole: UserRole;
@@ -35,6 +38,21 @@ export const Strategies: React.FC<StrategiesProps> = ({
   const [loading, setLoading] = useState(true);
   // Default to 'desc' (Highest Profitability first) as requested
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('desc');
+
+  const { statusByStrategy } = useStrategiesMt5Status();
+  // Tick a cada 10s pra reavaliar "live" (received_at <= 360s atrás)
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 10000);
+    return () => clearInterval(id);
+  }, []);
+
+  const isStrategyLive = (strategyId: string) => {
+    const status = statusByStrategy[strategyId];
+    if (!status?.received_at) return false;
+    const ageSec = (Date.now() - new Date(status.received_at).getTime()) / 1000;
+    return ageSec <= LIVE_THRESHOLD_SEC;
+  };
 
   const sortedRobots = React.useMemo(() => {
     if (!sortOrder) return robots;
@@ -302,17 +320,30 @@ export const Strategies: React.FC<StrategiesProps> = ({
                     </div>
                     {/* MyFxBook Verified Icon - Card */}
                     {robot.myfxbook_url && (
-                        <a 
-                            href={robot.myfxbook_url} 
-                            target="_blank" 
+                        <a
+                            href={robot.myfxbook_url}
+                            target="_blank"
                             rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()} 
+                            onClick={(e) => e.stopPropagation()}
                             className="flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-orange-100 transition-colors"
                             title="Verificado no MyFxBook"
                         >
                             <ShieldCheck size={10} />
                             MyFxBook
                         </a>
+                    )}
+                    {/* Live indicator — só quando há status MT5 recente */}
+                    {isStrategyLive(robot.id) && (
+                        <span
+                            className="flex items-center gap-1 bg-green-50 border border-green-200 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                            title="Dados ao vivo da conta MT5"
+                        >
+                            <span className="relative flex w-2 h-2">
+                                <span className="absolute inline-flex w-full h-full rounded-full bg-green-500 opacity-75 animate-ping" />
+                                <span className="relative inline-flex w-2 h-2 rounded-full bg-green-500" />
+                            </span>
+                            Live
+                        </span>
                     )}
                   </div>
                 </div>
