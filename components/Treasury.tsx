@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, DollarSign, Trash2, Wallet, Edit2, Check, X, TrendingUp, Link2, Link2Off } from 'lucide-react';
+import { ArrowLeft, Plus, DollarSign, Trash2, Wallet, Edit2, Check, X, TrendingUp, Link2, Link2Off, Coins } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { TreasuryMt5ConnectModal } from './Treasury/TreasuryMt5ConnectModal';
@@ -12,6 +12,7 @@ interface Account {
   currency: string;
   location?: string;
   trend?: 'neutral' | 'positive';
+  is_cent?: boolean;
 }
 
 interface Mt5LinkRow {
@@ -153,7 +154,8 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
           name: editValues.name,
           balance: Number(editValues.balance),
           location: editValues.location,
-          trend: editValues.trend
+          trend: editValues.trend,
+          is_cent: !!editValues.is_cent,
         })
         .eq('id', id);
 
@@ -450,17 +452,46 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                             <Wallet size={18} />
                           )}
                         </div>
-                        <div className="ml-4">
+                        <div className="ml-4 flex items-center gap-2">
                           {editingId === account.id ? (
-                            <input
-                              type="text"
-                              value={editValues.name || ''}
-                              onChange={e => setEditValues({ ...editValues, name: e.target.value })}
-                              className="px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-900 w-full"
-                              autoFocus
-                            />
+                            <>
+                              <input
+                                type="text"
+                                value={editValues.name || ''}
+                                onChange={e => setEditValues({ ...editValues, name: e.target.value })}
+                                className="px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-900 w-full"
+                                autoFocus
+                              />
+                              <div className="relative group/coin">
+                                <button
+                                  type="button"
+                                  onClick={() => setEditValues(prev => ({ ...prev, is_cent: !prev.is_cent }))}
+                                  className={`shrink-0 h-8 w-8 rounded-full flex items-center justify-center transition-all border ${
+                                    editValues.is_cent
+                                      ? 'bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-900 border-amber-400 shadow-md shadow-amber-500/40'
+                                      : 'bg-slate-100 text-slate-500 border-slate-200 hover:bg-slate-200'
+                                  }`}
+                                  aria-label="Marcar como conta cent"
+                                >
+                                  <Coins size={14} />
+                                </button>
+                                <div className="absolute z-20 left-1/2 -translate-x-1/2 top-full mt-2 w-56 px-3 py-2 bg-slate-900 text-white text-[11px] rounded-lg shadow-xl opacity-0 pointer-events-none group-hover/coin:opacity-100 transition-opacity">
+                                  <p className="font-bold mb-1">Conta cent</p>
+                                  <p className="text-slate-300 leading-relaxed">
+                                    Ative se a conta MT5 é em centavos. O equity recebido será dividido por 100 ao gravar o saldo.
+                                  </p>
+                                </div>
+                              </div>
+                            </>
                           ) : (
-                            <div className="text-sm font-bold text-slate-900">{account.name}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-sm font-bold text-slate-900">{account.name}</div>
+                              {account.is_cent && (
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-900 uppercase tracking-wider">
+                                  <Coins size={10} /> Cent
+                                </span>
+                              )}
+                            </div>
                           )}
                         </div>
                       </div>

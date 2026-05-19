@@ -106,6 +106,9 @@ int OnInit()
          " | strategy=", g_strategy.enabled ? "on" : "off",
          " | treasury=", g_treasury.enabled ? "on" : "off",
          " | conta=", AccountInfoInteger(ACCOUNT_LOGIN));
+
+   // Primeiro envio imediato (depois o EventSetTimer cuida do ritmo de 300s).
+   OnTimer();
    return(INIT_SUCCEEDED);
 }
 

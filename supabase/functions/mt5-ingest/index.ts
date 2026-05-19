@@ -165,9 +165,19 @@ Deno.serve(async (req) => {
   if (treasuryLink) {
     const reportedAt = p.timestamp
 
+    // Contas "cent" (centavos) representam saldos em 1/100 da moeda da corretora.
+    // O equity recebido vem na moeda da plataforma — dividimos por 100 antes de gravar.
+    const { data: accountRow } = await supabaseAdmin
+      .from('treasury_accounts')
+      .select('is_cent')
+      .eq('id', treasuryLink.account_id)
+      .maybeSingle()
+
+    const adjustedEquity = accountRow?.is_cent ? p.equity / 100 : p.equity
+
     const { error: balanceErr } = await supabaseAdmin
       .from('treasury_accounts')
-      .update({ balance: p.equity })
+      .update({ balance: adjustedEquity })
       .eq('id', treasuryLink.account_id)
 
     if (balanceErr) {
@@ -178,7 +188,7 @@ Deno.serve(async (req) => {
     const { error: linkUpdErr } = await supabaseAdmin
       .from('treasury_mt5_link')
       .update({
-        last_equity: p.equity,
+        last_equity: adjustedEquity,
         last_reported_at: reportedAt,
       })
       .eq('account_id', treasuryLink.account_id)
