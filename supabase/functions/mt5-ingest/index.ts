@@ -95,17 +95,40 @@ Deno.serve(async (req) => {
 
   const tokenHash = await sha256Hex(token)
 
-  const { data: link, error: linkErr } = await supabaseAdmin
+  // Tenta primeiro vincular como estratégia. Se não bater, tenta como tesouraria.
+  const { data: strategyLink, error: strategyLinkErr } = await supabaseAdmin
     .from('strategy_mt5_link')
     .select('strategy_id, user_id, account_login, api_key_revoked_at')
     .eq('api_key_hash', tokenHash)
     .maybeSingle()
 
-  if (linkErr) {
-    console.error('[mt5-ingest] link lookup error', linkErr)
+  if (strategyLinkErr) {
+    console.error('[mt5-ingest] strategy link lookup error', strategyLinkErr)
     return jsonResponse(500, { error: 'internal_error' })
   }
 
+  let treasuryLink: {
+    account_id: string
+    user_id: string
+    account_login: number
+    api_key_revoked_at: string | null
+  } | null = null
+
+  if (!strategyLink) {
+    const { data: tLink, error: treasuryLinkErr } = await supabaseAdmin
+      .from('treasury_mt5_link')
+      .select('account_id, user_id, account_login, api_key_revoked_at')
+      .eq('api_key_hash', tokenHash)
+      .maybeSingle()
+
+    if (treasuryLinkErr) {
+      console.error('[mt5-ingest] treasury link lookup error', treasuryLinkErr)
+      return jsonResponse(500, { error: 'internal_error' })
+    }
+    treasuryLink = tLink
+  }
+
+  const link = strategyLink ?? treasuryLink
   if (!link) {
     return jsonResponse(401, { error: 'invalid_token' })
   }
@@ -131,11 +154,47 @@ Deno.serve(async (req) => {
   // Isso impede que uma chave seja reaproveitada pra alimentar dados de outra conta.
   if (Number(p.account_login) !== Number(link.account_login)) {
     console.warn('[mt5-ingest] account mismatch', {
-      strategy_id: link.strategy_id,
+      kind: strategyLink ? 'strategy' : 'treasury',
       expected: link.account_login,
       received: p.account_login,
     })
     return jsonResponse(403, { error: 'account_mismatch' })
+  }
+
+  // ─── Caminho da tesouraria: só atualiza equity em treasury_accounts.balance ───
+  if (treasuryLink) {
+    const reportedAt = p.timestamp
+
+    const { error: balanceErr } = await supabaseAdmin
+      .from('treasury_accounts')
+      .update({ balance: p.equity })
+      .eq('id', treasuryLink.account_id)
+
+    if (balanceErr) {
+      console.error('[mt5-ingest] treasury balance update error', balanceErr)
+      return jsonResponse(500, { error: 'treasury_update_failed' })
+    }
+
+    const { error: linkUpdErr } = await supabaseAdmin
+      .from('treasury_mt5_link')
+      .update({
+        last_equity: p.equity,
+        last_reported_at: reportedAt,
+      })
+      .eq('account_id', treasuryLink.account_id)
+
+    if (linkUpdErr) {
+      console.error('[mt5-ingest] treasury link timestamp update error', linkUpdErr)
+      // Não falhamos a request — o balance já foi atualizado.
+    }
+
+    return jsonResponse(200, { ok: true })
+  }
+
+  // ─── Caminho da estratégia (legado) ────────────────────────────────────────
+  if (!strategyLink) {
+    // Inalcançável pelo flow acima, mas o TS precisa do narrowing.
+    return jsonResponse(500, { error: 'internal_error' })
   }
 
   // ─── Upsert do snapshot ────────────────────────────────────────────────────
@@ -146,8 +205,8 @@ Deno.serve(async (req) => {
     .from('strategy_mt5_status')
     .upsert(
       {
-        strategy_id: link.strategy_id,
-        user_id: link.user_id,
+        strategy_id: strategyLink.strategy_id,
+        user_id: strategyLink.user_id,
         account_login: p.account_login,
         account_currency: p.account_currency ?? null,
         account_company: p.account_company ?? null,
@@ -175,7 +234,7 @@ Deno.serve(async (req) => {
   const { data: lastHist } = await supabaseAdmin
     .from('strategy_mt5_history')
     .select('recorded_at')
-    .eq('strategy_id', link.strategy_id)
+    .eq('strategy_id', strategyLink.strategy_id)
     .order('recorded_at', { ascending: false })
     .limit(1)
     .maybeSingle()
@@ -188,8 +247,8 @@ Deno.serve(async (req) => {
     const { error: histErr } = await supabaseAdmin
       .from('strategy_mt5_history')
       .insert({
-        strategy_id: link.strategy_id,
-        user_id: link.user_id,
+        strategy_id: strategyLink.strategy_id,
+        user_id: strategyLink.user_id,
         equity: p.equity,
         balance: p.balance,
         floating_pnl: p.floating_pnl,

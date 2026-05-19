@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, DollarSign, Trash2, Wallet, Edit2, Check, X, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Plus, DollarSign, Trash2, Wallet, Edit2, Check, X, TrendingUp, Link2, Link2Off } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import { TreasuryMt5ConnectModal } from './Treasury/TreasuryMt5ConnectModal';
+import { disconnectTreasuryAccountFromMt5 } from '../lib/treasuryMt5Link';
 
 interface Account {
   id: string;
@@ -10,6 +12,14 @@ interface Account {
   currency: string;
   location?: string;
   trend?: 'neutral' | 'positive';
+}
+
+interface Mt5LinkRow {
+  account_id: string;
+  account_login: number;
+  api_key_prefix: string;
+  last_equity: number | null;
+  last_reported_at: string | null;
 }
 
 interface TreasuryProps {
@@ -23,6 +33,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
   const { role } = useAuth();
   const isAdmin = role === 'admin';
+  const isStaff = role === 'admin' || role === 'first_mate';
 
   // New account state
   const [isAdding, setIsAdding] = useState(false);
@@ -35,9 +46,14 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
     show: false, x: 0, y: 0, data: null
   });
 
+  // MT5 link state
+  const [mt5Links, setMt5Links] = useState<Record<string, Mt5LinkRow>>({});
+  const [connectingAccount, setConnectingAccount] = useState<Account | null>(null);
+
   useEffect(() => {
     fetchAccounts();
-  }, []);
+    if (isStaff) fetchMt5Links();
+  }, [isStaff]);
 
   const fetchAccounts = async () => {
     try {
@@ -45,13 +61,42 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
         .from('treasury_accounts')
         .select('*')
         .order('created_at', { ascending: true });
-      
+
       if (error) throw error;
       setAccounts(data || []);
     } catch (error) {
       console.error('Error fetching accounts:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchMt5Links = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('treasury_mt5_link')
+        .select('account_id, account_login, api_key_prefix, last_equity, last_reported_at');
+      if (error) throw error;
+      const map: Record<string, Mt5LinkRow> = {};
+      (data || []).forEach((row) => { map[row.account_id] = row as Mt5LinkRow; });
+      setMt5Links(map);
+    } catch (error) {
+      console.error('Error fetching mt5 links:', error);
+    }
+  };
+
+  const handleDisconnectMt5 = async (accountId: string) => {
+    if (!confirm('Desconectar esta conta do MT5? O saldo deixará de atualizar automaticamente.')) return;
+    try {
+      await disconnectTreasuryAccountFromMt5(accountId);
+      setMt5Links((prev) => {
+        const next = { ...prev };
+        delete next[accountId];
+        return next;
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Erro ao desconectar.';
+      alert(message);
     }
   };
 
@@ -343,6 +388,18 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
           </form>
         )}
 
+        {connectingAccount && (
+          <TreasuryMt5ConnectModal
+            accountId={connectingAccount.id}
+            accountName={connectingAccount.name}
+            onClose={() => setConnectingAccount(null)}
+            onConnected={() => {
+              setConnectingAccount(null);
+              fetchMt5Links();
+            }}
+          />
+        )}
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
@@ -350,19 +407,20 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Conta</th>
                 <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Local</th>
                 <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Saldo</th>
+                {isStaff && <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">MT5</th>}
                 {isAdmin && <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Ações</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-500 animate-pulse">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500 animate-pulse">
                     Carregando contas...
                   </td>
                 </tr>
               ) : accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
                     Nenhuma conta cadastrada.
                   </td>
                 </tr>
@@ -432,12 +490,41 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                           step="0.01"
                         />
                       ) : (
-                        new Intl.NumberFormat('en-US', { 
-                          style: 'currency', 
-                          currency: 'USD' 
-                        }).format(account.balance)
+                        <>
+                          {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD'
+                          }).format(account.balance)}
+                          {mt5Links[account.id] && (
+                            <div className="text-[10px] font-normal text-green-600 mt-0.5 uppercase tracking-wider">
+                              Sincronizado · #{mt5Links[account.id].account_login}
+                            </div>
+                          )}
+                        </>
                       )}
                     </td>
+                    {isStaff && (
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        {mt5Links[account.id] ? (
+                          <button
+                            onClick={() => handleDisconnectMt5(account.id)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-green-50 text-green-700 hover:bg-red-50 hover:text-red-600 border border-green-200 hover:border-red-200 rounded-lg transition-colors"
+                            title="Desconectar do MT5"
+                          >
+                            <Link2Off size={14} />
+                            <span>Conectado</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setConnectingAccount(account)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-slate-50 text-slate-700 hover:bg-slate-900 hover:text-white border border-slate-200 hover:border-slate-900 rounded-lg transition-colors"
+                          >
+                            <Link2 size={14} />
+                            <span>Conectar ao MT5</span>
+                          </button>
+                        )}
+                      </td>
+                    )}
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       {editingId === account.id ? (
                         <div className="flex justify-end gap-2">

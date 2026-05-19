@@ -1,18 +1,17 @@
 import React, { useState } from 'react';
 import { X, Copy, Check, AlertTriangle, Download, ChevronDown } from 'lucide-react';
-import { connectStrategyToMt5 } from '../../lib/mt5Link';
+import { connectTreasuryAccountToMt5 } from '../../lib/treasuryMt5Link';
 
-interface Mt5ConnectModalProps {
-  strategyId: string;
-  strategyName: string;
+interface TreasuryMt5ConnectModalProps {
+  accountId: string;
+  accountName: string;
   onClose: () => void;
   onConnected: () => void;
 }
 
-// URL do EA hospedado no Storage. Ajustar conforme o bucket final.
+// URL do EA Treasury hospedado no Storage. Ajustar conforme o bucket final.
 const EA_DOWNLOAD_URL = 'https://armhlcnmaqgudqivkpgt.supabase.co/storage/v1/object/public/mt5-ea/TradexperienceMT5.ex5';
 
-// Host autorizado no MT5. Inferido a partir da URL pública do projeto Supabase.
 const SUPABASE_HOST = (() => {
   try {
     const url = (import.meta as unknown as { env?: { VITE_SUPABASE_URL?: string } }).env?.VITE_SUPABASE_URL;
@@ -22,9 +21,9 @@ const SUPABASE_HOST = (() => {
   }
 })();
 
-export const Mt5ConnectModal: React.FC<Mt5ConnectModalProps> = ({
-  strategyId,
-  strategyName,
+export const TreasuryMt5ConnectModal: React.FC<TreasuryMt5ConnectModalProps> = ({
+  accountId,
+  accountName,
   onClose,
   onConnected,
 }) => {
@@ -52,15 +51,17 @@ export const Mt5ConnectModal: React.FC<Mt5ConnectModalProps> = ({
     setSubmitting(true);
     setSubmitError(null);
     try {
-      const res = await connectStrategyToMt5(strategyId, Number(login), broker.trim() || undefined);
+      const res = await connectTreasuryAccountToMt5(accountId, Number(login), broker.trim() || undefined);
       setApiKey(res.api_key);
       setStep(2);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Falha ao gerar chave.';
       if (message === 'already_connected') {
-        setSubmitError('Esta estratégia já está conectada. Desconecte antes de criar um novo vínculo.');
-      } else if (message === 'strategy_not_found') {
-        setSubmitError('Estratégia não encontrada.');
+        setSubmitError('Esta conta já está conectada. Desconecte antes de criar um novo vínculo.');
+      } else if (message === 'account_not_found') {
+        setSubmitError('Conta não encontrada.');
+      } else if (message === 'forbidden') {
+        setSubmitError('Apenas admin/first_mate podem conectar contas da Tesouraria.');
       } else {
         setSubmitError(message);
       }
@@ -87,18 +88,16 @@ export const Mt5ConnectModal: React.FC<Mt5ConnectModalProps> = ({
   return (
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Cabeçalho */}
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Conectar estratégia ao MT5</h2>
-            <p className="text-xs text-slate-500 mt-0.5">{strategyName}</p>
+            <h2 className="text-lg font-bold text-slate-900">Conectar conta ao MT5</h2>
+            <p className="text-xs text-slate-500 mt-0.5">{accountName}</p>
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-slate-700 transition-colors">
             <X size={20} />
           </button>
         </div>
 
-        {/* Indicador de passos */}
         <div className="px-6 py-3 border-b border-slate-200 flex items-center gap-2 text-xs">
           <div className={`flex items-center gap-2 ${step === 1 ? 'text-green-600 font-semibold' : 'text-slate-400'}`}>
             <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-green-600 text-white' : 'bg-slate-200 text-slate-600'}`}>1</span>
@@ -111,14 +110,13 @@ export const Mt5ConnectModal: React.FC<Mt5ConnectModalProps> = ({
           </div>
         </div>
 
-        {/* Conteúdo */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {step === 1 && (
             <div className="space-y-5">
               <div>
                 <h3 className="text-base font-bold text-slate-900 mb-1">Identifique a conta MT5</h3>
                 <p className="text-sm text-slate-500">
-                  Os dados desta estratégia virão exclusivamente da conta informada abaixo.
+                  O saldo desta conta da Tesouraria será atualizado automaticamente com o equity da conta MT5 informada.
                 </p>
               </div>
 
@@ -150,7 +148,6 @@ export const Mt5ConnectModal: React.FC<Mt5ConnectModalProps> = ({
                   className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
                   placeholder="Ex: XP Investimentos"
                 />
-                <p className="text-xs text-slate-500 mt-1">Exibido no painel.</p>
               </div>
 
               {submitError && (
@@ -169,7 +166,6 @@ export const Mt5ConnectModal: React.FC<Mt5ConnectModalProps> = ({
                 <p className="text-sm text-slate-500">Siga os três blocos abaixo para concluir.</p>
               </div>
 
-              {/* Bloco 1: chave */}
               <section className="border border-slate-200 rounded-xl p-4">
                 <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-green-600 text-white flex items-center justify-center text-xs">1</span>
@@ -192,13 +188,8 @@ export const Mt5ConnectModal: React.FC<Mt5ConnectModalProps> = ({
                     {copiedKey ? <><Check size={14} /> Copiado</> : <><Copy size={14} /> Copiar</>}
                   </button>
                 </div>
-
-                <p className="text-xs text-slate-500 mt-2">
-                  Se perder, é possível revogar e gerar outra na aba Gerenciar.
-                </p>
               </section>
 
-              {/* Bloco 2: download */}
               <section className="border border-slate-200 rounded-xl p-4">
                 <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-green-600 text-white flex items-center justify-center text-xs">2</span>
@@ -214,7 +205,7 @@ export const Mt5ConnectModal: React.FC<Mt5ConnectModalProps> = ({
                   <Download size={16} /> Baixar TradexperienceMT5.ex5
                 </a>
                 <p className="text-xs text-slate-500 mt-2">
-                  Versão 1.0.0 · somente leitura · não realiza operações.
+                  Versão 1.0.0 · somente leitura · detecta automaticamente o modo Tesouraria pela chave.
                 </p>
 
                 <button
@@ -230,13 +221,12 @@ export const Mt5ConnectModal: React.FC<Mt5ConnectModalProps> = ({
                     <li>Copie o arquivo para <code className="bg-slate-100 px-1 rounded">MQL5/Experts</code> do MT5 (Arquivo → Abrir Pasta de Dados → MQL5 → Experts).</li>
                     <li>No Navegador do MT5 (Ctrl+N), clique direito em "Expert Advisors" → Atualizar.</li>
                     <li>Arraste <code className="bg-slate-100 px-1 rounded">TradexperienceMT5</code> para o gráfico de qualquer ativo.</li>
-                    <li>Na aba "Entradas", marque <code className="bg-slate-100 px-1 rounded">EnableStrategy</code> e cole a chave em <code className="bg-slate-100 px-1 rounded">StrategyApiKey</code>.</li>
+                    <li>Na aba "Entradas", marque <code className="bg-slate-100 px-1 rounded">EnableTreasury</code> e cole a chave em <code className="bg-slate-100 px-1 rounded">TreasuryApiKey</code>.</li>
                     <li>Confirme com OK.</li>
                   </ol>
                 )}
               </section>
 
-              {/* Bloco 3: autorizar URL */}
               <section className="border border-slate-200 rounded-xl p-4">
                 <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
                   <span className="w-5 h-5 rounded-full bg-green-600 text-white flex items-center justify-center text-xs">3</span>
@@ -262,7 +252,6 @@ export const Mt5ConnectModal: React.FC<Mt5ConnectModalProps> = ({
           )}
         </div>
 
-        {/* Rodapé */}
         <div className="px-6 py-4 border-t border-slate-200 flex justify-between items-center gap-3">
           {step === 1 ? (
             <>
