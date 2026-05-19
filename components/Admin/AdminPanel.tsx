@@ -45,6 +45,7 @@ import {
 import { formatBytes, getStorageStats, StorageStats, uploadToSupabase, listAllFiles, deleteFromSupabase, StorageFile } from '../../lib/storage';
 import { BackButton } from '../BackButton';
 import { ArticleAutomationSettings } from './ArticleAutomationSettings';
+import { MarketAdmin } from './MarketAdmin';
 
 interface AdminPanelProps {
   onBack?: () => void;
@@ -52,7 +53,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) => {
-  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users' | 'content' | 'automation'>('licenses');
+  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users' | 'content' | 'market' | 'automation'>('licenses');
   const [activeLicenseSubTab, setActiveLicenseSubTab] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO' | 'FX SQUAD'>('AFK TRADER');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<Profile[]>([]);
@@ -1074,6 +1075,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               }`}
             >
               Storage
+            </button>
+            <button
+              onClick={() => setActiveTab('market')}
+              className={`px-6 py-3 text-sm font-medium transition-colors border-b-2 ${
+                activeTab === 'market' ? 'border-green-600 text-green-600' : 'border-transparent text-slate-500 hover:text-slate-700'
+              }`}
+            >
+              Market
             </button>
             <button
               onClick={() => setActiveTab('automation')}
@@ -2114,6 +2123,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 </div>
             )}
         </div>
+        ) : activeTab === 'market' ? (
+          <div className="p-6">
+            <MarketAdmin />
+          </div>
         ) : activeTab === 'automation' ? (
           <div className="p-6">
             <ArticleAutomationSettings />

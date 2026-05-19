@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, FileText, Clock, ChevronRight, Loader2, Plus, Edit2, Trash2, Save, X, MoreVertical, Layout, ChevronDown, ChevronUp, ArrowLeft, Upload, Image as ImageIcon } from 'lucide-react';
+import { Play, FileText, Clock, ChevronRight, Loader2, Plus, Edit2, Trash2, Save, X, MoreVertical, Layout, ChevronDown, ChevronUp, ArrowLeft, Upload, Image as ImageIcon, Lock } from 'lucide-react';
 import { MOCK_ARTICLES } from '../constants';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,7 +29,10 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCourse, setEditingCourse] = useState<Product | null>(null);
   const [modules, setModules] = useState<Module[]>([]);
-  const [courseForm, setCourseForm] = useState({ title: '', description: '', image_url: '' });
+  const [courseForm, setCourseForm] = useState({ title: '', description: '', image_url: '', is_locked: false, lock_note: '' });
+
+  // Modal informativo quando cliente clica em curso trancado
+  const [lockedCourse, setLockedCourse] = useState<Product | null>(null);
 
   // Admin State Lessons
   const [isLessonModalOpen, setIsLessonModalOpen] = useState(false);
@@ -124,7 +127,13 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
 
   const handleEditClick = async (course: Product) => {
     setEditingCourse(course);
-    setCourseForm({ title: course.title, description: course.description, image_url: course.image_url });
+    setCourseForm({
+      title: course.title,
+      description: course.description,
+      image_url: course.image_url,
+      is_locked: !!course.is_locked,
+      lock_note: course.lock_note || '',
+    });
     await fetchModules(course.id);
     setIsModalOpen(true);
   };
@@ -142,7 +151,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
 
   const handleCreateClick = () => {
       setEditingCourse(null);
-      setCourseForm({ title: '', description: '', image_url: '' });
+      setCourseForm({ title: '', description: '', image_url: '', is_locked: false, lock_note: '' });
       setModules([]);
       setIsModalOpen(true);
   };
@@ -150,10 +159,17 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
   const handleSaveCourse = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
+          const payload = {
+              title: courseForm.title,
+              description: courseForm.description,
+              image_url: courseForm.image_url,
+              is_locked: courseForm.is_locked,
+              lock_note: courseForm.lock_note || null,
+          };
           if (editingCourse) {
-              await supabase.from('products').update({ ...courseForm }).eq('id', editingCourse.id);
+              await supabase.from('products').update(payload).eq('id', editingCourse.id);
           } else {
-              await supabase.from('products').insert({ type: 'course', ...courseForm, image_url: courseForm.image_url || 'https://picsum.photos/400/225' });
+              await supabase.from('products').insert({ type: 'course', ...payload, image_url: payload.image_url || 'https://picsum.photos/400/225' });
           }
           setIsModalOpen(false);
           fetchCourses();
@@ -396,6 +412,37 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                       <div><label className="block text-sm font-medium mb-1">Título</label><input type="text" required value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
                       <div><label className="block text-sm font-medium mb-1 text-slate-700">Descrição</label><textarea rows={3} value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all" /></div>
                       
+                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                          <label className="flex items-center gap-3 cursor-pointer select-none">
+                              <input
+                                  type="checkbox"
+                                  checked={courseForm.is_locked}
+                                  onChange={e => setCourseForm({ ...courseForm, is_locked: e.target.checked })}
+                                  className="w-4 h-4 accent-green-600"
+                              />
+                              <span className="flex items-center gap-2 font-bold text-slate-800">
+                                  <Lock size={16} className="text-slate-500" /> Trancar conteúdo
+                              </span>
+                          </label>
+                          <p className="text-xs text-slate-500 -mt-1">
+                              Quando trancado, o curso aparece na Biblioteca com cadeado e não pode ser acessado.
+                          </p>
+                          {courseForm.is_locked && (
+                              <div>
+                                  <label className="block text-xs font-medium mb-1 text-slate-600">
+                                      Mensagem do cadeado (opcional)
+                                  </label>
+                                  <textarea
+                                      rows={2}
+                                      value={courseForm.lock_note}
+                                      onChange={e => setCourseForm({ ...courseForm, lock_note: e.target.value })}
+                                      placeholder="Ex: Em produção, lançamento em junho. Disponível só para alunos Premium."
+                                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-500"
+                                  />
+                              </div>
+                          )}
+                      </div>
+
                       <div className="space-y-2">
                         <label className="block text-sm font-medium text-slate-700">Imagem de Capa</label>
                         <div className="flex gap-4 items-start">
@@ -753,31 +800,55 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
         courses.length === 0 ? <div className="text-center py-10 bg-slate-50 rounded-xl text-slate-500">Nenhum curso disponível.</div> : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => (
-              <div key={course.id} className="group flex flex-col h-full bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all relative">
+              <div key={course.id} className={`group flex flex-col h-full bg-white border rounded-xl overflow-hidden hover:shadow-lg transition-all relative ${course.is_locked ? 'border-slate-300' : 'border-slate-200'}`}>
                 {role === 'admin' && (
                     <div className="absolute top-2 right-2 z-20 flex gap-2">
                         <button onClick={(e) => { e.stopPropagation(); handleEditClick(course); }} className="p-2 bg-white/90 text-slate-600 hover:text-green-600 rounded-lg shadow-sm"><Edit2 size={16} /></button>
-                         {/* Delete would go here */}
+                    </div>
+                )}
+                {course.is_locked && (
+                    <div className="absolute top-2 left-2 z-20 flex items-center gap-1 px-2 py-1 bg-slate-900/90 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm">
+                        <Lock size={12} /> Trancado
                     </div>
                 )}
                 <div className="relative aspect-video bg-slate-100">
-                  <img src={course.image_url || 'https://picsum.photos/400/225'} alt={course.title} className="w-full h-full object-cover" />
-                  <div 
-                    onClick={() => handleAccessCourse(course)}
-                    className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-black/20"
-                  >
-                    <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-white shadow-xl transform group-hover:scale-110 transition-transform"><Play size={20} className="ml-1 fill-white" /></div>
-                  </div>
+                  <img src={course.image_url || 'https://picsum.photos/400/225'} alt={course.title} className={`w-full h-full object-cover ${course.is_locked ? 'grayscale opacity-70' : ''}`} />
+                  {course.is_locked ? (
+                    <div
+                      onClick={() => setLockedCourse(course)}
+                      className="absolute inset-0 flex items-center justify-center cursor-pointer bg-slate-900/40 backdrop-blur-[2px]"
+                    >
+                      <div className="w-14 h-14 rounded-full bg-slate-900/90 flex items-center justify-center text-white shadow-xl transform group-hover:scale-110 transition-transform">
+                        <Lock size={22} />
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => handleAccessCourse(course)}
+                      className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-black/20"
+                    >
+                      <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-white shadow-xl transform group-hover:scale-110 transition-transform"><Play size={20} className="ml-1 fill-white" /></div>
+                    </div>
+                  )}
                 </div>
                 <div className="p-4 flex-1 flex flex-col">
                     <h4 className="text-lg font-bold text-slate-900 mb-2">{course.title}</h4>
                     <p className="text-sm text-slate-500 line-clamp-2 mb-4 flex-1">{course.description}</p>
-                    <button 
-                        onClick={() => handleAccessCourse(course)}
-                        className="w-full mt-auto py-2 bg-slate-50 hover:bg-green-50 text-slate-600 hover:text-green-600 font-semibold rounded-lg text-sm transition-colors"
-                    >
-                        Acessar
-                    </button>
+                    {course.is_locked ? (
+                        <button
+                            onClick={() => setLockedCourse(course)}
+                            className="w-full mt-auto py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                        >
+                            <Lock size={14} /> Conteúdo trancado
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => handleAccessCourse(course)}
+                            className="w-full mt-auto py-2 bg-slate-50 hover:bg-green-50 text-slate-600 hover:text-green-600 font-semibold rounded-lg text-sm transition-colors"
+                        >
+                            Acessar
+                        </button>
+                    )}
                 </div>
               </div>
             ))}
@@ -788,6 +859,43 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
       {/* Modals */}
       {isModalOpen && renderCourseModal()}
       {isLessonModalOpen && renderLessonModal()}
+
+      {/* Locked course info modal (cliente) */}
+      {lockedCourse && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setLockedCourse(null)}>
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="relative aspect-video bg-slate-100">
+              <img src={lockedCourse.image_url || 'https://picsum.photos/400/225'} alt={lockedCourse.title} className="w-full h-full object-cover grayscale opacity-70" />
+              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50">
+                <div className="w-16 h-16 rounded-full bg-slate-900/95 flex items-center justify-center text-white shadow-2xl">
+                  <Lock size={28} />
+                </div>
+              </div>
+              <button onClick={() => setLockedCourse(null)} className="absolute top-3 right-3 w-9 h-9 bg-white/95 hover:bg-white rounded-full flex items-center justify-center text-slate-700 shadow-md">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <span className="inline-block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Conteúdo trancado</span>
+                <h3 className="text-xl font-black text-slate-900">{lockedCourse.title}</h3>
+              </div>
+              <p className="text-sm text-slate-600 leading-relaxed">{lockedCourse.description}</p>
+              {lockedCourse.lock_note && (
+                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-sm text-amber-800">
+                  {lockedCourse.lock_note}
+                </div>
+              )}
+              <button
+                onClick={() => setLockedCourse(null)}
+                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-sm transition-colors"
+              >
+                Entendi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Articles Section */}
 

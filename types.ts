@@ -1,4 +1,6 @@
-export type View = 'dashboard' | 'strategies' | 'education' | 'articles' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury' | 'chat_moderation' | 'knowledge' | 'journal' | 'analysis' | 'live_portfolio';
+export type View = 'dashboard' | 'strategies' | 'education' | 'articles' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury' | 'chat_moderation' | 'knowledge' | 'journal' | 'analysis' | 'live_portfolio' | 'market';
+
+export type ProductType = 'ea' | 'course' | 'ebook' | 'indicator' | 'robot' | 'affiliate' | 'other';
 
 export type UserRole = 'admin' | 'client' | 'partner' | 'first_mate';
 
@@ -19,11 +21,20 @@ export interface Robot {
 
 export interface Product {
     id: string;
-    type: 'ea' | 'course';
+    type: ProductType;
     title: string;
     description: string;
     image_url: string;
     external_link?: string;
+    // Trava de conteudo (usada principalmente em cursos da Biblioteca)
+    is_locked?: boolean;
+    lock_note?: string;
+    // Campos do Market
+    price_label?: string;
+    is_published?: boolean;
+    category?: string;
+    sort_order?: number;
+    show_in_market?: boolean;
 }
 
 export interface Module {
