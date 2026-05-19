@@ -14,7 +14,7 @@ interface Mt5StatusCardProps {
   userRole?: UserRole;
 }
 
-const STALE_THRESHOLD_SEC = 30;
+const STALE_THRESHOLD_SEC = 360;
 
 function formatCurrency(value: number | null | undefined, currency: string | null | undefined): string {
   if (value == null) return '—';
@@ -180,20 +180,22 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <Activity size={16} className="text-green-600" /> Conexão MT5
           </h3>
-          <button
-            onClick={() => setManageOpen(true)}
-            className="text-slate-400 hover:text-slate-700 transition-colors"
-            title="Gerenciar"
-          >
-            <Settings size={16} />
-          </button>
+          {isAdmin && (
+            <button
+              onClick={() => setManageOpen(true)}
+              className="text-slate-400 hover:text-slate-700 transition-colors"
+              title="Gerenciar"
+            >
+              <Settings size={16} />
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2 text-sm mb-3">
           {isStale ? (
             <>
               <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-amber-700">Sem atualização {formatRelative(status.received_at)}</span>
+              <span className="text-amber-700">Atualização {formatRelative(status.received_at)}</span>
             </>
           ) : (
             <>
