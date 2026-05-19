@@ -30,6 +30,7 @@ const ChatModeration = React.lazy(() => import('./components/Admin/ChatModeratio
 const KnowledgeBase = React.lazy(() => import('./components/Admin/Knowledge/KnowledgeBase').then(module => ({ default: module.KnowledgeBase })));
 const TradeJournal = React.lazy(() => import('./components/Journal/TradeJournal').then(module => ({ default: module.TradeJournal })));
 const ResultsAnalysis = React.lazy(() => import('./components/Analysis/ResultsAnalysis').then(module => ({ default: module.ResultsAnalysis })));
+const LivePortfolio = React.lazy(() => import('./components/LivePortfolio/LivePortfolio').then(module => ({ default: module.LivePortfolio })));
 
 function AppContent() {
   const { user, isLoading, role, isPasswordRecovery } = useAuth();
@@ -114,6 +115,7 @@ function AppContent() {
       case 'knowledge': return 'Base de Conhecimento - Trader AFK';
       case 'journal': return 'Diário de Operações - Trader AFK';
       case 'analysis': return 'Análise de Resultados - Trader AFK';
+      case 'live_portfolio': return 'Live Portfólio - Trader AFK';
       case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
       default: return 'Trader AFK';
     }
@@ -217,6 +219,9 @@ function AppContent() {
 
             case 'analysis':
               return <ResultsAnalysis onBack={() => setCurrentView('dashboard')} />;
+
+            case 'live_portfolio':
+              return <LivePortfolio onBack={() => setCurrentView('dashboard')} />;
             
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
