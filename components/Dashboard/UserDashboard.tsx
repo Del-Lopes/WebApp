@@ -23,7 +23,9 @@ import {
   Database,
   ShieldAlert,
   HardDrive,
-  Loader2
+  Loader2,
+  Notebook,
+  BarChart3
 } from 'lucide-react';
 import { LicenseRequest, Article, View, Profile } from '../../types';
 import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
@@ -289,7 +291,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
         </div>
 
         {/* Strategies Card */}
-        <div 
+        <div
           onClick={() => onNavigate('strategies')}
           className="bg-blue-50 p-6 rounded-2xl border border-blue-100 shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer group"
         >
@@ -303,6 +305,40 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             </div>
           </div>
           <div className="text-xs text-slate-400">Gerenciar estratégias</div>
+        </div>
+
+        {/* Journal Card */}
+        <div
+          onClick={() => onNavigate('journal')}
+          className="bg-amber-50 p-6 rounded-2xl border border-amber-100 shadow-lg shadow-amber-500/10 hover:shadow-xl hover:shadow-amber-500/20 transition-all duration-300 cursor-pointer group"
+        >
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-amber-100 text-amber-600 rounded-xl group-hover:bg-amber-600 group-hover:text-white transition-colors">
+              <Notebook size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 font-medium">Diário</p>
+              <h3 className="text-lg font-bold text-slate-900">Anotações</h3>
+            </div>
+          </div>
+          <div className="text-xs text-slate-400">Registre suas operações</div>
+        </div>
+
+        {/* Analysis Card */}
+        <div
+          onClick={() => onNavigate('analysis')}
+          className="bg-rose-50 p-6 rounded-2xl border border-rose-100 shadow-lg shadow-rose-500/10 hover:shadow-xl hover:shadow-rose-500/20 transition-all duration-300 cursor-pointer group"
+        >
+          <div className="flex items-center gap-4 mb-4">
+            <div className="p-3 bg-rose-100 text-rose-600 rounded-xl group-hover:bg-rose-600 group-hover:text-white transition-colors">
+              <BarChart3 size={24} />
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 font-medium">Análise de Resultados</p>
+              <h3 className="text-lg font-bold text-slate-900">Performance</h3>
+            </div>
+          </div>
+          <div className="text-xs text-slate-400">Métricas e relatórios MT5</div>
         </div>
 
         {/* Licenses Card */}
