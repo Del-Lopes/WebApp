@@ -62,11 +62,6 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
     return () => clearInterval(id);
   }, []);
 
-  // Não-admin sem link/status: nada pra mostrar (não polui a aba de divulgação)
-  if (!isAdmin && !loading && !link) {
-    return null;
-  }
-
   // ─── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -83,7 +78,7 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
     );
   }
 
-  // ─── Estado A: não conectada (somente admin vê — para não-admin já retornamos null acima) ─
+  // ─── Estado A: não conectada ───────────────────────────────────────────────
   if (!link) {
     return (
       <>
@@ -95,15 +90,23 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
             <span className="w-2 h-2 rounded-full bg-slate-300" />
             Não conectada
           </div>
-          <p className="text-xs text-slate-500 mb-4 leading-relaxed">
-            Vincule esta estratégia à conta MT5 para exibir flutuante, P&amp;L do dia e posições abertas.
-          </p>
-          <button
-            onClick={() => setConnectOpen(true)}
-            className="w-full bg-green-600 hover:bg-green-500 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
-          >
-            Conectar ao MT5
-          </button>
+          {isAdmin ? (
+            <>
+              <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+                Vincule esta estratégia à conta MT5 para exibir flutuante, P&amp;L do dia e posições abertas.
+              </p>
+              <button
+                onClick={() => setConnectOpen(true)}
+                className="w-full bg-green-600 hover:bg-green-500 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+              >
+                Conectar ao MT5
+              </button>
+            </>
+          ) : (
+            <p className="text-xs text-slate-500 leading-relaxed">
+              Os dados ao vivo desta estratégia serão exibidos assim que a conta for vinculada.
+            </p>
+          )}
         </div>
 
         {connectOpen && (
