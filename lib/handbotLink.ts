@@ -47,6 +47,7 @@ export interface HandbotParams {
   // Barra-a-Barra
   bar_folga_stop: number;
   bar_trailing_enabled: boolean;
+  bar_timeframe: number;
   bar_refresh_entry: boolean;
   updated_at?: string;
 }

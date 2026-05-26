@@ -86,9 +86,10 @@ input double                _multiplicator             = 1.1;      // Multiplica
 input int                   _maxLevel                  = 40;       // Máximo de ordens
 input group "";
 input group "Atualização de Stop e Entrada Barra-a-Barra";
-input int                   _FolgaStop                 = 50;      // Folga Max/min no trailing stop de barra a barra
-input bool                  _AllowTrailingBar          = false;    // Liga e Desliga Trailing Stop de Barra
-input bool                  _RefreshEntry              = false;    // Liga e Desliga Atualizar Entrada
+input int                   _FolgaStop                 = 50;            // Folga Max/min no trailing stop de barra a barra
+input bool                  _AllowTrailingBar          = false;          // Liga e Desliga Trailing Stop de Barra
+input ENUM_TIMEFRAMES       _TimeframeBarStop          = PERIOD_CURRENT; // Timeframe do Trailing Stop Barra-a-Barra
+input bool                  _RefreshEntry              = false;          // Liga e Desliga Atualizar Entrada
 input group   "Keyboard shortcuts";
 input group   "";
 input group   "Num Pad";
@@ -241,6 +242,7 @@ double _RemoteGridContraMultiplier  = 1.0;
 int    _RemoteGridContraMaxOrders   = 200;
 int    _RemoteBarFolgaStop          = 50;
 bool   _RemoteBarTrailingEnabled    = false;
+int    _RemoteBarTimeframe          = PERIOD_CURRENT; // ENUM_TIMEFRAMES como int
 bool   _RemoteBarRefreshEntry       = false;
 
 bool   _RemoteParamsLoaded          = false; // true após primeiro poll bem-sucedido
@@ -937,6 +939,7 @@ void FetchHandbotParams()
    _RemoteGridContraMaxOrders  = HANDBOT_GET_INT("grid_contra_max_orders");
    _RemoteBarFolgaStop         = HANDBOT_GET_INT("bar_folga_stop");
    _RemoteBarTrailingEnabled   = HANDBOT_GET_BOOL("bar_trailing_enabled");
+   _RemoteBarTimeframe         = HANDBOT_GET_INT("bar_timeframe");
    _RemoteBarRefreshEntry      = HANDBOT_GET_BOOL("bar_refresh_entry");
 
    // Aplica estado de barra diretamente nas variáveis globais após cada poll
@@ -2472,25 +2475,28 @@ void TraillingStopAvg()
 
 void TrailingStop_Buy()
   {
+      ENUM_TIMEFRAMES tf = (ENUM_TIMEFRAMES)(_RemoteParamsLoaded ? _RemoteBarTimeframe : (int)_TimeframeBarStop);
+      MqlRates barRates[];
+      ArraySetAsSeries(barRates, true);
+      if(CopyRates(_Symbol, tf, 0, 3, barRates) <= 0) return;
+
       for(int i=PositionsTotal()-1; i>=0; i--) // count all currency pair positions
           {
-            string symbol=PositionGetSymbol(i); // get position symbol  
+            string symbol=PositionGetSymbol(i); // get position symbol
             ulong magic = PositionGetInteger(POSITION_MAGIC);
-            
+
             if (_Symbol==symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_BUY) // if chart symbol equals position symbol
                 {
                   // get the ticket number
                   ulong PositionTicket=PositionGetInteger(POSITION_TICKET);
                   PositionSelectByTicket(PositionTicket); //set id position to verify
-                  
-                  // get the position buy price
+
                   int folga_bar = _RemoteParamsLoaded ? _RemoteBarFolgaStop : _FolgaStop;
-                  double LastLow=NormalizeDouble(rates[1].low-folga_bar * _Point, _Digits);
-                  double tp=PositionGetDouble(POSITION_TP);     
-                    
-                  // modify the stop loss
+                  double LastLow=NormalizeDouble(barRates[1].low - folga_bar * _Point, _Digits);
+                  double tp=PositionGetDouble(POSITION_TP);
+
                   m_trade.PositionModify(PositionTicket,LastLow,tp);
-                  Print("Bar Trailing: Stop Updated.");
+                  Print("Bar Trailing: Stop Updated (TF=", EnumToString(tf), ").");
                 }
           }
     }
@@ -2501,25 +2507,28 @@ void TrailingStop_Buy()
 
 void TrailingStop_Sell()
   {
+      ENUM_TIMEFRAMES tf = (ENUM_TIMEFRAMES)(_RemoteParamsLoaded ? _RemoteBarTimeframe : (int)_TimeframeBarStop);
+      MqlRates barRates[];
+      ArraySetAsSeries(barRates, true);
+      if(CopyRates(_Symbol, tf, 0, 3, barRates) <= 0) return;
+
    for(int i=PositionsTotal()-1; i>=0; i--) // count all currency pair positions
       {
-         string symbol=PositionGetSymbol(i); // get position symbol  
+         string symbol=PositionGetSymbol(i); // get position symbol
           ulong magic = PositionGetInteger(POSITION_MAGIC);
-          
+
          if (_Symbol==symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_SELL) // if chart symbol equals position symbol
             {
                // get the ticket number
                 ulong PositionTicket=PositionGetInteger(POSITION_TICKET);
                PositionSelectByTicket(PositionTicket); //set id position to verify
-                
-               // get the position buy price
+
                int folga_bar2 = _RemoteParamsLoaded ? _RemoteBarFolgaStop : _FolgaStop;
-               double LastHigh=NormalizeDouble(rates[1].high+folga_bar2 * _Point, _Digits);
-                double tp=PositionGetDouble(POSITION_TP);     
-                
-               // modify the stop loss
+               double LastHigh=NormalizeDouble(barRates[1].high + folga_bar2 * _Point, _Digits);
+                double tp=PositionGetDouble(POSITION_TP);
+
                 m_trade.PositionModify(PositionTicket,LastHigh,tp);
-                Print("Bar Trailing: Stop Updated.");
+                Print("Bar Trailing: Stop Updated (TF=", EnumToString(tf), ").");
             }
       }
     }

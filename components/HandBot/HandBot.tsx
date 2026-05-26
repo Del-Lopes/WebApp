@@ -59,6 +59,7 @@ const DEFAULT_PARAMS: HandbotParams = {
   grid_contra_max_orders: 200,
   bar_folga_stop: 50,
   bar_trailing_enabled: false,
+  bar_timeframe: 0,
   bar_refresh_entry: false,
 };
 
@@ -747,6 +748,30 @@ const ParamsForm: React.FC<{
               checked={params.bar_trailing_enabled}
               onChange={(v) => set('bar_trailing_enabled', v)}
             />
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <label className="text-sm text-slate-600 flex-1">Timeframe da Barra</label>
+            <select
+              value={params.bar_timeframe}
+              onChange={(e) => set('bar_timeframe', Number(e.target.value))}
+              className="w-28 text-right border border-slate-300 rounded-lg px-2 py-1.5 text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white"
+            >
+              <option value={0}>Atual</option>
+              <option value={1}>M1</option>
+              <option value={5}>M5</option>
+              <option value={15}>M15</option>
+              <option value={30}>M30</option>
+              <option value={16385}>H1</option>
+              <option value={16386}>H2</option>
+              <option value={16387}>H3</option>
+              <option value={16388}>H4</option>
+              <option value={16390}>H6</option>
+              <option value={16392}>H8</option>
+              <option value={16396}>H12</option>
+              <option value={16408}>D1</option>
+              <option value={32769}>W1</option>
+              <option value={49153}>MN1</option>
+            </select>
           </div>
           <div className="flex items-center justify-between">
             <span className="text-sm text-slate-600">Atualizar Entrada</span>

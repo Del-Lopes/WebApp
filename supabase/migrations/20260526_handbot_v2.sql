@@ -16,4 +16,9 @@ alter table public.handbot_params
   -- Atualização de Stop e Entrada Barra-a-Barra
   add column if not exists bar_folga_stop         integer  not null default 50,
   add column if not exists bar_trailing_enabled   boolean  not null default false,
+  -- Timeframe como inteiro (valor numérico do ENUM_TIMEFRAMES do MT5).
+  -- 0 = PERIOD_CURRENT, 1 = M1, 5 = M5, 15 = M15, 30 = M30,
+  -- 16385 = H1, 16386 = H2, 16387 = H3, 16388 = H4,
+  -- 16390 = H6, 16392 = H8, 16396 = H12, 16408 = D1, 32769 = W1, 49153 = MN1
+  add column if not exists bar_timeframe          integer  not null default 0,
   add column if not exists bar_refresh_entry      boolean  not null default false;
