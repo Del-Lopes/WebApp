@@ -34,6 +34,20 @@ export interface HandbotParams {
   add_points_lot: number;
   add_points_distance: number;
   add_points_avg_distance: number;
+  // Grid à Favor
+  grid_ahead_enabled: boolean;
+  grid_ahead_distance: number;
+  grid_ahead_multiplier: number;
+  // Grid Contra
+  grid_contra_enabled: boolean;
+  grid_contra_lot: number;
+  grid_contra_distance: number;
+  grid_contra_multiplier: number;
+  grid_contra_max_orders: number;
+  // Barra-a-Barra
+  bar_folga_stop: number;
+  bar_trailing_enabled: boolean;
+  bar_refresh_entry: boolean;
   updated_at?: string;
 }
 

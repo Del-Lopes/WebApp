@@ -113,6 +113,17 @@ async function handleEaGet(req: Request): Promise<Response> {
     add_points_lot:          params.add_points_lot,
     add_points_distance:     params.add_points_distance,
     add_points_avg_distance: params.add_points_avg_distance,
+    grid_ahead_enabled:      params.grid_ahead_enabled,
+    grid_ahead_distance:     params.grid_ahead_distance,
+    grid_ahead_multiplier:   params.grid_ahead_multiplier,
+    grid_contra_enabled:     params.grid_contra_enabled,
+    grid_contra_lot:         params.grid_contra_lot,
+    grid_contra_distance:    params.grid_contra_distance,
+    grid_contra_multiplier:  params.grid_contra_multiplier,
+    grid_contra_max_orders:  params.grid_contra_max_orders,
+    bar_folga_stop:          params.bar_folga_stop,
+    bar_trailing_enabled:    params.bar_trailing_enabled,
+    bar_refresh_entry:       params.bar_refresh_entry,
     updated_at:              params.updated_at,
   })
 }
@@ -141,6 +152,10 @@ async function handleUserPost(req: Request, userId: string): Promise<Response> {
     'break_even_avg_enabled', 'break_even_avg_distance', 'break_even_avg_gain',
     'break_even_pts_enabled', 'break_even_pts_distance', 'break_even_pts_gain',
     'add_points_enabled', 'add_points_lot', 'add_points_distance', 'add_points_avg_distance',
+    'grid_ahead_enabled', 'grid_ahead_distance', 'grid_ahead_multiplier',
+    'grid_contra_enabled', 'grid_contra_lot', 'grid_contra_distance',
+    'grid_contra_multiplier', 'grid_contra_max_orders',
+    'bar_folga_stop', 'bar_trailing_enabled', 'bar_refresh_entry',
   ]
 
   const updates: Record<string, unknown> = { user_id: userId, handbot_link_id: link.id }

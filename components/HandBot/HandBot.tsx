@@ -49,6 +49,17 @@ const DEFAULT_PARAMS: HandbotParams = {
   add_points_lot: 0.01,
   add_points_distance: 250,
   add_points_avg_distance: 300,
+  grid_ahead_enabled: false,
+  grid_ahead_distance: 550.0,
+  grid_ahead_multiplier: 1.1,
+  grid_contra_enabled: false,
+  grid_contra_lot: 0.01,
+  grid_contra_distance: 60.0,
+  grid_contra_multiplier: 1.0,
+  grid_contra_max_orders: 200,
+  bar_folga_stop: 50,
+  bar_trailing_enabled: false,
+  bar_refresh_entry: false,
 };
 
 // ─── Toggle component ────────────────────────────────────────────────────────
@@ -647,6 +658,101 @@ const ParamsForm: React.FC<{
               label="Distância para manter do preço médio"
               value={params.add_points_avg_distance}
               onChange={(v) => set('add_points_avg_distance', v)}
+            />
+          </div>
+        </div>
+
+        {/* Grid à Favor */}
+        <div className="pt-4 space-y-3">
+          <SectionHeader
+            title="Grid à Favor"
+            enabled={params.grid_ahead_enabled}
+            onToggle={(v) => set('grid_ahead_enabled', v)}
+          />
+          <div className={`space-y-3 pl-2 transition-opacity ${params.grid_ahead_enabled ? '' : 'opacity-40 pointer-events-none'}`}>
+            <NumericInput
+              label="Distância inicial (pontos)"
+              value={params.grid_ahead_distance}
+              onChange={(v) => set('grid_ahead_distance', v)}
+              step={0.5}
+              min={0}
+              decimal
+            />
+            <NumericInput
+              label="Multiplicador de lote"
+              value={params.grid_ahead_multiplier}
+              onChange={(v) => set('grid_ahead_multiplier', v)}
+              step={0.01}
+              min={1}
+              decimal
+            />
+          </div>
+        </div>
+
+        {/* Grid Contra */}
+        <div className="pt-4 space-y-3">
+          <SectionHeader
+            title="Grid Contra"
+            enabled={params.grid_contra_enabled}
+            onToggle={(v) => set('grid_contra_enabled', v)}
+          />
+          <div className={`space-y-3 pl-2 transition-opacity ${params.grid_contra_enabled ? '' : 'opacity-40 pointer-events-none'}`}>
+            <NumericInput
+              label="Lote base"
+              value={params.grid_contra_lot}
+              onChange={(v) => set('grid_contra_lot', v)}
+              step={0.01}
+              min={0.01}
+              decimal
+            />
+            <NumericInput
+              label="Distância entre ordens (pontos)"
+              value={params.grid_contra_distance}
+              onChange={(v) => set('grid_contra_distance', v)}
+              step={0.5}
+              min={0}
+              decimal
+            />
+            <NumericInput
+              label="Multiplicador de lote"
+              value={params.grid_contra_multiplier}
+              onChange={(v) => set('grid_contra_multiplier', v)}
+              step={0.01}
+              min={1}
+              decimal
+            />
+            <NumericInput
+              label="Máximo de ordens"
+              value={params.grid_contra_max_orders}
+              onChange={(v) => set('grid_contra_max_orders', v)}
+              min={1}
+            />
+          </div>
+        </div>
+
+        {/* Atualização de Stop e Entrada Barra-a-Barra */}
+        <div className="pt-4 space-y-3">
+          <div className="py-1">
+            <span className="text-sm font-bold text-slate-900">Atualização Barra-a-Barra</span>
+          </div>
+          <NumericInput
+            label="Folga de stop (pontos)"
+            value={params.bar_folga_stop}
+            onChange={(v) => set('bar_folga_stop', v)}
+            min={0}
+          />
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-600">Trailing Stop de Barra</span>
+            <Toggle
+              checked={params.bar_trailing_enabled}
+              onChange={(v) => set('bar_trailing_enabled', v)}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-600">Atualizar Entrada</span>
+            <Toggle
+              checked={params.bar_refresh_entry}
+              onChange={(v) => set('bar_refresh_entry', v)}
             />
           </div>
         </div>

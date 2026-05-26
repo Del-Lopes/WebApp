@@ -231,6 +231,17 @@ bool   _RemoteAddEnabled            = false;
 double _RemoteAddLot                = 0.01;
 int    _RemoteAddDistance           = 250;
 int    _RemoteAddAvgDistance        = 300;
+bool   _RemoteGridAheadEnabled      = false;
+double _RemoteGridAheadDistance     = 550.0;
+double _RemoteGridAheadMultiplier   = 1.1;
+bool   _RemoteGridContraEnabled     = false;
+double _RemoteGridContraLot         = 0.01;
+double _RemoteGridContraDistance    = 60.0;
+double _RemoteGridContraMultiplier  = 1.0;
+int    _RemoteGridContraMaxOrders   = 200;
+int    _RemoteBarFolgaStop          = 50;
+bool   _RemoteBarTrailingEnabled    = false;
+bool   _RemoteBarRefreshEntry       = false;
 
 bool   _RemoteParamsLoaded          = false; // true após primeiro poll bem-sucedido
 int    _SyncTickCounter             = 0;     // conta ticks do OnTimer (cada 3s)
@@ -916,6 +927,20 @@ void FetchHandbotParams()
    _RemoteAddLot               = HANDBOT_GET_DBL("add_points_lot");
    _RemoteAddDistance          = HANDBOT_GET_INT("add_points_distance");
    _RemoteAddAvgDistance       = HANDBOT_GET_INT("add_points_avg_distance");
+   _RemoteGridAheadEnabled     = HANDBOT_GET_BOOL("grid_ahead_enabled");
+   _RemoteGridAheadDistance    = HANDBOT_GET_DBL("grid_ahead_distance");
+   _RemoteGridAheadMultiplier  = HANDBOT_GET_DBL("grid_ahead_multiplier");
+   _RemoteGridContraEnabled    = HANDBOT_GET_BOOL("grid_contra_enabled");
+   _RemoteGridContraLot        = HANDBOT_GET_DBL("grid_contra_lot");
+   _RemoteGridContraDistance   = HANDBOT_GET_DBL("grid_contra_distance");
+   _RemoteGridContraMultiplier = HANDBOT_GET_DBL("grid_contra_multiplier");
+   _RemoteGridContraMaxOrders  = HANDBOT_GET_INT("grid_contra_max_orders");
+   _RemoteBarFolgaStop         = HANDBOT_GET_INT("bar_folga_stop");
+   _RemoteBarTrailingEnabled   = HANDBOT_GET_BOOL("bar_trailing_enabled");
+   _RemoteBarRefreshEntry      = HANDBOT_GET_BOOL("bar_refresh_entry");
+
+   // Aplica estado de barra diretamente nas variáveis globais após cada poll
+   _BarStop = _RemoteBarTrailingEnabled;
 
    if(!_RemoteParamsLoaded)
    {
@@ -1474,35 +1499,37 @@ void OnTick()
               if(Posicionado() == false && Pendurado() == false && entradadecompra == 1 && DailyGain == false && MetaProva == false ) // Verifica se existe alguma ordem, se tem sinal de compra e se a meta ja foi batida
               { 
                 // Calcula o preço para a ordem pendente de compra
-                double Preco_compra = NormalizeDouble(HighMicro[1] + _FolgaStop * _Point, _Digits);
+                int folga_compra = _RemoteParamsLoaded ? _RemoteBarFolgaStop : _FolgaStop;
+                double Preco_compra = NormalizeDouble(HighMicro[1] + folga_compra * _Point, _Digits);
                 // Calcula o preço para o takeprofit
                 double Alvo_compra = NormalizeDouble(Preco_compra + _take_Inicial * _Point, _Digits);
                 // Calcula o preço para o stoploss
-                double StopLossCompra = NormalizeDouble(Preco_compra - _StopInicial * _Point, _Digits);                     
-                
-                _allowBuy && m_trade.BuyStop(_Lote, Preco_compra, _Symbol, StopLossCompra, Alvo_compra, ORDER_TIME_DAY , 0, "Buy Stop; Entrada; Magic: "+(string)Magic_Number); // Entrada de compra 
+                double StopLossCompra = NormalizeDouble(Preco_compra - _StopInicial * _Point, _Digits);
+
+                _allowBuy && m_trade.BuyStop(_Lote, Preco_compra, _Symbol, StopLossCompra, Alvo_compra, ORDER_TIME_DAY , 0, "Buy Stop; Entrada; Magic: "+(string)Magic_Number); // Entrada de compra
               }
-              if(Comprado() == true && MetaProva == false && _leverage == true && _AllowGridAhead == true ) // Grid a Favor (Buy)
+              if(Comprado() == true && MetaProva == false && _leverage == true && (_RemoteParamsLoaded ? _RemoteGridAheadEnabled : _AllowGridAhead) ) // Grid a Favor (Buy)
               {
                 GridFunction_Buy_ahead();
               }
-              if(Comprado() == true && MetaProva == false && _leverage == true && _AllowGrid == true ) // Grid Contra (Buy)
+              if(Comprado() == true && MetaProva == false && _leverage == true && (_RemoteParamsLoaded ? _RemoteGridContraEnabled : _AllowGrid) ) // Grid Contra (Buy)
               {
                 GridFunction_Buy();
               }
               if(Comprado() == true && MetaProva == false && _AddKey == true ) // add function calling
-              { 
-                AddFunction();                
+              {
+                AddFunction();
               }
               if(Comprado() == true && MetaProva == false && _Addckey == true ) // addc function calling
-              { 
-                AddcFunction();                
+              {
+                AddcFunction();
               }
-              
-              if(Posicionado() == false && Pendurado() == false && entradadevenda == 1 && DailyGain == false && MetaProva == false ) // Verifica se existe alguma ordem, se tem sinal de venda e se a meta ja foi batida              
+
+              if(Posicionado() == false && Pendurado() == false && entradadevenda == 1 && DailyGain == false && MetaProva == false ) // Verifica se existe alguma ordem, se tem sinal de venda e se a meta ja foi batida
                 {
                   // Calcula o preço para a ordem pendente de venda
-                  double Preco_venda = NormalizeDouble(LowMicro[1] - _FolgaStop * _Point, _Digits);
+                  int folga_venda = _RemoteParamsLoaded ? _RemoteBarFolgaStop : _FolgaStop;
+                  double Preco_venda = NormalizeDouble(LowMicro[1] - folga_venda * _Point, _Digits);
                   // Calcula o preço para o takeprofit
                   double Alvo_venda = NormalizeDouble(Preco_venda - _take_Inicial * _Point, _Digits);
                   // Calcula o preço para o stoploss
@@ -1510,11 +1537,11 @@ void OnTick()
 
                   _allowSell && m_trade.SellStop(_Lote, Preco_venda, _Symbol, StopLossVenda, Alvo_venda, ORDER_TIME_DAY, 0, "Buy Stop; Entrada; Magic: "+(string)Magic_Number); // Entrada de venda
                 }
-                if(Vendido() == true && MetaProva == false && _leverage == true && _AllowGridAhead == true ) // Grid a Favor (Sell)
+                if(Vendido() == true && MetaProva == false && _leverage == true && (_RemoteParamsLoaded ? _RemoteGridAheadEnabled : _AllowGridAhead) ) // Grid a Favor (Sell)
                 {
                 GridFunction_Sell_ahead();
                 }
-                if(Vendido() == true && MetaProva == false && _leverage == true && _AllowGrid == true ) // Grid Contra (Sell)
+                if(Vendido() == true && MetaProva == false && _leverage == true && (_RemoteParamsLoaded ? _RemoteGridContraEnabled : _AllowGrid) ) // Grid Contra (Sell)
                 {
                 GridFunction_Sell();
                 }
@@ -1540,7 +1567,7 @@ void OnTick()
                   BreakEven();
                   }
               if (Pendurado()){
-                if(isNewCandleBar() && _RefreshEntry == true){
+                if(isNewCandleBar() && (_RemoteParamsLoaded ? _RemoteBarRefreshEntry : _RefreshEntry)){
                 Refresh_Buy();
                 Refresh_Sell();
               } }
@@ -2457,7 +2484,8 @@ void TrailingStop_Buy()
                   PositionSelectByTicket(PositionTicket); //set id position to verify
                   
                   // get the position buy price
-                  double LastLow=NormalizeDouble(rates[1].low-_FolgaStop * _Point, _Digits);
+                  int folga_bar = _RemoteParamsLoaded ? _RemoteBarFolgaStop : _FolgaStop;
+                  double LastLow=NormalizeDouble(rates[1].low-folga_bar * _Point, _Digits);
                   double tp=PositionGetDouble(POSITION_TP);     
                     
                   // modify the stop loss
@@ -2485,7 +2513,8 @@ void TrailingStop_Sell()
                PositionSelectByTicket(PositionTicket); //set id position to verify
                 
                // get the position buy price
-               double LastHigh=NormalizeDouble(rates[1].high+_FolgaStop * _Point, _Digits);
+               int folga_bar2 = _RemoteParamsLoaded ? _RemoteBarFolgaStop : _FolgaStop;
+               double LastHigh=NormalizeDouble(rates[1].high+folga_bar2 * _Point, _Digits);
                 double tp=PositionGetDouble(POSITION_TP);     
                 
                // modify the stop loss
@@ -2908,11 +2937,12 @@ void Refresh_Buy()
                 // get the ticket number
                   ulong OrderTicket=OrderGetInteger(ORDER_TICKET);
                 // Calcula o preço para a ordem pendente de compra
-                double Preco_compra = NormalizeDouble(HighMicro[1] + _FolgaStop * _Point, _Digits);
+                int folga_ref_buy = _RemoteParamsLoaded ? _RemoteBarFolgaStop : _FolgaStop;
+                double Preco_compra = NormalizeDouble(HighMicro[1] + folga_ref_buy * _Point, _Digits);
                 // Calcula o preço para o takeprofit
                 double Alvo_compra = NormalizeDouble(Preco_compra + _take_Inicial * _Point, _Digits);
                 // Calcula o preço para o stoploss
-                double StopLossCompra = NormalizeDouble(Preco_compra - _StopInicial * _Point, _Digits);  
+                double StopLossCompra = NormalizeDouble(Preco_compra - _StopInicial * _Point, _Digits);
                 // modify the Buy Limit Orders
                 m_trade.OrderModify(OrderTicket,Preco_compra, StopLossCompra, Alvo_compra, ORDER_TIME_DAY , 0); // Entrada de compra
                 Print("Buy entry updated.");
@@ -2935,7 +2965,8 @@ void Refresh_Sell()
             { // get the ticket number
               ulong OrderTicket=OrderGetInteger(ORDER_TICKET);
               // Calcula o preço para a ordem pendente de venda
-              double Preco_venda = NormalizeDouble(LowMicro[1] - _FolgaStop * _Point, _Digits);
+              int folga_ref_sell = _RemoteParamsLoaded ? _RemoteBarFolgaStop : _FolgaStop;
+              double Preco_venda = NormalizeDouble(LowMicro[1] - folga_ref_sell * _Point, _Digits);
               // Calcula o preço para o takeprofit
               double Alvo_venda = NormalizeDouble(Preco_venda - _take_Inicial * _Point, _Digits);
               // Calcula o preço para o stoploss
@@ -3074,9 +3105,10 @@ double GetLoteLinearAhead(ENUM_POSITION_TYPE tipo)
                     ? getPositionsQuantity(POSITION_TYPE_BUY).buyQuantity
                     : getPositionsQuantity(POSITION_TYPE_SELL).sellQuantity;
 
-   // Incremento linear: lote base + quantidade vezes incremento
-   double incremento = _LoteAddGrid * (_multiplicatorAhead - 1);
-   double lote = _LoteAddGrid + quantidade * incremento;
+   double loteBase   = _RemoteParamsLoaded ? _RemoteGridContraLot        : _LoteAddGrid;
+   double multiplier = _RemoteParamsLoaded ? _RemoteGridAheadMultiplier  : _multiplicatorAhead;
+   double incremento = loteBase * (multiplier - 1);
+   double lote = loteBase + quantidade * incremento;
 
    return NormalizeDouble(lote, (int)volumeDigits);
 }
@@ -3090,9 +3122,10 @@ double GetLoteLinear(ENUM_POSITION_TYPE tipo)
                     ? getPositionsQuantity(POSITION_TYPE_BUY).buyQuantity
                     : getPositionsQuantity(POSITION_TYPE_SELL).sellQuantity;
 
-   // Incremento linear: lote base + quantidade vezes incremento
-   double incremento = _LoteAddGrid * (_multiplicator - 1);
-   double lote = _LoteAddGrid + quantidade * incremento;
+   double loteBase   = _RemoteParamsLoaded ? _RemoteGridContraLot        : _LoteAddGrid;
+   double multiplier = _RemoteParamsLoaded ? _RemoteGridContraMultiplier : _multiplicator;
+   double incremento = loteBase * (multiplier - 1);
+   double lote = loteBase + quantidade * incremento;
 
    return NormalizeDouble(lote, (int)volumeDigits);
 }
@@ -3116,7 +3149,8 @@ void GridFunction_Buy()
 
          if(_Symbol == symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
          {
-            double _distance_ = NormalizeDouble(_distance * _Point, _Digits);
+            double dist = _RemoteParamsLoaded ? _RemoteGridContraDistance : _distance;
+            double _distance_ = NormalizeDouble(dist * _Point, _Digits);
 
             if(ask < (m_position.PriceOpen() - _distance_) && (currentSpread < _maxSpread))
             {
@@ -3152,7 +3186,8 @@ void GridFunction_Sell()
 
          if(_Symbol == symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
          {
-            double _distance_ = NormalizeDouble(_distance * _Point, _Digits);
+            double dist = _RemoteParamsLoaded ? _RemoteGridContraDistance : _distance;
+            double _distance_ = NormalizeDouble(dist * _Point, _Digits);
 
             if(bid > (m_position.PriceOpen() + _distance_) && (currentSpread < _maxSpread))
             {
@@ -3188,7 +3223,8 @@ void GridFunction_Buy_ahead()
 
          if(_Symbol == symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
          {
-            double _distance_ = NormalizeDouble(_distanceAhead * _Point, _Digits);
+            double dist = _RemoteParamsLoaded ? _RemoteGridAheadDistance : _distanceAhead;
+            double _distance_ = NormalizeDouble(dist * _Point, _Digits);
 
             if(ask > (m_position.PriceOpen() + _distance_) && (currentSpread < _maxSpread))
             {
@@ -3224,7 +3260,8 @@ void GridFunction_Sell_ahead()
 
          if(_Symbol == symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
          {
-            double _distance_ = NormalizeDouble(_distanceAhead * _Point, _Digits);
+            double dist = _RemoteParamsLoaded ? _RemoteGridAheadDistance : _distanceAhead;
+            double _distance_ = NormalizeDouble(dist * _Point, _Digits);
 
             if(bid < (m_position.PriceOpen() - _distance_) && (currentSpread < _maxSpread))
             {
