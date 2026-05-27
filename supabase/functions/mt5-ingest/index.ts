@@ -228,50 +228,47 @@ Deno.serve(async (req) => {
   const reportedAt = p.timestamp
   const lastTradeAt = p.last_trade_at && p.last_trade_at.length > 0 ? p.last_trade_at : null
 
-  const { error: upsertErr } = await supabaseAdmin
-    .from('strategy_mt5_status')
-    .upsert(
-      {
-        strategy_id: strategyLink.strategy_id,
-        user_id: strategyLink.user_id,
-        account_login: p.account_login,
-        account_currency: p.account_currency ?? null,
-        account_company: p.account_company ?? null,
-        account_server: p.account_server ?? null,
-        balance: p.balance,
-        equity: p.equity,
-        floating_pnl: p.floating_pnl,
-        daily_pnl: p.daily_pnl,
-        open_positions: p.open_positions,
-        last_trade_at: lastTradeAt,
-        ea_version: p.ea_version ?? null,
-        terminal_hash: p.terminal_hash ?? null,
-        reported_at: reportedAt,
-        received_at: new Date().toISOString(),
-      },
-      { onConflict: 'strategy_id' },
-    )
+  // Upsert do snapshot e leitura do último histórico em paralelo
+  const [{ error: upsertErr }, { data: lastHist }] = await Promise.all([
+    supabaseAdmin
+      .from('strategy_mt5_status')
+      .upsert(
+        {
+          strategy_id: strategyLink.strategy_id,
+          user_id: strategyLink.user_id,
+          account_login: p.account_login,
+          account_currency: p.account_currency ?? null,
+          account_company: p.account_company ?? null,
+          account_server: p.account_server ?? null,
+          balance: p.balance,
+          equity: p.equity,
+          floating_pnl: p.floating_pnl,
+          daily_pnl: p.daily_pnl,
+          open_positions: p.open_positions,
+          last_trade_at: lastTradeAt,
+          ea_version: p.ea_version ?? null,
+          terminal_hash: p.terminal_hash ?? null,
+          reported_at: reportedAt,
+          received_at: new Date().toISOString(),
+          force_sync: false,
+        },
+        { onConflict: 'strategy_id' },
+      ),
+    supabaseAdmin
+      .from('strategy_mt5_history')
+      .select('recorded_at')
+      .eq('strategy_id', strategyLink.strategy_id)
+      .order('recorded_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ])
 
   if (upsertErr) {
     console.error('[mt5-ingest] status upsert error', upsertErr)
     return jsonResponse(500, { error: 'status_upsert_failed' })
   }
 
-  // Reseta force_sync após receber telemetria — webhook do "Atualizar" já foi atendido
-  await supabaseAdmin
-    .from('strategy_mt5_status')
-    .update({ force_sync: false })
-    .eq('strategy_id', strategyLink.strategy_id)
-
   // ─── História (>=60s desde o último) ───────────────────────────────────────
-  const { data: lastHist } = await supabaseAdmin
-    .from('strategy_mt5_history')
-    .select('recorded_at')
-    .eq('strategy_id', strategyLink.strategy_id)
-    .order('recorded_at', { ascending: false })
-    .limit(1)
-    .maybeSingle()
-
   const now = Date.now()
   const lastTs = lastHist ? new Date(lastHist.recorded_at).getTime() : 0
   const shouldInsertHistory = now - lastTs >= HISTORY_INTERVAL_SEC * 1000
@@ -289,7 +286,6 @@ Deno.serve(async (req) => {
         open_positions: p.open_positions,
       })
     if (histErr) console.error('[mt5-ingest] history insert error', histErr)
-    // não falhamos a request por erro na história — snapshot já foi gravado
   }
 
   return jsonResponse(200, { ok: true })

@@ -103,9 +103,11 @@ async function handleEaGet(req: Request): Promise<Response> {
   if (!link) return jsonResponse(401, { error: 'invalid_token' })
   if (link.api_key_revoked_at) return jsonResponse(403, { error: 'token_revoked' })
 
+  // Busca needs_sync e dados em uma única query.
+  // Na esmagadora maioria das chamadas needs_sync=false → responde imediatamente sem UPDATE.
   const { data: params, error: paramsErr } = await supabaseAdmin
     .from('handbot_params')
-    .select('*')
+    .select('needs_sync, trailing_avg_enabled, trailing_avg_distance, trailing_avg_stop, trailing_pts_enabled, trailing_pts_distance, trailing_pts_stop, break_even_avg_enabled, break_even_avg_distance, break_even_avg_gain, break_even_pts_enabled, break_even_pts_distance, break_even_pts_gain, add_points_enabled, add_points_lot, add_points_distance, add_points_avg_distance, grid_ahead_enabled, grid_ahead_distance, grid_ahead_multiplier, grid_contra_enabled, grid_contra_lot, grid_contra_distance, grid_contra_multiplier, grid_contra_max_orders, allow_buy, allow_sell, bar_folga_stop, bar_trailing_enabled, bar_timeframe, bar_refresh_entry, updated_at')
     .eq('handbot_link_id', link.id)
     .maybeSingle()
 
@@ -116,10 +118,10 @@ async function handleEaGet(req: Request): Promise<Response> {
 
   if (!params) return jsonResponse(404, { error: 'params_not_found' })
 
-  // Se não há mudanças pendentes, EA não precisa reprocessar nada
+  // Caso comum (~99%): sem mudanças pendentes — responde sem nenhuma query adicional
   if (!params.needs_sync) return jsonResponse(200, { sync: false })
 
-  // Limpa a flag antes de retornar os dados
+  // Só executa o UPDATE quando realmente há algo para sincronizar
   await supabaseAdmin
     .from('handbot_params')
     .update({ needs_sync: false })
