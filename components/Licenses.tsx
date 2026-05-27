@@ -25,11 +25,11 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
   const [selectedEA, setSelectedEA] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO' | 'FX SQUAD'>('AFK TRADER');
 
   const eaConfig = {
-    'AFK TRADER': { table: 'license_requests', color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-    'SNOW BALL': { table: 'license_requests_snowball', color: 'bg-blue-100 text-blue-700 border-blue-200' },
+    'AFK TRADER': { table: 'license_requests',           color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
+    'SNOW BALL':  { table: 'license_requests_snowball',  color: 'bg-blue-100 text-blue-700 border-blue-200' },
     'BOLETA PRO': { table: 'license_requests_boletapro', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-    'FX SQUAD': { table: 'license_requests_fxsquad', color: 'bg-green-100 text-green-700 border-green-200' }
-  };
+    'FX SQUAD':   { table: 'license_requests_fxsquad',  color: 'bg-green-100 text-green-700 border-green-200' },
+  } as const;
 
   useEffect(() => {
     if (user) {
@@ -55,20 +55,20 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
   const fetchRequests = async () => {
     try {
-      // Pequeno hack para buscar de todas as tabelas em paralelo
-      const [afk, snowball, boleta, fxsquad] = await Promise.all([
-        supabase.from('license_requests').select('*').order('created_at', { ascending: false }),
-        supabase.from('license_requests_snowball').select('*').order('created_at', { ascending: false }),
-        supabase.from('license_requests_boletapro').select('*').order('created_at', { ascending: false }),
-        supabase.from('license_requests_fxsquad').select('*').order('created_at', { ascending: false })
-      ]);
+      const results = await Promise.all(
+        (Object.entries(eaConfig) as [keyof typeof eaConfig, typeof eaConfig[keyof typeof eaConfig]][]).map(
+          ([ea, { table }]) =>
+            supabase
+              .from(table)
+              .select('*')
+              .order('created_at', { ascending: false })
+              .then(({ data }) => (data || []).map(r => ({ ...r, ea })))
+        )
+      );
 
-      const allRequests = [
-        ...(afk.data || []).map(r => ({ ...r, ea: 'AFK TRADER' })),
-        ...(snowball.data || []).map(r => ({ ...r, ea: 'SNOW BALL' })),
-        ...(boleta.data || []).map(r => ({ ...r, ea: 'BOLETA PRO' })),
-        ...(fxsquad.data || []).map(r => ({ ...r, ea: 'FX SQUAD' }))
-      ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      const allRequests = results
+        .flat()
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
       setRequests(allRequests as any[]);
     } catch (err) {

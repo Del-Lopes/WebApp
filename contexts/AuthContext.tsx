@@ -28,7 +28,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       if (session?.user) {
-        fetchUserRole(session.user.id);
+        // Carga inicial: atualiza last_login pois é o primeiro carregamento da sessão
+        fetchUserRole(session.user.id, true);
       } else {
         setIsLoading(false);
       }
@@ -39,72 +40,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      
+
       if (event === 'PASSWORD_RECOVERY') {
         setIsPasswordRecovery(true);
-      } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-         // Reset flag on normal sign in to avoid stuck state, but NOT on initial load if recovery flow
       } else if (event === 'SIGNED_OUT') {
         setIsPasswordRecovery(false);
       }
 
       if (session?.user) {
-        fetchUserRole(session.user.id);
+        // Apenas SIGNED_IN é login real — TOKEN_REFRESHED é renovação automática
+        // a cada hora e não deve gerar UPDATE em profiles nem query extra de role.
+        const isRealLogin = event === 'SIGNED_IN';
+        fetchUserRole(session.user.id, isRealLogin);
       } else {
         setRole(null);
         setIsLoading(false);
       }
     });
 
-    // Real-time subscription to profile changes
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []); // Roda uma única vez — a subscription cobre mudanças de sessão
+
+  // Subscription separada, criada somente quando o userId está disponível
+  useEffect(() => {
+    if (!user?.id) return;
+
     const profileSubscription = supabase
-      .channel('public:profiles')
-      .on('postgres_changes', { 
-        event: 'UPDATE', 
-        schema: 'public', 
+      .channel(`profiles:${user.id}`)
+      .on('postgres_changes', {
+        event: 'UPDATE',
+        schema: 'public',
         table: 'profiles',
-        filter: session?.user ? `id=eq.${session.user.id}` : undefined
+        filter: `id=eq.${user.id}`,
       }, (payload) => {
         if (payload.new && 'role' in payload.new) {
-             console.log("Role updated via realtime:", payload.new.role);
-             setRole(payload.new.role as UserRole);
+          setRole(payload.new.role as UserRole);
         }
       })
       .subscribe();
 
     return () => {
-        subscription.unsubscribe();
-        supabase.removeChannel(profileSubscription);
+      supabase.removeChannel(profileSubscription);
     };
-  }, [session?.user?.id]); // Re-subscribe if user changes
+  }, [user?.id]); // Re-subscribe somente quando o userId muda (login/logout)
 
-  const fetchUserRole = async (userId: string) => {
+  const fetchUserRole = async (userId: string, shouldUpdateLastLogin = false) => {
     try {
-      // Select both role and email to check for sync issues
       const { data, error } = await supabase
         .from('profiles')
         .select('role, email')
         .eq('id', userId)
         .single();
-      
+
       if (error) {
         console.error('Error fetching role:', error);
-        setRole('client'); // Default role
+        setRole('client');
       } else {
-        let userRole = (data?.role as UserRole) || 'client';
-        
-        // Update last_login timestamp and sync email if missing
-        const updateFields: any = { last_login: new Date().toISOString() };
-        if (session?.user?.email && !data?.email) {
-          console.log("Syncing missing email to profile...");
-          updateFields.email = session.user.email;
+        const userRole = (data?.role as UserRole) || 'client';
+
+        if (shouldUpdateLastLogin) {
+          const updateFields: any = { last_login: new Date().toISOString() };
+          if (session?.user?.email && !data?.email) {
+            updateFields.email = session.user.email;
+          }
+          await supabase.from('profiles').update(updateFields).eq('id', userId);
         }
 
-        await supabase
-          .from('profiles')
-          .update(updateFields)
-          .eq('id', userId);
-        
         setRole(userRole);
       }
     } catch (error) {

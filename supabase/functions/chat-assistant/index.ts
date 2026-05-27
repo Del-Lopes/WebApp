@@ -149,14 +149,12 @@ async function getUsageCount(userId: string): Promise<number> {
   return data?.message_count ?? 0
 }
 
-async function incrementUsage(userId: string): Promise<number> {
-  const date = todayUtc()
-  const current = await getUsageCount(userId)
-  const next = current + 1
+async function incrementUsage(userId: string, currentCount: number): Promise<number> {
+  const next = currentCount + 1
   const { error } = await supabaseAdmin
     .from('chat_usage')
     .upsert(
-      { user_id: userId, usage_date: date, message_count: next },
+      { user_id: userId, usage_date: todayUtc(), message_count: next },
       { onConflict: 'user_id,usage_date' },
     )
   if (error) {
@@ -449,7 +447,7 @@ Deno.serve(async (req: Request) => {
 
     // 7. Salva resposta + incrementa contador
     const assistantMessageId = await saveMessage(user.id, 'assistant', reply)
-    const newCount = await incrementUsage(user.id)
+    const newCount = await incrementUsage(user.id, currentCount)
 
     // 8. Avisa quando atingir 50% (15 mensagens)
     const warnHalf = newCount === HALF_LIMIT_THRESHOLD

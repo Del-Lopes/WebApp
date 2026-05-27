@@ -28,7 +28,7 @@ import {
   BarChart3,
   Activity
 } from 'lucide-react';
-import { LicenseRequest, Article, View, Profile } from '../../types';
+import { LicenseRequest, Article, View } from '../../types';
 import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
 
 interface UserDashboardProps {
@@ -52,14 +52,12 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
   const [articleForm, setArticleForm] = useState({ title: '', excerpt: '', content: '', image_url: '', category: 'Análise', gallery_urls: [] as string[] });
   const [isUploading, setIsUploading] = useState(false);
   const [storageStats, setStorageStats] = useState<StorageStats | null>(null);
-  const [currentUserProfile, setCurrentUserProfile] = useState<Profile | null>(null);
 
   useEffect(() => {
     if (user) {
         fetchDashboardData();
         fetchContentData();
         fetchStorageStats();
-        fetchCurrentUser();
     }
   }, [user]);
 
@@ -68,29 +66,27 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
     setStorageStats(stats);
   };
 
-  const fetchCurrentUser = async () => {
-    if (!user) return;
-    const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-    setCurrentUserProfile(data);
-  };
+  const LICENSE_TABLES = [
+    { table: 'license_requests',          ea: 'AFK TRADER' },
+    { table: 'license_requests_snowball', ea: 'SNOW BALL'  },
+    { table: 'license_requests_boletapro',ea: 'BOLETA PRO' },
+    { table: 'license_requests_fxsquad',  ea: 'FX SQUAD'  },
+  ] as const;
 
   const fetchDashboardData = async () => {
     try {
-      const [afk, snowball, boleta, fxsquad] = await Promise.all([
-        supabase.from('license_requests').select('*').eq('user_id', user?.id).eq('status', 'approved'),
-        supabase.from('license_requests_snowball').select('*').eq('user_id', user?.id).eq('status', 'approved'),
-        supabase.from('license_requests_boletapro').select('*').eq('user_id', user?.id).eq('status', 'approved'),
-        supabase.from('license_requests_fxsquad').select('*').eq('user_id', user?.id).eq('status', 'approved')
-      ]);
+      const results = await Promise.all(
+        LICENSE_TABLES.map(({ table, ea }) =>
+          supabase
+            .from(table)
+            .select('id, mt5_account, license_title, expires_at, status')
+            .eq('user_id', user?.id)
+            .eq('status', 'approved')
+            .then(({ data }) => (data || []).map(r => ({ ...r, ea })))
+        )
+      );
 
-      const allApproved = [
-        ...(afk.data || []).map(r => ({ ...r, ea: 'AFK TRADER' })),
-        ...(snowball.data || []).map(r => ({ ...r, ea: 'SNOW BALL' })),
-        ...(boleta.data || []).map(r => ({ ...r, ea: 'BOLETA PRO' })),
-        ...(fxsquad.data || []).map(r => ({ ...r, ea: 'FX SQUAD' }))
-      ];
-      
-      setActiveLicenses(allApproved as any[]);
+      setActiveLicenses(results.flat() as any[]);
     } catch (error) {
       console.error('Error fetching dashboard:', error);
     } finally {
@@ -197,7 +193,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
     if (!files || files.length === 0) return;
     
     // Check if user has permission
-    const role = currentUserProfile?.role;
     if (role !== 'admin' && role !== 'first_mate') {
       alert('Apenas Admin e First Mate podem fazer upload de arquivos.');
       return;

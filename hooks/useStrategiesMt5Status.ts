@@ -19,9 +19,15 @@ export function useStrategiesMt5Status(): UseStrategiesMt5StatusResult {
     let channel: ReturnType<typeof supabase.channel> | null = null;
 
     const init = async () => {
+      // Resolve userId primeiro — necessário para filtrar o snapshot e a subscription
+      const { data: { user } } = await supabase.auth.getUser();
+      const userId = user?.id;
+
       const { data, error } = await supabase
         .from('strategy_mt5_status')
-        .select('*');
+        .select('*')
+        .eq('user_id', userId ?? '');
+
       if (error) {
         console.error('useStrategiesMt5Status fetch error:', error);
         if (!cancelled) setLoading(false);
@@ -35,8 +41,6 @@ export function useStrategiesMt5Status(): UseStrategiesMt5StatusResult {
       setStatusByStrategy(map);
       setLoading(false);
 
-      // Filtra por user_id para não receber broadcast de outros usuários.
-      const userId = (await supabase.auth.getUser()).data.user?.id;
       if (cancelled) return;
 
       channel = supabase
