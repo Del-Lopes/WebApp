@@ -252,7 +252,16 @@ async function loadUserContext(userId: string): Promise<UserContext> {
   }
 }
 
+// Cache em memória — a knowledge base muda raramente; TTL de 5min evita query a cada mensagem.
+// Em Deno edge functions, o isolate pode ser reutilizado entre invocações do mesmo servidor.
+let knowledgeCache: { entries: KnowledgeEntry[]; expiresAt: number } | null = null
+const KNOWLEDGE_TTL_MS = 5 * 60 * 1000 // 5 minutos
+
 async function loadKnowledgeBase(): Promise<KnowledgeEntry[]> {
+  const now = Date.now()
+  if (knowledgeCache && now < knowledgeCache.expiresAt) {
+    return knowledgeCache.entries
+  }
   const { data, error } = await supabaseAdmin
     .from('chat_knowledge_base')
     .select('title, content, category')
@@ -261,9 +270,11 @@ async function loadKnowledgeBase(): Promise<KnowledgeEntry[]> {
     .order('created_at', { ascending: true })
   if (error) {
     console.error('loadKnowledgeBase error:', error.message)
-    return []
+    return knowledgeCache?.entries ?? []
   }
-  return (data ?? []) as KnowledgeEntry[]
+  const entries = (data ?? []) as KnowledgeEntry[]
+  knowledgeCache = { entries, expiresAt: now + KNOWLEDGE_TTL_MS }
+  return entries
 }
 
 // ─── Gemini ───────────────────────────────────────────────────────────────────

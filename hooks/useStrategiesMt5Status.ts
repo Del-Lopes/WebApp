@@ -37,11 +37,19 @@ export function useStrategiesMt5Status(): UseStrategiesMt5StatusResult {
 
     fetchAll();
 
+    // Filtra por user_id para não receber broadcast de outros usuários.
+    // Requer que a tabela tenha RLS habilitada com user_id visível.
+    const userId = (await supabase.auth.getUser()).data.user?.id;
     const channel = supabase
-      .channel('mt5-status-all')
+      .channel('mt5-status-own')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'strategy_mt5_status' },
+        {
+          event: '*',
+          schema: 'public',
+          table: 'strategy_mt5_status',
+          ...(userId ? { filter: `user_id=eq.${userId}` } : {}),
+        },
         (payload) => {
           setStatusByStrategy(prev => {
             const next = { ...prev };

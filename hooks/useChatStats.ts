@@ -190,40 +190,51 @@ export function useChatStats(periodDays: number) {
         approvalRate: totalFb > 0 ? upCount / totalFb : 0,
       });
 
-      // Hidrata os items com a mensagem e a pergunta precedente
+      // Hidrata os items com a mensagem e a pergunta precedente.
+      // Uma única query por user traz todas as mensagens necessárias — sem N+1.
       if (feedbackRows.length === 0) {
         setFeedbackItems([]);
       } else {
         const messageIds = feedbackRows.map((f: any) => f.message_id);
-        const { data: msgsForFb } = await supabase
-          .from('chat_messages')
-          .select('id, user_id, content, role, created_at')
-          .in('id', messageIds);
-        const msgMap = new Map(((msgsForFb ?? []) as any[]).map((m) => [m.id, m]));
+        const fbUserIds = Array.from(new Set(feedbackRows.map((f: any) => f.user_id))) as string[];
 
-        // Para cada mensagem do assistant, busca a última mensagem do usuário antes dela
-        // Coleta user_ids necessários para o profile
-        const userIds = Array.from(new Set(feedbackRows.map((f: any) => f.user_id)));
-        const { data: profsForFb } = await supabase
-          .from('profiles')
-          .select('id, full_name, email')
-          .in('id', userIds);
+        // Busca em paralelo: mensagens do feedback + profiles
+        const [{ data: msgsForFb }, { data: profsForFb }] = await Promise.all([
+          supabase
+            .from('chat_messages')
+            .select('id, user_id, content, role, created_at')
+            .in('id', messageIds),
+          supabase
+            .from('profiles')
+            .select('id, full_name, email')
+            .in('id', fbUserIds),
+        ]);
+        const msgMap = new Map(((msgsForFb ?? []) as any[]).map((m) => [m.id, m]));
         const profMap = new Map(((profsForFb ?? []) as any[]).map((p) => [p.id, p]));
 
-        // Para cada feedback, busca a pergunta precedente (1 mensagem do user anterior à do bot, do mesmo usuário)
+        // Para cada usuário que tem feedback, busca todas as mensagens 'user' de uma vez
+        // (substitui N queries individuais por 1 query com .in('user_id', ...))
+        const { data: allUserMsgs } = await supabase
+          .from('chat_messages')
+          .select('id, user_id, content, created_at')
+          .in('user_id', fbUserIds)
+          .eq('role', 'user')
+          .order('created_at', { ascending: false });
+        // Agrupa por user_id para lookup local O(1)
+        const userMsgsByUser = new Map<string, any[]>();
+        for (const m of (allUserMsgs ?? []) as any[]) {
+          const arr = userMsgsByUser.get(m.user_id) ?? [];
+          arr.push(m);
+          userMsgsByUser.set(m.user_id, arr);
+        }
+
         const itemsWithPreceding: FeedbackItem[] = [];
         for (const fb of feedbackRows as any[]) {
           const msg = msgMap.get(fb.message_id);
-          if (!msg) continue; // mensagem deletada
-          const { data: prevMsg } = await supabase
-            .from('chat_messages')
-            .select('content')
-            .eq('user_id', msg.user_id)
-            .eq('role', 'user')
-            .lt('created_at', msg.created_at)
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          if (!msg) continue;
+          // Encontra a última mensagem do user antes do timestamp do bot — lookup local
+          const userMsgs = userMsgsByUser.get(msg.user_id) ?? [];
+          const prevMsg = userMsgs.find((m) => m.created_at < msg.created_at) ?? null;
           const prof = profMap.get(fb.user_id);
           itemsWithPreceding.push({
             id: fb.id,
