@@ -5,8 +5,7 @@ import { supabase } from '../../lib/supabase';
 import { 
   Cpu, 
   GraduationCap, 
-  TrendingUp, 
-  AlertCircle, 
+  AlertCircle,
   Clock,
   FileText,
   Plus,
@@ -354,25 +353,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
           <div className="text-xs text-slate-400">Suas contas MT5 ao vivo</div>
         </div>
 
-        {/* Licenses Card */}
-        <div 
-          onClick={() => onNavigate('licenses')}
+        {/* Hand Bot Card */}
+        <div
+          onClick={() => onNavigate('hand_bot')}
           className="bg-green-50 p-6 rounded-2xl border border-green-100 shadow-lg shadow-green-500/10 hover:shadow-xl hover:shadow-green-500/20 transition-all duration-300 cursor-pointer group"
         >
           <div className="flex items-center gap-4 mb-4">
             <div className="p-3 bg-green-100 text-green-600 rounded-xl group-hover:bg-green-600 group-hover:text-white transition-colors">
-              <TrendingUp size={24} />
+              <Cpu size={24} />
             </div>
             <div>
-              <p className="text-sm text-slate-500 font-medium">Licenças Ativas</p>
-              <h3 className="text-lg font-bold text-slate-900">{activeLicenses.length}</h3>
+              <p className="text-sm text-slate-500 font-medium">Automação</p>
+              <h3 className="text-lg font-bold text-slate-900">Hand Bot</h3>
             </div>
           </div>
-           {activeLicenses.length > 0 ? (
-             <div className="text-xs text-green-600 font-medium">Operando normalmente</div>
-           ) : (
-             <div className="text-xs text-yellow-600 font-medium">Nenhuma licença ativa</div>
-           )}
+          <div className="text-xs text-slate-400">Gerencie seu robô de trades</div>
         </div>
 
         {/* Courses Card (Renamed to Biblioteca) */}
@@ -484,7 +479,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
 
           {/* Recent Activity / Licenses List (Now on the right) */}
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
-            <h3 className="text-lg font-bold text-slate-900 mb-6">Suas Contas</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-bold text-slate-900">Suas Contas</h3>
+              <div
+                onClick={() => onNavigate('licenses')}
+                className="flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-100 rounded-xl cursor-pointer hover:bg-green-100 transition-colors group"
+              >
+                <CheckCircle2 size={14} className="text-green-600" />
+                <span className="text-sm font-semibold text-green-700">
+                  {activeLicenses.length} Licença{activeLicenses.length !== 1 ? 's' : ''} Ativa{activeLicenses.length !== 1 ? 's' : ''}
+                </span>
+              </div>
+            </div>
             
             {loading ? (
                  <p className="text-slate-400">Carregando...</p>
