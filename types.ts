@@ -1,4 +1,4 @@
-export type View = 'dashboard' | 'strategies' | 'education' | 'articles' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury' | 'chat_moderation' | 'knowledge' | 'journal' | 'analysis' | 'live_portfolio' | 'market';
+export type View = 'dashboard' | 'strategies' | 'education' | 'articles' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury' | 'chat_moderation' | 'knowledge' | 'journal' | 'analysis' | 'live_portfolio' | 'market' | 'hand_bot';
 
 export type ProductType = 'ea' | 'course' | 'ebook' | 'indicator' | 'robot' | 'affiliate' | 'other';
 

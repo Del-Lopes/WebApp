@@ -32,6 +32,7 @@ const TradeJournal = React.lazy(() => import('./components/Journal/TradeJournal'
 const ResultsAnalysis = React.lazy(() => import('./components/Analysis/ResultsAnalysis').then(module => ({ default: module.ResultsAnalysis })));
 const LivePortfolio = React.lazy(() => import('./components/LivePortfolio/LivePortfolio').then(module => ({ default: module.LivePortfolio })));
 const Market = React.lazy(() => import('./components/Market').then(module => ({ default: module.Market })));
+const HandBot = React.lazy(() => import('./components/HandBot/HandBot').then(module => ({ default: module.HandBot })));
 
 function AppContent() {
   const { user, isLoading, role, isPasswordRecovery } = useAuth();
@@ -118,6 +119,7 @@ function AppContent() {
       case 'analysis': return 'Análise de Resultados - Trader AFK';
       case 'live_portfolio': return 'Live Portfólio - Trader AFK';
       case 'market': return 'Market - Trader AFK';
+      case 'hand_bot': return 'Hand Bot - Trader AFK';
       case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
       default: return 'Trader AFK';
     }
@@ -227,6 +229,9 @@ function AppContent() {
 
             case 'market':
               return <Market onBack={() => setCurrentView('dashboard')} />;
+
+            case 'hand_bot':
+              return <HandBot onBack={() => setCurrentView('dashboard')} />;
             
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;

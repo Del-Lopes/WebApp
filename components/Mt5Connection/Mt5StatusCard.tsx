@@ -3,6 +3,9 @@ import { Activity, Settings, RefreshCw, AlertCircle, CheckCircle2 } from 'lucide
 import type { StrategyMt5Link, StrategyMt5Status, UserRole } from '../../types';
 import { Mt5ConnectModal } from './Mt5ConnectModal';
 import { Mt5ManageModal } from './Mt5ManageModal';
+import { requestStrategyForceSync } from '../../lib/mt5Sync';
+
+const FORCE_SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutos
 
 interface Mt5StatusCardProps {
   strategyId: string;
@@ -54,6 +57,11 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
   const isAdmin = userRole === 'admin';
   const [connectOpen, setConnectOpen] = useState(false);
   const [manageOpen, setManageOpen] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncCooldownUntil, setSyncCooldownUntil] = useState<number>(() => {
+    const stored = localStorage.getItem(`force_sync_strategy_${strategyId}`);
+    return stored ? parseInt(stored, 10) : 0;
+  });
 
   // Tick a cada 5s só pra reavaliar "stale" e o "há Xs"
   const [, setTick] = useState(0);
@@ -61,6 +69,22 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
     const id = setInterval(() => setTick((t) => t + 1), 5000);
     return () => clearInterval(id);
   }, []);
+
+  async function handleForceSync() {
+    if (Date.now() < syncCooldownUntil || syncing) return;
+    setSyncing(true);
+    try {
+      await requestStrategyForceSync(strategyId);
+      const until = Date.now() + FORCE_SYNC_COOLDOWN_MS;
+      setSyncCooldownUntil(until);
+      localStorage.setItem(`force_sync_strategy_${strategyId}`, String(until));
+    } finally {
+      setSyncing(false);
+    }
+  }
+
+  const syncOnCooldown = Date.now() < syncCooldownUntil;
+  const syncCooldownSec = syncOnCooldown ? Math.ceil((syncCooldownUntil - Date.now()) / 1000) : 0;
 
   // ─── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -240,6 +264,21 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
             <span className="text-slate-500">Saldo</span>
             <span className="font-mono text-slate-700">{formatCurrency(status.balance, status.account_currency)}</span>
           </div>
+        </div>
+
+        <div className="border-t border-slate-100 mt-3 pt-3">
+          <button
+            onClick={handleForceSync}
+            disabled={syncing || syncOnCooldown}
+            className="w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors py-1"
+          >
+            <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+            {syncing
+              ? 'Solicitando…'
+              : syncOnCooldown
+              ? `Atualizar (aguarde ${syncCooldownSec > 60 ? `${Math.ceil(syncCooldownSec / 60)}min` : `${syncCooldownSec}s`})`
+              : 'Atualizar agora'}
+          </button>
         </div>
       </div>
 

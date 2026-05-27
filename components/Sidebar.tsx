@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Shield, User, Map, Download, DollarSign, FileText, MessagesSquare, BookOpen, Notebook, BarChart3, Activity, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Shield, User, Map, Download, DollarSign, FileText, MessagesSquare, BookOpen, Notebook, BarChart3, Activity, ShoppingBag, Bot } from 'lucide-react';
 import { View, UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
@@ -87,6 +87,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <FileText size={20} />
             <span className="font-medium">Artigos e Análises</span>
+          </button>
+
+          <button
+            onClick={() => handleViewChange('hand_bot')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              currentView === 'hand_bot' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Bot size={20} />
+            <span className="font-medium">Hand Bot</span>
           </button>
 
           <button
