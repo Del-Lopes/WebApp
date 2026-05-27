@@ -2595,10 +2595,10 @@ void TraillingStopAvg()
          {
             if (bid > avgOpen + Gatilho)
             {
-               double newSL  = PositionGetDouble(POSITION_PRICE_CURRENT) - Folgadopreco;
+               double newSL  = NormalizeDouble(bid - Folgadopreco, _Digits);
                // Trava dupla: SL nunca abaixo do médio NEM do open da posição individual.
                double floor_ = MathMax(avgOpen, posOpen);
-               if (newSL > SL && newSL >= floor_)
+               if ((SL == 0 || newSL > SL) && newSL >= floor_)
                {
                   Print("AVG: Stop BUY Updated on ", _Symbol);
                   m_trade.SetAsyncMode(true);
@@ -2611,7 +2611,7 @@ void TraillingStopAvg()
          {
             if (ask < avgOpen - Gatilho)
             {
-               double newSL    = PositionGetDouble(POSITION_PRICE_CURRENT) + Folgadopreco;
+               double newSL    = NormalizeDouble(ask + Folgadopreco, _Digits);
                // Trava dupla: SL nunca acima do médio NEM do open da posição individual.
                double ceiling_ = MathMin(avgOpen, posOpen);
                if ((SL == 0 || newSL < SL) && newSL <= ceiling_)
@@ -2724,8 +2724,8 @@ void BreakEvenAvg()
          {
             if (bid > priceOpen + gatilho)
             {
-               double newSL = priceOpen + folgadopreco;
-               if (SL < newSL || SL == 0)
+               double newSL = NormalizeDouble(priceOpen + folgadopreco, _Digits);
+               if (SL == 0 || newSL > SL)
                {
                   m_trade.SetAsyncMode(true);
                   Print("BreakEven Avg: Stop BUY updated on ", _Symbol);
@@ -2738,8 +2738,8 @@ void BreakEvenAvg()
          {
             if (ask < priceOpen - gatilho)
             {
-               double newSL = priceOpen - folgadopreco;
-               if (SL > newSL || SL == 0)
+               double newSL = NormalizeDouble(priceOpen - folgadopreco, _Digits);
+               if (SL == 0 || newSL < SL)
                {
                   m_trade.SetAsyncMode(true);
                   Print("BreakEven Avg: Stop SELL updated on ", _Symbol);
@@ -2785,8 +2785,8 @@ void BreakEven()
          {
             if (bid > priceOpen + gatilho)
             {
-               double newSL = priceOpen + folgadopreco;
-               if (SL < newSL || SL == 0)
+               double newSL = NormalizeDouble(priceOpen + folgadopreco, _Digits);
+               if (SL == 0 || newSL > SL)
                {
                   m_trade.SetAsyncMode(true);
                   Print("BreakEven Pts: Stop BUY updated on ", _Symbol);
@@ -2799,8 +2799,8 @@ void BreakEven()
          {
             if (ask < priceOpen - gatilho)
             {
-               double newSL = priceOpen - folgadopreco;
-               if (SL > newSL || SL == 0)
+               double newSL = NormalizeDouble(priceOpen - folgadopreco, _Digits);
+               if (SL == 0 || newSL < SL)
                {
                   m_trade.SetAsyncMode(true);
                   Print("BreakEven Pts: Stop SELL updated on ", _Symbol);
