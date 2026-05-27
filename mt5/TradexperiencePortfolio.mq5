@@ -1,4 +1,4 @@
-//+------------------------------------------------------------------+
+﻿//+------------------------------------------------------------------+
 //|                                     TradexperiencePortfolio.mq5  |
 //|                          Tradexperience - Live Portfolio (Client) |
 //|                                                                  |
@@ -8,7 +8,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Tradexperience"
 #property link      "https://tradexperience.com.br"
-#property version   "1.0.0"
+#property version   "1.0"
 #property strict
 #property description "Live Portfolio Monitor. Somente leitura."
 
@@ -18,7 +18,7 @@ input string ApiKey = ""; // Chave gerada no Live Portfolio (txp_port_...)
 //--- Constantes internas (nao visiveis no dialogo)
 const string ApiUrl       = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/portfolio-mt5-ingest";
 const int    IntervalSec  = 300;
-const int    HeartbeatSec = 330;
+const int    HeartbeatSec = 21600; // 6h — heartbeat sem mudancas nao desperdicca invocacoes
 const bool   VerboseLog   = false;
 
 #define EA_VERSION       "1.0.0"
@@ -31,6 +31,10 @@ datetime g_next_retry_ts   = 0;
 int      g_backoff_sec     = 0;
 bool     g_auth_blocked    = false;
 bool     g_url_not_allowed = false;
+string   g_cached_account_id = ""; // account_id cacheado para PostgREST force_sync
+
+const string LinkIdUrl = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/portfolio-mt5-ingest/link-id";
+const string AnonKey   = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIyMzU0MDMsImV4cCI6MjA1NzgxMTQwM30.6smSMTKlRuHVt6MO5gWQIBwhFPJr6q7J0GS-yFlhWb8";
 
 double   g_last_balance    = -1;
 double   g_last_equity     = -1;
@@ -38,6 +42,57 @@ double   g_last_floating   = -1;
 double   g_last_daily      = -1;
 int      g_last_positions  = -1;
 datetime g_last_trade_at   = 0;
+
+//+------------------------------------------------------------------+
+bool FetchAccountId()
+{
+   if(StringLen(ApiKey) < 10) return false;
+
+   string headers = "Authorization: Bearer " + ApiKey + "\r\n"
+                  + "Content-Type: application/json\r\n";
+   char   postData[], result[];
+   string responseHeaders;
+
+   int res = WebRequest("GET", LinkIdUrl, headers, 5000, postData, result, responseHeaders);
+   if(res == -1)
+   {
+      Print("[Tradexperience Portfolio] FetchAccountId falhou — adicione armhlcnmaqgudqivkpgt.supabase.co em Ferramentas→Opções→Expert Advisors.");
+      return false;
+   }
+   if(res != 200) return false;
+
+   string json = CharArrayToString(result);
+   // Extrai "account_id":"<uuid>"
+   string pattern = "\"account_id\":\"";
+   int pos = StringFind(json, pattern);
+   if(pos < 0) return false;
+   pos += StringLen(pattern);
+   int end = StringFind(json, "\"", pos);
+   if(end < 0) return false;
+   g_cached_account_id = StringSubstr(json, pos, end - pos);
+   return StringLen(g_cached_account_id) > 0;
+}
+
+//+------------------------------------------------------------------+
+bool CheckForceSync()
+{
+   if(StringLen(g_cached_account_id) == 0) return false;
+
+   string url = "https://armhlcnmaqgudqivkpgt.supabase.co/rest/v1/portfolio_mt5_status"
+              + "?account_id=eq." + g_cached_account_id
+              + "&select=force_sync";
+
+   string headers = "apikey: " + AnonKey + "\r\n"
+                  + "Authorization: Bearer " + AnonKey + "\r\n";
+   char   postData[], result[];
+   string responseHeaders;
+
+   int res = WebRequest("GET", url, headers, 5000, postData, result, responseHeaders);
+   if(res != 200) return false;
+
+   string json = CharArrayToString(result);
+   return StringFind(json, "\"force_sync\":true") >= 0;
+}
 
 //+------------------------------------------------------------------+
 int OnInit()
@@ -55,6 +110,8 @@ int OnInit()
    Print("[Tradexperience Portfolio] Iniciado. v", EA_VERSION,
          " | conta=", AccountInfoInteger(ACCOUNT_LOGIN));
 
+   // Busca account_id para PostgREST force_sync (1 invocacao na inicializacao)
+   FetchAccountId();
    // Primeiro envio imediato.
    OnTimer();
    return(INIT_SUCCEEDED);
@@ -85,7 +142,8 @@ void OnTimer()
 
    bool changed = HasChanged(balance, equity, floating_pnl, daily_pnl, open_count, last_trade);
    bool heartbeat_due = (TimeCurrent() - g_last_send_ts) >= HeartbeatSec;
-   if(!changed && !heartbeat_due) return;
+   // Evita invocacao desnecessaria: so verifica force_sync quando nao ha mudanca nem heartbeat
+   if(!changed && !heartbeat_due && !CheckForceSync()) return;
 
    string json = BuildPayload(balance, equity, floating_pnl, daily_pnl, open_count, last_trade);
    if(SendPayload(json))

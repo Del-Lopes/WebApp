@@ -44,6 +44,9 @@ export interface HandbotParams {
   grid_contra_distance: number;
   grid_contra_multiplier: number;
   grid_contra_max_orders: number;
+  // Negociação Automática
+  allow_buy: boolean;
+  allow_sell: boolean;
   // Barra-a-Barra
   bar_folga_stop: number;
   bar_trailing_enabled: boolean;

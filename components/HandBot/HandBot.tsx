@@ -57,6 +57,8 @@ const DEFAULT_PARAMS: HandbotParams = {
   grid_contra_distance: 60.0,
   grid_contra_multiplier: 1.0,
   grid_contra_max_orders: 200,
+  allow_buy: false,
+  allow_sell: false,
   bar_folga_stop: 50,
   bar_trailing_enabled: false,
   bar_timeframe: 0,
@@ -727,6 +729,27 @@ const ParamsForm: React.FC<{
               value={params.grid_contra_max_orders}
               onChange={(v) => set('grid_contra_max_orders', v)}
               min={1}
+            />
+          </div>
+        </div>
+
+        {/* Negociação Automática */}
+        <div className="pt-4 space-y-3">
+          <div className="py-1">
+            <span className="text-sm font-bold text-slate-900">Negociação Automática</span>
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-600">Negociação automática Long?</span>
+            <Toggle
+              checked={params.allow_buy}
+              onChange={(v) => set('allow_buy', v)}
+            />
+          </div>
+          <div className="flex items-center justify-between">
+            <span className="text-sm text-slate-600">Negociação automática Short?</span>
+            <Toggle
+              checked={params.allow_sell}
+              onChange={(v) => set('allow_sell', v)}
             />
           </div>
         </div>

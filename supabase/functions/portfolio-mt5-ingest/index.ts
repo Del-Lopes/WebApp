@@ -73,6 +73,24 @@ function isValidPayload(p: unknown): p is IngestPayload {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  // GET /portfolio-mt5-ingest/link-id — EA busca o account_id uma vez para cache PostgREST
+  const url = new URL(req.url)
+  const action = url.pathname.split('/').filter(Boolean).pop()
+  if (req.method === 'GET' && action === 'link-id') {
+    const token = extractBearer(req)
+    if (!token) return jsonResponse(401, { error: 'missing_bearer_token' })
+    const tokenHash = await sha256Hex(token)
+    const { data: link } = await supabaseAdmin
+      .from('portfolio_mt5_link')
+      .select('account_id, api_key_revoked_at')
+      .eq('api_key_hash', tokenHash)
+      .maybeSingle()
+    if (!link) return jsonResponse(401, { error: 'invalid_token' })
+    if (link.api_key_revoked_at) return jsonResponse(403, { error: 'token_revoked' })
+    return jsonResponse(200, { account_id: link.account_id })
+  }
+
   if (req.method !== 'POST')    return jsonResponse(405, { error: 'method_not_allowed' })
 
   const token = extractBearer(req)
@@ -137,6 +155,12 @@ Deno.serve(async (req) => {
     console.error('[portfolio-mt5-ingest] status upsert error', upsertErr)
     return jsonResponse(500, { error: 'status_upsert_failed' })
   }
+
+  // Reseta force_sync após receber telemetria
+  await supabaseAdmin
+    .from('portfolio_mt5_status')
+    .update({ force_sync: false })
+    .eq('account_id', link.account_id)
 
   return jsonResponse(200, { ok: true })
 })

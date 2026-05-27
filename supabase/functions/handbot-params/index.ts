@@ -63,6 +63,26 @@ async function getAuthedUser(req: Request) {
   return data.user
 }
 
+// GET para o EA: devolve apenas o link_id (para cache PostgREST no EA)
+async function handleEaLinkId(req: Request): Promise<Response> {
+  const token = extractBearer(req)
+  if (!token) return jsonResponse(401, { error: 'missing_bearer_token' })
+
+  const tokenHash = await sha256Hex(token)
+
+  const { data: link, error: linkErr } = await supabaseAdmin
+    .from('handbot_link')
+    .select('id, api_key_revoked_at')
+    .eq('api_key_hash', tokenHash)
+    .maybeSingle()
+
+  if (linkErr) return jsonResponse(500, { error: 'internal_error' })
+  if (!link) return jsonResponse(401, { error: 'invalid_token' })
+  if (link.api_key_revoked_at) return jsonResponse(403, { error: 'token_revoked' })
+
+  return jsonResponse(200, { link_id: link.id })
+}
+
 // GET para o EA: autentica via Bearer token do EA, devolve parâmetros
 async function handleEaGet(req: Request): Promise<Response> {
   const token = extractBearer(req)
@@ -96,7 +116,17 @@ async function handleEaGet(req: Request): Promise<Response> {
 
   if (!params) return jsonResponse(404, { error: 'params_not_found' })
 
+  // Se não há mudanças pendentes, EA não precisa reprocessar nada
+  if (!params.needs_sync) return jsonResponse(200, { sync: false })
+
+  // Limpa a flag antes de retornar os dados
+  await supabaseAdmin
+    .from('handbot_params')
+    .update({ needs_sync: false })
+    .eq('handbot_link_id', link.id)
+
   return jsonResponse(200, {
+    sync: true,
     trailing_avg_enabled:    params.trailing_avg_enabled,
     trailing_avg_distance:   params.trailing_avg_distance,
     trailing_avg_stop:       params.trailing_avg_stop,
@@ -121,6 +151,8 @@ async function handleEaGet(req: Request): Promise<Response> {
     grid_contra_distance:    params.grid_contra_distance,
     grid_contra_multiplier:  params.grid_contra_multiplier,
     grid_contra_max_orders:  params.grid_contra_max_orders,
+    allow_buy:               params.allow_buy,
+    allow_sell:              params.allow_sell,
     bar_folga_stop:          params.bar_folga_stop,
     bar_trailing_enabled:    params.bar_trailing_enabled,
     bar_timeframe:           params.bar_timeframe,
@@ -156,6 +188,7 @@ async function handleUserPost(req: Request, userId: string): Promise<Response> {
     'grid_ahead_enabled', 'grid_ahead_distance', 'grid_ahead_multiplier',
     'grid_contra_enabled', 'grid_contra_lot', 'grid_contra_distance',
     'grid_contra_multiplier', 'grid_contra_max_orders',
+    'allow_buy', 'allow_sell',
     'bar_folga_stop', 'bar_trailing_enabled', 'bar_timeframe', 'bar_refresh_entry',
   ]
 
@@ -166,7 +199,7 @@ async function handleUserPost(req: Request, userId: string): Promise<Response> {
 
   const { error: upsertErr } = await supabaseAdmin
     .from('handbot_params')
-    .upsert(updates, { onConflict: 'user_id' })
+    .upsert({ ...updates, needs_sync: true }, { onConflict: 'user_id' })
 
   if (upsertErr) {
     console.error('[handbot-params] upsert error', upsertErr)
@@ -222,7 +255,11 @@ Deno.serve(async (req) => {
   const url = new URL(req.url)
   const action = url.pathname.split('/').filter(Boolean).pop()
 
-  // GET sem JWT = EA fazendo poll de parâmetros
+  // GET sem JWT = EA buscando link_id ou parâmetros completos
+  if (req.method === 'GET' && action === 'link-id') {
+    return handleEaLinkId(req)
+  }
+
   if (req.method === 'GET' && action !== 'link' && action !== 'user-params') {
     return handleEaGet(req)
   }

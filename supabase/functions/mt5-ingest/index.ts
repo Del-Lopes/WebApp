@@ -83,6 +83,23 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders })
   }
 
+  // GET /mt5-ingest/link-id — EA busca o strategy_id uma vez para cache PostgREST
+  const url = new URL(req.url)
+  const action = url.pathname.split('/').filter(Boolean).pop()
+  if (req.method === 'GET' && action === 'link-id') {
+    const token = extractBearer(req)
+    if (!token) return jsonResponse(401, { error: 'missing_bearer_token' })
+    const tokenHash = await sha256Hex(token)
+    const { data: link } = await supabaseAdmin
+      .from('strategy_mt5_link')
+      .select('strategy_id, api_key_revoked_at')
+      .eq('api_key_hash', tokenHash)
+      .maybeSingle()
+    if (!link) return jsonResponse(401, { error: 'invalid_token' })
+    if (link.api_key_revoked_at) return jsonResponse(403, { error: 'token_revoked' })
+    return jsonResponse(200, { strategy_id: link.strategy_id })
+  }
+
   if (req.method !== 'POST') {
     return jsonResponse(405, { error: 'method_not_allowed' })
   }
@@ -239,6 +256,12 @@ Deno.serve(async (req) => {
     console.error('[mt5-ingest] status upsert error', upsertErr)
     return jsonResponse(500, { error: 'status_upsert_failed' })
   }
+
+  // Reseta force_sync após receber telemetria — webhook do "Atualizar" já foi atendido
+  await supabaseAdmin
+    .from('strategy_mt5_status')
+    .update({ force_sync: false })
+    .eq('strategy_id', strategyLink.strategy_id)
 
   // ─── História (>=60s desde o último) ───────────────────────────────────────
   const { data: lastHist } = await supabaseAdmin

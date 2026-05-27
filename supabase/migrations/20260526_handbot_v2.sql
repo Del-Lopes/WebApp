@@ -13,6 +13,10 @@ alter table public.handbot_params
   add column if not exists grid_contra_multiplier numeric(10,2) not null default 1.0,
   add column if not exists grid_contra_max_orders integer  not null default 200,
 
+  -- Negociação Automática
+  add column if not exists allow_buy              boolean  not null default false,
+  add column if not exists allow_sell             boolean  not null default false,
+
   -- Atualização de Stop e Entrada Barra-a-Barra
   add column if not exists bar_folga_stop         integer  not null default 50,
   add column if not exists bar_trailing_enabled   boolean  not null default false,

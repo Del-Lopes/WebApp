@@ -1,13 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import {
   ArrowLeft, Plus, Activity, TrendingUp, TrendingDown, Link2, Link2Off,
-  Trash2, Wallet, X, Loader2,
+  Trash2, Wallet, X, Loader2, RefreshCw,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { usePortfolioMt5StatusMap } from '../../hooks/usePortfolioMt5Status';
 import { disconnectPortfolioAccountFromMt5 } from '../../lib/portfolioMt5Link';
 import { PortfolioConnectModal } from './PortfolioConnectModal';
+import { requestPortfolioForceSync } from '../../lib/mt5Sync';
+
+const FORCE_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
 
 interface PortfolioAccount {
   id: string;
@@ -38,6 +41,8 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
   const [links, setLinks] = useState<Record<string, Mt5LinkRow>>({});
   const [loading, setLoading] = useState(true);
   const { statusMap } = usePortfolioMt5StatusMap(user?.id ?? null);
+  const [syncingMap, setSyncingMap] = useState<Record<string, boolean>>({});
+  const [syncCooldownMap, setSyncCooldownMap] = useState<Record<string, number>>({});
 
   const [isAdding, setIsAdding] = useState(false);
   const [newAccount, setNewAccount] = useState({ name: '', broker_display: '' });
@@ -49,6 +54,13 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
     if (user) refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Tick para atualizar countdown do cooldown
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 5000);
+    return () => clearInterval(id);
+  }, []);
 
   const refresh = async () => {
     setLoading(true);
@@ -66,6 +78,13 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
       const map: Record<string, Mt5LinkRow> = {};
       (linkRows || []).forEach((row) => { map[row.account_id] = row as Mt5LinkRow; });
       setLinks(map);
+      // Restaura cooldowns do localStorage
+      const cooldowns: Record<string, number> = {};
+      (linkRows || []).forEach((row) => {
+        const stored = localStorage.getItem(`force_sync_portfolio_${row.account_id}`);
+        if (stored) cooldowns[row.account_id] = parseInt(stored, 10);
+      });
+      setSyncCooldownMap(cooldowns);
     } finally {
       setLoading(false);
     }
@@ -113,6 +132,20 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro ao desconectar';
       alert(message);
+    }
+  };
+
+  const handleForceSync = async (accountId: string) => {
+    const cooldownUntil = syncCooldownMap[accountId] ?? 0;
+    if (Date.now() < cooldownUntil || syncingMap[accountId]) return;
+    setSyncingMap((m) => ({ ...m, [accountId]: true }));
+    try {
+      await requestPortfolioForceSync(accountId);
+      const until = Date.now() + FORCE_SYNC_COOLDOWN_MS;
+      setSyncCooldownMap((m) => ({ ...m, [accountId]: until }));
+      localStorage.setItem(`force_sync_portfolio_${accountId}`, String(until));
+    } finally {
+      setSyncingMap((m) => ({ ...m, [accountId]: false }));
     }
   };
 
@@ -344,8 +377,28 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
                         </p>
                       </div>
                     </div>
-                    <div className="text-[10px] text-slate-400 font-mono mt-auto pt-2 border-t border-slate-100">
-                      Atualizado: {new Date(status.reported_at).toLocaleTimeString('pt-BR')}
+                    <div className="mt-auto pt-2 border-t border-slate-100 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        Atualizado: {new Date(status.reported_at).toLocaleTimeString('pt-BR')}
+                      </span>
+                      {(() => {
+                        const cooldownUntil = syncCooldownMap[account.id] ?? 0;
+                        const onCooldown = Date.now() < cooldownUntil;
+                        const cooldownSec = onCooldown ? Math.ceil((cooldownUntil - Date.now()) / 1000) : 0;
+                        const syncing = syncingMap[account.id] ?? false;
+                        return (
+                          <button
+                            onClick={() => handleForceSync(account.id)}
+                            disabled={syncing || onCooldown}
+                            className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-600 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <RefreshCw size={10} className={syncing ? 'animate-spin' : ''} />
+                            {onCooldown
+                              ? `${cooldownSec > 60 ? `${Math.ceil(cooldownSec / 60)}min` : `${cooldownSec}s`}`
+                              : 'Atualizar'}
+                          </button>
+                        );
+                      })()}
                     </div>
                   </>
                 ) : isConnected ? (

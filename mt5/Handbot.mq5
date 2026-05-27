@@ -216,37 +216,40 @@ bool _BarStop = _AllowTrailingBar;
 
 // ── Variáveis espelho para parâmetros remotos (Hand Bot Sync) ─────────────
 // Inicializadas com os valores dos inputs; sobrescritas pelo poll do Supabase.
-bool   _RemoteTrailingAvgEnabled    = false;
-int    _RemoteTrailingAvgDistance   = 120;
-int    _RemoteTrailingAvgStop       = 100;
-bool   _RemoteTrailingPtsEnabled    = false;
-int    _RemoteTrailingPtsDistance   = 220;
-int    _RemoteTrailingPtsStop       = 140;
-bool   _RemoteBreakEvenAvgEnabled   = false;
-int    _RemoteBreakEvenAvgDistance  = 50;
-int    _RemoteBreakEvenAvgGain      = 20;
-bool   _RemoteBreakEvenPtsEnabled   = false;
-int    _RemoteBreakEvenPtsDistance  = 30;
-int    _RemoteBreakEvenPtsGain      = 10;
-bool   _RemoteAddEnabled            = false;
-double _RemoteAddLot                = 0.01;
-int    _RemoteAddDistance           = 250;
-int    _RemoteAddAvgDistance        = 300;
-bool   _RemoteGridAheadEnabled      = false;
-double _RemoteGridAheadDistance     = 550.0;
-double _RemoteGridAheadMultiplier   = 1.1;
-bool   _RemoteGridContraEnabled     = false;
-double _RemoteGridContraLot         = 0.01;
-double _RemoteGridContraDistance    = 60.0;
-double _RemoteGridContraMultiplier  = 1.0;
-int    _RemoteGridContraMaxOrders   = 200;
-int    _RemoteBarFolgaStop          = 50;
-bool   _RemoteBarTrailingEnabled    = false;
-int    _RemoteBarTimeframe          = PERIOD_CURRENT; // ENUM_TIMEFRAMES como int
-bool   _RemoteBarRefreshEntry       = false;
+bool   _RemoteAllowBuy              = _allowBuy;
+bool   _RemoteAllowSell             = _allowSell;
+bool   _RemoteTrailingAvgEnabled    = _AllowTrailingAvg;
+int    _RemoteTrailingAvgDistance   = _TrailingTriggerAvg;
+int    _RemoteTrailingAvgStop       = _TrailingPointsAvg;
+bool   _RemoteTrailingPtsEnabled    = _AllowTrailing;
+int    _RemoteTrailingPtsDistance   = _TrailingTrigger;
+int    _RemoteTrailingPtsStop       = _TrailingPoints;
+bool   _RemoteBreakEvenAvgEnabled   = _AllowBreakEvenAvg;
+int    _RemoteBreakEvenAvgDistance  = _BreakEvenTriggerAvg;
+int    _RemoteBreakEvenAvgGain      = _StopGainBreakEven;
+bool   _RemoteBreakEvenPtsEnabled   = _AllowBreakEven;
+int    _RemoteBreakEvenPtsDistance  = _BreakEvenTrigger;
+int    _RemoteBreakEvenPtsGain      = _StopGainBreakEvenPts;
+bool   _RemoteAddEnabled            = _AllowAdd;
+double _RemoteAddLot                = _LoteAdd;
+int    _RemoteAddDistance           = _AddTriggerAvg;
+int    _RemoteAddAvgDistance        = _AddPointsAvg;
+bool   _RemoteGridAheadEnabled      = _AllowGridAhead;
+double _RemoteGridAheadDistance     = _distanceAhead;
+double _RemoteGridAheadMultiplier   = _multiplicatorAhead;
+bool   _RemoteGridContraEnabled     = _AllowGrid;
+double _RemoteGridContraLot         = _LoteAddGrid;
+double _RemoteGridContraDistance    = _distance;
+double _RemoteGridContraMultiplier  = _multiplicator;
+int    _RemoteGridContraMaxOrders   = _maxLevel;
+int    _RemoteBarFolgaStop          = _FolgaStop;
+bool   _RemoteBarTrailingEnabled    = _AllowTrailingBar;
+int    _RemoteBarTimeframe          = (int)_TimeframeBarStop;
+bool   _RemoteBarRefreshEntry       = _RefreshEntry;
 
 bool   _RemoteParamsLoaded          = false; // true após primeiro poll bem-sucedido
 int    _SyncTickCounter             = 0;     // conta ticks do OnTimer (cada 3s)
+string _CachedLinkId                = "";    // handbot_link_id cacheado para PostgREST
 // ─────────────────────────────────────────────────────────────────────────────
 
 string ChaveGeral = "ON";
@@ -873,6 +876,77 @@ bool     pause=true;             // true - pause
 
 
 //+------------------------------------------------------------------+
+//| Busca o handbot_link_id via PostgREST (sem contar como invocação)|
+//+------------------------------------------------------------------+
+
+bool FetchHandbotLinkId()
+{
+   if(StringLen(ApiKey) < 10) return false;
+
+   // Usa SHA-256 não está disponível em MQL5 nativamente, então passamos o
+   // token Bearer direto na edge function — mas para PostgREST precisamos do
+   // link_id. Fazemos uma única chamada à edge function para obtê-lo.
+   string url = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/handbot-params/link-id";
+
+   string headers = "Authorization: Bearer " + ApiKey + "\r\n"
+                  + "Content-Type: application/json\r\n";
+
+   char   postData[];
+   char   result[];
+   string responseHeaders;
+
+   int res = WebRequest("GET", url, headers, 5000, postData, result, responseHeaders);
+   if(res == -1)
+   {
+      Print("[HandBot] FetchLinkId falhou — adicione armhlcnmaqgudqivkpgt.supabase.co em Ferramentas→Opções→Expert Advisors.");
+      return false;
+   }
+   if(res != 200) return false;
+
+   string json = CharArrayToString(result);
+   // Extrai "link_id":"<uuid>"
+   string pattern = "\"link_id\":\"";
+   int pos = StringFind(json, pattern);
+   if(pos < 0) return false;
+   pos += StringLen(pattern);
+   int end = StringFind(json, "\"", pos);
+   if(end < 0) return false;
+   _CachedLinkId = StringSubstr(json, pos, end - pos);
+   return StringLen(_CachedLinkId) > 0;
+}
+
+//+------------------------------------------------------------------+
+//| Verifica needs_sync via PostgREST (grátis, não é edge function)  |
+//| Retorna true se EA deve buscar parâmetros completos              |
+//+------------------------------------------------------------------+
+
+bool CheckNeedsSync()
+{
+   if(StringLen(_CachedLinkId) == 0) return true; // sem cache → força fetch
+
+   // PostgREST: GET /rest/v1/handbot_params?handbot_link_id=eq.<id>&select=needs_sync
+   string url = "https://armhlcnmaqgudqivkpgt.supabase.co/rest/v1/handbot_params"
+              + "?handbot_link_id=eq." + _CachedLinkId
+              + "&select=needs_sync";
+
+   string anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIyMzU0MDMsImV4cCI6MjA1NzgxMTQwM30.6smSMTKlRuHVt6MO5gWQIBwhFPJr6q7J0GS-yFlhWb8";
+
+   string headers = "apikey: " + anonKey + "\r\n"
+                  + "Authorization: Bearer " + anonKey + "\r\n";
+
+   char   postData[];
+   char   result[];
+   string responseHeaders;
+
+   int res = WebRequest("GET", url, headers, 5000, postData, result, responseHeaders);
+   if(res != 200) return true; // em caso de erro, força fetch por segurança
+
+   string json = CharArrayToString(result);
+   // Resposta: [{"needs_sync":true}] ou [{"needs_sync":false}]
+   return StringFind(json, "\"needs_sync\":true") >= 0;
+}
+
+//+------------------------------------------------------------------+
 //| Hand Bot Sync — busca parâmetros remotos no Supabase            |
 //+------------------------------------------------------------------+
 
@@ -907,12 +981,51 @@ void FetchHandbotParams()
 
    string json = CharArrayToString(result);
 
+   // needs_sync=false no servidor → sem mudanças pendentes (só acontece se veio via edge function
+   // diretamente sem passar pelo CheckNeedsSync; na prática não ocorre no fluxo normal)
+   if(StringFind(json, "\"sync\":false") >= 0)
+      return;
+
    // Parser manual — extrai valores chave:valor do JSON simples
    // (sem dependência de biblioteca externa)
    #define HANDBOT_GET_BOOL(key)   (StringFind(json, "\"" + key + "\":true") >= 0)
    #define HANDBOT_GET_INT(key)    HandbotParseInt(json, key)
    #define HANDBOT_GET_DBL(key)    HandbotParseDouble(json, key)
 
+   // Snapshot dos valores anteriores para detectar mudanças
+   bool   prev_AllowBuy             = _RemoteAllowBuy;
+   bool   prev_AllowSell            = _RemoteAllowSell;
+   bool   prev_TrailingAvgEnabled   = _RemoteTrailingAvgEnabled;
+   int    prev_TrailingAvgDistance  = _RemoteTrailingAvgDistance;
+   int    prev_TrailingAvgStop      = _RemoteTrailingAvgStop;
+   bool   prev_TrailingPtsEnabled   = _RemoteTrailingPtsEnabled;
+   int    prev_TrailingPtsDistance  = _RemoteTrailingPtsDistance;
+   int    prev_TrailingPtsStop      = _RemoteTrailingPtsStop;
+   bool   prev_BreakEvenAvgEnabled  = _RemoteBreakEvenAvgEnabled;
+   int    prev_BreakEvenAvgDistance = _RemoteBreakEvenAvgDistance;
+   int    prev_BreakEvenAvgGain     = _RemoteBreakEvenAvgGain;
+   bool   prev_BreakEvenPtsEnabled  = _RemoteBreakEvenPtsEnabled;
+   int    prev_BreakEvenPtsDistance = _RemoteBreakEvenPtsDistance;
+   int    prev_BreakEvenPtsGain     = _RemoteBreakEvenPtsGain;
+   bool   prev_AddEnabled           = _RemoteAddEnabled;
+   double prev_AddLot               = _RemoteAddLot;
+   int    prev_AddDistance          = _RemoteAddDistance;
+   int    prev_AddAvgDistance       = _RemoteAddAvgDistance;
+   bool   prev_GridAheadEnabled     = _RemoteGridAheadEnabled;
+   double prev_GridAheadDistance    = _RemoteGridAheadDistance;
+   double prev_GridAheadMultiplier  = _RemoteGridAheadMultiplier;
+   bool   prev_GridContraEnabled    = _RemoteGridContraEnabled;
+   double prev_GridContraLot        = _RemoteGridContraLot;
+   double prev_GridContraDistance   = _RemoteGridContraDistance;
+   double prev_GridContraMultiplier = _RemoteGridContraMultiplier;
+   int    prev_GridContraMaxOrders  = _RemoteGridContraMaxOrders;
+   int    prev_BarFolgaStop         = _RemoteBarFolgaStop;
+   bool   prev_BarTrailingEnabled   = _RemoteBarTrailingEnabled;
+   int    prev_BarTimeframe         = _RemoteBarTimeframe;
+   bool   prev_BarRefreshEntry      = _RemoteBarRefreshEntry;
+
+   _RemoteAllowBuy             = HANDBOT_GET_BOOL("allow_buy");
+   _RemoteAllowSell            = HANDBOT_GET_BOOL("allow_sell");
    _RemoteTrailingAvgEnabled   = HANDBOT_GET_BOOL("trailing_avg_enabled");
    _RemoteTrailingAvgDistance  = HANDBOT_GET_INT("trailing_avg_distance");
    _RemoteTrailingAvgStop      = HANDBOT_GET_INT("trailing_avg_stop");
@@ -942,14 +1055,59 @@ void FetchHandbotParams()
    _RemoteBarTimeframe         = HANDBOT_GET_INT("bar_timeframe");
    _RemoteBarRefreshEntry      = HANDBOT_GET_BOOL("bar_refresh_entry");
 
-   // Aplica estado de barra diretamente nas variáveis globais após cada poll
-   _BarStop = _RemoteBarTrailingEnabled;
+   // Sincroniza variáveis de estado (togláveis pelo teclado/painel) com os valores remotos após cada poll
+   _BarStop          = _RemoteBarTrailingEnabled;
+   _leverage         = _RemoteGridContraEnabled || _RemoteGridAheadEnabled;
+   _AddKey           = _RemoteAddEnabled;
+   _PanelTrailingAvg = _RemoteTrailingAvgEnabled;
+   _PanelBreakEvenAvg = _RemoteBreakEvenAvgEnabled;
 
    if(!_RemoteParamsLoaded)
    {
       Print("[HandBot] Parâmetros remotos carregados com sucesso.");
       _RemoteParamsLoaded = true;
+      return;
    }
+
+   // Detecta e loga parâmetros que foram alterados no webapp
+   #define HANDBOT_LOG_BOOL(label, prev, curr) if(prev != curr) Print("[HandBot] ", label, ": ", (prev ? "true" : "false"), " → ", (curr ? "true" : "false"))
+   #define HANDBOT_LOG_INT(label, prev, curr)  if(prev != curr) Print("[HandBot] ", label, ": ", prev, " → ", curr)
+   #define HANDBOT_LOG_DBL(label, prev, curr)  if(prev != curr) Print("[HandBot] ", label, ": ", DoubleToString(prev, 2), " → ", DoubleToString(curr, 2))
+
+   HANDBOT_LOG_BOOL("allow_buy",               prev_AllowBuy,             _RemoteAllowBuy);
+   HANDBOT_LOG_BOOL("allow_sell",              prev_AllowSell,            _RemoteAllowSell);
+   HANDBOT_LOG_BOOL("trailing_avg_enabled",    prev_TrailingAvgEnabled,   _RemoteTrailingAvgEnabled);
+   HANDBOT_LOG_INT ("trailing_avg_distance",   prev_TrailingAvgDistance,  _RemoteTrailingAvgDistance);
+   HANDBOT_LOG_INT ("trailing_avg_stop",       prev_TrailingAvgStop,      _RemoteTrailingAvgStop);
+   HANDBOT_LOG_BOOL("trailing_pts_enabled",    prev_TrailingPtsEnabled,   _RemoteTrailingPtsEnabled);
+   HANDBOT_LOG_INT ("trailing_pts_distance",   prev_TrailingPtsDistance,  _RemoteTrailingPtsDistance);
+   HANDBOT_LOG_INT ("trailing_pts_stop",       prev_TrailingPtsStop,      _RemoteTrailingPtsStop);
+   HANDBOT_LOG_BOOL("break_even_avg_enabled",  prev_BreakEvenAvgEnabled,  _RemoteBreakEvenAvgEnabled);
+   HANDBOT_LOG_INT ("break_even_avg_distance", prev_BreakEvenAvgDistance, _RemoteBreakEvenAvgDistance);
+   HANDBOT_LOG_INT ("break_even_avg_gain",     prev_BreakEvenAvgGain,     _RemoteBreakEvenAvgGain);
+   HANDBOT_LOG_BOOL("break_even_pts_enabled",  prev_BreakEvenPtsEnabled,  _RemoteBreakEvenPtsEnabled);
+   HANDBOT_LOG_INT ("break_even_pts_distance", prev_BreakEvenPtsDistance, _RemoteBreakEvenPtsDistance);
+   HANDBOT_LOG_INT ("break_even_pts_gain",     prev_BreakEvenPtsGain,     _RemoteBreakEvenPtsGain);
+   HANDBOT_LOG_BOOL("add_points_enabled",      prev_AddEnabled,           _RemoteAddEnabled);
+   HANDBOT_LOG_DBL ("add_points_lot",          prev_AddLot,               _RemoteAddLot);
+   HANDBOT_LOG_INT ("add_points_distance",     prev_AddDistance,          _RemoteAddDistance);
+   HANDBOT_LOG_INT ("add_points_avg_distance", prev_AddAvgDistance,       _RemoteAddAvgDistance);
+   HANDBOT_LOG_BOOL("grid_ahead_enabled",      prev_GridAheadEnabled,     _RemoteGridAheadEnabled);
+   HANDBOT_LOG_DBL ("grid_ahead_distance",     prev_GridAheadDistance,    _RemoteGridAheadDistance);
+   HANDBOT_LOG_DBL ("grid_ahead_multiplier",   prev_GridAheadMultiplier,  _RemoteGridAheadMultiplier);
+   HANDBOT_LOG_BOOL("grid_contra_enabled",     prev_GridContraEnabled,    _RemoteGridContraEnabled);
+   HANDBOT_LOG_DBL ("grid_contra_lot",         prev_GridContraLot,        _RemoteGridContraLot);
+   HANDBOT_LOG_DBL ("grid_contra_distance",    prev_GridContraDistance,   _RemoteGridContraDistance);
+   HANDBOT_LOG_DBL ("grid_contra_multiplier",  prev_GridContraMultiplier, _RemoteGridContraMultiplier);
+   HANDBOT_LOG_INT ("grid_contra_max_orders",  prev_GridContraMaxOrders,  _RemoteGridContraMaxOrders);
+   HANDBOT_LOG_INT ("bar_folga_stop",          prev_BarFolgaStop,         _RemoteBarFolgaStop);
+   HANDBOT_LOG_BOOL("bar_trailing_enabled",    prev_BarTrailingEnabled,   _RemoteBarTrailingEnabled);
+   HANDBOT_LOG_INT ("bar_timeframe",           prev_BarTimeframe,         _RemoteBarTimeframe);
+   HANDBOT_LOG_BOOL("bar_refresh_entry",       prev_BarRefreshEntry,      _RemoteBarRefreshEntry);
+
+   #undef HANDBOT_LOG_BOOL
+   #undef HANDBOT_LOG_INT
+   #undef HANDBOT_LOG_DBL
 }
 
 // Extrai um inteiro de um JSON simples: "key":123
@@ -1023,7 +1181,9 @@ int OnInit()
         //---
         EventSetTimer(3);
         pause=true;
-        // Primeiro poll de parâmetros remotos na inicialização
+        // Obtém link_id para PostgREST (1 invocação na inicialização, depois PostgREST grátis)
+        FetchHandbotLinkId();
+        // Primeiro carregamento de parâmetros remotos
         FetchHandbotParams();
         //--- create application dialog
         if(!ExtDialog.Create(0,InpPanelTitle,0,40,40,InpPanelWidth,InpPanelheight))
@@ -1448,13 +1608,15 @@ void OnTimer()
   {
     pause=!pause;
 
-    // Poll de parâmetros remotos a cada SyncIntervalSec (o timer dispara a cada 3s)
+    // Verifica needs_sync via PostgREST a cada SyncIntervalSec (o timer dispara a cada 3s)
+    // PostgREST não conta como edge function invocation — só chama a edge function se sync pendente
     _SyncTickCounter++;
     int ticksNeeded = (SyncIntervalSec > 0) ? (SyncIntervalSec / 3) : 10;
     if(_SyncTickCounter >= ticksNeeded)
     {
       _SyncTickCounter = 0;
-      FetchHandbotParams();
+      if(CheckNeedsSync())
+        FetchHandbotParams();
     }
   }
 //+------------------------------------------------------------------+
@@ -1499,23 +1661,21 @@ void OnTick()
             //saidas
             SaidaVenda();
             Saidacompra();
-              if(Posicionado() == false && Pendurado() == false && entradadecompra == 1 && DailyGain == false && MetaProva == false ) // Verifica se existe alguma ordem, se tem sinal de compra e se a meta ja foi batida
+              if(Comprado() == false && _RemoteAllowBuy) // Verifica se existe alguma ordem, se tem sinal de compra e se a meta ja foi batida
               { 
-                // Calcula o preço para a ordem pendente de compra
-                int folga_compra = _RemoteParamsLoaded ? _RemoteBarFolgaStop : _FolgaStop;
-                double Preco_compra = NormalizeDouble(HighMicro[1] + folga_compra * _Point, _Digits);
+                double Preco_compra = ask;
                 // Calcula o preço para o takeprofit
                 double Alvo_compra = NormalizeDouble(Preco_compra + _take_Inicial * _Point, _Digits);
                 // Calcula o preço para o stoploss
                 double StopLossCompra = NormalizeDouble(Preco_compra - _StopInicial * _Point, _Digits);
 
-                _allowBuy && m_trade.BuyStop(_Lote, Preco_compra, _Symbol, StopLossCompra, Alvo_compra, ORDER_TIME_DAY , 0, "Buy Stop; Entrada; Magic: "+(string)Magic_Number); // Entrada de compra
+                m_trade.Buy(_Lote,_Symbol,Preco_compra,StopLossCompra,Alvo_compra,"First Buy; Magic: "+(string)Magic_Number); // Entrada de compra
               }
-              if(Comprado() == true && MetaProva == false && _leverage == true && (_RemoteParamsLoaded ? _RemoteGridAheadEnabled : _AllowGridAhead) ) // Grid a Favor (Buy)
+              if(Comprado() == true && MetaProva == false && _RemoteGridAheadEnabled) // Grid a Favor (Buy)
               {
                 GridFunction_Buy_ahead();
               }
-              if(Comprado() == true && MetaProva == false && _leverage == true && (_RemoteParamsLoaded ? _RemoteGridContraEnabled : _AllowGrid) ) // Grid Contra (Buy)
+              if(Comprado() == true && MetaProva == false && _RemoteGridContraEnabled) // Grid Contra (Buy)
               {
                 GridFunction_Buy();
               }
@@ -1528,23 +1688,21 @@ void OnTick()
                 AddcFunction();
               }
 
-              if(Posicionado() == false && Pendurado() == false && entradadevenda == 1 && DailyGain == false && MetaProva == false ) // Verifica se existe alguma ordem, se tem sinal de venda e se a meta ja foi batida
+              if(Vendido() == false && _RemoteAllowSell) // Verifica se existe alguma ordem, se tem sinal de venda e se a meta ja foi batida
                 {
-                  // Calcula o preço para a ordem pendente de venda
-                  int folga_venda = _RemoteParamsLoaded ? _RemoteBarFolgaStop : _FolgaStop;
-                  double Preco_venda = NormalizeDouble(LowMicro[1] - folga_venda * _Point, _Digits);
+                  double Preco_venda = bid;
                   // Calcula o preço para o takeprofit
                   double Alvo_venda = NormalizeDouble(Preco_venda - _take_Inicial * _Point, _Digits);
                   // Calcula o preço para o stoploss
                   double StopLossVenda = NormalizeDouble(Preco_venda + _StopInicial * _Point, _Digits);
 
-                  _allowSell && m_trade.SellStop(_Lote, Preco_venda, _Symbol, StopLossVenda, Alvo_venda, ORDER_TIME_DAY, 0, "Buy Stop; Entrada; Magic: "+(string)Magic_Number); // Entrada de venda
+                  m_trade.Sell(_Lote,_Symbol,Preco_venda,StopLossVenda,Alvo_venda,"First Sell; Magic: "+(string)Magic_Number); // Entrada de venda
                 }
-                if(Vendido() == true && MetaProva == false && _leverage == true && (_RemoteParamsLoaded ? _RemoteGridAheadEnabled : _AllowGridAhead) ) // Grid a Favor (Sell)
+                if(Vendido() == true && MetaProva == false && _RemoteGridAheadEnabled) // Grid a Favor (Sell)
                 {
                 GridFunction_Sell_ahead();
                 }
-                if(Vendido() == true && MetaProva == false && _leverage == true && (_RemoteParamsLoaded ? _RemoteGridContraEnabled : _AllowGrid) ) // Grid Contra (Sell)
+                if(Vendido() == true && MetaProva == false && _RemoteGridContraEnabled) // Grid Contra (Sell)
                 {
                 GridFunction_Sell();
                 }
@@ -2409,7 +2567,7 @@ void TraillingStop()
 
 void TraillingStopAvg()
 {
-   if ((_RemoteParamsLoaded ? _RemoteTrailingAvgEnabled : _AllowTrailingAvg) && _PanelTrailingAvg && Posicionado())
+   if (_PanelTrailingAvg && Posicionado())
    {
       for (int i = 0; i < PositionsTotal(); i++)
       {
@@ -2539,7 +2697,7 @@ void TrailingStop_Sell()
 
 void BreakEvenAvg()
 {
-   if ((_RemoteParamsLoaded ? _RemoteBreakEvenAvgEnabled : _AllowBreakEvenAvg) && _PanelBreakEvenAvg && Posicionado())
+   if (_PanelBreakEvenAvg && Posicionado())
    {
       for (int i = 0; i < PositionsTotal(); i++)
       {

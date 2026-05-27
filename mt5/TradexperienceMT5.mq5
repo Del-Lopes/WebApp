@@ -12,7 +12,7 @@
 //+------------------------------------------------------------------+
 #property copyright "Tradexperience"
 #property link      "https://tradexperience.com.br"
-#property version   "1.0.0"
+#property version   "1.0"
 #property strict
 #property description "Monitor unico (Estrategia + Tesouraria). Somente leitura."
 
@@ -28,7 +28,7 @@ input string PortfolioApiKey = "";     // Chave do Portfolio (txp_port_...)
 const string IngestUrlMain      = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/mt5-ingest";
 const string IngestUrlPortfolio = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/portfolio-mt5-ingest";
 const int    IntervalSec  = 300;   // Frequencia de envio (segundos)
-const int    HeartbeatSec = 330;   // Heartbeat mesmo sem mudancas (segundos)
+const int    HeartbeatSec = 21600; // Heartbeat sem mudancas: 6h (nao desperdicar invocacoes)
 const bool   VerboseLog   = false;
 
 //--- Constantes
@@ -51,6 +51,11 @@ struct ChannelState
    datetime next_retry_ts;
    int      backoff_sec;
 
+   string   cached_id;            // strategy_id ou portfolio_id, cacheado para PostgREST
+   string   status_table;         // "strategy_mt5_status" ou "portfolio_mt5_status"
+   string   status_pk;            // nome da PK: "strategy_id" ou "portfolio_id"
+   string   link_id_url;          // URL do endpoint /link-id da edge function
+
    // snapshot pra detectar mudanca
    double   last_balance;
    double   last_equity;
@@ -66,7 +71,9 @@ ChannelState g_portfolio;
 
 //+------------------------------------------------------------------+
 void InitChannel(ChannelState &ch, const string label, const string key,
-                 const string url, bool enabled, bool full_payload)
+                 const string url, bool enabled, bool full_payload,
+                 const string status_table, const string status_pk,
+                 const string link_id_url)
 {
    ch.label           = label;
    ch.key             = key;
@@ -78,6 +85,10 @@ void InitChannel(ChannelState &ch, const string label, const string key,
    ch.last_send_ts    = 0;
    ch.next_retry_ts   = 0;
    ch.backoff_sec     = 0;
+   ch.cached_id       = "";
+   ch.status_table    = status_table;
+   ch.status_pk       = status_pk;
+   ch.link_id_url     = link_id_url;
    ch.last_balance    = -1;
    ch.last_equity     = -1;
    ch.last_floating   = -1;
@@ -87,14 +98,73 @@ void InitChannel(ChannelState &ch, const string label, const string key,
 }
 
 //+------------------------------------------------------------------+
+// Busca o ID do canal (strategy_id ou portfolio_id) para cache PostgREST
+bool FetchChannelId(ChannelState &ch)
+{
+   if(StringLen(ch.key) < 10 || StringLen(ch.link_id_url) == 0) return false;
+
+   string headers = "Authorization: Bearer " + ch.key + "\r\n"
+                  + "Content-Type: application/json\r\n";
+   char   postData[], result[];
+   string responseHeaders;
+
+   int res = WebRequest("GET", ch.link_id_url, headers, 5000, postData, result, responseHeaders);
+   if(res == -1)
+   {
+      Print("[Tradexperience][", ch.label, "] FetchChannelId falhou — adicione armhlcnmaqgudqivkpgt.supabase.co em Ferramentas→Opções→Expert Advisors.");
+      return false;
+   }
+   if(res != 200) return false;
+
+   string json = CharArrayToString(result);
+   // Extrai o valor do primeiro UUID no JSON: "strategy_id":"..." ou "portfolio_id":"..."
+   int pos = StringFind(json, "\":\"");
+   if(pos < 0) return false;
+   pos += 3;
+   int end = StringFind(json, "\"", pos);
+   if(end < 0) return false;
+   ch.cached_id = StringSubstr(json, pos, end - pos);
+   return StringLen(ch.cached_id) > 0;
+}
+
+//+------------------------------------------------------------------+
+// Verifica force_sync via PostgREST (gratis, nao e edge function)
+bool CheckForceSync(ChannelState &ch)
+{
+   if(StringLen(ch.cached_id) == 0) return false; // sem cache → nao forcca
+
+   string anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDIyMzU0MDMsImV4cCI6MjA1NzgxMTQwM30.6smSMTKlRuHVt6MO5gWQIBwhFPJr6q7J0GS-yFlhWb8";
+
+   string url = "https://armhlcnmaqgudqivkpgt.supabase.co/rest/v1/" + ch.status_table
+              + "?" + ch.status_pk + "=eq." + ch.cached_id
+              + "&select=force_sync";
+
+   string headers = "apikey: " + anonKey + "\r\n"
+                  + "Authorization: Bearer " + anonKey + "\r\n";
+   char   postData[], result[];
+   string responseHeaders;
+
+   int res = WebRequest("GET", url, headers, 5000, postData, result, responseHeaders);
+   if(res != 200) return false;
+
+   string json = CharArrayToString(result);
+   return StringFind(json, "\"force_sync\":true") >= 0;
+}
+
+//+------------------------------------------------------------------+
 int OnInit()
 {
    InitChannel(g_strategy, "Estrategia", StrategyApiKey, IngestUrlMain,
-               EnableStrategy && StringLen(StrategyApiKey) >= 10, true);
+               EnableStrategy && StringLen(StrategyApiKey) >= 10, true,
+               "strategy_mt5_status", "strategy_id",
+               "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/mt5-ingest/link-id");
    InitChannel(g_treasury, "Tesouraria", TreasuryApiKey, IngestUrlMain,
-               EnableTreasury && StringLen(TreasuryApiKey) >= 10, false);
+               EnableTreasury && StringLen(TreasuryApiKey) >= 10, false,
+               "", "", ""); // tesouraria nao tem force_sync
    InitChannel(g_portfolio, "Portfolio", PortfolioApiKey, IngestUrlPortfolio,
-               EnablePortfolio && StringLen(PortfolioApiKey) >= 10, true);
+               EnablePortfolio && StringLen(PortfolioApiKey) >= 10, true,
+               "portfolio_mt5_status", "account_id",
+               "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/portfolio-mt5-ingest/link-id");
 
    if(!g_strategy.enabled && !g_treasury.enabled && !g_portfolio.enabled)
    {
@@ -118,6 +188,10 @@ int OnInit()
          " | treasury=", g_treasury.enabled ? "on" : "off",
          " | portfolio=", g_portfolio.enabled ? "on" : "off",
          " | conta=", AccountInfoInteger(ACCOUNT_LOGIN));
+
+   // Busca IDs para PostgREST force_sync (1 invocacao por canal na inicializacao)
+   if(g_strategy.enabled) FetchChannelId(g_strategy);
+   if(g_portfolio.enabled) FetchChannelId(g_portfolio);
 
    // Primeiro envio imediato (depois o EventSetTimer cuida do ritmo de 300s).
    OnTimer();
@@ -164,7 +238,8 @@ void ProcessChannel(ChannelState &ch,
 
    bool changed = HasChanged(ch, balance, equity, floating, daily, positions, last_trade);
    bool heartbeat_due = (TimeCurrent() - ch.last_send_ts) >= HeartbeatSec;
-   if(!changed && !heartbeat_due) return;
+   // Evita chamada PostgREST desnecessaria: so verifica force_sync quando nao ha mudanca nem heartbeat
+   if(!changed && !heartbeat_due && !CheckForceSync(ch)) return;
 
    string json = BuildPayload(ch, balance, equity, floating, daily, positions, last_trade);
    if(SendPayload(ch, json))
