@@ -2460,36 +2460,34 @@ void CallHalt()
 
 void StopMode()
 {
+   // Em hedge (comprado E vendido ao mesmo tempo), protege o lado que está perdendo:
+   // só aplica trailing pts no lado que está ganhando.
+   // Para posições simples (só BUY ou só SELL), os flags ficam sempre true —
+   // o próprio TraillingStop() controla a ativação pelo gatilho de pontos.
    if (!Posicionado()) return;
 
-   double buypriceOpen  = getAveragePrice_Buy();
-   double sellpriceOpen = getAveragePrice_Sell();
-   double Gatilho       = NormalizeDouble(_TrailingTriggerAvg * _Point, _Digits);
+   _PanelTrailingBuy  = true;
+   _PanelTrailingSell = true;
 
-   if (Comprado() && !Vendido())
+   if (Comprado() && Vendido())
    {
-      _PanelTrailingBuy = !(ask > (buypriceOpen + Gatilho));
-   }
-   else if (Vendido() && !Comprado())
-   {
-      _PanelTrailingSell = !(ask < (sellpriceOpen - Gatilho));
-   }
-   else if (Comprado() && Vendido())
-   {
-      if (ask > (buypriceOpen + Gatilho) && ask > (sellpriceOpen - Gatilho))
-      {
-         _PanelTrailingBuy  = false;
-         _PanelTrailingSell = true;
-      }
-      else if (ask < (buypriceOpen + Gatilho) && ask > (sellpriceOpen - Gatilho))
-      {
-         _PanelTrailingBuy  = true;
-         _PanelTrailingSell = true;
-      }
-      else if (ask < (buypriceOpen + Gatilho) && ask < (sellpriceOpen + Gatilho))
+      double buypriceOpen  = getAveragePrice_Buy();
+      double sellpriceOpen = getAveragePrice_Sell();
+      double GatilhoBuy    = NormalizeDouble((_RemoteParamsLoaded ? _RemoteTrailingPtsDistance : _TrailingTrigger) * _Point, _Digits);
+      double GatilhoSell   = GatilhoBuy;
+
+      bool buyInProfit  = (bid > buypriceOpen  + GatilhoBuy);
+      bool sellInProfit = (ask < sellpriceOpen - GatilhoSell);
+
+      if (buyInProfit && !sellInProfit)
       {
          _PanelTrailingBuy  = true;
          _PanelTrailingSell = false;
+      }
+      else if (!buyInProfit && sellInProfit)
+      {
+         _PanelTrailingBuy  = false;
+         _PanelTrailingSell = true;
       }
    }
 }
@@ -2525,13 +2523,14 @@ void TraillingStop()
 
             if (bid > priceOpen + Gatilho)
             {
-               double newSL     = PositionGetDouble(POSITION_PRICE_CURRENT) - Folgadopreco;
+               double newSL     = NormalizeDouble(bid - Folgadopreco, _Digits);
                double currentSL = m_position.StopLoss();
 
-               // Trava: nunca mover o SL para abaixo do preço de entrada (evita loss travado pelo trailing).
-               if (newSL > currentSL && newSL >= priceOpen)
+               // Trava: nunca mover o SL para abaixo do preço de entrada.
+               if ((currentSL == 0 || newSL > currentSL) && newSL >= priceOpen)
                {
                   Print("Trailing Stop Updated for BUY on ", _Symbol);
+                  m_trade.SetAsyncMode(true);
                   if (!m_trade.PositionModify(positionTicket, newSL, m_position.TakeProfit()))
                      Print("Error modifying position: ", m_trade.ResultRetcodeDescription());
                }
@@ -2545,13 +2544,14 @@ void TraillingStop()
 
             if (ask < priceOpen - Gatilho)
             {
-               double newSL     = PositionGetDouble(POSITION_PRICE_CURRENT) + Folgadopreco;
+               double newSL     = NormalizeDouble(ask + Folgadopreco, _Digits);
                double currentSL = m_position.StopLoss();
 
-               // Trava: nunca mover o SL para acima do preço de entrada (evita loss travado pelo trailing).
+               // Trava: nunca mover o SL para acima do preço de entrada.
                if ((currentSL == 0 || newSL < currentSL) && newSL <= priceOpen)
                {
                   Print("Trailing Stop Updated for SELL on ", _Symbol);
+                  m_trade.SetAsyncMode(true);
                   if (!m_trade.PositionModify(positionTicket, newSL, m_position.TakeProfit()))
                      Print("Error modifying position: ", m_trade.ResultRetcodeDescription());
                }
@@ -2559,6 +2559,7 @@ void TraillingStop()
          }
       }
    }
+   m_trade.SetAsyncMode(false);
 }
 
 //+-----------------------------------------------------------------+
