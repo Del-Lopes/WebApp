@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   Bot, Copy, Check, AlertTriangle, RefreshCw, X,
-  ChevronDown, Download, Loader2, Save, Unplug,
+  ChevronDown, Download, Loader2, Save, Unplug, Plus, ChevronRight,
 } from 'lucide-react';
 import {
   connectHandbot, rotateHandbotApiKey, disconnectHandbot,
-  fetchHandbotLink, fetchHandbotParams, saveHandbotParams,
+  fetchHandbotLinks, fetchHandbotParams, saveHandbotParams,
   type HandbotLink, type HandbotParams,
 } from '../../lib/handbotLink';
 
@@ -171,8 +171,10 @@ const ConnectSection: React.FC<{
   };
 
   const handleDone = async () => {
-    const link = await fetchHandbotLink();
-    if (link) onConnected(link);
+    const links = await fetchHandbotLinks();
+    // Pega o link mais recente (último conectado)
+    const latest = links[links.length - 1];
+    if (latest) onConnected(latest);
   };
 
   return (
@@ -356,7 +358,7 @@ const ManageSection: React.FC<{
     setBusy(true);
     setError(null);
     try {
-      const res = await rotateHandbotApiKey();
+      const res = await rotateHandbotApiKey(link.id);
       setNewKey(res.api_key);
       setConfirmingRotate(false);
     } catch (err) {
@@ -370,7 +372,7 @@ const ManageSection: React.FC<{
     setBusy(true);
     setError(null);
     try {
-      await disconnectHandbot();
+      await disconnectHandbot(link.id);
       onDisconnected();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha ao desconectar.');
@@ -459,7 +461,8 @@ const ManageSection: React.FC<{
           <button
             onClick={async () => {
               setNewKey(null);
-              const updated = await fetchHandbotLink();
+              const links = await fetchHandbotLinks();
+              const updated = links.find((l) => l.id === link.id);
               if (updated) onRotated(updated);
             }}
             className="text-xs font-semibold text-green-700 hover:text-green-800"
@@ -510,9 +513,10 @@ const ManageSection: React.FC<{
 
 // ─── ParamsForm ───────────────────────────────────────────────────────────────
 const ParamsForm: React.FC<{
+  linkId: string;
   initial: HandbotParams;
   onSaved: (params: HandbotParams) => void;
-}> = ({ initial, onSaved }) => {
+}> = ({ linkId, initial, onSaved }) => {
   const [params, setParams] = useState<HandbotParams>(initial);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -529,7 +533,7 @@ const ParamsForm: React.FC<{
     setSaving(true);
     setSaveError(null);
     try {
-      await saveHandbotParams(params);
+      await saveHandbotParams(linkId, params);
       setSaveSuccess(true);
       setDirty(false);
       onSaved(params);
@@ -838,24 +842,69 @@ const ParamsForm: React.FC<{
   );
 };
 
+// ─── AccountSelector ─────────────────────────────────────────────────────────
+const AccountSelector: React.FC<{
+  links: HandbotLink[];
+  activeId: string;
+  onSelect: (id: string) => void;
+  onAdd: () => void;
+}> = ({ links, activeId, onSelect, onAdd }) => (
+  <div className="flex items-center gap-2 flex-wrap">
+    {links.map((l) => (
+      <button
+        key={l.id}
+        onClick={() => onSelect(l.id)}
+        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+          l.id === activeId
+            ? 'bg-green-600 text-white border-green-600'
+            : 'bg-white text-slate-700 border-slate-300 hover:border-green-500 hover:text-green-700'
+        }`}
+      >
+        <span className="font-mono">{l.account_login}</span>
+        {l.broker_display && <span className="opacity-75">· {l.broker_display}</span>}
+        {l.id === activeId && <ChevronRight size={12} />}
+      </button>
+    ))}
+    <button
+      onClick={onAdd}
+      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-dashed border-slate-300 text-slate-500 hover:border-green-500 hover:text-green-700 transition-colors bg-white"
+    >
+      <Plus size={12} /> Adicionar conta
+    </button>
+  </div>
+);
+
 // ─── HandBot (main) ───────────────────────────────────────────────────────────
 export const HandBot: React.FC<HandBotProps> = ({ onBack }) => {
   const [loading, setLoading] = useState(true);
-  const [link, setLink] = useState<HandbotLink | null>(null);
-  const [params, setParams] = useState<HandbotParams | null>(null);
+  const [links, setLinks] = useState<HandbotLink[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
+  const [paramsMap, setParamsMap] = useState<Record<string, HandbotParams>>({});
+  const [addingAccount, setAddingAccount] = useState(false);
 
-  const load = useCallback(async () => {
+  const activeLink = links.find((l) => l.id === activeId) ?? null;
+  const activeParams = activeId ? (paramsMap[activeId] ?? null) : null;
+
+  const loadLinks = useCallback(async () => {
     setLoading(true);
     try {
-      const [l, p] = await Promise.all([fetchHandbotLink(), fetchHandbotParams()]);
-      setLink(l);
-      setParams(p);
+      const ls = await fetchHandbotLinks();
+      setLinks(ls);
+      if (ls.length > 0) {
+        const firstId = ls[0].id;
+        setActiveId((prev) => prev && ls.find((l) => l.id === prev) ? prev : firstId);
+        // Carrega params de todas as contas em paralelo
+        const entries = await Promise.all(
+          ls.map(async (l) => [l.id, await fetchHandbotParams(l.id)] as const)
+        );
+        setParamsMap(Object.fromEntries(entries.filter(([, p]) => p !== null)) as Record<string, HandbotParams>);
+      }
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadLinks(); }, [loadLinks]);
 
   if (loading) {
     return (
@@ -878,28 +927,70 @@ export const HandBot: React.FC<HandBotProps> = ({ onBack }) => {
         </div>
       </div>
 
-      {!link ? (
+      {links.length === 0 && !addingAccount ? (
         <>
-          {/* Estado desconectado */}
           <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-2">
             <p className="text-sm text-slate-600 font-medium">Nenhuma conta MT5 vinculada</p>
             <p className="text-xs text-slate-400">
               Conecte o Hand Bot à sua conta MT5 para poder ajustar os parâmetros remotamente.
             </p>
           </div>
-          <ConnectSection onConnected={(l) => { setLink(l); load(); }} />
+          <ConnectSection onConnected={(l) => { loadLinks(); setActiveId(l.id); }} />
+        </>
+      ) : addingAccount ? (
+        <>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAddingAccount(false)}
+              className="text-xs font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1"
+            >
+              <X size={14} /> Cancelar
+            </button>
+          </div>
+          <ConnectSection
+            onConnected={(l) => {
+              setAddingAccount(false);
+              loadLinks();
+              setActiveId(l.id);
+            }}
+          />
         </>
       ) : (
         <>
-          <ManageSection
-            link={link}
-            onDisconnected={() => { setLink(null); setParams(null); }}
-            onRotated={(l) => setLink(l)}
-          />
-          <ParamsForm
-            initial={params ?? DEFAULT_PARAMS}
-            onSaved={(p) => setParams(p)}
-          />
+          {/* Seletor de contas */}
+          {links.length > 0 && (
+            <AccountSelector
+              links={links}
+              activeId={activeId!}
+              onSelect={setActiveId}
+              onAdd={() => setAddingAccount(true)}
+            />
+          )}
+
+          {activeLink && (
+            <>
+              <ManageSection
+                link={activeLink}
+                onDisconnected={() => {
+                  setParamsMap((m) => { const n = { ...m }; delete n[activeLink.id]; return n; });
+                  loadLinks().then(() => {
+                    setLinks((ls) => {
+                      if (ls.length > 0) setActiveId(ls[0].id);
+                      else setActiveId(null);
+                      return ls;
+                    });
+                  });
+                }}
+                onRotated={(l) => setLinks((ls) => ls.map((x) => x.id === l.id ? l : x))}
+              />
+              <ParamsForm
+                key={activeLink.id}
+                linkId={activeLink.id}
+                initial={activeParams ?? DEFAULT_PARAMS}
+                onSaved={(p) => setParamsMap((m) => ({ ...m, [activeLink.id]: p }))}
+              />
+            </>
+          )}
         </>
       )}
     </div>

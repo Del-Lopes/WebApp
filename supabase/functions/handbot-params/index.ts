@@ -170,10 +170,15 @@ async function handleUserPost(req: Request, userId: string): Promise<Response> {
     return jsonResponse(400, { error: 'invalid_json' })
   }
 
-  // Verifica que o usuário tem um link ativo
+  // link_id deve vir no body para múltiplas contas
+  const linkId = typeof body.link_id === 'string' ? body.link_id : null
+  if (!linkId) return jsonResponse(400, { error: 'link_id_required' })
+
+  // Verifica que o link pertence ao usuário
   const { data: link } = await supabaseAdmin
     .from('handbot_link')
     .select('id')
+    .eq('id', linkId)
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -199,7 +204,7 @@ async function handleUserPost(req: Request, userId: string): Promise<Response> {
 
   const { error: upsertErr } = await supabaseAdmin
     .from('handbot_params')
-    .upsert({ ...updates, needs_sync: true }, { onConflict: 'user_id' })
+    .upsert({ ...updates, needs_sync: true }, { onConflict: 'handbot_link_id' })
 
   if (upsertErr) {
     console.error('[handbot-params] upsert error', upsertErr)
@@ -209,27 +214,34 @@ async function handleUserPost(req: Request, userId: string): Promise<Response> {
   return jsonResponse(200, { ok: true })
 }
 
-// GET pelo usuário: retorna link atual (para exibir status na UI)
+// GET pelo usuário: retorna todos os links da conta (múltiplas contas MT5)
 async function handleUserLinkGet(userId: string): Promise<Response> {
-  const { data: link, error } = await supabaseAdmin
+  const { data: links, error } = await supabaseAdmin
     .from('handbot_link')
     .select('id, account_login, broker_display, api_key_prefix, api_key_created_at, api_key_revoked_at, created_at')
     .eq('user_id', userId)
-    .maybeSingle()
+    .order('created_at', { ascending: true })
 
   if (error) {
-    console.error('[handbot-params] link get error', error)
+    console.error('[handbot-params] links get error', error)
     return jsonResponse(500, { error: 'internal_error' })
   }
 
-  return jsonResponse(200, { link: link ?? null })
+  return jsonResponse(200, { links: links ?? [] })
 }
 
-// GET pelo usuário: retorna parâmetros atuais para exibir no formulário
-async function handleUserParamsGet(userId: string): Promise<Response> {
+// GET pelo usuário: retorna parâmetros de um link específico (?link_id=)
+async function handleUserParamsGet(req: Request, userId: string): Promise<Response> {
+  const url = new URL(req.url)
+  const linkId = url.searchParams.get('link_id')
+
+  if (!linkId) return jsonResponse(400, { error: 'link_id_required' })
+
+  // Confirma que o link pertence ao usuário
   const { data: link } = await supabaseAdmin
     .from('handbot_link')
     .select('id')
+    .eq('id', linkId)
     .eq('user_id', userId)
     .maybeSingle()
 
@@ -273,7 +285,7 @@ Deno.serve(async (req) => {
   }
 
   if (req.method === 'GET' && action === 'user-params') {
-    return handleUserParamsGet(user.id)
+    return handleUserParamsGet(req, user.id)
   }
 
   if (req.method === 'POST') {

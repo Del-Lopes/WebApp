@@ -106,27 +106,27 @@ export async function connectHandbot(
   });
 }
 
-export async function rotateHandbotApiKey(): Promise<HandbotConnectResponse> {
-  return callHandbotLink<HandbotConnectResponse>('rotate', {});
+export async function rotateHandbotApiKey(linkId: string): Promise<HandbotConnectResponse> {
+  return callHandbotLink<HandbotConnectResponse>('rotate', { link_id: linkId });
 }
 
-export async function disconnectHandbot(): Promise<void> {
-  await callHandbotLink<{ ok: true }>('disconnect', {});
+export async function disconnectHandbot(linkId: string): Promise<void> {
+  await callHandbotLink<{ ok: true }>('disconnect', { link_id: linkId });
 }
 
-export async function fetchHandbotLink(): Promise<HandbotLink | null> {
+export async function fetchHandbotLinks(): Promise<HandbotLink[]> {
   const token = await getToken();
   const res = await fetch(`${FUNCTIONS_URL}/handbot-params/link`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
-  if (!res.ok) return null;
+  if (!res.ok) return [];
   const data = await res.json();
-  return data.link ?? null;
+  return data.links ?? [];
 }
 
-export async function fetchHandbotParams(): Promise<HandbotParams | null> {
+export async function fetchHandbotParams(linkId: string): Promise<HandbotParams | null> {
   const token = await getToken();
-  const res = await fetch(`${FUNCTIONS_URL}/handbot-params/user-params`, {
+  const res = await fetch(`${FUNCTIONS_URL}/handbot-params/user-params?link_id=${linkId}`, {
     headers: { 'Authorization': `Bearer ${token}` },
   });
   if (!res.ok) return null;
@@ -134,7 +134,7 @@ export async function fetchHandbotParams(): Promise<HandbotParams | null> {
   return data.params ?? null;
 }
 
-export async function saveHandbotParams(params: HandbotParams): Promise<void> {
+export async function saveHandbotParams(linkId: string, params: HandbotParams): Promise<void> {
   const token = await getToken();
   const res = await fetch(`${FUNCTIONS_URL}/handbot-params`, {
     method: 'POST',
@@ -142,7 +142,7 @@ export async function saveHandbotParams(params: HandbotParams): Promise<void> {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify(params),
+    body: JSON.stringify({ ...params, link_id: linkId }),
   });
 
   let parsed: unknown = null;

@@ -74,11 +74,12 @@ async function handleConnect(req: Request, userId: string): Promise<Response> {
     return jsonResponse(400, { error: 'invalid_payload' })
   }
 
-  // Um usuário só pode ter um link Hand Bot ativo
+  // Bloqueia apenas se já existe um link para o mesmo (usuário, conta MT5)
   const { data: existing } = await supabaseAdmin
     .from('handbot_link')
     .select('id')
     .eq('user_id', userId)
+    .eq('account_login', body.account_login)
     .maybeSingle()
 
   if (existing) return jsonResponse(409, { error: 'already_connected' })
@@ -123,12 +124,18 @@ async function handleConnect(req: Request, userId: string): Promise<Response> {
 }
 
 async function handleRotate(req: Request, userId: string): Promise<Response> {
-  const { data: link } = await supabaseAdmin
-    .from('handbot_link')
-    .select('id, user_id')
-    .eq('user_id', userId)
-    .maybeSingle()
+  let body: { link_id?: string } = {}
+  try { body = await req.json() } catch { /* body opcional */ }
 
+  const query = supabaseAdmin
+    .from('handbot_link')
+    .select('id')
+    .eq('user_id', userId)
+
+  // Se vier link_id, opera só nessa conta; senão opera no único link existente (retrocompatível)
+  if (body.link_id) query.eq('id', body.link_id)
+
+  const { data: link } = await query.maybeSingle()
   if (!link) return jsonResponse(404, { error: 'link_not_found' })
 
   const apiKey = generateApiKey()
@@ -143,7 +150,7 @@ async function handleRotate(req: Request, userId: string): Promise<Response> {
       api_key_created_at: new Date().toISOString(),
       api_key_revoked_at: null,
     })
-    .eq('user_id', userId)
+    .eq('id', link.id)
 
   if (updErr) {
     console.error('[handbot-link] rotate error', updErr)
@@ -153,19 +160,24 @@ async function handleRotate(req: Request, userId: string): Promise<Response> {
   return jsonResponse(200, { api_key: apiKey, api_key_prefix: apiKeyPrefix })
 }
 
-async function handleDisconnect(_req: Request, userId: string): Promise<Response> {
-  const { data: link } = await supabaseAdmin
+async function handleDisconnect(req: Request, userId: string): Promise<Response> {
+  let body: { link_id?: string } = {}
+  try { body = await req.json() } catch { /* body opcional */ }
+
+  const query = supabaseAdmin
     .from('handbot_link')
     .select('id')
     .eq('user_id', userId)
-    .maybeSingle()
 
+  if (body.link_id) query.eq('id', body.link_id)
+
+  const { data: link } = await query.maybeSingle()
   if (!link) return jsonResponse(404, { error: 'link_not_found' })
 
   const { error: delErr } = await supabaseAdmin
     .from('handbot_link')
     .delete()
-    .eq('user_id', userId)
+    .eq('id', link.id)
 
   if (delErr) {
     console.error('[handbot-link] delete error', delErr)
