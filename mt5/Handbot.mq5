@@ -166,8 +166,8 @@ input group "";
 input int Magic_Number   = 0231;                                          //Numero de Identidade do robô
 
 input group "Trader AFK - Hand Bot Sync";
-input string ApiKey      = "";   // Chave de API gerada no app Trader AFK
-input int    SyncIntervalSec = 30; // Intervalo de sincronização (segundos)
+input string ApiKey      = "";    // Chave de API gerada no app Trader AFK
+input int    SyncIntervalSec = 60; // Intervalo de verificação de sync (segundos)
 
 //+------------------------------------------------------------------+
 //| Global Variables                                                 |
@@ -250,6 +250,7 @@ bool   _RemoteBarRefreshEntry       = _RefreshEntry;
 bool   _RemoteParamsLoaded          = false; // true após primeiro poll bem-sucedido
 int    _SyncTickCounter             = 0;     // conta ticks do OnTimer (cada 3s)
 string _CachedLinkId                = "";    // handbot_link_id cacheado para PostgREST
+int    _SyncErrorCount              = 0;     // erros consecutivos no CheckNeedsSync
 // ─────────────────────────────────────────────────────────────────────────────
 
 string ChaveGeral = "ON";
@@ -939,7 +940,14 @@ bool CheckNeedsSync()
    string responseHeaders;
 
    int res = WebRequest("GET", url, headers, 5000, postData, result, responseHeaders);
-   if(res != 200) return true; // em caso de erro, força fetch por segurança
+   if(res != 200)
+   {
+      // Erro de rede: se já temos parâmetros carregados, não força fetch
+      // (evita flood de edge function invocations por instabilidade de rede)
+      _SyncErrorCount++;
+      return !_RemoteParamsLoaded;
+   }
+   _SyncErrorCount = 0;
 
    string json = CharArrayToString(result);
    // Resposta: [{"needs_sync":true}] ou [{"needs_sync":false}]
