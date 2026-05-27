@@ -16,8 +16,9 @@ export function useStrategiesMt5Status(): UseStrategiesMt5StatusResult {
 
   useEffect(() => {
     let cancelled = false;
+    let channel: ReturnType<typeof supabase.channel> | null = null;
 
-    const fetchAll = async () => {
+    const init = async () => {
       const { data, error } = await supabase
         .from('strategy_mt5_status')
         .select('*');
@@ -33,42 +34,43 @@ export function useStrategiesMt5Status(): UseStrategiesMt5StatusResult {
       }
       setStatusByStrategy(map);
       setLoading(false);
+
+      // Filtra por user_id para não receber broadcast de outros usuários.
+      const userId = (await supabase.auth.getUser()).data.user?.id;
+      if (cancelled) return;
+
+      channel = supabase
+        .channel('mt5-status-own')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'strategy_mt5_status',
+            ...(userId ? { filter: `user_id=eq.${userId}` } : {}),
+          },
+          (payload) => {
+            setStatusByStrategy(prev => {
+              const next = { ...prev };
+              if (payload.eventType === 'DELETE') {
+                const oldRow = payload.old as Partial<StrategyMt5Status>;
+                if (oldRow?.strategy_id) delete next[oldRow.strategy_id];
+              } else {
+                const newRow = payload.new as StrategyMt5Status;
+                if (newRow?.strategy_id) next[newRow.strategy_id] = newRow;
+              }
+              return next;
+            });
+          },
+        )
+        .subscribe();
     };
 
-    fetchAll();
-
-    // Filtra por user_id para não receber broadcast de outros usuários.
-    // Requer que a tabela tenha RLS habilitada com user_id visível.
-    const userId = (await supabase.auth.getUser()).data.user?.id;
-    const channel = supabase
-      .channel('mt5-status-own')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'strategy_mt5_status',
-          ...(userId ? { filter: `user_id=eq.${userId}` } : {}),
-        },
-        (payload) => {
-          setStatusByStrategy(prev => {
-            const next = { ...prev };
-            if (payload.eventType === 'DELETE') {
-              const oldRow = payload.old as Partial<StrategyMt5Status>;
-              if (oldRow?.strategy_id) delete next[oldRow.strategy_id];
-            } else {
-              const newRow = payload.new as StrategyMt5Status;
-              if (newRow?.strategy_id) next[newRow.strategy_id] = newRow;
-            }
-            return next;
-          });
-        },
-      )
-      .subscribe();
+    init();
 
     return () => {
       cancelled = true;
-      supabase.removeChannel(channel);
+      if (channel) supabase.removeChannel(channel);
     };
   }, []);
 
