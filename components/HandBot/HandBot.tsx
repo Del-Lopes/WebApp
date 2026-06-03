@@ -63,6 +63,9 @@ const DEFAULT_PARAMS: HandbotParams = {
   bar_trailing_enabled: false,
   bar_timeframe: 0,
   bar_refresh_entry: false,
+  reset_value_to_add: 100,
+  dynamic_hedge_enabled: false,
+  dynamic_hedge_percent: 1.0,
 };
 
 // ─── Toggle component ────────────────────────────────────────────────────────
@@ -805,6 +808,40 @@ const ParamsForm: React.FC<{
             <Toggle
               checked={params.bar_refresh_entry}
               onChange={(v) => set('bar_refresh_entry', v)}
+            />
+          </div>
+        </div>
+
+        {/* Reset Global */}
+        <div className="pt-4 space-y-3">
+          <div className="py-1">
+            <span className="text-sm font-bold text-slate-900">Reset Global</span>
+          </div>
+          <NumericInput
+            label="% de saldo para liquidar tudo (Cut Gain Dinâmico)"
+            value={params.reset_value_to_add}
+            onChange={(v) => set('reset_value_to_add', v)}
+            step={0.01}
+            min={0}
+            decimal
+          />
+        </div>
+
+        {/* Hedge Dinâmico */}
+        <div className="pt-4 space-y-3">
+          <SectionHeader
+            title="Hedge Dinâmico"
+            enabled={params.dynamic_hedge_enabled}
+            onToggle={(v) => set('dynamic_hedge_enabled', v)}
+          />
+          <div className={`space-y-3 pl-2 transition-opacity ${params.dynamic_hedge_enabled ? '' : 'opacity-40 pointer-events-none'}`}>
+            <NumericInput
+              label="% de flutuante para ativar"
+              value={params.dynamic_hedge_percent}
+              onChange={(v) => set('dynamic_hedge_percent', v)}
+              step={0.1}
+              min={0}
+              decimal
             />
           </div>
         </div>

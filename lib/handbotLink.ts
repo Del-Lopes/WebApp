@@ -52,6 +52,11 @@ export interface HandbotParams {
   bar_trailing_enabled: boolean;
   bar_timeframe: number;
   bar_refresh_entry: boolean;
+  // Reset Global
+  reset_value_to_add: number;
+  // Hedge Dinâmico
+  dynamic_hedge_enabled: boolean;
+  dynamic_hedge_percent: number;
   updated_at?: string;
 }
 

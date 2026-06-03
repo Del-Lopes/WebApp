@@ -107,7 +107,7 @@ async function handleEaGet(req: Request): Promise<Response> {
   // Na esmagadora maioria das chamadas needs_sync=false → responde imediatamente sem UPDATE.
   const { data: params, error: paramsErr } = await supabaseAdmin
     .from('handbot_params')
-    .select('needs_sync, trailing_avg_enabled, trailing_avg_distance, trailing_avg_stop, trailing_pts_enabled, trailing_pts_distance, trailing_pts_stop, break_even_avg_enabled, break_even_avg_distance, break_even_avg_gain, break_even_pts_enabled, break_even_pts_distance, break_even_pts_gain, add_points_enabled, add_points_lot, add_points_distance, add_points_avg_distance, grid_ahead_enabled, grid_ahead_distance, grid_ahead_multiplier, grid_contra_enabled, grid_contra_lot, grid_contra_distance, grid_contra_multiplier, grid_contra_max_orders, allow_buy, allow_sell, bar_folga_stop, bar_trailing_enabled, bar_timeframe, bar_refresh_entry, updated_at')
+    .select('needs_sync, trailing_avg_enabled, trailing_avg_distance, trailing_avg_stop, trailing_pts_enabled, trailing_pts_distance, trailing_pts_stop, break_even_avg_enabled, break_even_avg_distance, break_even_avg_gain, break_even_pts_enabled, break_even_pts_distance, break_even_pts_gain, add_points_enabled, add_points_lot, add_points_distance, add_points_avg_distance, grid_ahead_enabled, grid_ahead_distance, grid_ahead_multiplier, grid_contra_enabled, grid_contra_lot, grid_contra_distance, grid_contra_multiplier, grid_contra_max_orders, allow_buy, allow_sell, bar_folga_stop, bar_trailing_enabled, bar_timeframe, bar_refresh_entry, reset_value_to_add, dynamic_hedge_enabled, dynamic_hedge_percent, updated_at')
     .eq('handbot_link_id', link.id)
     .maybeSingle()
 
@@ -159,6 +159,9 @@ async function handleEaGet(req: Request): Promise<Response> {
     bar_trailing_enabled:    params.bar_trailing_enabled,
     bar_timeframe:           params.bar_timeframe,
     bar_refresh_entry:       params.bar_refresh_entry,
+    reset_value_to_add:      params.reset_value_to_add,
+    dynamic_hedge_enabled:   params.dynamic_hedge_enabled,
+    dynamic_hedge_percent:   params.dynamic_hedge_percent,
     updated_at:              params.updated_at,
   })
 }
@@ -197,6 +200,8 @@ async function handleUserPost(req: Request, userId: string): Promise<Response> {
     'grid_contra_multiplier', 'grid_contra_max_orders',
     'allow_buy', 'allow_sell',
     'bar_folga_stop', 'bar_trailing_enabled', 'bar_timeframe', 'bar_refresh_entry',
+    'reset_value_to_add',
+    'dynamic_hedge_enabled', 'dynamic_hedge_percent',
   ]
 
   const updates: Record<string, unknown> = { user_id: userId, handbot_link_id: link.id }
