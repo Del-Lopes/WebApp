@@ -240,6 +240,10 @@ export interface TrilhaTrack {
   color?: string;
   is_published: boolean;
   sort_order: number;
+  // Acesso: is_locked=true → trilha paga (cadeado + modal). Default false = gratuita.
+  is_locked?: boolean;
+  lock_note?: string;
+  price_label?: string;
   created_at?: string;
   updated_at?: string;
   units?: TrilhaUnit[];
