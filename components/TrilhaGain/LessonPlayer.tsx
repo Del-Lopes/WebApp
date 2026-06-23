@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import { X, Trophy } from 'lucide-react';
-import { TrilhaLesson, ConceptPayload, QuizPayload } from '../../types';
+import {
+  TrilhaLesson, ConceptPayload, QuizPayload,
+  TrueFalsePayload, OrderPayload, ChartPayload,
+} from '../../types';
 import { completeLesson } from '../../lib/trilhaGain';
 import { ConceptStep } from './steps/ConceptStep';
 import { QuizStep } from './steps/QuizStep';
+import { TrueFalseStep } from './steps/TrueFalseStep';
+import { OrderStep } from './steps/OrderStep';
+import { ChartStep } from './steps/ChartStep';
 
 interface Props {
   lesson: TrilhaLesson;
@@ -54,11 +60,31 @@ export const LessonPlayer: React.FC<Props> = ({ lesson, onClose, onCompleted }) 
             onResolved={(correct) => { if (correct) advance(); }}
           />
         );
-      // Fase 2: truefalse, order, chart
+      case 'truefalse':
+        return (
+          <TrueFalseStep
+            payload={current.payload as TrueFalsePayload}
+            onResolved={(correct) => { if (correct) advance(); }}
+          />
+        );
+      case 'order':
+        return (
+          <OrderStep
+            payload={current.payload as OrderPayload}
+            onResolved={(correct) => { if (correct) advance(); }}
+          />
+        );
+      case 'chart':
+        return (
+          <ChartStep
+            payload={current.payload as ChartPayload}
+            onResolved={(correct) => { if (correct) advance(); }}
+          />
+        );
       default:
         return (
           <div className="flex flex-col h-full items-center justify-center text-slate-400">
-            <p>Tipo de exercício ainda não suportado: {current.type}</p>
+            <p>Tipo de exercício desconhecido: {current.type}</p>
             <button onClick={advance} className="mt-4 px-6 py-3 rounded-2xl bg-green-600 text-white font-bold">
               Pular
             </button>

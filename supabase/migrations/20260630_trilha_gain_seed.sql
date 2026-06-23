@@ -113,6 +113,13 @@ BEGIN
      'options', jsonb_build_array('R$ 1.000', 'R$ 100', 'R$ 10', 'R$ 500'),
      'correctIndex', 1,
      'explanation', '1% de R$ 10.000 = R$ 100.'
-   ), 1);
+   ), 1),
+  (v_lesson, 'chart', jsonb_build_object(
+     'image_url', 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c7/Candlestick_chart_scheme_03-en.svg/640px-Candlestick_chart_scheme_03-en.svg.png',
+     'question', 'Observando o gráfico, o que um candle de corpo verde (alta) indica?',
+     'options', jsonb_build_array('O preço fechou abaixo da abertura', 'O preço fechou acima da abertura', 'Não houve negociação', 'O mercado estava fechado'),
+     'correctIndex', 1,
+     'explanation', 'Num candle de alta, o fechamento fica acima da abertura — pressão compradora no período.'
+   ), 2);
 
 END $$;
