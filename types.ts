@@ -1,4 +1,4 @@
-export type View = 'dashboard' | 'strategies' | 'education' | 'articles' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury' | 'chat_moderation' | 'knowledge' | 'journal' | 'analysis' | 'live_portfolio' | 'market' | 'hand_bot';
+export type View = 'dashboard' | 'strategies' | 'education' | 'articles' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury' | 'chat_moderation' | 'knowledge' | 'journal' | 'analysis' | 'live_portfolio' | 'market' | 'hand_bot' | 'trilha_gain';
 
 export type ProductType = 'ea' | 'course' | 'ebook' | 'indicator' | 'robot' | 'affiliate' | 'other';
 
@@ -160,4 +160,106 @@ export interface StrategyMt5Status {
   reported_at: string;
   received_at: string;
   updated_at: string;
+}
+
+// ============================================================
+// Trilha Gain — aprendizado gamificado (Duolingo-style)
+// ============================================================
+
+export type TrilhaStepType = 'concept' | 'quiz' | 'truefalse' | 'order' | 'chart';
+
+// Payloads por tipo de step (armazenados em trilha_steps.payload jsonb)
+export interface ConceptPayload {
+  title: string;
+  body: string;
+  image_url?: string;
+}
+export interface QuizPayload {
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation?: string;
+}
+export interface TrueFalsePayload {
+  statement: string;
+  answer: boolean;
+  explanation?: string;
+}
+export interface OrderPayload {
+  prompt: string;
+  items: string[]; // ordem correta
+}
+export interface ChartPayload {
+  image_url: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation?: string;
+}
+
+export type TrilhaStepPayload =
+  | ConceptPayload | QuizPayload | TrueFalsePayload | OrderPayload | ChartPayload;
+
+export interface TrilhaStep {
+  id: string;
+  lesson_id: string;
+  type: TrilhaStepType;
+  payload: TrilhaStepPayload;
+  order_index: number;
+  created_at?: string;
+}
+
+export interface TrilhaLesson {
+  id: string;
+  unit_id: string;
+  title: string;
+  icon?: string;
+  xp_reward: number;
+  order_index: number;
+  created_at?: string;
+  steps?: TrilhaStep[];
+}
+
+export interface TrilhaUnit {
+  id: string;
+  track_id: string;
+  title: string;
+  subtitle?: string;
+  color?: string;
+  order_index: number;
+  created_at?: string;
+  lessons?: TrilhaLesson[];
+}
+
+export interface TrilhaTrack {
+  id: string;
+  title: string;
+  description?: string;
+  image_url?: string;
+  icon?: string;
+  color?: string;
+  is_published: boolean;
+  sort_order: number;
+  created_at?: string;
+  updated_at?: string;
+  units?: TrilhaUnit[];
+}
+
+export interface TrilhaProgress {
+  id: string;
+  user_id: string;
+  lesson_id: string;
+  score: number;
+  completed_at: string;
+}
+
+export interface TrilhaStats {
+  id: string;
+  user_id: string;
+  total_xp: number;
+  current_streak: number;
+  best_streak: number;
+  last_activity_date: string | null;
+  badges: string[];
+  updated_at?: string;
 }
