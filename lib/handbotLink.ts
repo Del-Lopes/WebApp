@@ -38,12 +38,30 @@ export interface HandbotParams {
   grid_ahead_enabled: boolean;
   grid_ahead_distance: number;
   grid_ahead_multiplier: number;
+  // Grid à Favor - por lado
+  grid_ahead_enabled_buy: boolean;
+  grid_ahead_distance_buy: number;
+  grid_ahead_multiplier_buy: number;
+  grid_ahead_lot_buy: number;
+  grid_ahead_enabled_sell: boolean;
+  grid_ahead_distance_sell: number;
+  grid_ahead_multiplier_sell: number;
+  grid_ahead_lot_sell: number;
   // Grid Contra
   grid_contra_enabled: boolean;
   grid_contra_lot: number;
   grid_contra_distance: number;
   grid_contra_multiplier: number;
   grid_contra_max_orders: number;
+  // Grid Contra - por lado
+  grid_contra_enabled_buy: boolean;
+  grid_contra_lot_buy: number;
+  grid_contra_distance_buy: number;
+  grid_contra_multiplier_buy: number;
+  grid_contra_enabled_sell: boolean;
+  grid_contra_lot_sell: number;
+  grid_contra_distance_sell: number;
+  grid_contra_multiplier_sell: number;
   // Negociação Automática
   allow_buy: boolean;
   allow_sell: boolean;

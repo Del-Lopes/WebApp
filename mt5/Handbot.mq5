@@ -248,15 +248,34 @@ int    _RemoteAddAvgDistance        = _AddPointsAvg;
 bool   _RemoteGridAheadEnabled      = _AllowGridAhead;
 double _RemoteGridAheadDistance     = _distanceAhead;
 double _RemoteGridAheadMultiplier   = _multiplicatorAhead;
+// Grid à Favor por lado
+bool   _RemoteGridAheadEnabledBuy   = false;
+double _RemoteGridAheadDistanceBuy  = 550.0;
+double _RemoteGridAheadMultiplierBuy= 1.1;
+double _RemoteGridAheadLotBuy       = 0.01;
+bool   _RemoteGridAheadEnabledSell  = false;
+double _RemoteGridAheadDistanceSell = 550.0;
+double _RemoteGridAheadMultiplierSell= 1.1;
+double _RemoteGridAheadLotSell      = 0.01;
 bool   _RemoteGridContraEnabled     = _AllowGrid;
 double _RemoteGridContraLot         = _LoteAddGrid;
 double _RemoteGridContraDistance    = _distance;
 double _RemoteGridContraMultiplier  = _multiplicator;
 int    _RemoteGridContraMaxOrders   = _maxLevel;
+// Grid Contra por lado
+bool   _RemoteGridContraEnabledBuy  = false;
+double _RemoteGridContraLotBuy      = 0.01;
+double _RemoteGridContraDistanceBuy = 60.0;
+double _RemoteGridContraMultiplierBuy= 1.0;
+bool   _RemoteGridContraEnabledSell = false;
+double _RemoteGridContraLotSell     = 0.01;
+double _RemoteGridContraDistanceSell= 60.0;
+double _RemoteGridContraMultiplierSell= 1.0;
 int    _RemoteBarFolgaStop          = _FolgaStop;
 bool   _RemoteBarTrailingEnabled    = _AllowTrailingBar;
 int    _RemoteBarTimeframe          = (int)_TimeframeBarStop;
 bool   _RemoteBarRefreshEntry       = _RefreshEntry;
+double _RemoteResetValueToAdd        = 100.0;
 bool   _RemoteDynamicHedgeEnabled   = false;
 double _RemoteDynamicHedgePercent   = 1.0;
 bool   _RemoteIncludeManualTrades   = false;
@@ -1033,18 +1052,35 @@ void FetchHandbotParams()
    double prev_AddLot               = _RemoteAddLot;
    int    prev_AddDistance          = _RemoteAddDistance;
    int    prev_AddAvgDistance       = _RemoteAddAvgDistance;
-   bool   prev_GridAheadEnabled     = _RemoteGridAheadEnabled;
-   double prev_GridAheadDistance    = _RemoteGridAheadDistance;
-   double prev_GridAheadMultiplier  = _RemoteGridAheadMultiplier;
-   bool   prev_GridContraEnabled    = _RemoteGridContraEnabled;
-   double prev_GridContraLot        = _RemoteGridContraLot;
-   double prev_GridContraDistance   = _RemoteGridContraDistance;
-   double prev_GridContraMultiplier = _RemoteGridContraMultiplier;
-   int    prev_GridContraMaxOrders  = _RemoteGridContraMaxOrders;
+   bool   prev_GridAheadEnabled      = _RemoteGridAheadEnabled;
+   double prev_GridAheadDistance     = _RemoteGridAheadDistance;
+   double prev_GridAheadMultiplier   = _RemoteGridAheadMultiplier;
+   bool   prev_GridAheadEnabledBuy   = _RemoteGridAheadEnabledBuy;
+   double prev_GridAheadDistanceBuy  = _RemoteGridAheadDistanceBuy;
+   double prev_GridAheadMultiplierBuy= _RemoteGridAheadMultiplierBuy;
+   double prev_GridAheadLotBuy       = _RemoteGridAheadLotBuy;
+   bool   prev_GridAheadEnabledSell  = _RemoteGridAheadEnabledSell;
+   double prev_GridAheadDistanceSell = _RemoteGridAheadDistanceSell;
+   double prev_GridAheadMultiplierSell= _RemoteGridAheadMultiplierSell;
+   double prev_GridAheadLotSell      = _RemoteGridAheadLotSell;
+   bool   prev_GridContraEnabled     = _RemoteGridContraEnabled;
+   double prev_GridContraLot         = _RemoteGridContraLot;
+   double prev_GridContraDistance    = _RemoteGridContraDistance;
+   double prev_GridContraMultiplier  = _RemoteGridContraMultiplier;
+   int    prev_GridContraMaxOrders   = _RemoteGridContraMaxOrders;
+   bool   prev_GridContraEnabledBuy  = _RemoteGridContraEnabledBuy;
+   double prev_GridContraLotBuy      = _RemoteGridContraLotBuy;
+   double prev_GridContraDistanceBuy = _RemoteGridContraDistanceBuy;
+   double prev_GridContraMultiplierBuy= _RemoteGridContraMultiplierBuy;
+   bool   prev_GridContraEnabledSell = _RemoteGridContraEnabledSell;
+   double prev_GridContraLotSell     = _RemoteGridContraLotSell;
+   double prev_GridContraDistanceSell= _RemoteGridContraDistanceSell;
+   double prev_GridContraMultiplierSell= _RemoteGridContraMultiplierSell;
    int    prev_BarFolgaStop         = _RemoteBarFolgaStop;
    bool   prev_BarTrailingEnabled   = _RemoteBarTrailingEnabled;
    int    prev_BarTimeframe         = _RemoteBarTimeframe;
    bool   prev_BarRefreshEntry      = _RemoteBarRefreshEntry;
+   double prev_ResetValueToAdd      = _RemoteResetValueToAdd;
    bool   prev_DynamicHedgeEnabled  = _RemoteDynamicHedgeEnabled;
    double prev_DynamicHedgePercent  = _RemoteDynamicHedgePercent;
    bool   prev_IncludeManualTrades  = _RemoteIncludeManualTrades;
@@ -1067,25 +1103,44 @@ void FetchHandbotParams()
    _RemoteAddLot               = HANDBOT_GET_DBL("add_points_lot");
    _RemoteAddDistance          = HANDBOT_GET_INT("add_points_distance");
    _RemoteAddAvgDistance       = HANDBOT_GET_INT("add_points_avg_distance");
-   _RemoteGridAheadEnabled     = HANDBOT_GET_BOOL("grid_ahead_enabled");
-   _RemoteGridAheadDistance    = HANDBOT_GET_DBL("grid_ahead_distance");
-   _RemoteGridAheadMultiplier  = HANDBOT_GET_DBL("grid_ahead_multiplier");
-   _RemoteGridContraEnabled    = HANDBOT_GET_BOOL("grid_contra_enabled");
-   _RemoteGridContraLot        = HANDBOT_GET_DBL("grid_contra_lot");
-   _RemoteGridContraDistance   = HANDBOT_GET_DBL("grid_contra_distance");
-   _RemoteGridContraMultiplier = HANDBOT_GET_DBL("grid_contra_multiplier");
-   _RemoteGridContraMaxOrders  = HANDBOT_GET_INT("grid_contra_max_orders");
+   _RemoteGridAheadEnabled      = HANDBOT_GET_BOOL("grid_ahead_enabled");
+   _RemoteGridAheadDistance     = HANDBOT_GET_DBL("grid_ahead_distance");
+   _RemoteGridAheadMultiplier   = HANDBOT_GET_DBL("grid_ahead_multiplier");
+   _RemoteGridAheadEnabledBuy   = HANDBOT_GET_BOOL("grid_ahead_enabled_buy");
+   _RemoteGridAheadDistanceBuy  = HANDBOT_GET_DBL("grid_ahead_distance_buy");
+   _RemoteGridAheadMultiplierBuy= HANDBOT_GET_DBL("grid_ahead_multiplier_buy");
+   _RemoteGridAheadLotBuy       = HANDBOT_GET_DBL("grid_ahead_lot_buy");
+   _RemoteGridAheadEnabledSell  = HANDBOT_GET_BOOL("grid_ahead_enabled_sell");
+   _RemoteGridAheadDistanceSell = HANDBOT_GET_DBL("grid_ahead_distance_sell");
+   _RemoteGridAheadMultiplierSell= HANDBOT_GET_DBL("grid_ahead_multiplier_sell");
+   _RemoteGridAheadLotSell      = HANDBOT_GET_DBL("grid_ahead_lot_sell");
+   _RemoteGridContraEnabled     = HANDBOT_GET_BOOL("grid_contra_enabled");
+   _RemoteGridContraLot         = HANDBOT_GET_DBL("grid_contra_lot");
+   _RemoteGridContraDistance    = HANDBOT_GET_DBL("grid_contra_distance");
+   _RemoteGridContraMultiplier  = HANDBOT_GET_DBL("grid_contra_multiplier");
+   _RemoteGridContraMaxOrders   = HANDBOT_GET_INT("grid_contra_max_orders");
+   _RemoteGridContraEnabledBuy  = HANDBOT_GET_BOOL("grid_contra_enabled_buy");
+   _RemoteGridContraLotBuy      = HANDBOT_GET_DBL("grid_contra_lot_buy");
+   _RemoteGridContraDistanceBuy = HANDBOT_GET_DBL("grid_contra_distance_buy");
+   _RemoteGridContraMultiplierBuy= HANDBOT_GET_DBL("grid_contra_multiplier_buy");
+   _RemoteGridContraEnabledSell = HANDBOT_GET_BOOL("grid_contra_enabled_sell");
+   _RemoteGridContraLotSell     = HANDBOT_GET_DBL("grid_contra_lot_sell");
+   _RemoteGridContraDistanceSell= HANDBOT_GET_DBL("grid_contra_distance_sell");
+   _RemoteGridContraMultiplierSell= HANDBOT_GET_DBL("grid_contra_multiplier_sell");
    _RemoteBarFolgaStop         = HANDBOT_GET_INT("bar_folga_stop");
    _RemoteBarTrailingEnabled   = HANDBOT_GET_BOOL("bar_trailing_enabled");
    _RemoteBarTimeframe         = HANDBOT_GET_INT("bar_timeframe");
    _RemoteBarRefreshEntry      = HANDBOT_GET_BOOL("bar_refresh_entry");
+   _RemoteResetValueToAdd      = HANDBOT_GET_DBL("reset_value_to_add");
    _RemoteDynamicHedgeEnabled  = HANDBOT_GET_BOOL("dynamic_hedge_enabled");
    _RemoteDynamicHedgePercent  = HANDBOT_GET_DBL("dynamic_hedge_percent");
    _RemoteIncludeManualTrades  = HANDBOT_GET_BOOL("include_manual_trades");
 
    // Sincroniza variáveis de estado (togláveis pelo teclado/painel) com os valores remotos após cada poll
    _BarStop          = _RemoteBarTrailingEnabled;
-   _leverage         = _RemoteGridContraEnabled || _RemoteGridAheadEnabled;
+   _leverage         = _RemoteGridContraEnabled || _RemoteGridAheadEnabled
+                    || _RemoteGridContraEnabledBuy || _RemoteGridContraEnabledSell
+                    || _RemoteGridAheadEnabledBuy  || _RemoteGridAheadEnabledSell;
    _AddKey           = _RemoteAddEnabled;
    _PanelTrailingAvg = _RemoteTrailingAvgEnabled;
    _PanelBreakEvenAvg = _RemoteBreakEvenAvgEnabled;
@@ -1120,18 +1175,35 @@ void FetchHandbotParams()
    HANDBOT_LOG_DBL ("add_points_lot",          prev_AddLot,               _RemoteAddLot);
    HANDBOT_LOG_INT ("add_points_distance",     prev_AddDistance,          _RemoteAddDistance);
    HANDBOT_LOG_INT ("add_points_avg_distance", prev_AddAvgDistance,       _RemoteAddAvgDistance);
-   HANDBOT_LOG_BOOL("grid_ahead_enabled",      prev_GridAheadEnabled,     _RemoteGridAheadEnabled);
-   HANDBOT_LOG_DBL ("grid_ahead_distance",     prev_GridAheadDistance,    _RemoteGridAheadDistance);
-   HANDBOT_LOG_DBL ("grid_ahead_multiplier",   prev_GridAheadMultiplier,  _RemoteGridAheadMultiplier);
-   HANDBOT_LOG_BOOL("grid_contra_enabled",     prev_GridContraEnabled,    _RemoteGridContraEnabled);
-   HANDBOT_LOG_DBL ("grid_contra_lot",         prev_GridContraLot,        _RemoteGridContraLot);
-   HANDBOT_LOG_DBL ("grid_contra_distance",    prev_GridContraDistance,   _RemoteGridContraDistance);
-   HANDBOT_LOG_DBL ("grid_contra_multiplier",  prev_GridContraMultiplier, _RemoteGridContraMultiplier);
-   HANDBOT_LOG_INT ("grid_contra_max_orders",  prev_GridContraMaxOrders,  _RemoteGridContraMaxOrders);
+   HANDBOT_LOG_BOOL("grid_ahead_enabled",         prev_GridAheadEnabled,       _RemoteGridAheadEnabled);
+   HANDBOT_LOG_DBL ("grid_ahead_distance",        prev_GridAheadDistance,      _RemoteGridAheadDistance);
+   HANDBOT_LOG_DBL ("grid_ahead_multiplier",      prev_GridAheadMultiplier,    _RemoteGridAheadMultiplier);
+   HANDBOT_LOG_BOOL("grid_ahead_enabled_buy",     prev_GridAheadEnabledBuy,    _RemoteGridAheadEnabledBuy);
+   HANDBOT_LOG_DBL ("grid_ahead_distance_buy",    prev_GridAheadDistanceBuy,   _RemoteGridAheadDistanceBuy);
+   HANDBOT_LOG_DBL ("grid_ahead_multiplier_buy",  prev_GridAheadMultiplierBuy, _RemoteGridAheadMultiplierBuy);
+   HANDBOT_LOG_DBL ("grid_ahead_lot_buy",         prev_GridAheadLotBuy,        _RemoteGridAheadLotBuy);
+   HANDBOT_LOG_BOOL("grid_ahead_enabled_sell",    prev_GridAheadEnabledSell,   _RemoteGridAheadEnabledSell);
+   HANDBOT_LOG_DBL ("grid_ahead_distance_sell",   prev_GridAheadDistanceSell,  _RemoteGridAheadDistanceSell);
+   HANDBOT_LOG_DBL ("grid_ahead_multiplier_sell", prev_GridAheadMultiplierSell,_RemoteGridAheadMultiplierSell);
+   HANDBOT_LOG_DBL ("grid_ahead_lot_sell",        prev_GridAheadLotSell,       _RemoteGridAheadLotSell);
+   HANDBOT_LOG_BOOL("grid_contra_enabled",        prev_GridContraEnabled,      _RemoteGridContraEnabled);
+   HANDBOT_LOG_DBL ("grid_contra_lot",            prev_GridContraLot,          _RemoteGridContraLot);
+   HANDBOT_LOG_DBL ("grid_contra_distance",       prev_GridContraDistance,     _RemoteGridContraDistance);
+   HANDBOT_LOG_DBL ("grid_contra_multiplier",     prev_GridContraMultiplier,   _RemoteGridContraMultiplier);
+   HANDBOT_LOG_INT ("grid_contra_max_orders",     prev_GridContraMaxOrders,    _RemoteGridContraMaxOrders);
+   HANDBOT_LOG_BOOL("grid_contra_enabled_buy",    prev_GridContraEnabledBuy,   _RemoteGridContraEnabledBuy);
+   HANDBOT_LOG_DBL ("grid_contra_lot_buy",        prev_GridContraLotBuy,       _RemoteGridContraLotBuy);
+   HANDBOT_LOG_DBL ("grid_contra_distance_buy",   prev_GridContraDistanceBuy,  _RemoteGridContraDistanceBuy);
+   HANDBOT_LOG_DBL ("grid_contra_multiplier_buy", prev_GridContraMultiplierBuy,_RemoteGridContraMultiplierBuy);
+   HANDBOT_LOG_BOOL("grid_contra_enabled_sell",   prev_GridContraEnabledSell,  _RemoteGridContraEnabledSell);
+   HANDBOT_LOG_DBL ("grid_contra_lot_sell",       prev_GridContraLotSell,      _RemoteGridContraLotSell);
+   HANDBOT_LOG_DBL ("grid_contra_distance_sell",  prev_GridContraDistanceSell, _RemoteGridContraDistanceSell);
+   HANDBOT_LOG_DBL ("grid_contra_multiplier_sell",prev_GridContraMultiplierSell,_RemoteGridContraMultiplierSell);
    HANDBOT_LOG_INT ("bar_folga_stop",          prev_BarFolgaStop,         _RemoteBarFolgaStop);
    HANDBOT_LOG_BOOL("bar_trailing_enabled",    prev_BarTrailingEnabled,   _RemoteBarTrailingEnabled);
    HANDBOT_LOG_INT ("bar_timeframe",           prev_BarTimeframe,         _RemoteBarTimeframe);
    HANDBOT_LOG_BOOL("bar_refresh_entry",       prev_BarRefreshEntry,      _RemoteBarRefreshEntry);
+   HANDBOT_LOG_DBL ("reset_value_to_add",       prev_ResetValueToAdd,      _RemoteResetValueToAdd);
    HANDBOT_LOG_BOOL("dynamic_hedge_enabled",   prev_DynamicHedgeEnabled,  _RemoteDynamicHedgeEnabled);
    HANDBOT_LOG_DBL ("dynamic_hedge_percent",   prev_DynamicHedgePercent,  _RemoteDynamicHedgePercent);
    HANDBOT_LOG_BOOL("include_manual_trades",   prev_IncludeManualTrades,  _RemoteIncludeManualTrades);
@@ -1722,11 +1794,11 @@ void OnTick()
 
                 m_trade.Buy(_Lote,_Symbol,Preco_compra,StopLossCompra,Alvo_compra,"First Buy; Magic: "+(string)Magic_Number); // Entrada de compra
               }
-              if(Comprado() == true && MetaProva == false && _RemoteGridAheadEnabled && ask > StartGridBuyAhead) // Grid a Favor (Buy)
+              if(Comprado() == true && MetaProva == false && (_RemoteGridAheadEnabledBuy || _RemoteGridAheadEnabled) && ask > StartGridBuyAhead) // Grid a Favor (Buy)
               {
                 GridFunction_Buy_ahead();
               }
-              if(Comprado() == true && MetaProva == false && _RemoteGridContraEnabled && ask < StartGridBuy) // Grid Contra (Buy)
+              if(Comprado() == true && MetaProva == false && (_RemoteGridContraEnabledBuy || _RemoteGridContraEnabled) && ask < StartGridBuy) // Grid Contra (Buy)
               {
                 GridFunction_Buy();
               }
@@ -1749,11 +1821,11 @@ void OnTick()
 
                   m_trade.Sell(_Lote,_Symbol,Preco_venda,StopLossVenda,Alvo_venda,"First Sell; Magic: "+(string)Magic_Number); // Entrada de venda
                 }
-                if(Vendido() == true && MetaProva == false && _RemoteGridAheadEnabled && ask < StartGridSellAhead) // Grid a Favor (Sell)
+                if(Vendido() == true && MetaProva == false && (_RemoteGridAheadEnabledSell || _RemoteGridAheadEnabled) && ask < StartGridSellAhead) // Grid a Favor (Sell)
                 {
                 GridFunction_Sell_ahead();
                 }
-                if(Vendido() == true && MetaProva == false && _RemoteGridContraEnabled && ask > StartGridSell) // Grid Contra (Sell)
+                if(Vendido() == true && MetaProva == false && (_RemoteGridContraEnabledSell || _RemoteGridContraEnabled) && ask > StartGridSell) // Grid Contra (Sell)
                 {
                 GridFunction_Sell();
                 }
@@ -2516,12 +2588,18 @@ void StopMode()
    // Para posições simples (só BUY ou só SELL), os flags ficam sempre true —
    // o próprio TraillingStop() controla a ativação pelo gatilho de pontos.
    if (!Posicionado()) return;
-  double _distance_Ahead = NormalizeDouble(_distanceAhead * _Point, _Digits);
-  double _distance_ = NormalizeDouble(_distance * _Point, _Digits);
-  StartGridSellAhead = getAveragePrice_Sell() - _distance_Ahead;
-  StartGridSell = getAveragePrice_Sell() + _distance_;
-  StartGridBuyAhead = getAveragePrice_Buy() + _distance_Ahead;
-  StartGridBuy = getAveragePrice_Buy() - _distance_;
+  double distAheadBuy  = _RemoteParamsLoaded ? (_RemoteGridAheadEnabledBuy  ? _RemoteGridAheadDistanceBuy  : _RemoteGridAheadDistance)  : _distanceAhead;
+  double distAheadSell = _RemoteParamsLoaded ? (_RemoteGridAheadEnabledSell ? _RemoteGridAheadDistanceSell : _RemoteGridAheadDistance)  : _distanceAhead;
+  double distContraBuy = _RemoteParamsLoaded ? (_RemoteGridContraEnabledBuy ? _RemoteGridContraDistanceBuy : _RemoteGridContraDistance) : _distance;
+  double distContraSell= _RemoteParamsLoaded ? (_RemoteGridContraEnabledSell? _RemoteGridContraDistanceSell: _RemoteGridContraDistance) : _distance;
+  double _distance_AheadBuy  = NormalizeDouble(distAheadBuy  * _Point, _Digits);
+  double _distance_AheadSell = NormalizeDouble(distAheadSell * _Point, _Digits);
+  double _distance_BuyC  = NormalizeDouble(distContraBuy  * _Point, _Digits);
+  double _distance_SellC = NormalizeDouble(distContraSell * _Point, _Digits);
+  StartGridSellAhead = getAveragePrice_Sell() - _distance_AheadSell;
+  StartGridSell      = getAveragePrice_Sell() + _distance_SellC;
+  StartGridBuyAhead  = getAveragePrice_Buy()  + _distance_AheadBuy;
+  StartGridBuy       = getAveragePrice_Buy()  - _distance_BuyC;
   _PanelTrailingBuy  = true;
   _PanelTrailingSell = true;
 
@@ -2949,18 +3027,20 @@ void CutGainDinamico()
     AccountEquity   = AccountInfoDouble(ACCOUNT_EQUITY);
     AccountBalance  = AccountInfoDouble(ACCOUNT_BALANCE);
 
+    double pct = _RemoteParamsLoaded ? _RemoteResetValueToAdd : _ValueToAdd;
+
     if(saldo_zeragem == 0)
     {
-        double _ValueToAdd_ = (_ValueToAdd / 100.0) * AccountBalance;
+        double _ValueToAdd_ = (pct / 100.0) * AccountBalance;
         saldo_zeragem = AccountBalance + _ValueToAdd_;
     }
 
     if(AccountEquity > saldo_zeragem)
     {
         Close_All();
-        Print("Cut Gain Dinâmico: liquidado. Equity = ", AccountEquity);
+        Print("Cut Gain Dinâmico: liquidado. Equity = ", AccountEquity, " | % configurado = ", pct);
         last_cutgain = AccountEquity;
-        double _ValueToAdd_ = (_ValueToAdd / 100.0) * AccountBalance;
+        double _ValueToAdd_ = (pct / 100.0) * AccountBalance;
         saldo_zeragem = AccountEquity + _ValueToAdd_;
     }
 }
@@ -3362,8 +3442,19 @@ double GetLoteLinearAhead(ENUM_POSITION_TYPE tipo)
                     ? getPositionsQuantity(POSITION_TYPE_BUY).buyQuantity
                     : getPositionsQuantity(POSITION_TYPE_SELL).sellQuantity;
 
-   double loteBase   = _RemoteParamsLoaded ? _RemoteGridContraLot        : _LoteAddGrid;
-   double multiplier = _RemoteParamsLoaded ? _RemoteGridAheadMultiplier  : _multiplicatorAhead;
+   double loteBase, multiplier;
+   if(_RemoteParamsLoaded) {
+      if(tipo == POSITION_TYPE_BUY) {
+         loteBase   = _RemoteGridAheadEnabledBuy  ? _RemoteGridAheadLotBuy        : _RemoteGridContraLot;
+         multiplier = _RemoteGridAheadEnabledBuy  ? _RemoteGridAheadMultiplierBuy : _RemoteGridAheadMultiplier;
+      } else {
+         loteBase   = _RemoteGridAheadEnabledSell ? _RemoteGridAheadLotSell        : _RemoteGridContraLot;
+         multiplier = _RemoteGridAheadEnabledSell ? _RemoteGridAheadMultiplierSell : _RemoteGridAheadMultiplier;
+      }
+   } else {
+      loteBase   = _LoteAddGrid;
+      multiplier = _multiplicatorAhead;
+   }
    double incremento = loteBase * (multiplier - 1);
    double lote = loteBase + quantidade * incremento;
 
@@ -3379,8 +3470,19 @@ double GetLoteLinear(ENUM_POSITION_TYPE tipo)
                     ? getPositionsQuantity(POSITION_TYPE_BUY).buyQuantity
                     : getPositionsQuantity(POSITION_TYPE_SELL).sellQuantity;
 
-   double loteBase   = _RemoteParamsLoaded ? _RemoteGridContraLot        : _LoteAddGrid;
-   double multiplier = _RemoteParamsLoaded ? _RemoteGridContraMultiplier : _multiplicator;
+   double loteBase, multiplier;
+   if(_RemoteParamsLoaded) {
+      if(tipo == POSITION_TYPE_BUY) {
+         loteBase   = _RemoteGridContraEnabledBuy  ? _RemoteGridContraLotBuy        : _RemoteGridContraLot;
+         multiplier = _RemoteGridContraEnabledBuy  ? _RemoteGridContraMultiplierBuy : _RemoteGridContraMultiplier;
+      } else {
+         loteBase   = _RemoteGridContraEnabledSell ? _RemoteGridContraLotSell        : _RemoteGridContraLot;
+         multiplier = _RemoteGridContraEnabledSell ? _RemoteGridContraMultiplierSell : _RemoteGridContraMultiplier;
+      }
+   } else {
+      loteBase   = _LoteAddGrid;
+      multiplier = _multiplicator;
+   }
    double incremento = loteBase * (multiplier - 1);
    double lote = loteBase + quantidade * incremento;
 
@@ -3406,7 +3508,7 @@ void GridFunction_Buy()
 
          if(_Symbol == symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
          {
-            double dist = _RemoteParamsLoaded ? _RemoteGridContraDistance : _distance;
+            double dist = _RemoteParamsLoaded ? (_RemoteGridContraEnabledBuy ? _RemoteGridContraDistanceBuy : _RemoteGridContraDistance) : _distance;
             double _distance_ = NormalizeDouble(dist * _Point, _Digits);
 
             if(ask < (m_position.PriceOpen() - _distance_) && (currentSpread < _maxSpread))
@@ -3443,7 +3545,7 @@ void GridFunction_Sell()
 
          if(_Symbol == symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
          {
-            double dist = _RemoteParamsLoaded ? _RemoteGridContraDistance : _distance;
+            double dist = _RemoteParamsLoaded ? (_RemoteGridContraEnabledSell ? _RemoteGridContraDistanceSell : _RemoteGridContraDistance) : _distance;
             double _distance_ = NormalizeDouble(dist * _Point, _Digits);
 
             if(bid > (m_position.PriceOpen() + _distance_) && (currentSpread < _maxSpread))
@@ -3480,7 +3582,7 @@ void GridFunction_Buy_ahead()
 
          if(_Symbol == symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_BUY)
          {
-            double dist = _RemoteParamsLoaded ? _RemoteGridAheadDistance : _distanceAhead;
+            double dist = _RemoteParamsLoaded ? (_RemoteGridAheadEnabledBuy ? _RemoteGridAheadDistanceBuy : _RemoteGridAheadDistance) : _distanceAhead;
             double _distance_ = NormalizeDouble(dist * _Point, _Digits);
 
             if(ask > (m_position.PriceOpen() + _distance_) && (currentSpread < _maxSpread))
@@ -3517,7 +3619,7 @@ void GridFunction_Sell_ahead()
 
          if(_Symbol == symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE) == POSITION_TYPE_SELL)
          {
-            double dist = _RemoteParamsLoaded ? _RemoteGridAheadDistance : _distanceAhead;
+            double dist = _RemoteParamsLoaded ? (_RemoteGridAheadEnabledSell ? _RemoteGridAheadDistanceSell : _RemoteGridAheadDistance) : _distanceAhead;
             double _distance_ = NormalizeDouble(dist * _Point, _Digits);
 
             if(bid < (m_position.PriceOpen() - _distance_) && (currentSpread < _maxSpread))

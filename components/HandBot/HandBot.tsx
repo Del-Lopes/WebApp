@@ -52,11 +52,27 @@ const DEFAULT_PARAMS: HandbotParams = {
   grid_ahead_enabled: false,
   grid_ahead_distance: 550.0,
   grid_ahead_multiplier: 1.1,
+  grid_ahead_enabled_buy: false,
+  grid_ahead_distance_buy: 550.0,
+  grid_ahead_multiplier_buy: 1.1,
+  grid_ahead_lot_buy: 0.01,
+  grid_ahead_enabled_sell: false,
+  grid_ahead_distance_sell: 550.0,
+  grid_ahead_multiplier_sell: 1.1,
+  grid_ahead_lot_sell: 0.01,
   grid_contra_enabled: false,
   grid_contra_lot: 0.01,
   grid_contra_distance: 60.0,
   grid_contra_multiplier: 1.0,
   grid_contra_max_orders: 200,
+  grid_contra_enabled_buy: false,
+  grid_contra_lot_buy: 0.01,
+  grid_contra_distance_buy: 60.0,
+  grid_contra_multiplier_buy: 1.0,
+  grid_contra_enabled_sell: false,
+  grid_contra_lot_sell: 0.01,
+  grid_contra_distance_sell: 60.0,
+  grid_contra_multiplier_sell: 1.0,
   allow_buy: false,
   allow_sell: false,
   bar_folga_stop: 50,
@@ -675,63 +691,154 @@ const ParamsForm: React.FC<{
 
         {/* Grid à Favor */}
         <div className="pt-4 space-y-3">
-          <SectionHeader
-            title="Grid à Favor"
-            enabled={params.grid_ahead_enabled}
-            onToggle={(v) => set('grid_ahead_enabled', v)}
-          />
-          <div className={`space-y-3 pl-2 transition-opacity ${params.grid_ahead_enabled ? '' : 'opacity-40 pointer-events-none'}`}>
-            <NumericInput
-              label="Distância inicial (pontos)"
-              value={params.grid_ahead_distance}
-              onChange={(v) => set('grid_ahead_distance', v)}
-              step={0.5}
-              min={0}
-              decimal
+          <div className="py-1">
+            <span className="text-sm font-bold text-slate-900">Grid à Favor</span>
+          </div>
+          {/* Grid à Favor — Compra */}
+          <div className="pl-2 space-y-3">
+            <SectionHeader
+              title="Compra"
+              enabled={params.grid_ahead_enabled_buy}
+              onToggle={(v) => set('grid_ahead_enabled_buy', v)}
             />
-            <NumericInput
-              label="Multiplicador de lote"
-              value={params.grid_ahead_multiplier}
-              onChange={(v) => set('grid_ahead_multiplier', v)}
-              step={0.01}
-              min={1}
-              decimal
+            <div className={`space-y-3 pl-2 transition-opacity ${params.grid_ahead_enabled_buy ? '' : 'opacity-40 pointer-events-none'}`}>
+              <NumericInput
+                label="Lote base"
+                value={params.grid_ahead_lot_buy}
+                onChange={(v) => set('grid_ahead_lot_buy', v)}
+                step={0.01}
+                min={0.01}
+                decimal
+              />
+              <NumericInput
+                label="Distância inicial (pontos)"
+                value={params.grid_ahead_distance_buy}
+                onChange={(v) => set('grid_ahead_distance_buy', v)}
+                step={0.5}
+                min={0}
+                decimal
+              />
+              <NumericInput
+                label="Multiplicador de lote"
+                value={params.grid_ahead_multiplier_buy}
+                onChange={(v) => set('grid_ahead_multiplier_buy', v)}
+                step={0.01}
+                min={1}
+                decimal
+              />
+            </div>
+          </div>
+          {/* Grid à Favor — Venda */}
+          <div className="pl-2 space-y-3">
+            <SectionHeader
+              title="Venda"
+              enabled={params.grid_ahead_enabled_sell}
+              onToggle={(v) => set('grid_ahead_enabled_sell', v)}
             />
+            <div className={`space-y-3 pl-2 transition-opacity ${params.grid_ahead_enabled_sell ? '' : 'opacity-40 pointer-events-none'}`}>
+              <NumericInput
+                label="Lote base"
+                value={params.grid_ahead_lot_sell}
+                onChange={(v) => set('grid_ahead_lot_sell', v)}
+                step={0.01}
+                min={0.01}
+                decimal
+              />
+              <NumericInput
+                label="Distância inicial (pontos)"
+                value={params.grid_ahead_distance_sell}
+                onChange={(v) => set('grid_ahead_distance_sell', v)}
+                step={0.5}
+                min={0}
+                decimal
+              />
+              <NumericInput
+                label="Multiplicador de lote"
+                value={params.grid_ahead_multiplier_sell}
+                onChange={(v) => set('grid_ahead_multiplier_sell', v)}
+                step={0.01}
+                min={1}
+                decimal
+              />
+            </div>
           </div>
         </div>
 
         {/* Grid Contra */}
         <div className="pt-4 space-y-3">
-          <SectionHeader
-            title="Grid Contra"
-            enabled={params.grid_contra_enabled}
-            onToggle={(v) => set('grid_contra_enabled', v)}
-          />
-          <div className={`space-y-3 pl-2 transition-opacity ${params.grid_contra_enabled ? '' : 'opacity-40 pointer-events-none'}`}>
-            <NumericInput
-              label="Lote base"
-              value={params.grid_contra_lot}
-              onChange={(v) => set('grid_contra_lot', v)}
-              step={0.01}
-              min={0.01}
-              decimal
+          <div className="py-1">
+            <span className="text-sm font-bold text-slate-900">Grid Contra</span>
+          </div>
+          {/* Grid Contra — Compra */}
+          <div className="pl-2 space-y-3">
+            <SectionHeader
+              title="Compra"
+              enabled={params.grid_contra_enabled_buy}
+              onToggle={(v) => set('grid_contra_enabled_buy', v)}
             />
-            <NumericInput
-              label="Distância entre ordens (pontos)"
-              value={params.grid_contra_distance}
-              onChange={(v) => set('grid_contra_distance', v)}
-              step={0.5}
-              min={0}
-              decimal
+            <div className={`space-y-3 pl-2 transition-opacity ${params.grid_contra_enabled_buy ? '' : 'opacity-40 pointer-events-none'}`}>
+              <NumericInput
+                label="Lote base"
+                value={params.grid_contra_lot_buy}
+                onChange={(v) => set('grid_contra_lot_buy', v)}
+                step={0.01}
+                min={0.01}
+                decimal
+              />
+              <NumericInput
+                label="Distância entre ordens (pontos)"
+                value={params.grid_contra_distance_buy}
+                onChange={(v) => set('grid_contra_distance_buy', v)}
+                step={0.5}
+                min={0}
+                decimal
+              />
+              <NumericInput
+                label="Multiplicador de lote"
+                value={params.grid_contra_multiplier_buy}
+                onChange={(v) => set('grid_contra_multiplier_buy', v)}
+                step={0.01}
+                min={1}
+                decimal
+              />
+            </div>
+          </div>
+          {/* Grid Contra — Venda */}
+          <div className="pl-2 space-y-3">
+            <SectionHeader
+              title="Venda"
+              enabled={params.grid_contra_enabled_sell}
+              onToggle={(v) => set('grid_contra_enabled_sell', v)}
             />
-            <NumericInput
-              label="Multiplicador de lote"
-              value={params.grid_contra_multiplier}
-              onChange={(v) => set('grid_contra_multiplier', v)}
-              step={0.01}
-              min={1}
-              decimal
-            />
+            <div className={`space-y-3 pl-2 transition-opacity ${params.grid_contra_enabled_sell ? '' : 'opacity-40 pointer-events-none'}`}>
+              <NumericInput
+                label="Lote base"
+                value={params.grid_contra_lot_sell}
+                onChange={(v) => set('grid_contra_lot_sell', v)}
+                step={0.01}
+                min={0.01}
+                decimal
+              />
+              <NumericInput
+                label="Distância entre ordens (pontos)"
+                value={params.grid_contra_distance_sell}
+                onChange={(v) => set('grid_contra_distance_sell', v)}
+                step={0.5}
+                min={0}
+                decimal
+              />
+              <NumericInput
+                label="Multiplicador de lote"
+                value={params.grid_contra_multiplier_sell}
+                onChange={(v) => set('grid_contra_multiplier_sell', v)}
+                step={0.01}
+                min={1}
+                decimal
+              />
+            </div>
+          </div>
+          {/* Máximo de ordens — compartilhado */}
+          <div className="pl-2">
             <NumericInput
               label="Máximo de ordens"
               value={params.grid_contra_max_orders}
