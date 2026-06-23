@@ -57,6 +57,8 @@ export interface HandbotParams {
   // Hedge Dinâmico
   dynamic_hedge_enabled: boolean;
   dynamic_hedge_percent: number;
+  // Operações Manuais
+  include_manual_trades: boolean;
   updated_at?: string;
 }
 

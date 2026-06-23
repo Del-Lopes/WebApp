@@ -36,8 +36,13 @@ input int                   _ValueAutomaticProtectTwo  = 15000000;      // Trava
 input int                   CutLoss                    = 2000000;      // Cortar perdas
 input double                Limite_Loss                = 5000000;      // Perda máxima para o dia
 input int                   CutGain                    = 1000000;      // Realizar lucro flutuante
+input double                _ValueToAdd                = 100;          // % de saldo a adicionar para liquidar tudo (Cut Gain Dinâmico)
 input group "";
 input group "Gerenciamento Automático de Stop";
+input group "Hedge Dinâmico";
+input bool   InpEnableDynamicHedge = false; // Ligar Hedge Dinâmico
+input double InpDynamicHedgePercent = 1.0;  // Porcentagem de flutuante para ativar (%)
+input double InpDynamicHedgeLot = 0.01;     // Lote para o Hedge Dinâmico
 input group "";
 input group "Trailing Avg";
 input bool                  _AllowTrailingAvg          = false;    // Liga e desliga o Trailing Stop para pontos
@@ -188,9 +193,14 @@ int _MinCheckEnd = 18;
 //--------- Funções ----------------------------------------------------
 double saldo_inicial;
 double saldo_zeragem = 0;
+double StartGridBuy;
+double StartGridBuyAhead;
+double StartGridSell;
+double StartGridSellAhead;
 double contador_zeragem;
 double AccountBalance;
 double AccountEquity;
+double last_cutgain = 0;
 double _Lote = _LoteInicial;
 bool DailyGain;
 bool MetaProva;
@@ -213,6 +223,7 @@ bool _leverage = _AllowGrid;
 bool _AddKey = _AllowAdd;
 bool _Addckey = _AllowAddc;
 bool _BarStop = _AllowTrailingBar;
+int dynamic_hedge_count = 0; // Contador de niveis do hedge dinamico
 
 // ── Variáveis espelho para parâmetros remotos (Hand Bot Sync) ─────────────
 // Inicializadas com os valores dos inputs; sobrescritas pelo poll do Supabase.
@@ -246,6 +257,9 @@ int    _RemoteBarFolgaStop          = _FolgaStop;
 bool   _RemoteBarTrailingEnabled    = _AllowTrailingBar;
 int    _RemoteBarTimeframe          = (int)_TimeframeBarStop;
 bool   _RemoteBarRefreshEntry       = _RefreshEntry;
+bool   _RemoteDynamicHedgeEnabled   = false;
+double _RemoteDynamicHedgePercent   = 1.0;
+bool   _RemoteIncludeManualTrades   = false;
 
 bool   _RemoteParamsLoaded          = false; // true após primeiro poll bem-sucedido
 int    _SyncTickCounter             = 0;     // conta ticks do OnTimer (cada 3s)
@@ -1031,6 +1045,9 @@ void FetchHandbotParams()
    bool   prev_BarTrailingEnabled   = _RemoteBarTrailingEnabled;
    int    prev_BarTimeframe         = _RemoteBarTimeframe;
    bool   prev_BarRefreshEntry      = _RemoteBarRefreshEntry;
+   bool   prev_DynamicHedgeEnabled  = _RemoteDynamicHedgeEnabled;
+   double prev_DynamicHedgePercent  = _RemoteDynamicHedgePercent;
+   bool   prev_IncludeManualTrades  = _RemoteIncludeManualTrades;
 
    _RemoteAllowBuy             = HANDBOT_GET_BOOL("allow_buy");
    _RemoteAllowSell            = HANDBOT_GET_BOOL("allow_sell");
@@ -1062,6 +1079,9 @@ void FetchHandbotParams()
    _RemoteBarTrailingEnabled   = HANDBOT_GET_BOOL("bar_trailing_enabled");
    _RemoteBarTimeframe         = HANDBOT_GET_INT("bar_timeframe");
    _RemoteBarRefreshEntry      = HANDBOT_GET_BOOL("bar_refresh_entry");
+   _RemoteDynamicHedgeEnabled  = HANDBOT_GET_BOOL("dynamic_hedge_enabled");
+   _RemoteDynamicHedgePercent  = HANDBOT_GET_DBL("dynamic_hedge_percent");
+   _RemoteIncludeManualTrades  = HANDBOT_GET_BOOL("include_manual_trades");
 
    // Sincroniza variáveis de estado (togláveis pelo teclado/painel) com os valores remotos após cada poll
    _BarStop          = _RemoteBarTrailingEnabled;
@@ -1112,6 +1132,9 @@ void FetchHandbotParams()
    HANDBOT_LOG_BOOL("bar_trailing_enabled",    prev_BarTrailingEnabled,   _RemoteBarTrailingEnabled);
    HANDBOT_LOG_INT ("bar_timeframe",           prev_BarTimeframe,         _RemoteBarTimeframe);
    HANDBOT_LOG_BOOL("bar_refresh_entry",       prev_BarRefreshEntry,      _RemoteBarRefreshEntry);
+   HANDBOT_LOG_BOOL("dynamic_hedge_enabled",   prev_DynamicHedgeEnabled,  _RemoteDynamicHedgeEnabled);
+   HANDBOT_LOG_DBL ("dynamic_hedge_percent",   prev_DynamicHedgePercent,  _RemoteDynamicHedgePercent);
+   HANDBOT_LOG_BOOL("include_manual_trades",   prev_IncludeManualTrades,  _RemoteIncludeManualTrades);
 
    #undef HANDBOT_LOG_BOOL
    #undef HANDBOT_LOG_INT
@@ -1662,6 +1685,26 @@ void OnTick()
             getFloatingProfit(); // Atualiza o flutuante.
             DailyGainChecker(); // Checka se bateu a meta do dia.
             Lucrododia();       // Atualiza o Lucro do dia.
+            CutGainDinamico();  // Liquida ao atingir saldo + % configurado.
+            
+            // Hedge Dinâmico
+            bool   _hedgeEnabled = _RemoteParamsLoaded ? _RemoteDynamicHedgeEnabled  : InpEnableDynamicHedge;
+            double _hedgePercent = _RemoteParamsLoaded ? _RemoteDynamicHedgePercent  : InpDynamicHedgePercent;
+            if(_hedgeEnabled) {
+               if(Posicionado()) {
+                   double current_float = getFloatingProfit_value();
+                   double step = (saldo_inicial * _hedgePercent / 100.0);
+                   if(step > 0 && current_float < 0) {
+                       int expected_level = (int)(MathAbs(current_float) / step);
+                       if(expected_level > dynamic_hedge_count) {
+                           dynamic_hedge_count = expected_level;
+                           coverVolume();
+                       }
+                   }
+               } else {
+                   dynamic_hedge_count = 0;
+               }
+            }
             //Sinais
             SinalDeCompra(); // procura sinal de compra
             SinalDeVenda();  // procura sinal de venda
@@ -1679,11 +1722,11 @@ void OnTick()
 
                 m_trade.Buy(_Lote,_Symbol,Preco_compra,StopLossCompra,Alvo_compra,"First Buy; Magic: "+(string)Magic_Number); // Entrada de compra
               }
-              if(Comprado() == true && MetaProva == false && _RemoteGridAheadEnabled) // Grid a Favor (Buy)
+              if(Comprado() == true && MetaProva == false && _RemoteGridAheadEnabled && ask > StartGridBuyAhead) // Grid a Favor (Buy)
               {
                 GridFunction_Buy_ahead();
               }
-              if(Comprado() == true && MetaProva == false && _RemoteGridContraEnabled) // Grid Contra (Buy)
+              if(Comprado() == true && MetaProva == false && _RemoteGridContraEnabled && ask < StartGridBuy) // Grid Contra (Buy)
               {
                 GridFunction_Buy();
               }
@@ -1706,11 +1749,11 @@ void OnTick()
 
                   m_trade.Sell(_Lote,_Symbol,Preco_venda,StopLossVenda,Alvo_venda,"First Sell; Magic: "+(string)Magic_Number); // Entrada de venda
                 }
-                if(Vendido() == true && MetaProva == false && _RemoteGridAheadEnabled) // Grid a Favor (Sell)
+                if(Vendido() == true && MetaProva == false && _RemoteGridAheadEnabled && ask < StartGridSellAhead) // Grid a Favor (Sell)
                 {
                 GridFunction_Sell_ahead();
                 }
-                if(Vendido() == true && MetaProva == false && _RemoteGridContraEnabled) // Grid Contra (Sell)
+                if(Vendido() == true && MetaProva == false && _RemoteGridContraEnabled && ask > StartGridSell) // Grid Contra (Sell)
                 {
                 GridFunction_Sell();
                 }
@@ -2473,9 +2516,14 @@ void StopMode()
    // Para posições simples (só BUY ou só SELL), os flags ficam sempre true —
    // o próprio TraillingStop() controla a ativação pelo gatilho de pontos.
    if (!Posicionado()) return;
-
-   _PanelTrailingBuy  = true;
-   _PanelTrailingSell = true;
+  double _distance_Ahead = NormalizeDouble(_distanceAhead * _Point, _Digits);
+  double _distance_ = NormalizeDouble(_distance * _Point, _Digits);
+  StartGridSellAhead = getAveragePrice_Sell() - _distance_Ahead;
+  StartGridSell = getAveragePrice_Sell() + _distance_;
+  StartGridBuyAhead = getAveragePrice_Buy() + _distance_Ahead;
+  StartGridBuy = getAveragePrice_Buy() - _distance_;
+  _PanelTrailingBuy  = true;
+  _PanelTrailingSell = true;
 
    if (Comprado() && Vendido())
    {
@@ -2519,7 +2567,9 @@ void TraillingStop()
             continue;
 
          ulong magic = PositionGetInteger(POSITION_MAGIC);
-         if (magic != Magic_Number)
+         bool isOwn    = (magic == Magic_Number);
+         bool isManual = (magic == 0 && _RemoteIncludeManualTrades);
+         if (!isOwn && !isManual)
             continue;
 
          double priceOpen = PositionGetDouble(POSITION_PRICE_OPEN);
@@ -2589,7 +2639,9 @@ void TraillingStopAvg()
             continue;
 
          ulong magic = PositionGetInteger(POSITION_MAGIC);
-         if (magic != Magic_Number)
+         bool isOwn    = (magic == Magic_Number);
+         bool isManual = (magic == 0 && _RemoteIncludeManualTrades);
+         if (!isOwn && !isManual)
             continue;
 
          ENUM_POSITION_TYPE posType = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
@@ -2719,7 +2771,9 @@ void BreakEvenAvg()
             continue;
 
          ulong magic = PositionGetInteger(POSITION_MAGIC);
-         if (magic != Magic_Number)
+         bool isOwn    = (magic == Magic_Number);
+         bool isManual = (magic == 0 && _RemoteIncludeManualTrades);
+         if (!isOwn && !isManual)
             continue;
 
          ENUM_POSITION_TYPE posType = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
@@ -2780,7 +2834,9 @@ void BreakEven()
             continue;
 
          ulong magic = PositionGetInteger(POSITION_MAGIC);
-         if (magic != Magic_Number)
+         bool isOwn    = (magic == Magic_Number);
+         bool isManual = (magic == 0 && _RemoteIncludeManualTrades);
+         if (!isOwn && !isManual)
             continue;
 
          ENUM_POSITION_TYPE posType = (ENUM_POSITION_TYPE)PositionGetInteger(POSITION_TYPE);
@@ -2883,6 +2939,31 @@ void getFloatingProfit()
         }
 
   
+
+//+-----------------------------------------------------------------+
+//|CutGain Dinâmico - liquida tudo ao atingir saldo + % configurado |
+//+-----------------------------------------------------------------+
+
+void CutGainDinamico()
+{
+    AccountEquity   = AccountInfoDouble(ACCOUNT_EQUITY);
+    AccountBalance  = AccountInfoDouble(ACCOUNT_BALANCE);
+
+    if(saldo_zeragem == 0)
+    {
+        double _ValueToAdd_ = (_ValueToAdd / 100.0) * AccountBalance;
+        saldo_zeragem = AccountBalance + _ValueToAdd_;
+    }
+
+    if(AccountEquity > saldo_zeragem)
+    {
+        Close_All();
+        Print("Cut Gain Dinâmico: liquidado. Equity = ", AccountEquity);
+        last_cutgain = AccountEquity;
+        double _ValueToAdd_ = (_ValueToAdd / 100.0) * AccountBalance;
+        saldo_zeragem = AccountEquity + _ValueToAdd_;
+    }
+}
 
 //+-----------------------------------------------------------------+
 //|CutGain - Zerando tudo ( posições e ordens)                      |
@@ -4544,4 +4625,3 @@ void ChangeHands()
       
     }
     
-  

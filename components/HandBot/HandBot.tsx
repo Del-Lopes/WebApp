@@ -66,6 +66,7 @@ const DEFAULT_PARAMS: HandbotParams = {
   reset_value_to_add: 100,
   dynamic_hedge_enabled: false,
   dynamic_hedge_percent: 1.0,
+  include_manual_trades: false,
 };
 
 // ─── Toggle component ────────────────────────────────────────────────────────
@@ -825,6 +826,18 @@ const ParamsForm: React.FC<{
             min={0}
             decimal
           />
+        </div>
+
+        {/* Operações Manuais */}
+        <div className="pt-4 space-y-3">
+          <SectionHeader
+            title="Tratar Operações Manuais"
+            enabled={params.include_manual_trades}
+            onToggle={(v) => set('include_manual_trades', v)}
+          />
+          <p className="text-xs text-slate-500 pl-2">
+            Quando ligado, o trailing stop e break even também são aplicados em posições abertas manualmente (sem magic number do EA).
+          </p>
         </div>
 
         {/* Hedge Dinâmico */}
