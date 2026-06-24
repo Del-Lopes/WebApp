@@ -95,8 +95,8 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
               const candleFilled = state === 'done';
               // Quantidade de candles alterna entre os pares de aulas (3, 4, 3, 4...)
               const candleCount = i % 2 === 0 ? 3 : 4;
-              // Variações de tamanho/direção para parecer um trecho de gráfico real
-              const sizeWave = [0.4, 0.7, 1, 0.55, 0.85, 0.6];
+              // Variações de tamanho para parecer um trecho de gráfico real
+              const sizeWave = [0.5, 0.9, 0.65, 1, 0.7, 0.85];
 
               return (
                 <div key={lesson.id} className="relative flex flex-col items-center">
@@ -125,15 +125,15 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
                     </p>
                   </div>
 
-                  {/* Candles conectores para a próxima aula (quantidade alternada) */}
+                  {/* Candles conectores em escada de baixa (quantidade alternada) */}
                   {!isLast && (
-                    <div className="my-3 flex items-center gap-1.5">
+                    <div className="my-2 flex items-start gap-[3px]">
                       {Array.from({ length: candleCount }).map((_, c) => (
                         <Candle
                           key={c}
                           filled={candleFilled}
-                          direction={(i + c) % 3 === 1 ? 'down' : 'up'}
                           size={sizeWave[(i + c) % sizeWave.length]}
+                          drop={c * 9}
                         />
                       ))}
                     </div>
