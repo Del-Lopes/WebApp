@@ -11,6 +11,12 @@ interface Props {
 
 type LessonState = 'done' | 'available' | 'locked';
 
+// Pseudo-aleatório determinístico (mesma seed → mesmo valor, estável entre renders).
+const rand = (seed: number): number => {
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  return x - Math.floor(x); // 0..1
+};
+
 // Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
 // Uma lição fica disponível quando a anterior (ordem global) está concluída.
 export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) => {
@@ -95,8 +101,6 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
               const candleFilled = state === 'done';
               // Quantidade de candles alterna entre os pares de aulas (3, 4, 3, 4...)
               const candleCount = i % 2 === 0 ? 3 : 4;
-              // Variações de tamanho para parecer um trecho de gráfico real
-              const sizeWave = [0.5, 0.9, 0.65, 1, 0.7, 0.85];
 
               return (
                 <div key={lesson.id} className="relative flex flex-col items-center">
@@ -125,17 +129,23 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
                     </p>
                   </div>
 
-                  {/* Candles conectores em escada de baixa (quantidade alternada) */}
+                  {/* Candles conectores realistas, em leve escada (quantidade alternada) */}
                   {!isLast && (
                     <div className="my-2 flex items-start gap-[3px]">
-                      {Array.from({ length: candleCount }).map((_, c) => (
-                        <Candle
-                          key={c}
-                          filled={candleFilled}
-                          size={sizeWave[(i + c) % sizeWave.length]}
-                          drop={c * 9}
-                        />
-                      ))}
+                      {Array.from({ length: candleCount }).map((_, c) => {
+                        const seed = i * 17 + c * 7 + 1;
+                        return (
+                          <Candle
+                            key={c}
+                            filled={candleFilled}
+                            direction={rand(seed) > 0.5 ? 'up' : 'down'}
+                            size={0.25 + rand(seed + 1) * 0.75}
+                            topWick={rand(seed + 2)}
+                            bottomWick={rand(seed + 3)}
+                            drop={c * 7}
+                          />
+                        );
+                      })}
                     </div>
                   )}
                 </div>

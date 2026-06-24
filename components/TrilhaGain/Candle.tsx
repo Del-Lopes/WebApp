@@ -1,24 +1,36 @@
 import React from 'react';
 
 interface Props {
-  // true = aula concluída → candle verde; false = vermelho/cinza
+  // true = aula concluída → candle colorido (verde/vermelho); false = cinza
   filled: boolean;
-  // variação visual do tamanho do corpo (0..1)
+  // direção do candle quando colorido: 'up' verde, 'down' vermelho
+  direction?: 'up' | 'down';
+  // tamanho do corpo (0..1)
   size?: number;
-  // deslocamento vertical (px) para formar a escada de baixa
+  // tamanhos dos pavios superior/inferior (0..1)
+  topWick?: number;
+  bottomWick?: number;
+  // deslocamento vertical (px) para formar a escada
   drop?: number;
 }
 
-// Candle de mercado pequeno (pavio + corpo + pavio) para a trilha em escada.
-// Vermelho enquanto a aula não foi feita; verde quando concluída.
-export const Candle: React.FC<Props> = ({ filled, size = 0.6, drop = 0 }) => {
-  const bodyHeight = 12 + Math.round(size * 14); // 12..26px
-  const wick = 5;
+// Candle de mercado fino e realista (pavios variáveis + corpo).
+// Cinza enquanto a aula não foi feita; verde/vermelho quando concluída.
+export const Candle: React.FC<Props> = ({
+  filled, direction = 'up', size = 0.6, topWick = 0.5, bottomWick = 0.5, drop = 0,
+}) => {
+  const bodyHeight = 10 + Math.round(size * 20);     // 10..30px
+  const topW = 3 + Math.round(topWick * 9);          // 3..12px
+  const botW = 3 + Math.round(bottomWick * 9);       // 3..12px
 
-  const bodyColor = filled
-    ? 'bg-gradient-to-b from-emerald-400 to-emerald-500'
-    : 'bg-gradient-to-b from-rose-300 to-rose-400';
-  const wickColor = filled ? 'bg-emerald-500' : 'bg-rose-400';
+  const bodyColor = !filled
+    ? 'bg-slate-200'
+    : direction === 'up'
+      ? 'bg-gradient-to-b from-emerald-400 to-emerald-500'
+      : 'bg-gradient-to-b from-rose-400 to-rose-500';
+  const wickColor = !filled
+    ? 'bg-slate-200'
+    : direction === 'up' ? 'bg-emerald-500' : 'bg-rose-500';
 
   return (
     <div
@@ -26,9 +38,9 @@ export const Candle: React.FC<Props> = ({ filled, size = 0.6, drop = 0 }) => {
       style={{ transform: `translateY(${drop}px)` }}
       aria-hidden
     >
-      <div className={`w-[2px] rounded-full ${wickColor}`} style={{ height: wick }} />
-      <div className={`w-2.5 rounded-[2px] ${bodyColor}`} style={{ height: bodyHeight }} />
-      <div className={`w-[2px] rounded-full ${wickColor}`} style={{ height: wick }} />
+      <div className={`w-[2px] rounded-full ${wickColor}`} style={{ height: topW }} />
+      <div className={`w-[7px] rounded-[2px] ${bodyColor}`} style={{ height: bodyHeight }} />
+      <div className={`w-[2px] rounded-full ${wickColor}`} style={{ height: botW }} />
     </div>
   );
 };
