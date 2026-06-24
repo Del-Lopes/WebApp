@@ -45,8 +45,8 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
     }
   };
 
-  // offsets serpenteando para o efeito de trilha
-  const offsets = [0, 56, 72, 56, 0, -56, -72, -56];
+  // offsets serpenteando: cada unidade COMEÇA pela esquerda e ondula para a direita.
+  const offsets = [-72, -36, 24, 72, 36, -24];
 
   return (
     <div className="max-w-md mx-auto pb-20">
