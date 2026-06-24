@@ -1,6 +1,7 @@
 import React from 'react';
 import { Check, Lock, Star, Play, TrendingUp } from 'lucide-react';
 import { TrilhaTrack, TrilhaLesson } from '../../types';
+import { Candle } from './Candle';
 
 interface Props {
   track: TrilhaTrack;
@@ -83,48 +84,52 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
             </div>
           </div>
 
-          {/* Nós serpenteando, com linha de conexão */}
-          <div className="relative flex flex-col items-center gap-8">
+          {/* Nós da unidade, conectados por candles */}
+          <div className="relative flex flex-col items-center gap-0">
             {(unit.lessons ?? []).map((lesson, i) => {
               const state = stateMap.get(lesson.id) ?? 'locked';
               const offset = offsets[i % offsets.length];
-              const nextOffset = offsets[(i + 1) % offsets.length];
               const lessons = unit.lessons ?? [];
               const isLast = i === lessons.length - 1;
+              // Candle entre esta aula e a próxima: colorido quando ESTA aula foi concluída.
+              const candleFilled = state === 'done';
+              // alterna alta/baixa e varia o tamanho para parecer um gráfico real
+              const direction: 'up' | 'down' = (i % 3 === 1) ? 'down' : 'up';
+              const candleSize = [0.4, 0.7, 1, 0.55, 0.85][i % 5];
 
               return (
-                <div key={lesson.id} className="relative" style={{ transform: `translateX(${offset}px)` }}>
-                  {/* Conector para o próximo nó */}
+                <div key={lesson.id} className="relative flex flex-col items-center">
+                  <div style={{ transform: `translateX(${offset}px)` }} className="flex flex-col items-center">
+                    <button
+                      disabled={state === 'locked'}
+                      onClick={() => onSelectLesson(lesson)}
+                      title={lesson.title}
+                      className={`relative w-[72px] h-[72px] rounded-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:hover:scale-100 ${nodeStyle(state)}`}
+                    >
+                      {state === 'done' && <Check size={32} strokeWidth={3} />}
+                      {state === 'available' && <Play size={28} strokeWidth={2.5} className="ml-0.5" />}
+                      {state === 'locked' && <Lock size={26} />}
+
+                      {state === 'available' && (
+                        <span className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow">
+                          +{lesson.xp_reward}
+                        </span>
+                      )}
+                    </button>
+
+                    <p className={`text-center text-xs font-semibold mt-2 w-28 ${
+                      state === 'locked' ? 'text-slate-300' : 'text-slate-600'
+                    }`}>
+                      {lesson.title}
+                    </p>
+                  </div>
+
+                  {/* Candle conector para a próxima aula */}
                   {!isLast && (
-                    <div
-                      className="absolute left-1/2 top-[72px] h-8 w-1 -translate-x-1/2 rounded-full bg-gradient-to-b from-slate-200 to-slate-100"
-                      style={{ transform: `translateX(calc(-50% + ${(nextOffset - offset) / 2}px)) rotate(0deg)` }}
-                    />
+                    <div className="my-2">
+                      <Candle filled={candleFilled} direction={direction} size={candleSize} />
+                    </div>
                   )}
-
-                  <button
-                    disabled={state === 'locked'}
-                    onClick={() => onSelectLesson(lesson)}
-                    title={lesson.title}
-                    className={`relative w-[72px] h-[72px] rounded-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:hover:scale-100 ${nodeStyle(state)}`}
-                  >
-                    {state === 'done' && <Check size={32} strokeWidth={3} />}
-                    {state === 'available' && <Play size={28} strokeWidth={2.5} className="ml-0.5" />}
-                    {state === 'locked' && <Lock size={26} />}
-
-                    {/* badge de XP no nó disponível */}
-                    {state === 'available' && (
-                      <span className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow">
-                        +{lesson.xp_reward}
-                      </span>
-                    )}
-                  </button>
-
-                  <p className={`text-center text-xs font-semibold mt-2.5 w-28 -ml-7 ${
-                    state === 'locked' ? 'text-slate-300' : 'text-slate-600'
-                  }`}>
-                    {lesson.title}
-                  </p>
                 </div>
               );
             })}
