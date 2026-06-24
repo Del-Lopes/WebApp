@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, Lock, Star, Play } from 'lucide-react';
+import { Check, Lock, Star, Play, TrendingUp } from 'lucide-react';
 import { TrilhaTrack, TrilhaLesson } from '../../types';
 
 interface Props {
@@ -10,62 +10,119 @@ interface Props {
 
 type LessonState = 'done' | 'available' | 'locked';
 
-// Trilha vertical serpenteante de nós. Uma lição fica disponível quando
-// todas as lições anteriores (na ordem global da trilha) estão concluídas.
+// Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
+// Uma lição fica disponível quando a anterior (ordem global) está concluída.
 export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) => {
   const units = track.units ?? [];
-
-  // Lista plana ordenada de lições para calcular desbloqueio sequencial.
   const flat: TrilhaLesson[] = units.flatMap((u) => u.lessons ?? []);
 
-  // Pré-computa estados na ordem plana para que "available" seja só a próxima.
+  // Estados na ordem plana: só a primeira não-concluída fica disponível.
   const stateMap = new Map<string, LessonState>();
   {
     let unlocked = true;
     for (const l of flat) {
       if (completed.has(l.id)) { stateMap.set(l.id, 'done'); continue; }
       stateMap.set(l.id, unlocked ? 'available' : 'locked');
-      unlocked = false; // só a primeira não-concluída fica disponível
+      unlocked = false;
     }
   }
 
+  const doneCount = flat.filter((l) => completed.has(l.id)).length;
+  const pct = flat.length ? Math.round((doneCount / flat.length) * 100) : 0;
+
   const nodeStyle = (state: LessonState): string => {
     switch (state) {
-      case 'done':      return 'bg-yellow-400 text-white shadow-lg shadow-yellow-500/30';
-      case 'available': return 'bg-green-500 text-white shadow-lg shadow-green-500/40 animate-pulse';
-      case 'locked':    return 'bg-slate-200 text-slate-400';
+      case 'done':      return 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white ring-4 ring-emerald-100';
+      case 'available': return 'bg-gradient-to-br from-green-500 to-emerald-600 text-white ring-4 ring-green-100 shadow-xl shadow-green-500/40';
+      case 'locked':    return 'bg-slate-100 text-slate-300 ring-4 ring-slate-50';
     }
   };
 
+  // offsets serpenteando para o efeito de trilha
+  const offsets = [0, 56, 72, 56, 0, -56, -72, -56];
+
   return (
-    <div className="max-w-md mx-auto pb-16">
+    <div className="max-w-md mx-auto pb-20">
+      {/* Barra de progresso geral da trilha */}
+      {flat.length > 0 && (
+        <div className="mb-8 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-slate-600 flex items-center gap-1.5">
+              <TrendingUp size={16} className="text-emerald-500" />
+              Progresso da trilha
+            </span>
+            <span className="text-sm font-bold text-emerald-600">{pct}%</span>
+          </div>
+          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-500"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-400 mt-2">{doneCount} de {flat.length} lições concluídas</p>
+        </div>
+      )}
+
       {units.map((unit) => (
-        <div key={unit.id} className="mb-8">
-          {/* Cabeçalho da unidade */}
-          <div className="bg-green-600 text-white rounded-2xl px-5 py-4 mb-8 shadow-md">
-            <p className="text-xs uppercase tracking-wider opacity-80">{unit.subtitle || 'Unidade'}</p>
-            <h3 className="text-lg font-bold">{unit.title}</h3>
+        <div key={unit.id} className="mb-10">
+          {/* Cabeçalho da unidade — banner com grid de "gráfico" */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-2xl px-5 py-5 mb-10 shadow-lg">
+            <div
+              className="absolute inset-0 opacity-[0.07]"
+              style={{
+                backgroundImage:
+                  'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+                backgroundSize: '20px 20px',
+              }}
+            />
+            <div className="relative">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-400 font-bold mb-0.5">
+                {unit.subtitle || 'Unidade'}
+              </p>
+              <h3 className="text-lg font-bold">{unit.title}</h3>
+            </div>
           </div>
 
-          {/* Nós da unidade, serpenteando */}
-          <div className="flex flex-col items-center gap-6">
+          {/* Nós serpenteando, com linha de conexão */}
+          <div className="relative flex flex-col items-center gap-8">
             {(unit.lessons ?? []).map((lesson, i) => {
               const state = stateMap.get(lesson.id) ?? 'locked';
-              // Deslocamento horizontal alternado para efeito de trilha
-              const offset = [0, 48, 64, 48, 0, -48, -64, -48][i % 8];
+              const offset = offsets[i % offsets.length];
+              const nextOffset = offsets[(i + 1) % offsets.length];
+              const lessons = unit.lessons ?? [];
+              const isLast = i === lessons.length - 1;
+
               return (
-                <div key={lesson.id} style={{ transform: `translateX(${offset}px)` }}>
+                <div key={lesson.id} className="relative" style={{ transform: `translateX(${offset}px)` }}>
+                  {/* Conector para o próximo nó */}
+                  {!isLast && (
+                    <div
+                      className="absolute left-1/2 top-[72px] h-8 w-1 -translate-x-1/2 rounded-full bg-gradient-to-b from-slate-200 to-slate-100"
+                      style={{ transform: `translateX(calc(-50% + ${(nextOffset - offset) / 2}px)) rotate(0deg)` }}
+                    />
+                  )}
+
                   <button
                     disabled={state === 'locked'}
                     onClick={() => onSelectLesson(lesson)}
                     title={lesson.title}
-                    className={`w-16 h-16 rounded-full flex items-center justify-center transition-transform hover:scale-105 disabled:hover:scale-100 ${nodeStyle(state)}`}
+                    className={`relative w-[72px] h-[72px] rounded-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:hover:scale-100 ${nodeStyle(state)}`}
                   >
-                    {state === 'done' && <Check size={28} />}
-                    {state === 'available' && <Play size={26} />}
-                    {state === 'locked' && <Lock size={24} />}
+                    {state === 'done' && <Check size={32} strokeWidth={3} />}
+                    {state === 'available' && <Play size={28} strokeWidth={2.5} className="ml-0.5" />}
+                    {state === 'locked' && <Lock size={26} />}
+
+                    {/* badge de XP no nó disponível */}
+                    {state === 'available' && (
+                      <span className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow">
+                        +{lesson.xp_reward}
+                      </span>
+                    )}
                   </button>
-                  <p className="text-center text-xs font-medium text-slate-500 mt-2 w-24 -ml-4">
+
+                  <p className={`text-center text-xs font-semibold mt-2.5 w-28 -ml-7 ${
+                    state === 'locked' ? 'text-slate-300' : 'text-slate-600'
+                  }`}>
                     {lesson.title}
                   </p>
                 </div>

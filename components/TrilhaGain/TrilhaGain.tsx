@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, ChevronRight, Milestone, Lock, X } from 'lucide-react';
+import { Loader2, ChevronRight, Milestone, Lock, X, TrendingUp } from 'lucide-react';
 import { TrilhaTrack, TrilhaLesson, TrilhaStats } from '../../types';
 import {
   fetchTracks, fetchTrackTree, fetchCompletedLessonIds, fetchStats,
@@ -59,7 +59,7 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto">
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2">
           <BackButton onClick={activeTrack ? () => setActiveTrack(null) : onBack} />
           <h1 className="text-xl font-bold text-slate-800">
@@ -69,41 +69,84 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
         <GamificationBar stats={stats} />
       </div>
 
+      {/* Banner financeiro (só na lista de trilhas) */}
+      {!activeTrack && (
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800 via-slate-900 to-emerald-950 p-6 mb-6 shadow-xl">
+          <div
+            className="absolute inset-0 opacity-[0.08]"
+            style={{
+              backgroundImage:
+                'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+              backgroundSize: '24px 24px',
+            }}
+          />
+          {/* linha de "candles" decorativa */}
+          <div className="absolute bottom-0 right-4 flex items-end gap-1 opacity-30">
+            {[18, 28, 22, 36, 30, 44, 38, 52].map((h, i) => (
+              <div key={i} className="w-1.5 rounded-t bg-emerald-400" style={{ height: h }} />
+            ))}
+          </div>
+          <div className="relative">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold mb-3">
+              <TrendingUp size={13} /> Aprenda operando
+            </div>
+            <h2 className="text-2xl font-extrabold text-white leading-tight mb-1">
+              Domine o mercado,<br />uma lição por vez.
+            </h2>
+            <p className="text-slate-300 text-sm">Trilhas práticas e gamificadas para evoluir todo dia.</p>
+          </div>
+        </div>
+      )}
+
       {/* Lista de trilhas */}
       {!activeTrack && (
-        <div className="space-y-3">
+        <div className="space-y-4">
           {tracks.map((track) => (
             <button
               key={track.id}
               onClick={() => track.is_locked ? setLockedTrack(track) : openTrack(track.id)}
-              className={`w-full flex items-center gap-4 p-4 rounded-2xl bg-white border transition-all text-left ${
+              className={`group relative w-full overflow-hidden flex items-center gap-4 p-4 rounded-2xl bg-white border-2 transition-all text-left ${
                 track.is_locked
-                  ? 'border-slate-100 opacity-80 hover:opacity-100'
-                  : 'border-slate-100 hover:border-green-300 hover:shadow-md'
+                  ? 'border-slate-100 hover:border-yellow-200'
+                  : 'border-slate-100 hover:border-emerald-300 hover:shadow-lg hover:shadow-emerald-500/5'
               }`}
             >
-              <div className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden ${
-                track.is_locked ? 'bg-slate-100 text-slate-400' : 'bg-green-100 text-green-600'
+              {/* mini-grid decorativo no hover */}
+              <div
+                className="absolute inset-0 opacity-0 group-hover:opacity-[0.04] transition-opacity pointer-events-none"
+                style={{
+                  backgroundImage: 'linear-gradient(90deg, #0f766e 1px, transparent 1px)',
+                  backgroundSize: '16px 16px',
+                }}
+              />
+              <div className={`relative w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden ${
+                track.is_locked
+                  ? 'bg-slate-100 text-slate-400'
+                  : 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-lg shadow-emerald-500/30'
               }`}>
                 {track.image_url
                   ? <img src={track.image_url} alt="" className={`w-full h-full object-cover ${track.is_locked ? 'grayscale' : ''}`} />
-                  : <Milestone size={26} />}
+                  : (track.is_locked ? <Lock size={26} /> : <TrendingUp size={28} strokeWidth={2.5} />)}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
+              <div className="relative flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
                   <h3 className="font-bold text-slate-800 truncate">{track.title}</h3>
-                  {track.is_locked && <Lock size={14} className="text-slate-400 shrink-0" />}
-                  {track.price_label && (
-                    <span className="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
-                      {track.price_label}
+                  {track.is_locked && (
+                    <span className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700">
+                      <Lock size={11} /> {track.price_label || 'Premium'}
+                    </span>
+                  )}
+                  {!track.is_locked && (
+                    <span className="shrink-0 text-[11px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                      Gratuita
                     </span>
                   )}
                 </div>
                 {track.description && (
-                  <p className="text-sm text-slate-500 line-clamp-2">{track.description}</p>
+                  <p className="text-sm text-slate-500 line-clamp-2 mt-0.5">{track.description}</p>
                 )}
               </div>
-              <ChevronRight size={20} className="text-slate-300 shrink-0" />
+              <ChevronRight size={20} className="relative text-slate-300 group-hover:text-emerald-500 group-hover:translate-x-1 transition-all shrink-0" />
             </button>
           ))}
 

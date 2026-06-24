@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Trophy } from 'lucide-react';
+import { X, TrendingUp, Coins } from 'lucide-react';
 import {
   TrilhaLesson, ConceptPayload, QuizPayload,
   TrueFalsePayload, OrderPayload, ChartPayload,
@@ -102,7 +102,7 @@ export const LessonPlayer: React.FC<Props> = ({ lesson, onClose, onCompleted }) 
         </button>
         <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
           <div
-            className="h-full bg-green-500 rounded-full transition-all duration-300"
+            className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-300"
             style={{ width: `${finished ? 100 : progress}%` }}
           />
         </div>
@@ -111,19 +111,33 @@ export const LessonPlayer: React.FC<Props> = ({ lesson, onClose, onCompleted }) 
       {/* Conteúdo */}
       <div className="flex-1 max-w-xl w-full mx-auto px-5 py-6 overflow-hidden">
         {finished ? (
-          <div className="flex flex-col h-full items-center justify-center text-center">
-            <div className="w-24 h-24 rounded-full bg-yellow-100 flex items-center justify-center mb-6">
-              <Trophy size={48} className="text-yellow-500" />
+          <div className="relative flex flex-col h-full items-center justify-center text-center overflow-hidden">
+            {/* fundo grid de gráfico */}
+            <div
+              className="absolute inset-0 opacity-[0.04]"
+              style={{
+                backgroundImage:
+                  'linear-gradient(#059669 1px, transparent 1px), linear-gradient(90deg, #059669 1px, transparent 1px)',
+                backgroundSize: '28px 28px',
+              }}
+            />
+            <div className="relative">
+              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center mb-6 mx-auto shadow-xl shadow-emerald-500/30">
+                <TrendingUp size={52} className="text-white" strokeWidth={2.5} />
+              </div>
+              <p className="text-emerald-600 font-bold text-sm uppercase tracking-wider mb-1">Lucro realizado</p>
+              <h2 className="text-3xl font-extrabold text-slate-800 mb-3">Lição concluída!</h2>
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-br from-yellow-50 to-amber-100 border border-amber-200 mb-8">
+                <Coins size={24} className="text-amber-500" />
+                <span className="text-3xl font-extrabold text-amber-600">+{lesson.xp_reward} XP</span>
+              </div>
+              <button
+                onClick={onClose}
+                className="block w-full max-w-xs mx-auto py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg transition-all shadow-lg shadow-emerald-500/30"
+              >
+                Continuar
+              </button>
             </div>
-            <h2 className="text-3xl font-bold text-slate-800 mb-2">Lição concluída!</h2>
-            <p className="text-slate-500 mb-1">Você ganhou</p>
-            <p className="text-4xl font-extrabold text-green-600 mb-8">+{lesson.xp_reward} XP</p>
-            <button
-              onClick={onClose}
-              className="w-full max-w-xs py-4 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-bold text-lg transition-colors"
-            >
-              Continuar
-            </button>
           </div>
         ) : saving ? (
           <div className="flex h-full items-center justify-center text-slate-400">Salvando…</div>
