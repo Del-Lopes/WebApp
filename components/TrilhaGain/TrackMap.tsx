@@ -91,11 +91,12 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
               const offset = offsets[i % offsets.length];
               const lessons = unit.lessons ?? [];
               const isLast = i === lessons.length - 1;
-              // Candle entre esta aula e a próxima: colorido quando ESTA aula foi concluída.
+              // Candles entre esta aula e a próxima: coloriam quando ESTA aula foi concluída.
               const candleFilled = state === 'done';
-              // alterna alta/baixa e varia o tamanho para parecer um gráfico real
-              const direction: 'up' | 'down' = (i % 3 === 1) ? 'down' : 'up';
-              const candleSize = [0.4, 0.7, 1, 0.55, 0.85][i % 5];
+              // Quantidade de candles alterna entre os pares de aulas (3, 4, 3, 4...)
+              const candleCount = i % 2 === 0 ? 3 : 4;
+              // Variações de tamanho/direção para parecer um trecho de gráfico real
+              const sizeWave = [0.4, 0.7, 1, 0.55, 0.85, 0.6];
 
               return (
                 <div key={lesson.id} className="relative flex flex-col items-center">
@@ -124,10 +125,17 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
                     </p>
                   </div>
 
-                  {/* Candle conector para a próxima aula */}
+                  {/* Candles conectores para a próxima aula (quantidade alternada) */}
                   {!isLast && (
-                    <div className="my-2">
-                      <Candle filled={candleFilled} direction={direction} size={candleSize} />
+                    <div className="my-3 flex items-center gap-1.5">
+                      {Array.from({ length: candleCount }).map((_, c) => (
+                        <Candle
+                          key={c}
+                          filled={candleFilled}
+                          direction={(i + c) % 3 === 1 ? 'down' : 'up'}
+                          size={sizeWave[(i + c) % sizeWave.length]}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>
