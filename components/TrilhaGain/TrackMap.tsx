@@ -183,7 +183,7 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
                       <LessonCandle
                         state={state}
                         xp={lesson.xp_reward}
-                        title={lesson.title}
+                        iconSeed={lesson.id}
                         onClick={() => onSelectLesson(lesson)}
                       />
                     </div>

@@ -1,31 +1,57 @@
 import React from 'react';
-import { Lock } from 'lucide-react';
+import { Lock, TrendingUp, BarChart3, LineChart, CandlestickChart } from 'lucide-react';
 
 type LessonState = 'done' | 'available' | 'locked';
 
 interface Props {
   state: LessonState;
   xp: number;
-  title: string;
+  iconSeed: string; // estável por aula (usa o id) para escolher o símbolo
   onClick: () => void;
 }
 
-// Nó da trilha em forma de candle (vela). Integra com os candles conectores,
-// fazendo a trilha inteira parecer um gráfico de mercado.
-//   done      → candle verde cheio (com brilho)
+// Hash simples e estável de uma string → inteiro não-negativo.
+function hash(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return Math.abs(h);
+}
+
+// Símbolos de mercado dentro do candle. Mistura de texto (moedas/cripto/tickers)
+// e ícones (gráficos). Escolhido de forma determinística por aula.
+type Sym =
+  | { kind: 'text'; v: string }
+  | { kind: 'icon'; C: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }> };
+
+const SYMBOLS: Sym[] = [
+  { kind: 'text', v: '$' },        // dólar
+  { kind: 'text', v: '€' },        // euro
+  { kind: 'text', v: '£' },        // libra
+  { kind: 'text', v: '¥' },        // iene
+  { kind: 'text', v: '₿' },        // bitcoin
+  { kind: 'text', v: 'Ξ' },        // ethereum
+  { kind: 'icon', C: TrendingUp },
+  { kind: 'icon', C: BarChart3 },
+  { kind: 'icon', C: LineChart },
+  { kind: 'icon', C: CandlestickChart },
+];
+
+// Nó da trilha em forma de candle (vela), com um símbolo de mercado dentro.
+//   done      → candle verde com símbolo branco
 //   available → candle verde pulsando + badge de XP
 //   locked    → candle cinza com cadeado
-export const LessonCandle: React.FC<Props> = ({ state, xp, title, onClick }) => {
+export const LessonCandle: React.FC<Props> = ({ state, xp, iconSeed, onClick }) => {
   const color =
     state === 'locked'
-      ? { wick: 'bg-slate-300', body: 'bg-gradient-to-b from-slate-200 to-slate-300', ring: '' }
-      : { wick: 'bg-emerald-500', body: 'bg-gradient-to-b from-emerald-400 to-emerald-600', ring: '' };
+      ? { wick: 'bg-slate-300', body: 'bg-gradient-to-b from-slate-200 to-slate-300' }
+      : { wick: 'bg-emerald-500', body: 'bg-gradient-to-b from-emerald-400 to-emerald-600' };
+
+  const sym = SYMBOLS[hash(iconSeed) % SYMBOLS.length];
 
   return (
     <button
       disabled={state === 'locked'}
       onClick={onClick}
-      title={title}
       className={`group relative flex flex-col items-center transition-transform hover:scale-110 active:scale-95 disabled:hover:scale-100 ${
         state === 'available' ? 'animate-pulse' : ''
       }`}
@@ -47,24 +73,17 @@ export const LessonCandle: React.FC<Props> = ({ state, xp, title, onClick }) => 
         } ${state === 'done' ? 'shadow shadow-emerald-500/30' : ''}`}
         style={{ height: 34 }}
       >
-        {state === 'done' && (
-          <span className="text-white font-extrabold text-sm leading-none">$</span>
+        {state === 'locked' ? (
+          <Lock size={13} className="text-slate-400" />
+        ) : sym.kind === 'text' ? (
+          <span className="text-white font-extrabold text-sm leading-none">{sym.v}</span>
+        ) : (
+          <sym.C size={16} className="text-white" strokeWidth={2.5} />
         )}
-        {state === 'available' && (
-          <span className="text-white font-extrabold text-xs leading-none">▲</span>
-        )}
-        {state === 'locked' && <Lock size={13} className="text-slate-400" />}
       </div>
 
       {/* pavio inferior */}
       <div className={`w-[2px] rounded-full ${color.wick}`} style={{ height: 9 }} />
-
-      {/* título da aula */}
-      <p className={`text-center text-[11px] font-semibold mt-1 w-24 leading-tight ${
-        state === 'locked' ? 'text-slate-300' : 'text-slate-600'
-      }`}>
-        {title}
-      </p>
     </button>
   );
 };
