@@ -1,46 +1,44 @@
 import React from 'react';
 
 interface Props {
-  // true = aula concluída → candle colorido (verde/vermelho); false = cinza
+  // true = aula concluída → colorido; false = cinza
   filled: boolean;
-  // direção do candle quando colorido: 'up' verde, 'down' vermelho
-  direction?: 'up' | 'down';
-  // tamanho do corpo (0..1)
-  size?: number;
-  // tamanhos dos pavios superior/inferior (0..1)
-  topWick?: number;
-  bottomWick?: number;
-  // deslocamento vertical (px) para formar a escada
-  drop?: number;
+  // coordenadas verticais em px (0 = topo da faixa, cresce para baixo)
+  high: number;   // topo do pavio superior
+  open: number;
+  close: number;
+  low: number;    // base do pavio inferior
 }
 
-// Candle de mercado fino e realista (pavios variáveis + corpo).
-// Cinza enquanto a aula não foi feita; verde/vermelho quando concluída.
-export const Candle: React.FC<Props> = ({
-  filled, direction = 'up', size = 0.6, topWick = 0.5, bottomWick = 0.5, drop = 0,
-}) => {
-  const bodyHeight = 10 + Math.round(size * 20);     // 10..30px
-  const topW = 3 + Math.round(topWick * 9);          // 3..12px
-  const botW = 3 + Math.round(bottomWick * 9);       // 3..12px
+// Candle posicional: desenhado por coordenadas OHLC, para encaixar
+// numa sequência contínua (o close de um vira ~o open do próximo).
+// Verde se fecha acima da abertura (close < open em px → subiu), senão vermelho.
+export const Candle: React.FC<Props> = ({ filled, high, open, close, low }) => {
+  // Em px, menor y = preço maior. Candle de alta: close acima de open → close < open.
+  const isUp = close <= open;
+  const bodyTop = Math.min(open, close);
+  const bodyH = Math.max(Math.abs(open - close), 2);
 
   const bodyColor = !filled
     ? 'bg-slate-200'
-    : direction === 'up'
-      ? 'bg-gradient-to-b from-emerald-400 to-emerald-500'
-      : 'bg-gradient-to-b from-rose-400 to-rose-500';
+    : isUp ? 'bg-gradient-to-b from-emerald-400 to-emerald-500'
+           : 'bg-gradient-to-b from-rose-400 to-rose-500';
   const wickColor = !filled
     ? 'bg-slate-200'
-    : direction === 'up' ? 'bg-emerald-500' : 'bg-rose-500';
+    : isUp ? 'bg-emerald-500' : 'bg-rose-500';
 
   return (
-    <div
-      className="flex flex-col items-center justify-center transition-all duration-500"
-      style={{ transform: `translateY(${drop}px)` }}
-      aria-hidden
-    >
-      <div className={`w-[2px] rounded-full ${wickColor}`} style={{ height: topW }} />
-      <div className={`w-[7px] rounded-[2px] ${bodyColor}`} style={{ height: bodyHeight }} />
-      <div className={`w-[2px] rounded-full ${wickColor}`} style={{ height: botW }} />
+    <div className="relative w-3 h-full transition-all duration-500" aria-hidden>
+      {/* pavio (linha vertical da máxima à mínima) */}
+      <div
+        className={`absolute left-1/2 -translate-x-1/2 w-[2px] rounded-full ${wickColor}`}
+        style={{ top: high, height: Math.max(low - high, 2) }}
+      />
+      {/* corpo */}
+      <div
+        className={`absolute left-1/2 -translate-x-1/2 w-[7px] rounded-[2px] ${bodyColor}`}
+        style={{ top: bodyTop, height: bodyH }}
+      />
     </div>
   );
 };

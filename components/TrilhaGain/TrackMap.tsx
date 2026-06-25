@@ -3,6 +3,7 @@ import { Star, TrendingUp, Lock } from 'lucide-react';
 import { TrilhaTrack, TrilhaLesson } from '../../types';
 import { Candle } from './Candle';
 import { LessonCandle } from './LessonCandle';
+import { makeCandleSeries } from './candleSeries';
 
 interface Props {
   track: TrilhaTrack;
@@ -12,11 +13,7 @@ interface Props {
 
 type LessonState = 'done' | 'available' | 'locked';
 
-// Pseudo-aleatório determinístico (mesma seed → mesmo valor, estável entre renders).
-const rand = (seed: number): number => {
-  const x = Math.sin(seed * 12.9898) * 43758.5453;
-  return x - Math.floor(x); // 0..1
-};
+const CANDLE_RANGE = 56; // altura da faixa do "mini-gráfico" entre aulas (px)
 
 // Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
 // Uma lição fica disponível quando a anterior (ordem global) está concluída.
@@ -50,8 +47,8 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
   const doneCount = flat.filter((l) => completed.has(l.id)).length;
   const pct = flat.length ? Math.round((doneCount / flat.length) * 100) : 0;
 
-  // offsets serpenteando: cada unidade COMEÇA pela esquerda e ondula para a direita.
-  const offsets = [-72, -36, 24, 72, 36, -24];
+  // offsets: cada unidade COMEÇA no canto esquerdo e o "gráfico" avança à direita.
+  const offsets = [-96, -52, -8, 36, 80, 36, -8, -52];
 
   return (
     <div className="max-w-md mx-auto pb-20">
@@ -112,8 +109,10 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
               const isLast = i === lessons.length - 1;
               // Candles entre esta aula e a próxima: coloriam quando ESTA aula foi concluída.
               const candleFilled = state === 'done';
-              // Quantidade de candles alterna entre os pares de aulas (3, 4, 3, 4...)
-              const candleCount = i % 2 === 0 ? 3 : 4;
+              // Quantidade cresce: 1 candle (aula 1→2), 2 (2→3), 3 (3→4)... reinicia por unidade.
+              const candleCount = i + 1;
+              // Série OHLC contínua (o close de um candle vira o open do próximo).
+              const series = makeCandleSeries(candleCount, i + 1, CANDLE_RANGE);
 
               return (
                 <div key={lesson.id} className="relative flex flex-col items-center">
@@ -126,23 +125,22 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
                     />
                   </div>
 
-                  {/* Candles conectores realistas, em leve escada (quantidade alternada) */}
+                  {/* Mini-gráfico de candles (contínuo) ligando esta aula à próxima */}
                   {!isLast && (
-                    <div className="my-2 flex items-start gap-[3px]">
-                      {Array.from({ length: candleCount }).map((_, c) => {
-                        const seed = i * 17 + c * 7 + 1;
-                        return (
-                          <Candle
-                            key={c}
-                            filled={candleFilled}
-                            direction={rand(seed) > 0.5 ? 'up' : 'down'}
-                            size={0.25 + rand(seed + 1) * 0.75}
-                            topWick={rand(seed + 2)}
-                            bottomWick={rand(seed + 3)}
-                            drop={c * 7}
-                          />
-                        );
-                      })}
+                    <div
+                      className="my-2 flex items-start gap-[3px]"
+                      style={{ height: CANDLE_RANGE }}
+                    >
+                      {series.map((c, ci) => (
+                        <Candle
+                          key={ci}
+                          filled={candleFilled}
+                          high={c.high}
+                          open={c.open}
+                          close={c.close}
+                          low={c.low}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>
