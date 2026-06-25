@@ -17,32 +17,34 @@ type LessonState = 'done' | 'available' | 'locked';
 const TRACK_W   = 320; // largura útil da coluna de aulas (px)
 const NODE_H    = 34;  // altura do corpo do nó-candle
 const LABEL_H   = 26;  // altura do rótulo sob o nó
-const STEP_Y    = 110; // distância vertical entre aulas consecutivas
 const CANDLE_W  = 6;   // largura de cada candle (fino)
 const CANDLE_GAP = 1;  // espaço entre candles (bem justo)
+const CANDLES_PER_GAP = 3; // nº fixo de candles entre duas aulas
 
-// Pontos (x,y) de cada aula formando um caminho com PIVOTS reais (sobe e desce),
-// como um gráfico de mercado visto de lado. Começa BEM à esquerda.
-// dx por passo (px lateral) e dy por passo (px vertical; negativo = SOBE).
+// Pontos (x,y) de cada aula. Escada diagonal suave (desce e vai à direita),
+// com pivots leves, começando no canto superior esquerdo — como o gráfico
+// contínuo do print de referência.
 function unitWaypoints(n: number): { x: number; y: number }[] {
+  // deltas: sempre avança à direita; verticalmente desce, com alguns sobem leve (pivô).
   const deltas = [
-    { dx: 100, dy:  110 },
-    { dx:  80, dy:  110 },
-    { dx:  60, dy: -65  }, // sobe (pivô de topo)
-    { dx: -70, dy:  120 },
-    { dx: -80, dy:  110 },
-    { dx:  70, dy: -55  }, // sobe
-    { dx:  90, dy:  120 },
-    { dx: -60, dy:  110 },
+    { dx: 64, dy:  74 },
+    { dx: 60, dy:  60 },
+    { dx: 56, dy: -34 }, // pivô leve de alta
+    { dx: 58, dy:  78 },
+    { dx: 52, dy:  56 },
+    { dx: 60, dy: -30 }, // pivô leve
+    { dx: 56, dy:  76 },
+    { dx: 54, dy:  58 },
   ];
   const pts: { x: number; y: number }[] = [];
-  let x = 18, y = 16;                 // primeira aula bem à esquerda
-  const minX = 18, maxX = TRACK_W - 24;
+  let x = 22, y = 14;                 // primeira aula no canto superior esquerdo
+  const minX = 22, maxX = TRACK_W - 30;
   for (let i = 0; i < n; i++) {
     if (i > 0) {
       const d = deltas[(i - 1) % deltas.length];
-      x = Math.max(minX, Math.min(maxX, x + d.dx));
-      y += d.dy;
+      // se passar da direita, "quebra a linha": volta à esquerda e desce um degrau
+      if (x + d.dx > maxX) { x = minX; y += 84; }
+      else { x = Math.max(minX, x + d.dx); y += d.dy; }
     }
     pts.push({ x, y });
   }
@@ -141,17 +143,15 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
 
             return (
               <div className="relative mx-auto" style={{ width: TRACK_W, height }}>
-                {/* candles entre cada par de aulas — faixa compacta e centralizada */}
+                {/* candles entre cada par de aulas — quantidade fixa, faixa baixa */}
                 {lessons.slice(0, -1).map((lesson, i) => {
                   const a = pts[i], b = pts[i + 1];
                   const filled = (stateMap.get(lesson.id) ?? 'locked') === 'done';
-                  const count = i + 1;
+                  const count = CANDLES_PER_GAP; // fixo, cabe sempre
                   const aMid = a.y + NODE_H / 2, bMid = b.y + NODE_H / 2;
-                  // ponto médio vertical entre as duas aulas
                   const midY = (aMid + bMid) / 2;
-                  // altura da faixa de candles: compacta (teto de 50px)
-                  const range = Math.min(Math.max(Math.abs(bMid - aMid) * 0.5, 30), 50);
-                  // série inclina no sentido a→b (sobe se a próxima aula está mais alta)
+                  const range = 40; // faixa baixa e compacta
+                  // série inclina no sentido a→b (acompanha a escada das aulas)
                   const startLvl = (a.y <= b.y) ? 8 : range - 8;
                   const endLvl = (a.y <= b.y) ? range - 8 : 8;
                   const series = makeCandleSeries(count, i + 1, range, startLvl, endLvl);
