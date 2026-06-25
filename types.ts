@@ -227,6 +227,9 @@ export interface TrilhaUnit {
   subtitle?: string;
   color?: string;
   image_url?: string;
+  // Bloqueio por unidade (unidade paga): cadeado + lições não abrem.
+  is_locked?: boolean;
+  lock_note?: string;
   order_index: number;
   created_at?: string;
   lessons?: TrilhaLesson[];
