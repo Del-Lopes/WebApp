@@ -1,7 +1,8 @@
 import React from 'react';
-import { Check, Lock, Star, Play, TrendingUp } from 'lucide-react';
+import { Star, TrendingUp } from 'lucide-react';
 import { TrilhaTrack, TrilhaLesson } from '../../types';
 import { Candle } from './Candle';
+import { LessonCandle } from './LessonCandle';
 
 interface Props {
   track: TrilhaTrack;
@@ -37,14 +38,6 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
   const doneCount = flat.filter((l) => completed.has(l.id)).length;
   const pct = flat.length ? Math.round((doneCount / flat.length) * 100) : 0;
 
-  const nodeStyle = (state: LessonState): string => {
-    switch (state) {
-      case 'done':      return 'bg-gradient-to-br from-emerald-400 to-emerald-600 text-white ring-4 ring-emerald-100';
-      case 'available': return 'bg-gradient-to-br from-green-500 to-emerald-600 text-white ring-4 ring-green-100 shadow-xl shadow-green-500/40';
-      case 'locked':    return 'bg-slate-100 text-slate-300 ring-4 ring-slate-50';
-    }
-  };
-
   // offsets serpenteando: cada unidade COMEÇA pela esquerda e ondula para a direita.
   const offsets = [-72, -36, 24, 72, 36, -24];
 
@@ -72,21 +65,18 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
 
       {units.map((unit) => (
         <div key={unit.id} className="mb-10">
-          {/* Cabeçalho da unidade — banner com grid de "gráfico" */}
-          <div className="relative overflow-hidden bg-gradient-to-r from-slate-800 to-slate-900 text-white rounded-2xl px-5 py-5 mb-10 shadow-lg">
-            <div
-              className="absolute inset-0 opacity-[0.07]"
-              style={{
-                backgroundImage:
-                  'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
-                backgroundSize: '20px 20px',
-              }}
-            />
-            <div className="relative">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-400 font-bold mb-0.5">
+          {/* Cabeçalho da unidade — banner com cena temática (SVG) */}
+          <div className="relative overflow-hidden rounded-2xl mb-10 shadow-lg h-[120px] bg-gradient-to-r from-slate-800 to-slate-900">
+            {unit.image_url && (
+              <img src={unit.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
+            )}
+            {/* leve escurecimento para legibilidade do texto */}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/40 to-transparent" />
+            <div className="relative h-full flex flex-col justify-center px-5 text-white">
+              <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-bold mb-0.5">
                 {unit.subtitle || 'Unidade'}
               </p>
-              <h3 className="text-lg font-bold">{unit.title}</h3>
+              <h3 className="text-lg font-bold drop-shadow">{unit.title}</h3>
             </div>
           </div>
 
@@ -105,28 +95,12 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
               return (
                 <div key={lesson.id} className="relative flex flex-col items-center">
                   <div style={{ transform: `translateX(${offset}px)` }} className="flex flex-col items-center">
-                    <button
-                      disabled={state === 'locked'}
-                      onClick={() => onSelectLesson(lesson)}
+                    <LessonCandle
+                      state={state}
+                      xp={lesson.xp_reward}
                       title={lesson.title}
-                      className={`relative w-[72px] h-[72px] rounded-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 disabled:hover:scale-100 ${nodeStyle(state)}`}
-                    >
-                      {state === 'done' && <Check size={32} strokeWidth={3} />}
-                      {state === 'available' && <Play size={28} strokeWidth={2.5} className="ml-0.5" />}
-                      {state === 'locked' && <Lock size={26} />}
-
-                      {state === 'available' && (
-                        <span className="absolute -top-2 -right-2 bg-yellow-400 text-yellow-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow">
-                          +{lesson.xp_reward}
-                        </span>
-                      )}
-                    </button>
-
-                    <p className={`text-center text-xs font-semibold mt-2 w-28 ${
-                      state === 'locked' ? 'text-slate-300' : 'text-slate-600'
-                    }`}>
-                      {lesson.title}
-                    </p>
+                      onClick={() => onSelectLesson(lesson)}
+                    />
                   </div>
 
                   {/* Candles conectores realistas, em leve escada (quantidade alternada) */}

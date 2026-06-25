@@ -226,6 +226,7 @@ export interface TrilhaUnit {
   title: string;
   subtitle?: string;
   color?: string;
+  image_url?: string;
   order_index: number;
   created_at?: string;
   lessons?: TrilhaLesson[];
