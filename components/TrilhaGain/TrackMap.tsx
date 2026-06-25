@@ -13,7 +13,43 @@ interface Props {
 
 type LessonState = 'done' | 'available' | 'locked';
 
-const CANDLE_RANGE = 56; // altura da faixa do "mini-gráfico" entre aulas (px)
+// Geometria do caminho
+const TRACK_W   = 300; // largura útil da coluna de aulas (px)
+const NODE_H    = 46;  // altura aprox. do corpo do nó-candle
+const LABEL_H   = 28;  // altura do rótulo sob o nó
+const STEP_Y    = 120; // distância vertical entre aulas consecutivas
+const CANDLE_W  = 12;  // largura de cada candle
+const CANDLE_GAP = 2;  // espaço entre candles (bem justo)
+
+// Pontos (x,y) de cada aula formando um caminho com PIVOTS reais (sobe e desce),
+// como um gráfico de mercado visto de lado. Começa no canto esquerdo.
+// dx por passo (px lateral) e dy por passo (px vertical; negativo = SOBE).
+function unitWaypoints(n: number): { x: number; y: number }[] {
+  // sequência de deltas que cria fundos e topos:
+  // direita+baixo, direita+baixo, direita+CIMA (pivô de alta), esquerda+baixo, ...
+  const deltas = [
+    { dx:  90, dy:  120 },
+    { dx:  70, dy:  120 },
+    { dx:  50, dy: -70  }, // sobe (pivô de topo)
+    { dx: -60, dy:  130 },
+    { dx: -70, dy:  120 },
+    { dx:  60, dy: -60  }, // sobe
+    { dx:  80, dy:  130 },
+    { dx: -50, dy:  120 },
+  ];
+  const pts: { x: number; y: number }[] = [];
+  let x = 40, y = 20;
+  const minX = 30, maxX = TRACK_W - 30;
+  for (let i = 0; i < n; i++) {
+    if (i > 0) {
+      const d = deltas[(i - 1) % deltas.length];
+      x = Math.max(minX, Math.min(maxX, x + d.dx));
+      y += d.dy;
+    }
+    pts.push({ x, y });
+  }
+  return pts;
+}
 
 // Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
 // Uma lição fica disponível quando a anterior (ordem global) está concluída.
@@ -46,9 +82,6 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
 
   const doneCount = flat.filter((l) => completed.has(l.id)).length;
   const pct = flat.length ? Math.round((doneCount / flat.length) * 100) : 0;
-
-  // offsets: cada unidade COMEÇA no canto esquerdo e o "gráfico" avança à direita.
-  const offsets = [-96, -52, -8, 36, 80, 36, -8, -52];
 
   return (
     <div className="max-w-md mx-auto pb-20">
@@ -100,53 +133,66 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
             </div>
           </div>
 
-          {/* Nós da unidade, conectados por candles */}
-          <div className="relative flex flex-col items-center gap-0">
-            {(unit.lessons ?? []).map((lesson, i) => {
-              const state = stateMap.get(lesson.id) ?? 'locked';
-              const offset = offsets[i % offsets.length];
-              const lessons = unit.lessons ?? [];
-              const isLast = i === lessons.length - 1;
-              // Candles entre esta aula e a próxima: coloriam quando ESTA aula foi concluída.
-              const candleFilled = state === 'done';
-              // Quantidade cresce: 1 candle (aula 1→2), 2 (2→3), 3 (3→4)... reinicia por unidade.
-              const candleCount = i + 1;
-              // Série OHLC contínua (o close de um candle vira o open do próximo).
-              const series = makeCandleSeries(candleCount, i + 1, CANDLE_RANGE);
+          {/* Nós da unidade num caminho com pivots (sobe e desce), ligados por candles */}
+          {(() => {
+            const lessons = unit.lessons ?? [];
+            const pts = unitWaypoints(lessons.length);
+            const height = pts.length
+              ? Math.max(...pts.map((p) => p.y)) + NODE_H + LABEL_H
+              : 0;
 
-              return (
-                <div key={lesson.id} className="relative flex flex-col items-center">
-                  <div style={{ transform: `translateX(${offset}px)` }} className="flex flex-col items-center">
-                    <LessonCandle
-                      state={state}
-                      xp={lesson.xp_reward}
-                      title={lesson.title}
-                      onClick={() => onSelectLesson(lesson)}
-                    />
-                  </div>
-
-                  {/* Mini-gráfico de candles (contínuo) ligando esta aula à próxima */}
-                  {!isLast && (
+            return (
+              <div className="relative mx-auto" style={{ width: TRACK_W, height }}>
+                {/* candles entre cada par de aulas */}
+                {lessons.slice(0, -1).map((lesson, i) => {
+                  const a = pts[i], b = pts[i + 1];
+                  const filled = (stateMap.get(lesson.id) ?? 'locked') === 'done';
+                  const count = i + 1;
+                  // faixa vertical que o gráfico ocupa entre os centros dos dois nós
+                  const yTop = Math.min(a.y, b.y) + NODE_H / 2;
+                  const yBot = Math.max(a.y, b.y) + NODE_H / 2;
+                  const range = Math.max(yBot - yTop, 40);
+                  // série caminhando do nível da aula a até o da aula b
+                  const startLvl = (a.y < b.y) ? 8 : range - 8;
+                  const endLvl = (a.y < b.y) ? range - 8 : 8;
+                  const series = makeCandleSeries(count, i + 1, range, startLvl, endLvl);
+                  const totalW = count * (CANDLE_W + CANDLE_GAP) - CANDLE_GAP;
+                  const cx = (a.x + b.x) / 2;
+                  return (
                     <div
-                      className="my-2 flex items-start gap-[3px]"
-                      style={{ height: CANDLE_RANGE }}
+                      key={`c-${lesson.id}`}
+                      className="absolute flex items-start"
+                      style={{ left: cx - totalW / 2, top: yTop, height: range, gap: CANDLE_GAP }}
                     >
                       {series.map((c, ci) => (
-                        <Candle
-                          key={ci}
-                          filled={candleFilled}
-                          high={c.high}
-                          open={c.open}
-                          close={c.close}
-                          low={c.low}
-                        />
+                        <Candle key={ci} filled={filled} high={c.high} open={c.open} close={c.close} low={c.low} />
                       ))}
                     </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
+                  );
+                })}
+
+                {/* nós das aulas */}
+                {lessons.map((lesson, i) => {
+                  const p = pts[i];
+                  const state = stateMap.get(lesson.id) ?? 'locked';
+                  return (
+                    <div
+                      key={lesson.id}
+                      className="absolute -translate-x-1/2"
+                      style={{ left: p.x, top: p.y }}
+                    >
+                      <LessonCandle
+                        state={state}
+                        xp={lesson.xp_reward}
+                        title={lesson.title}
+                        onClick={() => onSelectLesson(lesson)}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       ))}
 
