@@ -227,6 +227,7 @@ export interface TrilhaUnit {
   subtitle?: string;
   color?: string;
   image_url?: string;
+  icon_theme?: 'candle' | 'coin' | 'crypto' | 'default';
   order_index: number;
   created_at?: string;
   lessons?: TrilhaLesson[];

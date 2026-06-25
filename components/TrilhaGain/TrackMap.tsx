@@ -1,8 +1,7 @@
 import React from 'react';
-import { Star, TrendingUp } from 'lucide-react';
+import { Star } from 'lucide-react';
 import { TrilhaTrack, TrilhaLesson } from '../../types';
-import { Candle } from './Candle';
-import { LessonCandle } from './LessonCandle';
+import { LessonNode, IconTheme } from './LessonNode';
 
 interface Props {
   track: TrilhaTrack;
@@ -12,19 +11,12 @@ interface Props {
 
 type LessonState = 'done' | 'available' | 'locked';
 
-// Pseudo-aleatório determinístico (mesma seed → mesmo valor, estável entre renders).
-const rand = (seed: number): number => {
-  const x = Math.sin(seed * 12.9898) * 43758.5453;
-  return x - Math.floor(x); // 0..1
-};
-
-// Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
-// Uma lição fica disponível quando a anterior (ordem global) está concluída.
+// Trilha minimalista: nós temáticos por unidade, conectados por uma linha
+// pontilhada leve. Uma lição abre quando a anterior é concluída.
 export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) => {
   const units = track.units ?? [];
   const flat: TrilhaLesson[] = units.flatMap((u) => u.lessons ?? []);
 
-  // Estados na ordem plana: só a primeira não-concluída fica disponível.
   const stateMap = new Map<string, LessonState>();
   {
     let unlocked = true;
@@ -38,96 +30,78 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
   const doneCount = flat.filter((l) => completed.has(l.id)).length;
   const pct = flat.length ? Math.round((doneCount / flat.length) * 100) : 0;
 
-  // offsets serpenteando: cada unidade COMEÇA pela esquerda e ondula para a direita.
-  const offsets = [-72, -36, 24, 72, 36, -24];
+  // serpentina suave: começa à esquerda e ondula
+  const offsets = [-64, -32, 24, 56, 24, -32];
 
   return (
     <div className="max-w-md mx-auto pb-20">
-      {/* Barra de progresso geral da trilha */}
+      {/* Progresso — minimalista */}
       {flat.length > 0 && (
-        <div className="mb-8 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-slate-600 flex items-center gap-1.5">
-              <TrendingUp size={16} className="text-emerald-500" />
-              Progresso da trilha
+        <div className="mb-10">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-xs font-medium text-slate-400">
+              {doneCount} de {flat.length} lições
             </span>
-            <span className="text-sm font-bold text-emerald-600">{pct}%</span>
+            <span className="text-xs font-bold text-emerald-600">{pct}%</span>
           </div>
-          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-500"
+              className="h-full bg-emerald-500 rounded-full transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="text-xs text-slate-400 mt-2">{doneCount} de {flat.length} lições concluídas</p>
         </div>
       )}
 
-      {units.map((unit) => (
-        <div key={unit.id} className="mb-10">
-          {/* Cabeçalho da unidade — banner com cena temática (SVG) */}
-          <div className="relative overflow-hidden rounded-2xl mb-10 shadow-lg h-[120px] bg-gradient-to-r from-slate-800 to-slate-900">
-            {unit.image_url && (
-              <img src={unit.image_url} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            )}
-            {/* leve escurecimento para legibilidade do texto */}
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/40 to-transparent" />
-            <div className="relative h-full flex flex-col justify-center px-5 text-white">
-              <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-bold mb-0.5">
-                {unit.subtitle || 'Unidade'}
-              </p>
-              <h3 className="text-lg font-bold drop-shadow">{unit.title}</h3>
+      {units.map((unit) => {
+        const theme = (unit.icon_theme ?? 'default') as IconTheme;
+        const lessons = unit.lessons ?? [];
+        return (
+          <div key={unit.id} className="mb-12">
+            {/* Cabeçalho da unidade — leve, com cena temática discreta */}
+            <div className="relative overflow-hidden rounded-xl mb-8 h-20 bg-slate-900">
+              {unit.image_url && (
+                <img src={unit.image_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-70" />
+              )}
+              <div className="absolute inset-0 bg-gradient-to-r from-slate-900/70 to-slate-900/10" />
+              <div className="relative h-full flex flex-col justify-center px-4 text-white">
+                <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-300/90 font-semibold">
+                  {unit.subtitle || 'Unidade'}
+                </p>
+                <h3 className="text-base font-bold">{unit.title}</h3>
+              </div>
+            </div>
+
+            {/* Nós da unidade — ícones temáticos, contagem crescente */}
+            <div className="relative flex flex-col items-center gap-7">
+              {lessons.map((lesson, i) => {
+                const state = stateMap.get(lesson.id) ?? 'locked';
+                const offset = offsets[i % offsets.length];
+                const isLast = i === lessons.length - 1;
+                return (
+                  <div key={lesson.id} className="relative flex flex-col items-center">
+                    <div style={{ transform: `translateX(${offset}px)` }}>
+                      <LessonNode
+                        state={state}
+                        theme={theme}
+                        count={i + 1}
+                        xp={lesson.xp_reward}
+                        title={lesson.title}
+                        onClick={() => onSelectLesson(lesson)}
+                      />
+                    </div>
+
+                    {/* conector pontilhado leve */}
+                    {!isLast && (
+                      <div className="mt-3 h-6 w-px border-l-2 border-dashed border-slate-200" />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
-
-          {/* Nós da unidade, conectados por candles */}
-          <div className="relative flex flex-col items-center gap-0">
-            {(unit.lessons ?? []).map((lesson, i) => {
-              const state = stateMap.get(lesson.id) ?? 'locked';
-              const offset = offsets[i % offsets.length];
-              const lessons = unit.lessons ?? [];
-              const isLast = i === lessons.length - 1;
-              // Candles entre esta aula e a próxima: coloriam quando ESTA aula foi concluída.
-              const candleFilled = state === 'done';
-              // Quantidade de candles alterna entre os pares de aulas (3, 4, 3, 4...)
-              const candleCount = i % 2 === 0 ? 3 : 4;
-
-              return (
-                <div key={lesson.id} className="relative flex flex-col items-center">
-                  <div style={{ transform: `translateX(${offset}px)` }} className="flex flex-col items-center">
-                    <LessonCandle
-                      state={state}
-                      xp={lesson.xp_reward}
-                      title={lesson.title}
-                      onClick={() => onSelectLesson(lesson)}
-                    />
-                  </div>
-
-                  {/* Candles conectores realistas, em leve escada (quantidade alternada) */}
-                  {!isLast && (
-                    <div className="my-2 flex items-start gap-[3px]">
-                      {Array.from({ length: candleCount }).map((_, c) => {
-                        const seed = i * 17 + c * 7 + 1;
-                        return (
-                          <Candle
-                            key={c}
-                            filled={candleFilled}
-                            direction={rand(seed) > 0.5 ? 'up' : 'down'}
-                            size={0.25 + rand(seed + 1) * 0.75}
-                            topWick={rand(seed + 2)}
-                            bottomWick={rand(seed + 3)}
-                            drop={c * 7}
-                          />
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       {flat.length === 0 && (
         <div className="text-center text-slate-400 py-12 flex flex-col items-center gap-3">
