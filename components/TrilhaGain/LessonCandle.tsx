@@ -32,36 +32,35 @@ export const LessonCandle: React.FC<Props> = ({ state, xp, title, onClick }) => 
     >
       {/* badge de XP no nó disponível */}
       {state === 'available' && (
-        <span className="absolute -top-3 right-0 z-10 bg-yellow-400 text-yellow-900 text-[10px] font-extrabold px-1.5 py-0.5 rounded-full shadow">
+        <span className="absolute -top-2 -right-3 z-10 bg-yellow-400 text-yellow-900 text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow">
           +{xp}
         </span>
       )}
 
       {/* pavio superior */}
-      <div className={`w-[3px] rounded-full ${color.wick}`} style={{ height: 12 }} />
+      <div className={`w-[2px] rounded-full ${color.wick}`} style={{ height: 9 }} />
 
       {/* corpo do candle (o "nó" clicável) */}
       <div
-        className={`relative w-9 rounded-md flex items-center justify-center ${color.body} ${
-          state === 'available' ? 'shadow-xl shadow-emerald-500/40 ring-2 ring-emerald-200' : ''
-        } ${state === 'done' ? 'shadow-md shadow-emerald-500/30' : ''}`}
-        style={{ height: 46 }}
+        className={`relative w-[26px] rounded flex items-center justify-center ${color.body} ${
+          state === 'available' ? 'shadow-lg shadow-emerald-500/40 ring-2 ring-emerald-200' : ''
+        } ${state === 'done' ? 'shadow shadow-emerald-500/30' : ''}`}
+        style={{ height: 34 }}
       >
         {state === 'done' && (
-          // marca de conclusão discreta (cifrão = lucro realizado)
-          <span className="text-white font-extrabold text-lg leading-none">$</span>
+          <span className="text-white font-extrabold text-sm leading-none">$</span>
         )}
         {state === 'available' && (
-          <span className="text-white font-extrabold text-base leading-none">▲</span>
+          <span className="text-white font-extrabold text-xs leading-none">▲</span>
         )}
-        {state === 'locked' && <Lock size={16} className="text-slate-400" />}
+        {state === 'locked' && <Lock size={13} className="text-slate-400" />}
       </div>
 
       {/* pavio inferior */}
-      <div className={`w-[3px] rounded-full ${color.wick}`} style={{ height: 12 }} />
+      <div className={`w-[2px] rounded-full ${color.wick}`} style={{ height: 9 }} />
 
       {/* título da aula */}
-      <p className={`text-center text-xs font-semibold mt-1.5 w-28 ${
+      <p className={`text-center text-[11px] font-semibold mt-1 w-24 leading-tight ${
         state === 'locked' ? 'text-slate-300' : 'text-slate-600'
       }`}>
         {title}

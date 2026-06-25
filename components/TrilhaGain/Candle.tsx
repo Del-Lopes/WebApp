@@ -28,15 +28,15 @@ export const Candle: React.FC<Props> = ({ filled, high, open, close, low }) => {
     : isUp ? 'bg-emerald-500' : 'bg-rose-500';
 
   return (
-    <div className="relative w-3 h-full transition-all duration-500" aria-hidden>
+    <div className="relative w-[6px] h-full transition-all duration-500" aria-hidden>
       {/* pavio (linha vertical da máxima à mínima) */}
       <div
-        className={`absolute left-1/2 -translate-x-1/2 w-[2px] rounded-full ${wickColor}`}
+        className={`absolute left-1/2 -translate-x-1/2 w-[1.5px] rounded-full ${wickColor}`}
         style={{ top: high, height: Math.max(low - high, 2) }}
       />
       {/* corpo */}
       <div
-        className={`absolute left-1/2 -translate-x-1/2 w-[7px] rounded-[2px] ${bodyColor}`}
+        className={`absolute left-1/2 -translate-x-1/2 w-[5px] rounded-[1.5px] ${bodyColor}`}
         style={{ top: bodyTop, height: bodyH }}
       />
     </div>

@@ -14,32 +14,30 @@ interface Props {
 type LessonState = 'done' | 'available' | 'locked';
 
 // Geometria do caminho
-const TRACK_W   = 300; // largura útil da coluna de aulas (px)
-const NODE_H    = 46;  // altura aprox. do corpo do nó-candle
-const LABEL_H   = 28;  // altura do rótulo sob o nó
-const STEP_Y    = 120; // distância vertical entre aulas consecutivas
-const CANDLE_W  = 12;  // largura de cada candle
-const CANDLE_GAP = 2;  // espaço entre candles (bem justo)
+const TRACK_W   = 320; // largura útil da coluna de aulas (px)
+const NODE_H    = 34;  // altura do corpo do nó-candle
+const LABEL_H   = 26;  // altura do rótulo sob o nó
+const STEP_Y    = 110; // distância vertical entre aulas consecutivas
+const CANDLE_W  = 6;   // largura de cada candle (fino)
+const CANDLE_GAP = 1;  // espaço entre candles (bem justo)
 
 // Pontos (x,y) de cada aula formando um caminho com PIVOTS reais (sobe e desce),
-// como um gráfico de mercado visto de lado. Começa no canto esquerdo.
+// como um gráfico de mercado visto de lado. Começa BEM à esquerda.
 // dx por passo (px lateral) e dy por passo (px vertical; negativo = SOBE).
 function unitWaypoints(n: number): { x: number; y: number }[] {
-  // sequência de deltas que cria fundos e topos:
-  // direita+baixo, direita+baixo, direita+CIMA (pivô de alta), esquerda+baixo, ...
   const deltas = [
-    { dx:  90, dy:  120 },
-    { dx:  70, dy:  120 },
-    { dx:  50, dy: -70  }, // sobe (pivô de topo)
-    { dx: -60, dy:  130 },
+    { dx: 100, dy:  110 },
+    { dx:  80, dy:  110 },
+    { dx:  60, dy: -65  }, // sobe (pivô de topo)
     { dx: -70, dy:  120 },
-    { dx:  60, dy: -60  }, // sobe
-    { dx:  80, dy:  130 },
-    { dx: -50, dy:  120 },
+    { dx: -80, dy:  110 },
+    { dx:  70, dy: -55  }, // sobe
+    { dx:  90, dy:  120 },
+    { dx: -60, dy:  110 },
   ];
   const pts: { x: number; y: number }[] = [];
-  let x = 40, y = 20;
-  const minX = 30, maxX = TRACK_W - 30;
+  let x = 18, y = 16;                 // primeira aula bem à esquerda
+  const minX = 18, maxX = TRACK_W - 24;
   for (let i = 0; i < n; i++) {
     if (i > 0) {
       const d = deltas[(i - 1) % deltas.length];
@@ -143,18 +141,19 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
 
             return (
               <div className="relative mx-auto" style={{ width: TRACK_W, height }}>
-                {/* candles entre cada par de aulas */}
+                {/* candles entre cada par de aulas — faixa compacta e centralizada */}
                 {lessons.slice(0, -1).map((lesson, i) => {
                   const a = pts[i], b = pts[i + 1];
                   const filled = (stateMap.get(lesson.id) ?? 'locked') === 'done';
                   const count = i + 1;
-                  // faixa vertical que o gráfico ocupa entre os centros dos dois nós
-                  const yTop = Math.min(a.y, b.y) + NODE_H / 2;
-                  const yBot = Math.max(a.y, b.y) + NODE_H / 2;
-                  const range = Math.max(yBot - yTop, 40);
-                  // série caminhando do nível da aula a até o da aula b
-                  const startLvl = (a.y < b.y) ? 8 : range - 8;
-                  const endLvl = (a.y < b.y) ? range - 8 : 8;
+                  const aMid = a.y + NODE_H / 2, bMid = b.y + NODE_H / 2;
+                  // ponto médio vertical entre as duas aulas
+                  const midY = (aMid + bMid) / 2;
+                  // altura da faixa de candles: compacta (teto de 50px)
+                  const range = Math.min(Math.max(Math.abs(bMid - aMid) * 0.5, 30), 50);
+                  // série inclina no sentido a→b (sobe se a próxima aula está mais alta)
+                  const startLvl = (a.y <= b.y) ? 8 : range - 8;
+                  const endLvl = (a.y <= b.y) ? range - 8 : 8;
                   const series = makeCandleSeries(count, i + 1, range, startLvl, endLvl);
                   const totalW = count * (CANDLE_W + CANDLE_GAP) - CANDLE_GAP;
                   const cx = (a.x + b.x) / 2;
@@ -162,7 +161,7 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
                     <div
                       key={`c-${lesson.id}`}
                       className="absolute flex items-start"
-                      style={{ left: cx - totalW / 2, top: yTop, height: range, gap: CANDLE_GAP }}
+                      style={{ left: cx - totalW / 2, top: midY - range / 2, height: range, gap: CANDLE_GAP }}
                     >
                       {series.map((c, ci) => (
                         <Candle key={ci} filled={filled} high={c.high} open={c.open} close={c.close} low={c.low} />
