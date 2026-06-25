@@ -16,7 +16,7 @@ export const ConceptStep: React.FC<Props> = ({ payload, onContinue }) => {
           <img
             src={payload.image_url}
             alt={payload.title}
-            className="w-full rounded-2xl mb-4 object-cover max-h-64"
+            className="w-full rounded-2xl mb-4 object-contain max-h-64 bg-slate-50 border border-slate-100"
           />
         )}
         <p className="text-slate-600 leading-relaxed whitespace-pre-line">{payload.body}</p>
