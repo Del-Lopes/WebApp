@@ -8,12 +8,15 @@ import { BackButton } from '../BackButton';
 import { GamificationBar } from './GamificationBar';
 import { TrackMap } from './TrackMap';
 import { LessonPlayer } from './LessonPlayer';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Props {
   onBack: () => void;
 }
 
 export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
+  const { role } = useAuth();
+  const isAdmin = role === 'admin';
   const [tracks, setTracks] = useState<TrilhaTrack[]>([]);
   const [activeTrack, setActiveTrack] = useState<TrilhaTrack | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
@@ -110,7 +113,7 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
       {loading && !activeTrack ? (
         <div className="flex justify-center py-16 text-slate-400"><Loader2 className="animate-spin" size={28} /></div>
       ) : activeTrack ? (
-        <TrackMap track={activeTrack} completed={completed} onSelectLesson={setPlaying} />
+        <TrackMap track={activeTrack} completed={completed} isAdmin={isAdmin} onSelectLesson={setPlaying} />
       ) : (
         <div className="text-center text-slate-400 py-16 flex flex-col items-center gap-3">
           <Milestone size={40} className="opacity-40" />

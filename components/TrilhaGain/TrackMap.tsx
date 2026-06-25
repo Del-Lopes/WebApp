@@ -8,6 +8,7 @@ import { makeCandleSeries } from './candleSeries';
 interface Props {
   track: TrilhaTrack;
   completed: Set<string>;
+  isAdmin?: boolean; // admin acessa qualquer aula (ignora bloqueio/progressão)
   onSelectLesson: (lesson: TrilhaLesson) => void;
 }
 
@@ -53,7 +54,7 @@ function unitWaypoints(n: number): { x: number; y: number }[] {
 
 // Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
 // Uma lição fica disponível quando a anterior (ordem global) está concluída.
-export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) => {
+export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, onSelectLesson }) => {
   const units = track.units ?? [];
 
   // Conjunto de lições que pertencem a unidades bloqueadas (pagas).
@@ -67,18 +68,25 @@ export const TrackMap: React.FC<Props> = ({ track, completed, onSelectLesson }) 
     .filter((u) => !u.is_locked)
     .flatMap((u) => u.lessons ?? []);
 
-  // Estados na ordem plana: só a primeira não-concluída fica disponível.
   const stateMap = new Map<string, LessonState>();
-  {
+  if (isAdmin) {
+    // Admin acessa qualquer aula: concluída fica 'done', o resto 'available'.
+    for (const u of units) {
+      for (const l of (u.lessons ?? [])) {
+        stateMap.set(l.id, completed.has(l.id) ? 'done' : 'available');
+      }
+    }
+  } else {
+    // Progressão normal: só a primeira não-concluída fica disponível.
     let unlocked = true;
     for (const l of flat) {
       if (completed.has(l.id)) { stateMap.set(l.id, 'done'); continue; }
       stateMap.set(l.id, unlocked ? 'available' : 'locked');
       unlocked = false;
     }
+    // Lições de unidades bloqueadas → sempre travadas (exceto admin).
+    for (const id of lockedLessonIds) stateMap.set(id, 'locked');
   }
-  // Lições de unidades bloqueadas → sempre travadas.
-  for (const id of lockedLessonIds) stateMap.set(id, 'locked');
 
   const doneCount = flat.filter((l) => completed.has(l.id)).length;
   const pct = flat.length ? Math.round((doneCount / flat.length) * 100) : 0;
