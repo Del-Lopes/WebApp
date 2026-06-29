@@ -8,6 +8,7 @@ import { BackButton } from '../BackButton';
 import { GamificationBar } from './GamificationBar';
 import { TrackMap } from './TrackMap';
 import { LessonPlayer } from './LessonPlayer';
+import { InvertedScroll } from './InvertedScroll';
 import { useAuth } from '../../contexts/AuthContext';
 
 interface Props {
@@ -57,10 +58,47 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
     );
   }
 
+  // Banner "Domine o mercado" — fica no FUNDO (começo da jornada).
+  const banner = (
+    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800 via-slate-900 to-emerald-950 p-6 mt-6 shadow-xl">
+      <div
+        className="absolute inset-0 opacity-[0.08]"
+        style={{
+          backgroundImage:
+            'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+          backgroundSize: '24px 24px',
+        }}
+      />
+      <div className="absolute inset-0 flex items-end justify-around px-2 pb-0 opacity-25">
+        {[
+          { h: 34, b: 20, up: true }, { h: 52, b: 30, up: true }, { h: 40, b: 18, up: false },
+          { h: 64, b: 36, up: true }, { h: 48, b: 22, up: false }, { h: 72, b: 44, up: true },
+          { h: 58, b: 28, up: false }, { h: 80, b: 50, up: true }, { h: 66, b: 32, up: true },
+          { h: 90, b: 40, up: false }, { h: 76, b: 46, up: true }, { h: 100, b: 58, up: true },
+        ].map((c, i) => (
+          <div key={i} className="flex flex-col items-center justify-end" style={{ height: '100%' }}>
+            <div className={`w-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ height: (c.h - c.b) / 2 }} />
+            <div className={`w-2 rounded-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ height: c.b }} />
+            <div className={`w-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ height: (c.h - c.b) / 2 }} />
+          </div>
+        ))}
+      </div>
+      <div className="relative">
+        <div className="inline-flex items-center gap-2 text-emerald-300 text-xs font-bold mb-3">
+          <span className="w-6 h-px bg-emerald-400/60" />
+          Do zero ao operacional: Fundamentos, leitura de Candles e estruturação de operações.
+        </div>
+        <h2 className="text-2xl font-extrabold text-white leading-tight">
+          Domine o mercado,<br />uma lição por vez.
+        </h2>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="p-4 md:p-6 max-w-3xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+    <div className="h-full flex flex-col p-4 md:p-6 max-w-3xl mx-auto w-full">
+      {/* Header fixo */}
+      <div className="flex items-center justify-between mb-5 shrink-0">
         <div className="flex items-center gap-2 min-w-0">
           <BackButton onClick={onBack} />
           <h1 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2 min-w-0">
@@ -72,48 +110,14 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
         <GamificationBar stats={stats} />
       </div>
 
-      {/* Banner financeiro — topo da trilha */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800 via-slate-900 to-emerald-950 p-6 mb-6 shadow-xl">
-        {/* grid de gráfico */}
-        <div
-          className="absolute inset-0 opacity-[0.08]"
-          style={{
-            backgroundImage:
-              'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
-            backgroundSize: '24px 24px',
-          }}
-        />
-        {/* candles como plano de fundo */}
-        <div className="absolute inset-0 flex items-end justify-around px-2 pb-0 opacity-25">
-          {[
-            { h: 34, b: 20, up: true }, { h: 52, b: 30, up: true }, { h: 40, b: 18, up: false },
-            { h: 64, b: 36, up: true }, { h: 48, b: 22, up: false }, { h: 72, b: 44, up: true },
-            { h: 58, b: 28, up: false }, { h: 80, b: 50, up: true }, { h: 66, b: 32, up: true },
-            { h: 90, b: 40, up: false }, { h: 76, b: 46, up: true }, { h: 100, b: 58, up: true },
-          ].map((c, i) => (
-            <div key={i} className="flex flex-col items-center justify-end" style={{ height: '100%' }}>
-              <div className={`w-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ height: (c.h - c.b) / 2 }} />
-              <div className={`w-2 rounded-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ height: c.b }} />
-              <div className={`w-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ height: (c.h - c.b) / 2 }} />
-            </div>
-          ))}
-        </div>
-        <div className="relative">
-          <div className="inline-flex items-center gap-2 text-emerald-300 text-xs font-bold mb-3">
-            <span className="w-6 h-px bg-emerald-400/60" />
-            Do zero ao operacional: Fundamentos, leitura de Candles e estruturação de operações.
-          </div>
-          <h2 className="text-2xl font-extrabold text-white leading-tight">
-            Domine o mercado,<br />uma lição por vez.
-          </h2>
-        </div>
-      </div>
-
-      {/* Mapa da trilha */}
+      {/* Área de rolagem invertida: abre no fundo (Unidade 1), rolar p/ baixo avança */}
       {loading && !activeTrack ? (
         <div className="flex justify-center py-16 text-slate-400"><Loader2 className="animate-spin" size={28} /></div>
       ) : activeTrack ? (
-        <TrackMap track={activeTrack} completed={completed} isAdmin={isAdmin} onSelectLesson={setPlaying} />
+        <InvertedScroll className="flex-1 -mx-1 px-1">
+          <TrackMap track={activeTrack} completed={completed} isAdmin={isAdmin} onSelectLesson={setPlaying} />
+          {banner}
+        </InvertedScroll>
       ) : (
         <div className="text-center text-slate-400 py-16 flex flex-col items-center gap-3">
           <Milestone size={40} className="opacity-40" />
