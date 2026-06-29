@@ -18,37 +18,35 @@ type LessonState = 'done' | 'available' | 'locked';
 // Geometria do caminho
 const TRACK_W   = 320; // largura útil da coluna de aulas (px)
 const NODE_H    = 34;  // altura do corpo do nó-candle
-const LABEL_H   = 26;  // altura do rótulo sob o nó
+const MARGIN    = 28;  // respiro lateral e topo/base
+const PER_ROW   = 4;   // nós por linha horizontal
+const ROW_H     = 96;  // distância vertical entre linhas (cada linha sobe)
+const PIVOT     = 16;  // variação vertical leve dentro da linha (pivots)
 const CANDLE_W  = 6;   // largura de cada candle (fino)
 const CANDLE_GAP = 1;  // espaço entre candles (bem justo)
-const CANDLES_PER_GAP = 3; // nº fixo de candles entre duas aulas
+const CANDLES_PER_GAP = 3; // nº fixo de candles entre dois nós
 
-// Pontos (x,y) de cada aula. Escada diagonal suave (desce e vai à direita),
-// com pivots leves, começando no canto superior esquerdo — como o gráfico
-// contínuo do print de referência.
+// Pontos (x,y) de cada nó em ZIGUE-ZAGUE (boustrophedon) SUBINDO:
+// começa embaixo à esquerda; a 1ª linha vai →, a 2ª vem ←, a 3ª vai →...
+// cada nova linha fica ACIMA da anterior (tendência de alta). Como não há
+// salto de volta ao início, a conexão entre linhas é fluida.
 function unitWaypoints(n: number): { x: number; y: number }[] {
-  // deltas: sempre avança à direita; verticalmente desce, com alguns sobem leve (pivô).
-  const deltas = [
-    { dx: 64, dy:  74 },
-    { dx: 60, dy:  60 },
-    { dx: 56, dy: -34 }, // pivô leve de alta
-    { dx: 58, dy:  78 },
-    { dx: 52, dy:  56 },
-    { dx: 60, dy: -30 }, // pivô leve
-    { dx: 56, dy:  76 },
-    { dx: 54, dy:  58 },
-  ];
+  const rows = Math.max(1, Math.ceil(n / PER_ROW));
+  const totalH = (rows - 1) * ROW_H;
+  const colW = (TRACK_W - 2 * MARGIN) / (PER_ROW - 1);
+
   const pts: { x: number; y: number }[] = [];
-  let x = 22, y = 14;                 // primeira aula no canto superior esquerdo
-  const minX = 22, maxX = TRACK_W - 30;
   for (let i = 0; i < n; i++) {
-    if (i > 0) {
-      const d = deltas[(i - 1) % deltas.length];
-      // se passar da direita, "quebra a linha": volta à esquerda e desce um degrau
-      if (x + d.dx > maxX) { x = minX; y += 84; }
-      else { x = Math.max(minX, x + d.dx); y += d.dy; }
-    }
-    pts.push({ x, y });
+    const row = Math.floor(i / PER_ROW);     // 0 = mais baixa
+    const col = i % PER_ROW;                  // posição na linha
+    const leftToRight = row % 2 === 0;        // linhas pares vão →, ímpares ←
+    const effCol = leftToRight ? col : (PER_ROW - 1 - col);
+    const x = MARGIN + effCol * colW;
+    // base do eixo: linha 0 embaixo (y = totalH), sobe ROW_H por linha
+    const baseY = MARGIN + (totalH - row * ROW_H);
+    // pivot leve alternando dentro da linha, para dar cara de gráfico
+    const pivot = (i % 2 === 0 ? -PIVOT : PIVOT) * 0.6;
+    pts.push({ x, y: baseY + pivot });
   }
   return pts;
 }
@@ -149,24 +147,23 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
             const nodes = nodesByUnit.get(unit.id) ?? [];
             const pts = unitWaypoints(nodes.length);
             const height = pts.length
-              ? Math.max(...pts.map((p) => p.y)) + NODE_H + LABEL_H
+              ? Math.max(...pts.map((p) => p.y)) + NODE_H + MARGIN
               : 0;
 
             return (
               <div className="relative mx-auto" style={{ width: TRACK_W, height }}>
-                {/* candles de conexão entre cada par de nós — quantidade fixa, faixa baixa */}
+                {/* candles de conexão entre cada par de nós — fluido no zigue-zague */}
                 {nodes.slice(0, -1).map((node, i) => {
                   const a = pts[i], b = pts[i + 1];
-                  // Quebra de linha: o caminho voltou para a esquerda (b à esquerda de a).
-                  // Não desenha candles no vão vazio entre o fim de uma linha e o início da outra.
-                  if (b.x < a.x) return null;
                   const filled = (stateMap.get(node.id) ?? 'locked') === 'done';
                   const count = CANDLES_PER_GAP;
                   const aMid = a.y + NODE_H / 2, bMid = b.y + NODE_H / 2;
                   const midY = (aMid + bMid) / 2;
                   const range = 40;
-                  const startLvl = (a.y <= b.y) ? 8 : range - 8;
-                  const endLvl = (a.y <= b.y) ? range - 8 : 8;
+                  // série inclina no sentido a→b (sobe quando a próxima aula está mais alta = y menor)
+                  const goingUp = b.y < a.y;
+                  const startLvl = goingUp ? range - 8 : 8;
+                  const endLvl = goingUp ? 8 : range - 8;
                   const series = makeCandleSeries(count, i + 1, range, startLvl, endLvl);
                   const totalW = count * (CANDLE_W + CANDLE_GAP) - CANDLE_GAP;
                   const cx = (a.x + b.x) / 2;
