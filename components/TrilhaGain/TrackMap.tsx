@@ -18,37 +18,46 @@ type LessonState = 'done' | 'available' | 'locked';
 // Geometria do caminho
 const TRACK_W   = 320; // largura útil da coluna de aulas (px)
 const NODE_H    = 34;  // altura do corpo do nó-candle
-const MARGIN    = 28;  // respiro lateral e topo/base
-const PER_ROW   = 4;   // nós por linha horizontal
-const ROW_H     = 96;  // distância vertical entre linhas (cada linha sobe)
-const PIVOT     = 16;  // variação vertical leve dentro da linha (pivots)
+const MARGIN    = 28;  // respiro topo/base
 const CANDLE_W  = 6;   // largura de cada candle (fino)
 const CANDLE_GAP = 1;  // espaço entre candles (bem justo)
 const CANDLES_PER_GAP = 3; // nº fixo de candles entre dois nós
 
-// Pontos (x,y) de cada nó em ZIGUE-ZAGUE (boustrophedon) SUBINDO:
-// começa embaixo à esquerda; a 1ª linha vai →, a 2ª vem ←, a 3ª vai →...
-// cada nova linha fica ACIMA da anterior (tendência de alta). Como não há
-// salto de volta ao início, a conexão entre linhas é fluida.
+// Pontos (x,y) de cada nó. Escada diagonal (mesma distribuição da versão que
+// formava tendência de baixa), porém ESPELHADA para SUBIR: o primeiro nó fica
+// embaixo e a trilha sobe à direita; ao bater na borda, quebra a linha.
 function unitWaypoints(n: number): { x: number; y: number }[] {
-  const rows = Math.max(1, Math.ceil(n / PER_ROW));
-  const totalH = (rows - 1) * ROW_H;
-  const colW = (TRACK_W - 2 * MARGIN) / (PER_ROW - 1);
-
-  const pts: { x: number; y: number }[] = [];
+  // 1) gera a escada "descendo" (mesmos parâmetros da versão anterior)
+  const deltas = [
+    { dx: 64, dy:  74 },
+    { dx: 60, dy:  60 },
+    { dx: 56, dy: -34 }, // pivô leve
+    { dx: 58, dy:  78 },
+    { dx: 52, dy:  56 },
+    { dx: 60, dy: -30 }, // pivô leve
+    { dx: 56, dy:  76 },
+    { dx: 54, dy:  58 },
+  ];
+  const raw: { x: number; y: number }[] = [];
+  let x = 22, y = 14;
+  const minX = 22, maxX = TRACK_W - 30;
   for (let i = 0; i < n; i++) {
-    const row = Math.floor(i / PER_ROW);     // 0 = mais baixa
-    const col = i % PER_ROW;                  // posição na linha
-    const leftToRight = row % 2 === 0;        // linhas pares vão →, ímpares ←
-    const effCol = leftToRight ? col : (PER_ROW - 1 - col);
-    const x = MARGIN + effCol * colW;
-    // base do eixo: linha 0 embaixo (y = totalH), sobe ROW_H por linha
-    const baseY = MARGIN + (totalH - row * ROW_H);
-    // pivot leve alternando dentro da linha, para dar cara de gráfico
-    const pivot = (i % 2 === 0 ? -PIVOT : PIVOT) * 0.6;
-    pts.push({ x, y: baseY + pivot });
+    if (i > 0) {
+      const d = deltas[(i - 1) % deltas.length];
+      if (x + d.dx > maxX) { x = minX; y += 84; }       // quebra de linha
+      else { x = Math.max(minX, x + d.dx); y += d.dy; }
+    }
+    raw.push({ x, y });
   }
-  return pts;
+  // 2) espelha no eixo vertical → vira tendência de ALTA (sobe)
+  const maxY = raw.length ? Math.max(...raw.map((p) => p.y)) : 0;
+  return raw.map((p) => ({ x: p.x, y: maxY - p.y + MARGIN }));
+}
+
+// true quando o trecho i→i+1 é uma quebra de linha (salto lateral grande):
+// nesses trechos não desenhamos candles (ficariam "voando" no vão).
+function isLineBreak(a: { x: number }, b: { x: number }): boolean {
+  return b.x < a.x - 1; // próximo voltou para a esquerda
 }
 
 // Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
@@ -114,34 +123,11 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
         </div>
       )}
 
-      {units.map((unit) => (
-        <div key={unit.id} className="mb-10">
-          {/* Cabeçalho da unidade — banner com cena temática (SVG) */}
-          <div className="relative overflow-hidden rounded-2xl mb-10 shadow-lg h-[120px] bg-gradient-to-r from-slate-800 to-slate-900">
-            {unit.image_url && (
-              <img
-                src={unit.image_url}
-                alt=""
-                className={`absolute inset-0 w-full h-full object-cover ${unit.is_locked ? 'grayscale' : ''}`}
-              />
-            )}
-            {/* leve escurecimento para legibilidade do texto */}
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/40 to-transparent" />
-            <div className="relative h-full flex items-center justify-between px-5 text-white">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-bold mb-0.5">
-                  {unit.subtitle || 'Unidade'}
-                </p>
-                <h3 className="text-lg font-bold drop-shadow">{unit.title}</h3>
-              </div>
-              {unit.is_locked && (
-                <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-400/90 text-yellow-900 text-xs font-extrabold shadow">
-                  <Lock size={13} /> Premium
-                </span>
-              )}
-            </div>
-          </div>
-
+      {/* Unidades empilhadas DE BAIXO PARA CIMA: Unidade 1 na base, as
+          seguintes acima. Dentro de cada unidade, a trilha sobe e o banner
+          fica embaixo (rola-se para cima para avançar). */}
+      {[...units].reverse().map((unit) => (
+        <div key={unit.id} className="mb-2">
           {/* Nós da unidade (aulas + lições-checkpoint) num caminho com pivots */}
           {(() => {
             const nodes = nodesByUnit.get(unit.id) ?? [];
@@ -152,9 +138,10 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
 
             return (
               <div className="relative mx-auto" style={{ width: TRACK_W, height }}>
-                {/* candles de conexão entre cada par de nós — fluido no zigue-zague */}
+                {/* candles de conexão entre cada par de nós (pula a quebra de linha) */}
                 {nodes.slice(0, -1).map((node, i) => {
                   const a = pts[i], b = pts[i + 1];
+                  if (isLineBreak(a, b)) return null;
                   const filled = (stateMap.get(node.id) ?? 'locked') === 'done';
                   const count = CANDLES_PER_GAP;
                   const aMid = a.y + NODE_H / 2, bMid = b.y + NODE_H / 2;
@@ -203,6 +190,31 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
               </div>
             );
           })()}
+
+          {/* Banner da unidade — fica EMBAIXO da trilha (que sobe) */}
+          <div className="relative overflow-hidden rounded-2xl mt-2 mb-8 shadow-lg h-[120px] bg-gradient-to-r from-slate-800 to-slate-900">
+            {unit.image_url && (
+              <img
+                src={unit.image_url}
+                alt=""
+                className={`absolute inset-0 w-full h-full object-cover ${unit.is_locked ? 'grayscale' : ''}`}
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/40 to-transparent" />
+            <div className="relative h-full flex items-center justify-between px-5 text-white">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-bold mb-0.5">
+                  {unit.subtitle || 'Unidade'}
+                </p>
+                <h3 className="text-lg font-bold drop-shadow">{unit.title}</h3>
+              </div>
+              {unit.is_locked && (
+                <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-400/90 text-yellow-900 text-xs font-extrabold shadow">
+                  <Lock size={13} /> Premium
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       ))}
 
