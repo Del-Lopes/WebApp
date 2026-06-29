@@ -206,7 +206,7 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
         </div>
       ))}
 
-      {flat.length === 0 && (
+      {flatNodes.length === 0 && (
         <div className="text-center text-slate-400 py-12 flex flex-col items-center gap-3">
           <Star size={40} className="opacity-40" />
           <p>Esta trilha ainda não tem lições.</p>
