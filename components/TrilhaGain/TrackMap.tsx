@@ -157,6 +157,9 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
                 {/* candles de conexão entre cada par de nós — quantidade fixa, faixa baixa */}
                 {nodes.slice(0, -1).map((node, i) => {
                   const a = pts[i], b = pts[i + 1];
+                  // Quebra de linha: o caminho voltou para a esquerda (b à esquerda de a).
+                  // Não desenha candles no vão vazio entre o fim de uma linha e o início da outra.
+                  if (b.x < a.x) return null;
                   const filled = (stateMap.get(node.id) ?? 'locked') === 'done';
                   const count = CANDLES_PER_GAP;
                   const aMid = a.y + NODE_H / 2, bMid = b.y + NODE_H / 2;
