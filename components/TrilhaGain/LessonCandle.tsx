@@ -1,10 +1,11 @@
 import React from 'react';
-import { Lock, TrendingUp, BarChart3, LineChart, CandlestickChart } from 'lucide-react';
+import { Lock, TrendingUp, BarChart3, LineChart, CandlestickChart, Trophy } from 'lucide-react';
 
 type LessonState = 'done' | 'available' | 'locked';
 
 interface Props {
   state: LessonState;
+  kind?: 'aula' | 'licao'; // 'licao' = checkpoint de revisão (visual distinto)
   xp: number;
   iconSeed: string; // estável por aula (usa o id) para escolher o símbolo
   onClick: () => void;
@@ -40,11 +41,14 @@ const SYMBOLS: Sym[] = [
 //   done      → candle verde com símbolo branco
 //   available → candle verde pulsando + badge de XP
 //   locked    → candle cinza com cadeado
-export const LessonCandle: React.FC<Props> = ({ state, xp, iconSeed, onClick }) => {
+export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, iconSeed, onClick }) => {
+  const isLicao = kind === 'licao';
   const color =
     state === 'locked'
       ? { wick: 'bg-slate-300', body: 'bg-gradient-to-b from-slate-200 to-slate-300' }
-      : { wick: 'bg-emerald-500', body: 'bg-gradient-to-b from-emerald-400 to-emerald-600' };
+      : isLicao
+        ? { wick: 'bg-amber-500', body: 'bg-gradient-to-b from-amber-400 to-amber-600' }
+        : { wick: 'bg-emerald-500', body: 'bg-gradient-to-b from-emerald-400 to-emerald-600' };
 
   const sym = SYMBOLS[hash(iconSeed) % SYMBOLS.length];
 
@@ -66,15 +70,19 @@ export const LessonCandle: React.FC<Props> = ({ state, xp, iconSeed, onClick }) 
       {/* pavio superior */}
       <div className={`w-[2px] rounded-full ${color.wick}`} style={{ height: 9 }} />
 
-      {/* corpo do candle (o "nó" clicável) */}
+      {/* corpo do candle (o "nó" clicável). Lição é mais larga, com troféu. */}
       <div
-        className={`relative w-[26px] rounded flex items-center justify-center ${color.body} ${
-          state === 'available' ? 'shadow-lg shadow-emerald-500/40 ring-2 ring-emerald-200' : ''
-        } ${state === 'done' ? 'shadow shadow-emerald-500/30' : ''}`}
-        style={{ height: 34 }}
+        className={`relative rounded flex items-center justify-center ${color.body} ${
+          state === 'available'
+            ? (isLicao ? 'shadow-lg shadow-amber-500/40 ring-2 ring-amber-200' : 'shadow-lg shadow-emerald-500/40 ring-2 ring-emerald-200')
+            : ''
+        } ${state === 'done' ? (isLicao ? 'shadow shadow-amber-500/30' : 'shadow shadow-emerald-500/30') : ''}`}
+        style={{ width: isLicao ? 34 : 26, height: isLicao ? 38 : 34 }}
       >
         {state === 'locked' ? (
           <Lock size={13} className="text-slate-400" />
+        ) : isLicao ? (
+          <Trophy size={18} className="text-white" strokeWidth={2.5} />
         ) : sym.kind === 'text' ? (
           <span className="text-white font-extrabold text-sm leading-none">{sym.v}</span>
         ) : (

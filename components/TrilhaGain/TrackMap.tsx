@@ -4,6 +4,7 @@ import { TrilhaTrack, TrilhaLesson } from '../../types';
 import { Candle } from './Candle';
 import { LessonCandle } from './LessonCandle';
 import { makeCandleSeries } from './candleSeries';
+import { buildUnitNodes, TrackNode } from './unitNodes';
 
 interface Props {
   track: TrilhaTrack;
@@ -57,44 +58,46 @@ function unitWaypoints(n: number): { x: number; y: number }[] {
 export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, onSelectLesson }) => {
   const units = track.units ?? [];
 
-  // Conjunto de lições que pertencem a unidades bloqueadas (pagas).
-  const lockedLessonIds = new Set<string>();
+  // Nós (aula + lição-checkpoint) por unidade.
+  const nodesByUnit = new Map<string, TrackNode[]>();
+  for (const u of units) nodesByUnit.set(u.id, buildUnitNodes(u.id, u.lessons ?? []));
+
+  // Ids de nós em unidades bloqueadas (pagas).
+  const lockedNodeIds = new Set<string>();
   for (const u of units) {
-    if (u.is_locked) for (const l of (u.lessons ?? [])) lockedLessonIds.add(l.id);
+    if (u.is_locked) for (const n of nodesByUnit.get(u.id) ?? []) lockedNodeIds.add(n.id);
   }
 
-  // Lições "operáveis" = as de unidades desbloqueadas (entram na progressão/contagem).
-  const flat: TrilhaLesson[] = units
+  // Sequência de nós das unidades desbloqueadas (entra na progressão/contagem).
+  const flatNodes: TrackNode[] = units
     .filter((u) => !u.is_locked)
-    .flatMap((u) => u.lessons ?? []);
+    .flatMap((u) => nodesByUnit.get(u.id) ?? []);
 
   const stateMap = new Map<string, LessonState>();
   if (isAdmin) {
-    // Admin acessa qualquer aula: concluída fica 'done', o resto 'available'.
     for (const u of units) {
-      for (const l of (u.lessons ?? [])) {
-        stateMap.set(l.id, completed.has(l.id) ? 'done' : 'available');
+      for (const n of nodesByUnit.get(u.id) ?? []) {
+        stateMap.set(n.id, completed.has(n.id) ? 'done' : 'available');
       }
     }
   } else {
-    // Progressão normal: só a primeira não-concluída fica disponível.
+    // Progressão: só o primeiro nó não-concluído fica disponível.
     let unlocked = true;
-    for (const l of flat) {
-      if (completed.has(l.id)) { stateMap.set(l.id, 'done'); continue; }
-      stateMap.set(l.id, unlocked ? 'available' : 'locked');
+    for (const n of flatNodes) {
+      if (completed.has(n.id)) { stateMap.set(n.id, 'done'); continue; }
+      stateMap.set(n.id, unlocked ? 'available' : 'locked');
       unlocked = false;
     }
-    // Lições de unidades bloqueadas → sempre travadas (exceto admin).
-    for (const id of lockedLessonIds) stateMap.set(id, 'locked');
+    for (const id of lockedNodeIds) stateMap.set(id, 'locked');
   }
 
-  const doneCount = flat.filter((l) => completed.has(l.id)).length;
-  const pct = flat.length ? Math.round((doneCount / flat.length) * 100) : 0;
+  const doneCount = flatNodes.filter((n) => completed.has(n.id)).length;
+  const pct = flatNodes.length ? Math.round((doneCount / flatNodes.length) * 100) : 0;
 
   return (
     <div className="max-w-md mx-auto pb-20">
       {/* Barra de progresso geral da trilha */}
-      {flat.length > 0 && (
+      {flatNodes.length > 0 && (
         <div className="mb-8 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-slate-600 flex items-center gap-1.5">
@@ -109,7 +112,7 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="text-xs text-slate-400 mt-2">{doneCount} de {flat.length} lições concluídas</p>
+          <p className="text-xs text-slate-400 mt-2">{doneCount} de {flatNodes.length} etapas concluídas</p>
         </div>
       )}
 
@@ -141,25 +144,24 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
             </div>
           </div>
 
-          {/* Nós da unidade num caminho com pivots (sobe e desce), ligados por candles */}
+          {/* Nós da unidade (aulas + lições-checkpoint) num caminho com pivots */}
           {(() => {
-            const lessons = unit.lessons ?? [];
-            const pts = unitWaypoints(lessons.length);
+            const nodes = nodesByUnit.get(unit.id) ?? [];
+            const pts = unitWaypoints(nodes.length);
             const height = pts.length
               ? Math.max(...pts.map((p) => p.y)) + NODE_H + LABEL_H
               : 0;
 
             return (
               <div className="relative mx-auto" style={{ width: TRACK_W, height }}>
-                {/* candles entre cada par de aulas — quantidade fixa, faixa baixa */}
-                {lessons.slice(0, -1).map((lesson, i) => {
+                {/* candles de conexão entre cada par de nós — quantidade fixa, faixa baixa */}
+                {nodes.slice(0, -1).map((node, i) => {
                   const a = pts[i], b = pts[i + 1];
-                  const filled = (stateMap.get(lesson.id) ?? 'locked') === 'done';
-                  const count = CANDLES_PER_GAP; // fixo, cabe sempre
+                  const filled = (stateMap.get(node.id) ?? 'locked') === 'done';
+                  const count = CANDLES_PER_GAP;
                   const aMid = a.y + NODE_H / 2, bMid = b.y + NODE_H / 2;
                   const midY = (aMid + bMid) / 2;
-                  const range = 40; // faixa baixa e compacta
-                  // série inclina no sentido a→b (acompanha a escada das aulas)
+                  const range = 40;
                   const startLvl = (a.y <= b.y) ? 8 : range - 8;
                   const endLvl = (a.y <= b.y) ? range - 8 : 8;
                   const series = makeCandleSeries(count, i + 1, range, startLvl, endLvl);
@@ -167,7 +169,7 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
                   const cx = (a.x + b.x) / 2;
                   return (
                     <div
-                      key={`c-${lesson.id}`}
+                      key={`c-${node.id}`}
                       className="absolute flex items-start"
                       style={{ left: cx - totalW / 2, top: midY - range / 2, height: range, gap: CANDLE_GAP }}
                     >
@@ -178,21 +180,22 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
                   );
                 })}
 
-                {/* nós das aulas */}
-                {lessons.map((lesson, i) => {
+                {/* nós (aula / lição) */}
+                {nodes.map((node, i) => {
                   const p = pts[i];
-                  const state = stateMap.get(lesson.id) ?? 'locked';
+                  const state = stateMap.get(node.id) ?? 'locked';
                   return (
                     <div
-                      key={lesson.id}
+                      key={node.id}
                       className="absolute -translate-x-1/2"
                       style={{ left: p.x, top: p.y }}
                     >
                       <LessonCandle
                         state={state}
-                        xp={lesson.xp_reward}
-                        iconSeed={lesson.id}
-                        onClick={() => onSelectLesson(lesson)}
+                        kind={node.kind}
+                        xp={node.xp}
+                        iconSeed={node.id}
+                        onClick={() => onSelectLesson(node.lesson)}
                       />
                     </div>
                   );
