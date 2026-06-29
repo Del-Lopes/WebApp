@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, TrendingUp, Coins } from 'lucide-react';
 import {
   TrilhaLesson, ConceptPayload, QuizPayload,
@@ -23,6 +23,12 @@ export const LessonPlayer: React.FC<Props> = ({ lesson, onClose, onCompleted }) 
   const [index, setIndex] = useState(0);
   const [finished, setFinished] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Lição/aula sem steps (ex.: aula sem concept) → conclui direto.
+  useEffect(() => {
+    if (steps.length === 0 && !finished && !saving) finish();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const advance = () => {
     if (index + 1 >= steps.length) {

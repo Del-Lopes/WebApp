@@ -60,8 +60,8 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, iconSe
         state === 'available' ? 'animate-pulse' : ''
       }`}
     >
-      {/* badge de XP no nó disponível */}
-      {state === 'available' && (
+      {/* badge de XP só no candle de lição (o "gain"), quando disponível */}
+      {state === 'available' && isLicao && xp > 0 && (
         <span className="absolute -top-2 -right-3 z-10 bg-yellow-400 text-yellow-900 text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow">
           +{xp}
         </span>
