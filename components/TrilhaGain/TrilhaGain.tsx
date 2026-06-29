@@ -96,9 +96,9 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
   );
 
   return (
-    <div className="h-full flex flex-col p-4 md:p-6 max-w-3xl mx-auto w-full">
-      {/* Header fixo */}
-      <div className="flex items-center justify-between mb-5 shrink-0">
+    <div className="p-4 md:p-6 max-w-3xl mx-auto w-full">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2 min-w-0">
           <BackButton onClick={onBack} />
           <h1 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2 min-w-0">
@@ -110,11 +110,12 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
         <GamificationBar stats={stats} />
       </div>
 
-      {/* Área de rolagem invertida: abre no fundo (Unidade 1), rolar p/ baixo avança */}
+      {/* Rolagem invertida: abre no fundo (Unidade 1), rolar p/ baixo avança.
+          Opera sobre o scroll do App (ancestral), sem criar scroll próprio. */}
       {loading && !activeTrack ? (
         <div className="flex justify-center py-16 text-slate-400"><Loader2 className="animate-spin" size={28} /></div>
       ) : activeTrack ? (
-        <InvertedScroll className="flex-1 -mx-1 px-1">
+        <InvertedScroll>
           <TrackMap track={activeTrack} completed={completed} isAdmin={isAdmin} onSelectLesson={setPlaying} />
           {banner}
         </InvertedScroll>

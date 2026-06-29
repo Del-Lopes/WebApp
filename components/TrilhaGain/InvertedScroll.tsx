@@ -5,57 +5,58 @@ interface Props {
   className?: string;
 }
 
-// Container de rolagem INVERTIDA:
+// Sobe na árvore até achar o ancestral cujo overflow-y é scroll/auto
+// (não exige que já tenha overflow agora — o conteúdo pode crescer depois).
+function findScrollParent(el: HTMLElement | null): HTMLElement | null {
+  let node = el?.parentElement ?? null;
+  while (node) {
+    const oy = getComputedStyle(node).overflowY;
+    if (oy === 'auto' || oy === 'scroll') return node;
+    node = node.parentElement;
+  }
+  return null;
+}
+
+// Rolagem INVERTIDA aplicada ao container de scroll do App (ancestral):
 // - ao montar, posiciona no FUNDO (mostra o começo da jornada = Unidade 1)
-// - rolar a roda do mouse para BAIXO faz o conteúdo avançar (scrollTop diminui),
-//   revelando as unidades seguintes (que estão acima no DOM).
-// Mantém suporte a teclado/trackpad via o scroll nativo (só a roda é invertida).
+// - rolar a roda do mouse para BAIXO faz a trilha avançar (revela o que está acima)
+// Não cria um scroll próprio — evita scroll duplo e problemas de altura.
 export const InvertedScroll: React.FC<Props> = ({ children, className = '' }) => {
   const ref = useRef<HTMLDivElement>(null);
 
-  // Posiciona no fundo ao montar e mantém lá enquanto o conteúdo cresce
-  // (imagens/banners assentando), até o usuário interagir.
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    let pinned = true; // enquanto o usuário não rolou, gruda no fundo
-    const toBottom = () => { if (pinned) el.scrollTop = el.scrollHeight; };
+    const scroller = findScrollParent(ref.current);
+    if (!scroller) return;
+
+    let pinned = true; // gruda no fundo até o conteúdo assentar / usuário interagir
+    const toBottom = () => { if (pinned) scroller.scrollTop = scroller.scrollHeight; };
     toBottom();
+
     const ro = new ResizeObserver(toBottom);
-    ro.observe(el);
-    for (const child of Array.from(el.children)) ro.observe(child as Element);
+    ro.observe(scroller);
+    if (ref.current) ro.observe(ref.current);
+
     const release = () => { pinned = false; };
-    // qualquer interação solta o "pin"
-    el.addEventListener('wheel', release, { passive: true });
-    el.addEventListener('touchstart', release, { passive: true });
-    el.addEventListener('keydown', release);
+    const onWheel = (e: WheelEvent) => {
+      if (e.ctrlKey) return;          // deixa zoom passar
+      pinned = false;
+      e.preventDefault();
+      scroller.scrollTop -= e.deltaY; // inverte: baixo → avança
+    };
+
+    scroller.addEventListener('wheel', onWheel, { passive: false });
+    scroller.addEventListener('touchstart', release, { passive: true });
+    scroller.addEventListener('keydown', release);
     const t = setTimeout(() => { pinned = false; }, 800);
+
     return () => {
       ro.disconnect();
-      el.removeEventListener('wheel', release);
-      el.removeEventListener('touchstart', release);
-      el.removeEventListener('keydown', release);
+      scroller.removeEventListener('wheel', onWheel);
+      scroller.removeEventListener('touchstart', release);
+      scroller.removeEventListener('keydown', release);
       clearTimeout(t);
     };
   }, []);
 
-  // Inverte o gesto da roda do mouse.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      // só intercepta rolagem vertical "de mouse"; deixa zoom (ctrl) passar
-      if (e.ctrlKey) return;
-      e.preventDefault();
-      el.scrollTop -= e.deltaY; // inverte: baixo → conteúdo avança
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
-
-  return (
-    <div ref={ref} className={`overflow-y-auto ${className}`}>
-      {children}
-    </div>
-  );
+  return <div ref={ref} className={className}>{children}</div>;
 };
