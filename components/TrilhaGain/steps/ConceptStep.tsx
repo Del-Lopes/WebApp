@@ -10,20 +10,20 @@ interface Props {
 export const ConceptStep: React.FC<Props> = ({ payload, onContinue }) => {
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-        <h2 className="font-display text-[26px] leading-tight font-bold text-slate-900 tracking-tight mb-4">{payload.title}</h2>
+      <div className="flex-1 overflow-y-auto">
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">{payload.title}</h2>
         {payload.image_url && (
           <img
             src={payload.image_url}
             alt={payload.title}
-            className="w-full rounded-3xl mb-5 object-contain max-h-64 bg-white ring-1 ring-slate-100 shadow-[var(--tg-shadow-sm)]"
+            className="w-full rounded-2xl mb-4 object-contain max-h-64 bg-slate-50 border border-slate-100"
           />
         )}
-        <p className="text-[15px] text-slate-600 leading-[1.7] whitespace-pre-line">{payload.body}</p>
+        <p className="text-slate-600 leading-relaxed whitespace-pre-line">{payload.body}</p>
       </div>
       <button
         onClick={onContinue}
-        className="tg-btn mt-6 w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold text-lg shadow-[var(--tg-shadow-glow)]"
+        className="mt-6 w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-bold text-lg transition-colors shadow-lg shadow-green-900/20"
       >
         Continuar
       </button>

@@ -46,35 +46,33 @@ export const OrderStep: React.FC<Props> = ({ payload, onResolved }) => {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-        <h2 className="font-display text-[21px] leading-snug font-bold text-slate-900 tracking-tight mb-6">{payload.prompt}</h2>
+      <div className="flex-1 overflow-y-auto">
+        <h2 className="text-xl font-bold text-slate-800 mb-6">{payload.prompt}</h2>
 
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {order.map((it, i) => {
             const rowState = checked
-              ? (it.correctPos === i ? 'border-emerald-400 bg-emerald-50/80 ring-1 ring-emerald-100' : 'border-rose-300 bg-rose-50/80')
-              : 'border-slate-200 bg-white shadow-[var(--tg-shadow-sm)]';
+              ? (it.correctPos === i ? 'border-green-400 bg-green-50' : 'border-red-300 bg-red-50')
+              : 'border-slate-200 bg-white';
             return (
-              <div key={it.text} className={`tg-rise flex items-center gap-3 px-4 py-3 rounded-2xl border transition-colors ${rowState}`}>
-                <span className="w-7 h-7 rounded-full bg-slate-900 text-white text-[13px] font-display font-bold flex items-center justify-center shrink-0 tabular-nums">
+              <div key={it.text} className={`flex items-center gap-3 px-4 py-3 rounded-2xl border-2 ${rowState}`}>
+                <span className="w-6 h-6 rounded-full bg-slate-100 text-slate-500 text-sm font-bold flex items-center justify-center shrink-0">
                   {i + 1}
                 </span>
                 <span className="flex-1 font-medium text-slate-700">{it.text}</span>
                 {!checked && (
-                  <div className="flex flex-col">
+                  <div className="flex flex-col gap-1">
                     <button
                       onClick={() => move(i, -1)}
                       disabled={i === 0}
-                      className="text-slate-300 hover:text-emerald-600 disabled:opacity-20 transition-colors"
-                      aria-label="Mover para cima"
+                      className="text-slate-400 hover:text-green-600 disabled:opacity-30"
                     >
                       <ChevronUp size={18} />
                     </button>
                     <button
                       onClick={() => move(i, 1)}
                       disabled={i === order.length - 1}
-                      className="text-slate-300 hover:text-emerald-600 disabled:opacity-20 transition-colors"
-                      aria-label="Mover para baixo"
+                      className="text-slate-400 hover:text-green-600 disabled:opacity-30"
                     >
                       <ChevronDown size={18} />
                     </button>
@@ -86,11 +84,11 @@ export const OrderStep: React.FC<Props> = ({ payload, onResolved }) => {
         </div>
 
         {checked && (
-          <div className={`tg-rise mt-5 p-4 rounded-2xl flex items-center gap-3 ring-1 ${isCorrect ? 'bg-emerald-50/80 ring-emerald-100' : 'bg-rose-50/80 ring-rose-100'}`}>
-            <div className={`grid place-items-center w-7 h-7 rounded-full shrink-0 ${isCorrect ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-500'}`}>
-              {isCorrect ? <Check size={16} strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
+          <div className={`mt-5 p-4 rounded-2xl flex gap-3 ${isCorrect ? 'bg-green-50' : 'bg-red-50'}`}>
+            <div className={`shrink-0 ${isCorrect ? 'text-green-600' : 'text-red-500'}`}>
+              {isCorrect ? <Check size={22} /> : <X size={22} />}
             </div>
-            <p className={`font-bold tracking-tight ${isCorrect ? 'text-emerald-800' : 'text-rose-700'}`}>
+            <p className={`font-bold ${isCorrect ? 'text-green-800' : 'text-red-700'}`}>
               {isCorrect ? 'Ordem correta!' : 'A ordem não está certa ainda.'}
             </p>
           </div>
@@ -100,17 +98,15 @@ export const OrderStep: React.FC<Props> = ({ payload, onResolved }) => {
       {!checked ? (
         <button
           onClick={() => setChecked(true)}
-          className="tg-btn mt-6 w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold text-lg shadow-[var(--tg-shadow-glow)]"
+          className="mt-6 w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 text-white font-bold text-lg transition-colors"
         >
           Verificar
         </button>
       ) : (
         <button
           onClick={handleContinue}
-          className={`tg-btn mt-6 w-full py-4 rounded-2xl text-white font-semibold text-lg ${
-            isCorrect
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-600 shadow-[var(--tg-shadow-glow)]'
-              : 'bg-gradient-to-r from-rose-500 to-red-500 shadow-[0_8px_28px_-8px_rgba(244,63,94,0.5)]'
+          className={`mt-6 w-full py-4 rounded-2xl text-white font-bold text-lg transition-colors ${
+            isCorrect ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'
           }`}
         >
           {isCorrect ? 'Continuar' : 'Tentar de novo'}

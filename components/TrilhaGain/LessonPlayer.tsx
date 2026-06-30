@@ -170,29 +170,25 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
   const moduleXp = nodes.reduce((a, n) => a + (n.lesson.xp_reward || 0), 0);
 
   return (
-    <div className="tg-scope fixed inset-0 z-[60] flex flex-col bg-gradient-to-b from-white to-slate-50">
+    <div className="fixed inset-0 z-[60] bg-white flex flex-col">
       {/* Header com voltar + progresso do MÓDULO */}
-      <div className="flex items-center gap-2.5 px-4 py-3.5 bg-white/80 backdrop-blur-md border-b border-slate-100/80">
-        <button
-          onClick={onClose}
-          className="grid place-items-center w-9 h-9 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
-          aria-label="Fechar"
-        >
-          <X size={22} />
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-slate-100">
+        <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Fechar">
+          <X size={26} />
         </button>
         {!finished && !reward && (
           <button
             onClick={goBack}
             disabled={!canGoBack}
-            className="grid place-items-center w-9 h-9 rounded-full text-slate-400 enabled:hover:text-slate-700 enabled:hover:bg-slate-100 disabled:opacity-25 transition-colors"
+            className="text-slate-400 enabled:hover:text-slate-600 disabled:opacity-30 transition-colors"
             aria-label="Voltar"
           >
-            <ChevronLeft size={22} />
+            <ChevronLeft size={26} />
           </button>
         )}
-        <div className="relative flex-1 h-2.5 bg-slate-100 rounded-full overflow-hidden">
+        <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
           <div
-            className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500 rounded-full transition-[width] duration-500 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]"
+            className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
@@ -204,36 +200,32 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
           /* XP ganho ao concluir um gain (candle de exercício) */
           <div className="relative flex flex-col h-full items-center justify-center text-center overflow-hidden">
             <div
-              className="absolute inset-0 opacity-[0.035]"
+              className="absolute inset-0 opacity-[0.04]"
               style={{
                 backgroundImage:
                   'linear-gradient(#e11d48 1px, transparent 1px), linear-gradient(90deg, #e11d48 1px, transparent 1px)',
-                backgroundSize: '32px 32px',
-                maskImage: 'radial-gradient(70% 60% at 50% 45%, #000 30%, transparent 75%)',
+                backgroundSize: '28px 28px',
               }}
             />
             <div className="relative">
-              <div className="relative w-28 h-28 mb-6 mx-auto tg-rise tg-rise-1">
-                <span className="absolute inset-0 rounded-full bg-rose-400/30 blur-2xl" />
-                <div className="tg-sheen relative w-28 h-28 rounded-full grid place-items-center bg-gradient-to-br from-rose-400 to-red-600 shadow-[0_16px_40px_-10px_rgba(244,63,94,0.6)] ring-1 ring-white/30 overflow-hidden">
-                  <Swords size={50} className="text-white drop-shadow" strokeWidth={2.5} />
-                </div>
+              <div className="w-28 h-28 rounded-full flex items-center justify-center mb-6 mx-auto shadow-xl bg-gradient-to-br from-red-400 to-red-600 shadow-red-500/30">
+                <Swords size={50} className="text-white" strokeWidth={2.5} />
               </div>
-              <p className="tg-rise tg-rise-2 font-semibold text-[13px] uppercase tracking-[0.18em] mb-1.5 text-rose-500">
+              <p className="font-bold text-sm uppercase tracking-wider mb-1 text-red-500">
                 Exercícios vencidos
               </p>
-              <h2 className="tg-rise tg-rise-2 font-display text-[28px] font-bold text-slate-900 tracking-tight mb-4">
+              <h2 className="text-3xl font-extrabold text-slate-800 mb-3">
                 Gain concluído!
               </h2>
-              <div className="tg-rise tg-rise-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl mb-8 bg-gradient-to-br from-amber-50 to-amber-100 ring-1 ring-amber-200/80 shadow-[0_6px_18px_-6px_rgba(245,158,11,0.45)]">
-                <Coins size={22} className="text-amber-500" />
-                <span className="font-display text-2xl font-bold text-amber-600 tabular-nums">
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border mb-8 bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200">
+                <Coins size={24} className="text-amber-500" />
+                <span className="text-3xl font-extrabold text-amber-600">
                   +{reward.xp} XP
                 </span>
               </div>
               <button
                 onClick={proceed}
-                className="tg-btn tg-rise tg-rise-4 block w-full max-w-xs mx-auto py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold text-lg shadow-[var(--tg-shadow-glow)]"
+                className="block w-full max-w-xs mx-auto py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg transition-all shadow-lg shadow-emerald-500/30"
               >
                 Continuar
               </button>
@@ -241,37 +233,34 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
           </div>
         ) : finished ? (
           <div className="relative flex flex-col h-full items-center justify-center text-center overflow-hidden">
+            {/* fundo grid de gráfico */}
             <div
-              className="absolute inset-0 opacity-[0.035]"
+              className="absolute inset-0 opacity-[0.04]"
               style={{
                 backgroundImage:
                   'linear-gradient(#059669 1px, transparent 1px), linear-gradient(90deg, #059669 1px, transparent 1px)',
-                backgroundSize: '32px 32px',
-                maskImage: 'radial-gradient(70% 60% at 50% 45%, #000 30%, transparent 75%)',
+                backgroundSize: '28px 28px',
               }}
             />
             <div className="relative">
-              <div className="relative w-28 h-28 mb-6 mx-auto tg-rise tg-rise-1">
-                <span className="absolute inset-0 rounded-full bg-amber-400/30 blur-2xl" />
-                <div className="tg-sheen relative w-28 h-28 rounded-full grid place-items-center bg-gradient-to-br from-amber-400 to-amber-600 shadow-[0_16px_40px_-10px_rgba(245,158,11,0.6)] ring-1 ring-white/30 overflow-hidden">
-                  <Trophy size={52} className="text-white drop-shadow" strokeWidth={2.5} />
-                </div>
+              <div className="w-28 h-28 rounded-full flex items-center justify-center mb-6 mx-auto shadow-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-500/30">
+                <Trophy size={52} className="text-white" strokeWidth={2.5} />
               </div>
-              <p className="tg-rise tg-rise-2 font-semibold text-[13px] uppercase tracking-[0.18em] mb-1.5 text-amber-600">
+              <p className="font-bold text-sm uppercase tracking-wider mb-1 text-amber-600">
                 Módulo dominado
               </p>
-              <h2 className="tg-rise tg-rise-2 font-display text-[28px] font-bold text-slate-900 tracking-tight mb-4">
+              <h2 className="text-3xl font-extrabold text-slate-800 mb-3">
                 Módulo concluído!
               </h2>
-              <div className="tg-rise tg-rise-3 inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl mb-8 bg-gradient-to-br from-amber-50 to-amber-100 ring-1 ring-amber-200/80 shadow-[0_6px_18px_-6px_rgba(245,158,11,0.45)]">
-                <Coins size={22} className="text-amber-500" />
-                <span className="font-display text-2xl font-bold text-amber-600 tabular-nums">
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border mb-8 bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200">
+                <Coins size={24} className="text-amber-500" />
+                <span className="text-3xl font-extrabold text-amber-600">
                   +{moduleXp} XP
                 </span>
               </div>
               <button
                 onClick={onClose}
-                className="tg-btn tg-rise tg-rise-4 block w-full max-w-xs mx-auto py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-semibold text-lg shadow-[var(--tg-shadow-glow)]"
+                className="block w-full max-w-xs mx-auto py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg transition-all shadow-lg shadow-emerald-500/30"
               >
                 Voltar à trilha
               </button>
@@ -280,16 +269,13 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
         ) : saving ? (
           <div className="flex h-full items-center justify-center text-slate-400">Salvando…</div>
         ) : (
-          <div key={`${nodeIndex}-${stepIndex}`} className="flex flex-col h-full tg-rise tg-rise-1">
+          <>
             {/* Título do nó atual, para situar dentro do módulo */}
-            <div className="flex items-center gap-2 mb-4">
-              <span className={`inline-block w-1.5 h-1.5 rounded-full ${isRevisao ? 'bg-amber-500' : node?.kind === 'licao' ? 'bg-rose-500' : 'bg-emerald-500'}`} />
-              <p className={`text-[11px] font-semibold uppercase tracking-[0.18em] ${isRevisao ? 'text-amber-600' : node?.kind === 'licao' ? 'text-rose-500' : 'text-emerald-600'}`}>
-                {isRevisao ? 'Revisão geral' : node?.kind === 'licao' ? 'Exercícios (Gain)' : `Aula ${node?.kind === 'aula' ? node.num : ''}`}
-              </p>
-            </div>
-            <div className="flex-1 min-h-0">{renderStep()}</div>
-          </div>
+            <p className={`text-[11px] font-bold uppercase tracking-wider mb-3 ${isRevisao ? 'text-amber-600' : node?.kind === 'licao' ? 'text-rose-500' : 'text-emerald-600'}`}>
+              {isRevisao ? 'Revisão geral' : node?.kind === 'licao' ? 'Exercícios (Gain)' : `Aula ${node?.kind === 'aula' ? node.num : ''}`}
+            </p>
+            {renderStep()}
+          </>
         )}
       </div>
     </div>

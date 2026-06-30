@@ -25,23 +25,15 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
     state === 'locked'
       ? { wick: 'bg-slate-300', body: 'bg-gradient-to-b from-slate-200 to-slate-300' }
       : isRevisao
-        ? { wick: 'bg-amber-500', body: 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600' }
+        ? { wick: 'bg-amber-500', body: 'bg-gradient-to-b from-amber-400 to-amber-600' }
         : isLicao
-          ? { wick: 'bg-red-500', body: 'bg-gradient-to-b from-red-300 via-red-400 to-red-600' }
-          : { wick: 'bg-emerald-500', body: 'bg-gradient-to-b from-emerald-300 via-emerald-400 to-emerald-600' };
+          ? { wick: 'bg-red-500', body: 'bg-gradient-to-b from-red-400 to-red-600' }
+          : { wick: 'bg-emerald-500', body: 'bg-gradient-to-b from-emerald-400 to-emerald-600' };
 
-  // anéis/sombras suaves por tipo (estado disponível) e brilho sutil (concluído)
-  const ring = isRevisao ? 'ring-2 ring-amber-200/80' : isLicao ? 'ring-2 ring-red-200/80' : 'ring-2 ring-emerald-200/80';
-  const glowAvail = isRevisao
-    ? 'shadow-[0_8px_22px_-6px_rgba(245,158,11,0.6)]'
-    : isLicao
-      ? 'shadow-[0_8px_22px_-6px_rgba(244,63,94,0.55)]'
-      : 'shadow-[0_8px_22px_-6px_rgba(16,185,129,0.55)]';
-  const glowDone = isRevisao
-    ? 'shadow-[0_4px_14px_-4px_rgba(245,158,11,0.4)]'
-    : isLicao
-      ? 'shadow-[0_4px_14px_-4px_rgba(244,63,94,0.35)]'
-      : 'shadow-[0_4px_14px_-4px_rgba(16,185,129,0.4)]';
+  // anéis/sombras por tipo, para o estado disponível e concluído
+  const ring = isRevisao ? 'ring-2 ring-amber-200' : isLicao ? 'ring-2 ring-red-200' : 'ring-2 ring-emerald-200';
+  const shadowAvail = isRevisao ? 'shadow-lg shadow-amber-500/40' : isLicao ? 'shadow-lg shadow-red-500/40' : 'shadow-lg shadow-emerald-500/40';
+  const shadowDone = isRevisao ? 'shadow shadow-amber-500/30' : isLicao ? 'shadow shadow-red-500/30' : 'shadow shadow-emerald-500/30';
 
   // revisão é o candle mais largo/alto da trilha (destaque de "boss" da unidade)
   const w = isRevisao ? 40 : isLicao ? 34 : 26;
@@ -51,23 +43,15 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
     <button
       disabled={state === 'locked'}
       onClick={onClick}
-      className="group relative flex flex-col items-center transition-transform duration-300 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] hover:scale-[1.14] active:scale-95 disabled:hover:scale-100"
+      className={`group relative flex flex-col items-center transition-transform hover:scale-110 active:scale-95 disabled:hover:scale-100 ${
+        state === 'available' ? 'animate-pulse' : ''
+      }`}
     >
-      {/* halo de respiro no nó disponível (atrás do corpo) */}
-      {state === 'available' && (
-        <span
-          className={`tg-breathe absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full blur-md ${
-            isRevisao ? 'bg-amber-400/40' : isLicao ? 'bg-red-400/40' : 'bg-emerald-400/40'
-          }`}
-          style={{ width: w + 14, height: h + 14 }}
-        />
-      )}
-
       {/* badge de XP nos candles que dão ganho (gain e revisão), quando disponível */}
       {state === 'available' && isCheckpoint && xp > 0 && (
         <span
-          className={`absolute -top-2.5 -right-3.5 z-10 text-[9px] font-bold tabular-nums px-1.5 py-0.5 rounded-full ring-1 ring-white/70 shadow-md ${
-            isRevisao ? 'bg-amber-400 text-amber-950' : 'bg-rose-500 text-white'
+          className={`absolute -top-2 -right-3 z-10 text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow ${
+            isRevisao ? 'bg-yellow-400 text-yellow-900' : 'bg-red-500 text-white'
           }`}
         >
           +{xp}
@@ -79,23 +63,19 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
 
       {/* corpo do candle (o "nó" clicável). */}
       <div
-        className={`relative rounded-md flex items-center justify-center overflow-hidden ${color.body} ${
-          state === 'available' ? `${glowAvail} ${ring}` : ''
-        } ${state === 'done' ? glowDone : ''} ${state === 'locked' ? 'shadow-inner' : ''}`}
+        className={`relative rounded flex items-center justify-center ${color.body} ${
+          state === 'available' ? `${shadowAvail} ${ring}` : ''
+        } ${state === 'done' ? shadowDone : ''}`}
         style={{ width: w, height: h }}
       >
-        {/* brilho especular no topo do corpo (profundidade) */}
-        {state !== 'locked' && (
-          <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/35 to-transparent" />
-        )}
         {state === 'locked' ? (
           <Lock size={13} className="text-slate-400" />
         ) : isRevisao ? (
-          <Trophy size={20} className="text-white drop-shadow-sm" strokeWidth={2.5} />
+          <Trophy size={20} className="text-white" strokeWidth={2.5} />
         ) : isLicao ? (
-          <Swords size={18} className="text-white drop-shadow-sm" strokeWidth={2.5} />
+          <Swords size={18} className="text-white" strokeWidth={2.5} />
         ) : (
-          <span className="relative text-white font-display font-bold text-sm leading-none drop-shadow-sm">{num}</span>
+          <span className="text-white font-extrabold text-sm leading-none">{num}</span>
         )}
       </div>
 

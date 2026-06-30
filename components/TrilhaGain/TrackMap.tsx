@@ -107,25 +107,21 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
     <div className="max-w-md mx-auto pb-20">
       {/* Barra de progresso geral da trilha */}
       {flatNodes.length > 0 && (
-        <div className="tg-glass tg-rise tg-rise-1 mb-8 rounded-3xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-[13px] font-semibold text-slate-500 flex items-center gap-2 tracking-tight">
-              <span className="grid place-items-center w-7 h-7 rounded-full bg-emerald-50 ring-1 ring-emerald-100">
-                <TrendingUp size={15} className="text-emerald-500" />
-              </span>
+        <div className="mb-8 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-semibold text-slate-600 flex items-center gap-1.5">
+              <TrendingUp size={16} className="text-emerald-500" />
               Progresso da trilha
             </span>
-            <span className="font-display text-xl font-bold text-slate-900 tabular-nums tracking-tight">{pct}<span className="text-sm text-slate-400 font-semibold">%</span></span>
+            <span className="text-sm font-bold text-emerald-600">{pct}%</span>
           </div>
-          <div className="relative h-2.5 bg-slate-100/80 rounded-full overflow-hidden">
+          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
             <div
-              className="absolute inset-y-0 left-0 bg-gradient-to-r from-emerald-400 via-emerald-500 to-teal-500 rounded-full transition-[width] duration-700 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)]"
+              className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="text-[11px] text-slate-400 mt-2.5 tracking-wide">
-            <span className="font-semibold text-slate-500 tabular-nums">{doneCount}</span> de <span className="tabular-nums">{flatNodes.length}</span> etapas concluídas
-          </p>
+          <p className="text-xs text-slate-400 mt-2">{doneCount} de {flatNodes.length} etapas concluídas</p>
         </div>
       )}
 
@@ -199,27 +195,25 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
           })()}
 
           {/* Banner da unidade — fica EMBAIXO da trilha (que sobe) */}
-          <div className="group tg-sheen relative overflow-hidden rounded-[24px] mt-2 mb-8 h-[116px] ring-1 ring-slate-900/5 shadow-[0_10px_30px_-12px_rgba(15,23,42,0.35)] bg-gradient-to-br from-slate-800 to-slate-950 transition-shadow duration-500 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] hover:shadow-[0_18px_44px_-14px_rgba(15,23,42,0.5)]">
+          <div className="relative overflow-hidden rounded-2xl mt-2 mb-8 shadow-lg h-[120px] bg-gradient-to-r from-slate-800 to-slate-900">
             {unit.image_url && (
               <img
                 src={unit.image_url}
                 alt=""
-                className={`absolute inset-0 w-full h-full object-cover transition-transform duration-700 [transition-timing-function:cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.06] ${unit.is_locked ? 'grayscale' : ''}`}
+                className={`absolute inset-0 w-full h-full object-cover ${unit.is_locked ? 'grayscale' : ''}`}
               />
             )}
-            {/* overlay editorial: escurece à esquerda, deixa respirar à direita */}
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-950/55 to-slate-950/10" />
-            <div className="absolute inset-0 ring-1 ring-inset ring-white/10 rounded-[24px]" />
+            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/40 to-transparent" />
             <div className="relative h-full flex items-center justify-between px-5 text-white">
-              <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-[0.22em] text-emerald-300/90 font-semibold mb-1">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-bold mb-0.5">
                   {unit.subtitle || 'Unidade'}
                 </p>
-                <h3 className="font-display text-xl font-bold tracking-tight drop-shadow-sm truncate">{unit.title}</h3>
+                <h3 className="text-lg font-bold drop-shadow">{unit.title}</h3>
               </div>
               {unit.is_locked && (
-                <span className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/95 text-amber-950 text-[11px] font-bold tracking-tight shadow-lg shadow-amber-900/20 backdrop-blur-sm">
-                  <Lock size={12} strokeWidth={2.5} /> Premium
+                <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-400/90 text-yellow-900 text-xs font-extrabold shadow">
+                  <Lock size={13} /> Premium
                 </span>
               )}
             </div>
