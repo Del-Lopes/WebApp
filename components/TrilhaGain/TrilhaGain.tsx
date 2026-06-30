@@ -59,38 +59,45 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
     );
   }
 
-  // Banner "Domine o mercado" — FIXO no topo; a trilha passa por trás dele.
+  // Banner "Domine o mercado" — FIXO no topo; claro, leve, acento verde.
   const banner = (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800 via-slate-900 to-emerald-950 p-6 mb-3 shadow-xl">
+    <div className="relative overflow-hidden rounded-3xl p-6 mb-3 bg-gradient-to-br from-white via-emerald-50/60 to-teal-50 ring-1 ring-emerald-100 shadow-[0_10px_30px_-12px_rgba(16,185,129,0.25)]">
+      {/* brilho verde difuso no canto */}
+      <div className="pointer-events-none absolute -top-16 -right-12 w-56 h-56 rounded-full bg-emerald-200/40 blur-3xl" />
+      {/* grid sutil em verde, esmaecendo */}
       <div
-        className="absolute inset-0 opacity-[0.08]"
+        className="absolute inset-0 opacity-[0.5]"
         style={{
           backgroundImage:
-            'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
-          backgroundSize: '24px 24px',
+            'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)',
+          backgroundSize: '26px 26px',
+          maskImage: 'radial-gradient(120% 100% at 100% 0%, rgba(0,0,0,0.10) 0%, transparent 65%)',
+          WebkitMaskImage: 'radial-gradient(120% 100% at 100% 0%, rgba(0,0,0,0.10) 0%, transparent 65%)',
         }}
       />
-      <div className="absolute inset-0 flex items-end justify-around px-2 pb-0 opacity-25">
+      {/* candles minimalistas e discretos na base */}
+      <div className="absolute inset-x-0 bottom-0 flex items-end justify-around px-3 opacity-40">
         {[
           { h: 34, b: 20, up: true }, { h: 52, b: 30, up: true }, { h: 40, b: 18, up: false },
           { h: 64, b: 36, up: true }, { h: 48, b: 22, up: false }, { h: 72, b: 44, up: true },
           { h: 58, b: 28, up: false }, { h: 80, b: 50, up: true }, { h: 66, b: 32, up: true },
           { h: 90, b: 40, up: false }, { h: 76, b: 46, up: true }, { h: 100, b: 58, up: true },
         ].map((c, i) => (
-          <div key={i} className="flex flex-col items-center justify-end" style={{ height: '100%' }}>
-            <div className={`w-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ height: (c.h - c.b) / 2 }} />
-            <div className={`w-2 rounded-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ height: c.b }} />
-            <div className={`w-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-400'}`} style={{ height: (c.h - c.b) / 2 }} />
+          <div key={i} className="flex flex-col items-center justify-end" style={{ height: 100 }}>
+            <div className={`w-px ${c.up ? 'bg-emerald-400' : 'bg-rose-300'}`} style={{ height: (c.h - c.b) / 2 }} />
+            <div className={`w-1.5 rounded-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-300'}`} style={{ height: c.b }} />
+            <div className={`w-px ${c.up ? 'bg-emerald-400' : 'bg-rose-300'}`} style={{ height: (c.h - c.b) / 2 }} />
           </div>
         ))}
       </div>
       <div className="relative">
-        <div className="inline-flex items-center gap-2 text-emerald-300 text-xs font-bold mb-3">
-          <span className="w-6 h-px bg-emerald-400/60" />
-          Do zero ao operacional: Fundamentos, leitura de Candles e estruturação de operações.
+        <div className="inline-flex items-center gap-2 text-emerald-700 text-[11px] font-semibold tracking-wide mb-3">
+          <span className="w-6 h-px bg-gradient-to-r from-emerald-500 to-transparent" />
+          Do zero ao operacional
         </div>
-        <h2 className="text-2xl font-extrabold text-white leading-tight">
-          Domine o mercado,<br />uma lição por vez.
+        <h2 className="font-display text-[26px] leading-[1.12] font-bold text-slate-900 tracking-tight">
+          Domine o mercado,<br />
+          <span className="text-emerald-600">uma lição por vez.</span>
         </h2>
       </div>
     </div>

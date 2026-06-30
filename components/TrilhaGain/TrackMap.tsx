@@ -62,6 +62,31 @@ function isLineBreak(a: { x: number }, b: { x: number }): boolean {
   return b.x < a.x - 1; // próximo voltou para a esquerda
 }
 
+// Acento de cor (claro) por bloco temático, derivado do título da unidade.
+// Cards de unidade ficam claros, com uma tinta sutil + barra lateral colorida.
+interface UnitAccent { bar: string; tint: string; ring: string; eyebrow: string; }
+const ACCENTS: Record<string, UnitAccent> = {
+  // Fundamentos → emerald
+  fundamentos: { bar: 'bg-emerald-500', tint: 'from-emerald-50 to-white', ring: 'ring-emerald-100', eyebrow: 'text-emerald-600' },
+  // Análise Técnica → sky
+  tecnica:     { bar: 'bg-sky-500',     tint: 'from-sky-50 to-white',     ring: 'ring-sky-100',     eyebrow: 'text-sky-600' },
+  // Conceitos Avançados → violet
+  avancado:    { bar: 'bg-violet-500',  tint: 'from-violet-50 to-white',  ring: 'ring-violet-100',  eyebrow: 'text-violet-600' },
+  // Operacional → amber
+  operacional: { bar: 'bg-amber-500',   tint: 'from-amber-50 to-white',   ring: 'ring-amber-100',   eyebrow: 'text-amber-600' },
+};
+function unitAccent(title: string): UnitAccent {
+  const t = title.toLowerCase();
+  // Operacional (corretoras, plataforma, robôs)
+  if (/(corretora|metatrader|expert advisor|instalando|vps)/.test(t)) return ACCENTS.operacional;
+  // Conceitos avançados (escolas/estratégias avançadas)
+  if (/(smart money|ict|wyckoff|teoria de dow|elliott|bollinger)/.test(t)) return ACCENTS.avancado;
+  // Análise técnica (price action / leitura de gráfico)
+  if (/(velas|candle|m[ée]dia|trend|suporte|resist|fibonacci)/.test(t)) return ACCENTS.tecnica;
+  // Fundamentos (default)
+  return ACCENTS.fundamentos;
+}
+
 // Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
 // Uma lição fica disponível quando a anterior (ordem global) está concluída.
 export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, onSelectNode }) => {
@@ -194,30 +219,37 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
             );
           })()}
 
-          {/* Banner da unidade — fica EMBAIXO da trilha (que sobe) */}
-          <div className="relative overflow-hidden rounded-2xl mt-2 mb-8 shadow-lg h-[120px] bg-gradient-to-r from-slate-800 to-slate-900">
-            {unit.image_url && (
-              <img
-                src={unit.image_url}
-                alt=""
-                className={`absolute inset-0 w-full h-full object-cover ${unit.is_locked ? 'grayscale' : ''}`}
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/40 to-transparent" />
-            <div className="relative h-full flex items-center justify-between px-5 text-white">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-bold mb-0.5">
-                  {unit.subtitle || 'Unidade'}
-                </p>
-                <h3 className="text-lg font-bold drop-shadow">{unit.title}</h3>
+          {/* Cabeçalho claro da unidade — fica EMBAIXO da trilha (que sobe).
+              Acento de cor por bloco temático; sem fundo preto. */}
+          {(() => {
+            const a = unitAccent(unit.title);
+            return (
+              <div className={`relative overflow-hidden rounded-2xl mt-2 mb-8 flex items-stretch bg-gradient-to-r ${a.tint} ring-1 ${a.ring} shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] ${unit.is_locked ? 'opacity-90' : ''}`}>
+                {/* barra lateral colorida */}
+                <span className={`w-1.5 shrink-0 ${a.bar}`} />
+                <div className="flex-1 flex items-center justify-between gap-3 px-4 py-3.5">
+                  <div className="min-w-0">
+                    <p className={`text-[10px] uppercase tracking-[0.18em] font-bold mb-0.5 ${a.eyebrow}`}>
+                      {unit.subtitle || 'Unidade'}
+                    </p>
+                    <h3 className="text-[17px] font-bold text-slate-800 tracking-tight truncate">{unit.title}</h3>
+                  </div>
+                  {unit.is_locked ? (
+                    <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">
+                      <Lock size={12} strokeWidth={2.5} /> Premium
+                    </span>
+                  ) : unit.image_url ? (
+                    // miniatura clara da ilustração (sem véu preto), só p/ quem tem
+                    <img
+                      src={unit.image_url}
+                      alt=""
+                      className="shrink-0 w-20 h-12 rounded-lg object-cover ring-1 ring-black/5"
+                    />
+                  ) : null}
+                </div>
               </div>
-              {unit.is_locked && (
-                <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-400/90 text-yellow-900 text-xs font-extrabold shadow">
-                  <Lock size={13} /> Premium
-                </span>
-              )}
-            </div>
-          </div>
+            );
+          })()}
         </div>
       ))}
 
