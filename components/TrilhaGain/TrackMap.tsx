@@ -194,29 +194,19 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
             );
           })()}
 
-          {/* Banner da unidade — fica EMBAIXO da trilha (que sobe) */}
-          <div className="relative overflow-hidden rounded-2xl mt-2 mb-8 shadow-lg h-[120px] bg-gradient-to-r from-slate-800 to-slate-900">
-            {unit.image_url && (
-              <img
-                src={unit.image_url}
-                alt=""
-                className={`absolute inset-0 w-full h-full object-cover ${unit.is_locked ? 'grayscale' : ''}`}
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-r from-slate-900/80 via-slate-900/40 to-transparent" />
-            <div className="relative h-full flex items-center justify-between px-5 text-white">
-              <div>
-                <p className="text-[10px] uppercase tracking-[0.2em] text-emerald-300 font-bold mb-0.5">
-                  {unit.subtitle || 'Unidade'}
-                </p>
-                <h3 className="text-lg font-bold drop-shadow">{unit.title}</h3>
-              </div>
-              {unit.is_locked && (
-                <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-400/90 text-yellow-900 text-xs font-extrabold shadow">
-                  <Lock size={13} /> Premium
-                </span>
-              )}
+          {/* Cabeçalho leve da unidade — faixa fina EMBAIXO da trilha (que sobe) */}
+          <div className="flex items-center justify-between gap-3 mt-2 mb-8 pl-3 pr-1 py-1.5 border-l-2 border-emerald-400">
+            <div className="min-w-0">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-emerald-600 font-bold">
+                {unit.subtitle || 'Unidade'}
+              </p>
+              <h3 className="text-base font-bold text-slate-800 truncate">{unit.title}</h3>
             </div>
+            {unit.is_locked && (
+              <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-bold">
+                <Lock size={13} /> Premium
+              </span>
+            )}
           </div>
         </div>
       ))}
