@@ -1,6 +1,6 @@
-import React from 'react';
-import { Star, TrendingUp, Lock } from 'lucide-react';
-import { TrilhaTrack } from '../../types';
+import React, { useState } from 'react';
+import { Star, TrendingUp, Lock, Coins, Loader2 } from 'lucide-react';
+import { TrilhaTrack, TrilhaUnit } from '../../types';
 import { Candle } from './Candle';
 import { LessonCandle } from './LessonCandle';
 import { makeCandleSeries } from './candleSeries';
@@ -9,10 +9,14 @@ import { buildUnitNodes, TrackNode } from './unitNodes';
 interface Props {
   track: TrilhaTrack;
   completed: Set<string>;
+  unlockedUnits: Set<string>; // unidades pagas já destravadas com XP por este usuário
+  xp: number;                 // XP atual (para decidir se pode resgatar)
   isAdmin?: boolean; // admin acessa qualquer aula (ignora bloqueio/progressão)
   // Abre o player com a sequência de nós da unidade, começando no nó clicado.
   // Permite fluir aula→aula→gain→…→revisão sem voltar ao lobby.
   onSelectNode: (nodes: TrackNode[], startIndex: number) => void;
+  // Resgata o desbloqueio de uma unidade paga gastando XP (lança em erro).
+  onRedeem: (unitId: string) => Promise<void>;
 }
 
 type LessonState = 'done' | 'available' | 'locked';
@@ -89,22 +93,26 @@ function unitAccent(title: string): UnitAccent {
 
 // Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
 // Uma lição fica disponível quando a anterior (ordem global) está concluída.
-export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, onSelectNode }) => {
+export const TrackMap: React.FC<Props> = ({ track, completed, unlockedUnits, xp, isAdmin = false, onSelectNode, onRedeem }) => {
   const units = track.units ?? [];
+
+  // Bloqueio efetivo: unidade paga que o usuário AINDA não destravou com XP.
+  // (Quem resgatou passa a ver a unidade como liberada.)
+  const isLocked = (u: TrilhaUnit) => !!u.is_locked && !unlockedUnits.has(u.id);
 
   // Nós (aula + lição-checkpoint) por unidade.
   const nodesByUnit = new Map<string, TrackNode[]>();
   for (const u of units) nodesByUnit.set(u.id, buildUnitNodes(u.id, u.lessons ?? []));
 
-  // Ids de nós em unidades bloqueadas (pagas).
+  // Ids de nós em unidades bloqueadas (pagas e não-destravadas).
   const lockedNodeIds = new Set<string>();
   for (const u of units) {
-    if (u.is_locked) for (const n of nodesByUnit.get(u.id) ?? []) lockedNodeIds.add(n.id);
+    if (isLocked(u)) for (const n of nodesByUnit.get(u.id) ?? []) lockedNodeIds.add(n.id);
   }
 
-  // Sequência de nós das unidades desbloqueadas (entra na progressão/contagem).
+  // Sequência de nós das unidades acessíveis (entra na progressão/contagem).
   const flatNodes: TrackNode[] = units
-    .filter((u) => !u.is_locked)
+    .filter((u) => !isLocked(u))
     .flatMap((u) => nodesByUnit.get(u.id) ?? []);
 
   const stateMap = new Map<string, LessonState>();
@@ -219,37 +227,13 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
             );
           })()}
 
-          {/* Cabeçalho claro da unidade — fica EMBAIXO da trilha (que sobe).
-              Acento de cor por bloco temático; sem fundo preto. */}
-          {(() => {
-            const a = unitAccent(unit.title);
-            return (
-              <div className={`relative overflow-hidden rounded-2xl mt-2 mb-8 flex items-stretch bg-gradient-to-r ${a.tint} ring-1 ${a.ring} shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] ${unit.is_locked ? 'opacity-90' : ''}`}>
-                {/* barra lateral colorida */}
-                <span className={`w-1.5 shrink-0 ${a.bar}`} />
-                <div className="flex-1 flex items-center justify-between gap-3 px-4 py-3.5">
-                  <div className="min-w-0">
-                    <p className={`text-[10px] uppercase tracking-[0.18em] font-bold mb-0.5 ${a.eyebrow}`}>
-                      {unit.subtitle || 'Unidade'}
-                    </p>
-                    <h3 className="text-[17px] font-bold text-slate-800 tracking-tight truncate">{unit.title}</h3>
-                  </div>
-                  {unit.is_locked ? (
-                    <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">
-                      <Lock size={12} strokeWidth={2.5} /> Premium
-                    </span>
-                  ) : unit.image_url ? (
-                    // miniatura clara da ilustração (sem véu preto), só p/ quem tem
-                    <img
-                      src={unit.image_url}
-                      alt=""
-                      className="shrink-0 w-20 h-12 rounded-lg object-cover ring-1 ring-black/5"
-                    />
-                  ) : null}
-                </div>
-              </div>
-            );
-          })()}
+          {/* Cabeçalho claro da unidade — fica EMBAIXO da trilha (que sobe). */}
+          <UnitHeader
+            unit={unit}
+            unlocked={!!unit.is_locked && unlockedUnits.has(unit.id)}
+            xp={xp}
+            onRedeem={onRedeem}
+          />
         </div>
       ))}
 
@@ -257,6 +241,112 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
         <div className="text-center text-slate-400 py-12 flex flex-col items-center gap-3">
           <Star size={40} className="opacity-40" />
           <p>Esta trilha ainda não tem lições.</p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Cabeçalho de uma unidade. Estados:
+//   livre        → acento por bloco + miniatura da ilustração (quem tem)
+//   paga+travada → selo Premium + botão "Desbloquear com X XP" (resgate por XP)
+//   desbloqueada → acento + selo "Desbloqueado"
+const UnitHeader: React.FC<{
+  unit: TrilhaUnit;
+  unlocked: boolean;                    // unidade paga já destravada com XP
+  xp: number;                           // XP atual do usuário
+  onRedeem: (unitId: string) => Promise<void>;
+}> = ({ unit, unlocked, xp, onRedeem }) => {
+  const a = unitAccent(unit.title);
+  const cost = unit.unlock_cost ?? 0;
+  const lockedPaid = !!unit.is_locked && !unlocked;          // ainda travada
+  const redeemable = lockedPaid && cost > 0;                  // dá pra resgatar por XP
+  const canAfford = xp >= cost;
+
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const doRedeem = async () => {
+    setBusy(true); setError(null);
+    try {
+      await onRedeem(unit.id);
+      setConfirming(false);
+    } catch (e) {
+      const msg = (e as Error).message;
+      setError(
+        msg === 'insufficient_xp' ? 'XP insuficiente.'
+        : msg === 'not_redeemable' ? 'Esta unidade não pode ser resgatada.'
+        : 'Não foi possível desbloquear. Tente de novo.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className={`relative overflow-hidden rounded-2xl mt-2 mb-8 bg-gradient-to-r ${a.tint} ring-1 ${a.ring} shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] ${lockedPaid ? 'opacity-95' : ''}`}>
+      <div className="flex items-stretch">
+        {/* barra lateral colorida */}
+        <span className={`w-1.5 shrink-0 ${a.bar}`} />
+        <div className="flex-1 flex items-center justify-between gap-3 px-4 py-3.5">
+          <div className="min-w-0">
+            <p className={`text-[10px] uppercase tracking-[0.18em] font-bold mb-0.5 ${a.eyebrow}`}>
+              {unit.subtitle || 'Unidade'}
+            </p>
+            <h3 className="text-[17px] font-bold text-slate-800 tracking-tight truncate">{unit.title}</h3>
+          </div>
+
+          {/* Lado direito conforme o estado */}
+          {redeemable ? (
+            <button
+              onClick={() => { setError(null); setConfirming(true); }}
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-amber-950 text-[11px] font-extrabold transition-colors shadow-sm"
+            >
+              <Coins size={13} strokeWidth={2.5} /> Desbloquear · {cost.toLocaleString('pt-BR')} XP
+            </button>
+          ) : lockedPaid ? (
+            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">
+              <Lock size={12} strokeWidth={2.5} /> Premium
+            </span>
+          ) : unlocked ? (
+            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold">
+              <Coins size={12} strokeWidth={2.5} /> Desbloqueado
+            </span>
+          ) : unit.image_url ? (
+            <img src={unit.image_url} alt="" className="shrink-0 w-20 h-12 rounded-lg object-cover ring-1 ring-black/5" />
+          ) : null}
+        </div>
+      </div>
+
+      {/* Confirmação de resgate (inline, dentro do card) */}
+      {confirming && (
+        <div className="border-t border-black/5 bg-white/70 px-4 py-3">
+          <p className="text-sm text-slate-700 mb-1">
+            Gastar <span className="font-bold text-amber-600">{cost.toLocaleString('pt-BR')} XP</span> para liberar <span className="font-semibold">{unit.title}</span>?
+          </p>
+          <p className="text-xs text-slate-400 mb-3">
+            Seu saldo: <span className="tabular-nums">{xp.toLocaleString('pt-BR')}</span> XP
+            {!canAfford && <span className="text-rose-500 font-semibold"> · faltam {(cost - xp).toLocaleString('pt-BR')} XP</span>}
+          </p>
+          {error && <p className="text-xs text-rose-600 mb-2">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              onClick={doRedeem}
+              disabled={busy || !canAfford}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-sm font-bold transition-colors"
+            >
+              {busy ? <Loader2 size={15} className="animate-spin" /> : <Coins size={15} />}
+              Confirmar
+            </button>
+            <button
+              onClick={() => setConfirming(false)}
+              disabled={busy}
+              className="px-4 py-2 rounded-xl text-slate-500 hover:bg-slate-100 text-sm font-semibold transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
         </div>
       )}
     </div>

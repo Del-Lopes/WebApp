@@ -62,6 +62,25 @@ export async function fetchCompletedLessonIds(): Promise<Set<string>> {
   return new Set((data ?? []).map((r: { lesson_id: string }) => r.lesson_id));
 }
 
+// Retorna o conjunto de unit_id que o usuário já desbloqueou gastando XP.
+export async function fetchUnlockedUnitIds(): Promise<Set<string>> {
+  const { data, error } = await supabase
+    .from('trilha_unit_unlocks')
+    .select('unit_id');
+  if (error) { console.error('[trilhaGain] fetchUnlockedUnitIds', error); return new Set(); }
+  return new Set((data ?? []).map((r: { unit_id: string }) => r.unit_id));
+}
+
+// Resgata o desbloqueio de uma unidade paga gastando XP. O débito é feito
+// no servidor pela RPC redeem_unit_unlock (SECURITY DEFINER, transacional);
+// nunca debitamos no client. Retorna o novo total_xp.
+// Erros possíveis (message): 'insufficient_xp', 'not_redeemable', 'not_authenticated'.
+export async function redeemUnitUnlock(unitId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('redeem_unit_unlock', { p_unit_id: unitId });
+  if (error) { console.error('[trilhaGain] redeemUnitUnlock', error); throw new Error(error.message); }
+  return data as number;
+}
+
 export async function fetchStats(): Promise<TrilhaStats | null> {
   const { data, error } = await supabase
     .from('trilha_stats')

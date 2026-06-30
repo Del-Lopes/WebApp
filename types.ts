@@ -230,6 +230,8 @@ export interface TrilhaUnit {
   // Bloqueio por unidade (unidade paga): cadeado + lições não abrem.
   is_locked?: boolean;
   lock_note?: string;
+  // Custo em XP para destravar a unidade (NULL/0 = não resgatável por XP).
+  unlock_cost?: number;
   order_index: number;
   created_at?: string;
   lessons?: TrilhaLesson[];
