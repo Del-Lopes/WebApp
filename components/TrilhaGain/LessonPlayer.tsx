@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, TrendingUp, Coins } from 'lucide-react';
+import { X, TrendingUp, Coins, GraduationCap } from 'lucide-react';
 import {
   TrilhaLesson, ConceptPayload, QuizPayload,
   TrueFalsePayload, OrderPayload, ChartPayload,
@@ -20,6 +20,7 @@ interface Props {
 // Roda os steps de uma lição em sequência, com barra de progresso e tela final.
 export const LessonPlayer: React.FC<Props> = ({ lesson, onClose, onCompleted }) => {
   const steps = lesson.steps ?? [];
+  const isRevisao = lesson.id.startsWith('revisao-'); // revisão geral da unidade
   const [index, setIndex] = useState(0);
   const [finished, setFinished] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -128,14 +129,34 @@ export const LessonPlayer: React.FC<Props> = ({ lesson, onClose, onCompleted }) 
               }}
             />
             <div className="relative">
-              <div className="w-28 h-28 rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center mb-6 mx-auto shadow-xl shadow-emerald-500/30">
-                <TrendingUp size={52} className="text-white" strokeWidth={2.5} />
+              <div
+                className={`w-28 h-28 rounded-full flex items-center justify-center mb-6 mx-auto shadow-xl ${
+                  isRevisao
+                    ? 'bg-gradient-to-br from-violet-400 to-violet-600 shadow-violet-500/30'
+                    : 'bg-gradient-to-br from-emerald-400 to-emerald-600 shadow-emerald-500/30'
+                }`}
+              >
+                {isRevisao
+                  ? <GraduationCap size={52} className="text-white" strokeWidth={2.5} />
+                  : <TrendingUp size={52} className="text-white" strokeWidth={2.5} />}
               </div>
-              <p className="text-emerald-600 font-bold text-sm uppercase tracking-wider mb-1">Lucro realizado</p>
-              <h2 className="text-3xl font-extrabold text-slate-800 mb-3">Lição concluída!</h2>
-              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-gradient-to-br from-yellow-50 to-amber-100 border border-amber-200 mb-8">
-                <Coins size={24} className="text-amber-500" />
-                <span className="text-3xl font-extrabold text-amber-600">+{lesson.xp_reward} XP</span>
+              <p className={`font-bold text-sm uppercase tracking-wider mb-1 ${isRevisao ? 'text-violet-600' : 'text-emerald-600'}`}>
+                {isRevisao ? 'Módulo dominado' : 'Lucro realizado'}
+              </p>
+              <h2 className="text-3xl font-extrabold text-slate-800 mb-3">
+                {isRevisao ? 'Revisão geral concluída!' : 'Lição concluída!'}
+              </h2>
+              <div
+                className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border mb-8 ${
+                  isRevisao
+                    ? 'bg-gradient-to-br from-violet-50 to-violet-100 border-violet-200'
+                    : 'bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200'
+                }`}
+              >
+                <Coins size={24} className={isRevisao ? 'text-violet-500' : 'text-amber-500'} />
+                <span className={`text-3xl font-extrabold ${isRevisao ? 'text-violet-600' : 'text-amber-600'}`}>
+                  +{lesson.xp_reward} XP
+                </span>
               </div>
               <button
                 onClick={onClose}

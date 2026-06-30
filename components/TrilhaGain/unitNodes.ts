@@ -1,18 +1,24 @@
 import { TrilhaLesson, TrilhaStep } from '../../types';
 
-// Um nó da trilha pode ser uma AULA (só conteúdo/leitura, 0 XP) ou uma LIÇÃO
-// (candle amarelo = "gain": agrupa os exercícios das aulas anteriores e dá o XP).
+// Um nó da trilha pode ser uma AULA (só conteúdo/leitura, 0 XP), uma LIÇÃO
+// (candle amarelo = "gain": agrupa os exercícios de 2 aulas e dá o XP) ou a
+// REVISÃO geral (candle final da unidade: exercícios de TODAS as aulas + XP bônus).
 export type TrackNode =
   | { kind: 'aula'; id: string; lesson: TrilhaLesson; xp: number; num: number }
-  | { kind: 'licao'; id: string; lesson: TrilhaLesson; xp: number; coversIds: string[] };
+  | { kind: 'licao'; id: string; lesson: TrilhaLesson; xp: number; coversIds: string[] }
+  | { kind: 'revisao'; id: string; lesson: TrilhaLesson; xp: number; coversIds: string[] };
 
 const isExercise = (s: TrilhaStep) => s.type !== 'concept'; // quiz/truefalse/order/chart
 const isConcept = (s: TrilhaStep) => s.type === 'concept';
 
+// Multiplicador de XP da revisão geral sobre a soma das aulas da unidade.
+const REVISAO_XP_MULT = 1.5;
+
 // Monta a sequência de nós de uma unidade:
 //   aula(só leitura), aula, LIÇÃO(exercícios das 2 + XP), aula, aula, LIÇÃO, ...
-// A unidade SEMPRE termina com uma lição (mesmo cobrindo só 1 aula no fim).
-// XP: 0 nas aulas; todo o XP é liberado ao concluir a lição (candle amarelo).
+// e fecha SEMPRE com uma REVISÃO geral: candle final com os exercícios de TODAS
+// as aulas da unidade e XP bônus (soma das aulas × 1.5).
+// XP: 0 nas aulas; o ganho é liberado nas lições (gains) e na revisão final.
 export function buildUnitNodes(unitId: string, lessons: TrilhaLesson[]): TrackNode[] {
   const nodes: TrackNode[] = [];
   let bucket: TrilhaLesson[] = []; // aulas acumuladas desde a última lição
@@ -37,6 +43,11 @@ export function buildUnitNodes(unitId: string, lessons: TrilhaLesson[]): TrackNo
     bucket = [];
   };
 
+  // Quantas aulas, no fim, ficam sem gain próprio e são absorvidas pela revisão.
+  // (gains fecham de 2 em 2; o que sobra no final entra na revisão geral.)
+  const tailUncovered = lessons.length % 2 === 0 ? 2 : 1;
+  const lastGainIdx = lessons.length - tailUncovered; // nº de aulas cobertas por gains
+
   lessons.forEach((l, i) => {
     // Aula = só os concepts (conteúdo), 0 XP. Numerada a partir de 1 na unidade.
     const conceptSteps = (l.steps ?? []).filter(isConcept).map((s, k) => ({ ...s, order_index: k }));
@@ -47,10 +58,30 @@ export function buildUnitNodes(unitId: string, lessons: TrilhaLesson[]): TrackNo
       num: i + 1,
       lesson: { ...l, xp_reward: 0, steps: conceptSteps },
     });
-    bucket.push(l);
-    if (bucket.length === 2) flushLicao(i);
+    // só acumula aulas que serão cobertas por um gain de 2; o resto vai pra revisão.
+    if (i < lastGainIdx) {
+      bucket.push(l);
+      if (bucket.length === 2) flushLicao(i);
+    }
   });
-  flushLicao(lessons.length); // sobra 1 aula → fecha numa lição mesmo assim
+
+  // REVISÃO geral: exercícios de TODAS as aulas da unidade + XP bônus.
+  if (lessons.length > 0) {
+    const steps: TrilhaStep[] = lessons
+      .flatMap((l) => l.steps ?? [])
+      .filter(isExercise)
+      .map((s, i) => ({ ...s, order_index: i }));
+    const baseXp = lessons.reduce((a, l) => a + (l.xp_reward || 0), 0);
+    const xp = Math.max(20, Math.round(baseXp * REVISAO_XP_MULT));
+    const id = `revisao-${unitId}`;
+    nodes.push({
+      kind: 'revisao',
+      id,
+      coversIds: lessons.map((l) => l.id),
+      xp,
+      lesson: { id, unit_id: unitId, title: 'Revisão Geral', xp_reward: xp, order_index: lessons.length, steps },
+    });
+  }
 
   return nodes;
 }
