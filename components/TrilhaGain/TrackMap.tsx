@@ -9,14 +9,17 @@ import { buildUnitNodes, TrackNode } from './unitNodes';
 interface Props {
   track: TrilhaTrack;
   completed: Set<string>;
-  unlockedUnits: Set<string>; // unidades pagas já destravadas com XP por este usuário
-  xp: number;                 // XP atual (para decidir se pode resgatar)
+  // Unidades às quais o usuário comprou acesso (qualquer motivo: premium ou pulo).
+  accessUnits: Set<string>;
+  coins: number;             // saldo atual (para decidir se pode resgatar/pular)
+  skipCost: number;          // custo do pulo de progressão (ex.: 1000)
   isAdmin?: boolean; // admin acessa qualquer aula (ignora bloqueio/progressão)
   // Abre o player com a sequência de nós da unidade, começando no nó clicado.
-  // Permite fluir aula→aula→gain→…→revisão sem voltar ao lobby.
   onSelectNode: (nodes: TrackNode[], startIndex: number) => void;
-  // Resgata o desbloqueio de uma unidade paga gastando XP (lança em erro).
+  // Desbloqueia a unidade Premium alcançada organicamente (gasta unlock_cost).
   onRedeem: (unitId: string) => Promise<void>;
+  // Pula (compra acesso a) uma unidade à frente travada pela progressão.
+  onSkip: (unitId: string) => Promise<void>;
 }
 
 type LessonState = 'done' | 'available' | 'locked';
@@ -93,44 +96,64 @@ function unitAccent(title: string): UnitAccent {
 
 // Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
 // Uma lição fica disponível quando a anterior (ordem global) está concluída.
-export const TrackMap: React.FC<Props> = ({ track, completed, unlockedUnits, xp, isAdmin = false, onSelectNode, onRedeem }) => {
-  const units = track.units ?? [];
-
-  // Bloqueio efetivo: unidade paga que o usuário AINDA não destravou com XP.
-  // (Quem resgatou passa a ver a unidade como liberada.)
-  const isLocked = (u: TrilhaUnit) => !!u.is_locked && !unlockedUnits.has(u.id);
+export const TrackMap: React.FC<Props> = ({
+  track, completed, accessUnits, coins, skipCost,
+  isAdmin = false, onSelectNode, onRedeem, onSkip,
+}) => {
+  const units = track.units ?? []; // já em ordem (order_index)
 
   // Nós (aula + lição-checkpoint) por unidade.
   const nodesByUnit = new Map<string, TrackNode[]>();
   for (const u of units) nodesByUnit.set(u.id, buildUnitNodes(u.id, u.lessons ?? []));
+  const unitNodeIds = (u: TrilhaUnit) => (nodesByUnit.get(u.id) ?? []).map((n) => n.id);
+  const unitDone = (u: TrilhaUnit) => {
+    const ids = unitNodeIds(u);
+    return ids.length > 0 && ids.every((id) => completed.has(id));
+  };
 
-  // Ids de nós em unidades bloqueadas (pagas e não-destravadas).
-  const lockedNodeIds = new Set<string>();
-  for (const u of units) {
-    if (isLocked(u)) for (const n of nodesByUnit.get(u.id) ?? []) lockedNodeIds.add(n.id);
+  // "Frente orgânica": cadeia contínua U1→…→Un. Uma unidade é orgânica se ela e
+  // TODAS as anteriores foram concluídas, OU é a primeira ainda-não-concluída
+  // logo após a cadeia. Pular/concluir uma unidade fora da cadeia NÃO avança a frente.
+  const organicChain = new Set<string>();
+  {
+    let prevAllDone = true;
+    for (const u of units) {
+      if (!!u.is_locked && !accessUnits.has(u.id)) {
+        // Premium ainda não pago: pode-se "chegar" nela (entra na cadeia para
+        // mostrar o botão Desbloquear), mas o premium gateia os nós e barra a
+        // continuação orgânica até ser paga.
+        if (prevAllDone) organicChain.add(u.id);
+        prevAllDone = false;
+        continue;
+      }
+      if (prevAllDone) { organicChain.add(u.id); prevAllDone = unitDone(u); }
+    }
   }
 
-  // Sequência de nós das unidades acessíveis (entra na progressão/contagem).
+  // Unidade abrível = admin, ou na cadeia orgânica, ou acesso comprado (pulo/premium).
+  const isOpenable = (u: TrilhaUnit) => isAdmin || organicChain.has(u.id) || accessUnits.has(u.id);
+
+  // Premium ainda travada (não comprada) → nós ficam locked mesmo se "abrível".
+  const isPremiumLocked = (u: TrilhaUnit) => !!u.is_locked && !accessUnits.has(u.id);
+
+  // Nós para contagem de progresso = de todas as unidades abríveis e não-premium-travadas.
   const flatNodes: TrackNode[] = units
-    .filter((u) => !isLocked(u))
+    .filter((u) => isOpenable(u) && !isPremiumLocked(u))
     .flatMap((u) => nodesByUnit.get(u.id) ?? []);
 
+  // Estado por nó: progressão sequencial DENTRO de cada unidade abrível.
   const stateMap = new Map<string, LessonState>();
-  if (isAdmin) {
-    for (const u of units) {
-      for (const n of nodesByUnit.get(u.id) ?? []) {
-        stateMap.set(n.id, completed.has(n.id) ? 'done' : 'available');
-      }
-    }
-  } else {
-    // Progressão: só o primeiro nó não-concluído fica disponível.
-    let unlocked = true;
-    for (const n of flatNodes) {
+  for (const u of units) {
+    const nodes = nodesByUnit.get(u.id) ?? [];
+    const openable = isOpenable(u) && !isPremiumLocked(u);
+    if (!openable) { for (const n of nodes) stateMap.set(n.id, 'locked'); continue; }
+    if (isAdmin) { for (const n of nodes) stateMap.set(n.id, completed.has(n.id) ? 'done' : 'available'); continue; }
+    let next = true; // primeiro nó não-concluído da unidade fica 'available'
+    for (const n of nodes) {
       if (completed.has(n.id)) { stateMap.set(n.id, 'done'); continue; }
-      stateMap.set(n.id, unlocked ? 'available' : 'locked');
-      unlocked = false;
+      stateMap.set(n.id, next ? 'available' : 'locked');
+      next = false;
     }
-    for (const id of lockedNodeIds) stateMap.set(id, 'locked');
   }
 
   const doneCount = flatNodes.filter((n) => completed.has(n.id)).length;
@@ -230,9 +253,13 @@ export const TrackMap: React.FC<Props> = ({ track, completed, unlockedUnits, xp,
           {/* Cabeçalho claro da unidade — fica EMBAIXO da trilha (que sobe). */}
           <UnitHeader
             unit={unit}
-            unlocked={!!unit.is_locked && unlockedUnits.has(unit.id)}
-            xp={xp}
+            bought={accessUnits.has(unit.id)}
+            organicPremium={organicChain.has(unit.id) && isPremiumLocked(unit)}
+            skippable={!isAdmin && !isOpenable(unit)}
+            coins={coins}
+            skipCost={skipCost}
             onRedeem={onRedeem}
+            onSkip={onSkip}
           />
         </div>
       ))}
@@ -247,45 +274,63 @@ export const TrackMap: React.FC<Props> = ({ track, completed, unlockedUnits, xp,
   );
 };
 
-// Cabeçalho de uma unidade. Estados:
-//   livre        → acento por bloco + miniatura da ilustração (quem tem)
-//   paga+travada → selo Premium + botão "Desbloquear com X XP" (resgate por XP)
-//   desbloqueada → acento + selo "Desbloqueado"
+// Cabeçalho de uma unidade. Ação à direita conforme o estado:
+//   bought          → selo "Desbloqueado"
+//   organicPremium  → "Desbloquear · {unlock_cost} Coins" (chegou na Premium)
+//   skippable       → "Pular · {skipCost(+premium)} Coins" (unidade à frente travada)
+//   livre/em curso  → miniatura da ilustração (quem tem) / nada
 const UnitHeader: React.FC<{
   unit: TrilhaUnit;
-  unlocked: boolean;                    // unidade paga já destravada com XP
-  xp: number;                           // XP atual do usuário
+  bought: boolean;          // acesso já comprado (premium ou pulo)
+  organicPremium: boolean;  // Premium alcançada na cadeia orgânica, ainda não paga
+  skippable: boolean;       // unidade à frente travada pela progressão
+  coins: number;            // saldo atual
+  skipCost: number;         // custo base do pulo
   onRedeem: (unitId: string) => Promise<void>;
-}> = ({ unit, unlocked, xp, onRedeem }) => {
+  onSkip: (unitId: string) => Promise<void>;
+}> = ({ unit, bought, organicPremium, skippable, coins, skipCost, onRedeem, onSkip }) => {
   const a = unitAccent(unit.title);
-  const cost = unit.unlock_cost ?? 0;
-  const lockedPaid = !!unit.is_locked && !unlocked;          // ainda travada
-  const redeemable = lockedPaid && cost > 0;                  // dá pra resgatar por XP
-  const canAfford = xp >= cost;
+  const premiumCost = unit.unlock_cost ?? 0;
+
+  // Modo de ação. Pular uma unidade que TAMBÉM é Premium embute o premium no custo.
+  const mode: 'bought' | 'redeem' | 'skip' | 'none' =
+    bought ? 'bought'
+    : organicPremium && premiumCost > 0 ? 'redeem'
+    : skippable ? 'skip'
+    : 'none';
+
+  const cost =
+    mode === 'redeem' ? premiumCost
+    : mode === 'skip' ? skipCost + (unit.is_locked ? premiumCost : 0)
+    : 0;
+  const canAfford = coins >= cost;
 
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const doRedeem = async () => {
+  const doAction = async () => {
     setBusy(true); setError(null);
     try {
-      await onRedeem(unit.id);
+      if (mode === 'redeem') await onRedeem(unit.id);
+      else if (mode === 'skip') await onSkip(unit.id);
       setConfirming(false);
     } catch (e) {
       const msg = (e as Error).message;
       setError(
-        msg === 'insufficient_xp' ? 'XP insuficiente.'
+        msg === 'insufficient_xp' ? 'Coins insuficientes.'
         : msg === 'not_redeemable' ? 'Esta unidade não pode ser resgatada.'
-        : 'Não foi possível desbloquear. Tente de novo.',
+        : 'Não foi possível concluir. Tente de novo.',
       );
     } finally {
       setBusy(false);
     }
   };
 
+  const actionLabel = mode === 'skip' ? 'Pular' : 'Desbloquear';
+
   return (
-    <div className={`relative overflow-hidden rounded-2xl mt-2 mb-8 bg-gradient-to-r ${a.tint} ring-1 ${a.ring} shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] ${lockedPaid ? 'opacity-95' : ''}`}>
+    <div className={`relative overflow-hidden rounded-2xl mt-2 mb-8 bg-gradient-to-r ${a.tint} ring-1 ${a.ring} shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] ${mode === 'redeem' || mode === 'skip' ? 'opacity-95' : ''}`}>
       <div className="flex items-stretch">
         {/* barra lateral colorida */}
         <span className={`w-1.5 shrink-0 ${a.bar}`} />
@@ -297,19 +342,15 @@ const UnitHeader: React.FC<{
             <h3 className="text-[17px] font-bold text-slate-800 tracking-tight truncate">{unit.title}</h3>
           </div>
 
-          {/* Lado direito conforme o estado */}
-          {redeemable ? (
+          {/* Lado direito conforme o modo */}
+          {mode === 'redeem' || mode === 'skip' ? (
             <button
               onClick={() => { setError(null); setConfirming(true); }}
               className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-amber-950 text-[11px] font-extrabold transition-colors shadow-sm"
             >
-              <Coins size={13} strokeWidth={2.5} /> Desbloquear · {cost.toLocaleString('pt-BR')} XP
+              <Coins size={13} strokeWidth={2.5} /> {actionLabel} · {cost.toLocaleString('pt-BR')} Coins
             </button>
-          ) : lockedPaid ? (
-            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold">
-              <Lock size={12} strokeWidth={2.5} /> Premium
-            </span>
-          ) : unlocked ? (
+          ) : mode === 'bought' ? (
             <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold">
               <Coins size={12} strokeWidth={2.5} /> Desbloqueado
             </span>
@@ -319,20 +360,25 @@ const UnitHeader: React.FC<{
         </div>
       </div>
 
-      {/* Confirmação de resgate (inline, dentro do card) */}
+      {/* Confirmação inline (dentro do card) */}
       {confirming && (
         <div className="border-t border-black/5 bg-white/70 px-4 py-3">
           <p className="text-sm text-slate-700 mb-1">
-            Gastar <span className="font-bold text-amber-600">{cost.toLocaleString('pt-BR')} XP</span> para liberar <span className="font-semibold">{unit.title}</span>?
+            {mode === 'skip' ? 'Pular para' : 'Liberar'} <span className="font-semibold">{unit.title}</span> por <span className="font-bold text-amber-600">{cost.toLocaleString('pt-BR')} Coins</span>?
           </p>
+          {mode === 'skip' && unit.is_locked && premiumCost > 0 && (
+            <p className="text-[11px] text-slate-400 mb-1">
+              ({skipCost.toLocaleString('pt-BR')} do pulo + {premiumCost.toLocaleString('pt-BR')} da unidade Premium)
+            </p>
+          )}
           <p className="text-xs text-slate-400 mb-3">
-            Seu saldo: <span className="tabular-nums">{xp.toLocaleString('pt-BR')}</span> XP
-            {!canAfford && <span className="text-rose-500 font-semibold"> · faltam {(cost - xp).toLocaleString('pt-BR')} XP</span>}
+            Seu saldo: <span className="tabular-nums">{coins.toLocaleString('pt-BR')}</span> Coins
+            {!canAfford && <span className="text-rose-500 font-semibold"> · faltam {(cost - coins).toLocaleString('pt-BR')} Coins</span>}
           </p>
           {error && <p className="text-xs text-rose-600 mb-2">{error}</p>}
           <div className="flex gap-2">
             <button
-              onClick={doRedeem}
+              onClick={doAction}
               disabled={busy || !canAfford}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-sm font-bold transition-colors"
             >

@@ -71,14 +71,35 @@ export async function fetchUnlockedUnitIds(): Promise<Set<string>> {
   return new Set((data ?? []).map((r: { unit_id: string }) => r.unit_id));
 }
 
-// Resgata o desbloqueio de uma unidade paga gastando XP. O débito é feito
+// Resgata o desbloqueio de uma unidade paga gastando Coins. O débito é feito
 // no servidor pela RPC redeem_unit_unlock (SECURITY DEFINER, transacional);
-// nunca debitamos no client. Retorna o novo total_xp.
+// nunca debitamos no client. Retorna o novo saldo (total_xp).
 // Erros possíveis (message): 'insufficient_xp', 'not_redeemable', 'not_authenticated'.
 export async function redeemUnitUnlock(unitId: string): Promise<number> {
   const { data, error } = await supabase.rpc('redeem_unit_unlock', { p_unit_id: unitId });
   if (error) { console.error('[trilhaGain] redeemUnitUnlock', error); throw new Error(error.message); }
   return data as number;
+}
+
+// Pula (libera o acesso a) uma unidade à frente gastando Coins. Custo = skip_cost
+// (1000); se a unidade também for Premium e ainda não paga, o pulo embute o
+// unlock_cost (ex.: Método APP = 5000 + 1000 = 6000). Não move a progressão.
+// Retorna o novo saldo. Erros: 'insufficient_xp', 'not_authenticated'.
+export async function redeemUnitSkip(unitId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('redeem_unit_skip', { p_unit_id: unitId });
+  if (error) { console.error('[trilhaGain] redeemUnitSkip', error); throw new Error(error.message); }
+  return data as number;
+}
+
+// Custo do pulo de progressão (trilha_config.skip_cost). Default 1000.
+export async function fetchSkipCost(): Promise<number> {
+  const { data, error } = await supabase
+    .from('trilha_config')
+    .select('value')
+    .eq('key', 'skip_cost')
+    .maybeSingle();
+  if (error || !data) { return 1000; }
+  return (data as { value: number }).value;
 }
 
 export async function fetchStats(): Promise<TrilhaStats | null> {

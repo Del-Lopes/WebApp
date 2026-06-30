@@ -3,7 +3,7 @@ import { Loader2, Milestone } from 'lucide-react';
 import { TrilhaTrack, TrilhaStats } from '../../types';
 import {
   fetchTracks, fetchTrackTree, fetchCompletedLessonIds, fetchStats,
-  fetchUnlockedUnitIds, redeemUnitUnlock,
+  fetchUnlockedUnitIds, redeemUnitUnlock, redeemUnitSkip, fetchSkipCost,
 } from '../../lib/trilhaGain';
 import { BackButton } from '../BackButton';
 import { GamificationBar } from './GamificationBar';
@@ -23,7 +23,9 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
   const [tracks, setTracks] = useState<TrilhaTrack[]>([]);
   const [activeTrack, setActiveTrack] = useState<TrilhaTrack | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
-  const [unlockedUnits, setUnlockedUnits] = useState<Set<string>>(new Set());
+  // Unidades com acesso comprado (premium pago OU pulo) — qualquer reason.
+  const [accessUnits, setAccessUnits] = useState<Set<string>>(new Set());
+  const [skipCost, setSkipCost] = useState(1000);
   const [stats, setStats] = useState<TrilhaStats | null>(null);
   const [playing, setPlaying] = useState<{ nodes: TrackNode[]; startIndex: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,13 +33,14 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
   useEffect(() => {
     (async () => {
       setLoading(true);
-      const [t, c, s, u] = await Promise.all([
-        fetchTracks(), fetchCompletedLessonIds(), fetchStats(), fetchUnlockedUnitIds(),
+      const [t, c, s, u, sc] = await Promise.all([
+        fetchTracks(), fetchCompletedLessonIds(), fetchStats(), fetchUnlockedUnitIds(), fetchSkipCost(),
       ]);
       setTracks(t);
       setCompleted(c);
       setStats(s);
-      setUnlockedUnits(u);
+      setAccessUnits(u);
+      setSkipCost(sc);
       // Abre direto a primeira trilha gratuita (sem etapa de seleção).
       const first = t.find((tr) => !tr.is_locked) ?? t[0];
       if (first) {
@@ -50,15 +53,21 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
 
   const handleLessonCompleted = async (lessonId: string) => {
     setCompleted((prev) => new Set(prev).add(lessonId));
-    // Recarrega stats para refletir XP/streak atualizados
+    // Recarrega stats para refletir Coins/streak atualizados
     setStats(await fetchStats());
   };
 
-  // Resgata o desbloqueio de uma unidade paga gastando XP. Em sucesso, marca a
-  // unidade como desbloqueada e atualiza o XP. Erros voltam para o TrackMap tratar.
+  // Desbloqueia a unidade Premium alcançada organicamente (gasta unlock_cost).
   const handleRedeem = async (unitId: string) => {
     await redeemUnitUnlock(unitId); // lança em insufficient_xp / not_redeemable
-    setUnlockedUnits((prev) => new Set(prev).add(unitId));
+    setAccessUnits((prev) => new Set(prev).add(unitId));
+    setStats(await fetchStats());
+  };
+
+  // Pula (compra acesso a) uma unidade à frente travada. Não move a progressão.
+  const handleSkip = async (unitId: string) => {
+    await redeemUnitSkip(unitId); // lança em insufficient_xp
+    setAccessUnits((prev) => new Set(prev).add(unitId));
     setStats(await fetchStats());
   };
 
@@ -141,11 +150,13 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
           <TrackMap
             track={activeTrack}
             completed={completed}
-            unlockedUnits={unlockedUnits}
-            xp={stats?.total_xp ?? 0}
+            accessUnits={accessUnits}
+            coins={stats?.total_xp ?? 0}
+            skipCost={skipCost}
             isAdmin={isAdmin}
             onSelectNode={(nodes, startIndex) => setPlaying({ nodes, startIndex })}
             onRedeem={handleRedeem}
+            onSkip={handleSkip}
           />
         </InvertedScroll>
       ) : (

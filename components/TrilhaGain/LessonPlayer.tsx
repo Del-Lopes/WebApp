@@ -220,7 +220,7 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
               <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border mb-8 bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200">
                 <Coins size={24} className="text-amber-500" />
                 <span className="text-3xl font-extrabold text-amber-600">
-                  +{reward.xp} XP
+                  +{reward.xp} Coins
                 </span>
               </div>
               <button
@@ -255,7 +255,7 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
               <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border mb-8 bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200">
                 <Coins size={24} className="text-amber-500" />
                 <span className="text-3xl font-extrabold text-amber-600">
-                  +{moduleXp} XP
+                  +{moduleXp} Coins
                 </span>
               </div>
               <button
