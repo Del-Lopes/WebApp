@@ -327,7 +327,7 @@ const UnitHeader: React.FC<{
     }
   };
 
-  const actionLabel = mode === 'skip' ? 'Pular' : 'Desbloquear';
+  const actionLabel = mode === 'skip' ? 'Destravar' : 'Desbloquear';
 
   return (
     <div className={`relative overflow-hidden rounded-2xl mt-2 mb-8 bg-gradient-to-r ${a.tint} ring-1 ${a.ring} shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] ${mode === 'redeem' || mode === 'skip' ? 'opacity-95' : ''}`}>
@@ -364,7 +364,7 @@ const UnitHeader: React.FC<{
       {confirming && (
         <div className="border-t border-black/5 bg-white/70 px-4 py-3">
           <p className="text-sm text-slate-700 mb-1">
-            {mode === 'skip' ? 'Pular para' : 'Liberar'} <span className="font-semibold">{unit.title}</span> por <span className="font-bold text-amber-600">{cost.toLocaleString('pt-BR')} Coins</span>?
+            {mode === 'skip' ? 'Destravar' : 'Liberar'} <span className="font-semibold">{unit.title}</span> por <span className="font-bold text-amber-600">{cost.toLocaleString('pt-BR')} Coins</span>?
           </p>
           {mode === 'skip' && unit.is_locked && premiumCost > 0 && (
             <p className="text-[11px] text-slate-400 mb-1">
