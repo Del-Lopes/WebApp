@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star, TrendingUp, Lock } from 'lucide-react';
-import { TrilhaTrack, TrilhaLesson } from '../../types';
+import { TrilhaTrack } from '../../types';
 import { Candle } from './Candle';
 import { LessonCandle } from './LessonCandle';
 import { makeCandleSeries } from './candleSeries';
@@ -10,7 +10,9 @@ interface Props {
   track: TrilhaTrack;
   completed: Set<string>;
   isAdmin?: boolean; // admin acessa qualquer aula (ignora bloqueio/progressão)
-  onSelectLesson: (lesson: TrilhaLesson) => void;
+  // Abre o player com a sequência de nós da unidade, começando no nó clicado.
+  // Permite fluir aula→aula→gain→…→revisão sem voltar ao lobby.
+  onSelectNode: (nodes: TrackNode[], startIndex: number) => void;
 }
 
 type LessonState = 'done' | 'available' | 'locked';
@@ -62,7 +64,7 @@ function isLineBreak(a: { x: number }, b: { x: number }): boolean {
 
 // Trilha vertical serpenteante de nós, com linha de conexão e tema de mercado.
 // Uma lição fica disponível quando a anterior (ordem global) está concluída.
-export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, onSelectLesson }) => {
+export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, onSelectNode }) => {
   const units = track.units ?? [];
 
   // Nós (aula + lição-checkpoint) por unidade.
@@ -183,7 +185,7 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
                         kind={node.kind}
                         xp={node.xp}
                         num={node.kind === 'aula' ? node.num : undefined}
-                        onClick={() => onSelectLesson(node.lesson)}
+                        onClick={() => onSelectNode(nodes, i)}
                       />
                     </div>
                   );

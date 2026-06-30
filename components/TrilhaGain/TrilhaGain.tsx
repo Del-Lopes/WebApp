@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, Milestone } from 'lucide-react';
-import { TrilhaTrack, TrilhaLesson, TrilhaStats } from '../../types';
+import { TrilhaTrack, TrilhaStats } from '../../types';
 import {
   fetchTracks, fetchTrackTree, fetchCompletedLessonIds, fetchStats,
 } from '../../lib/trilhaGain';
@@ -8,6 +8,7 @@ import { BackButton } from '../BackButton';
 import { GamificationBar } from './GamificationBar';
 import { TrackMap } from './TrackMap';
 import { LessonPlayer } from './LessonPlayer';
+import { TrackNode } from './unitNodes';
 import { InvertedScroll } from './InvertedScroll';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,7 +23,7 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
   const [activeTrack, setActiveTrack] = useState<TrilhaTrack | null>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
   const [stats, setStats] = useState<TrilhaStats | null>(null);
-  const [playing, setPlaying] = useState<TrilhaLesson | null>(null);
+  const [playing, setPlaying] = useState<{ nodes: TrackNode[]; startIndex: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -117,7 +118,12 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
         <div className="flex justify-center py-16 text-slate-400"><Loader2 className="animate-spin" size={28} /></div>
       ) : activeTrack ? (
         <InvertedScroll banner={banner}>
-          <TrackMap track={activeTrack} completed={completed} isAdmin={isAdmin} onSelectLesson={setPlaying} />
+          <TrackMap
+            track={activeTrack}
+            completed={completed}
+            isAdmin={isAdmin}
+            onSelectNode={(nodes, startIndex) => setPlaying({ nodes, startIndex })}
+          />
         </InvertedScroll>
       ) : (
         <div className="text-center text-slate-400 py-16 flex flex-col items-center gap-3">
@@ -126,10 +132,11 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
         </div>
       )}
 
-      {/* Player de lição */}
+      {/* Player do módulo: flui aula→aula→gain→…→revisão sem voltar ao lobby */}
       {playing && (
         <LessonPlayer
-          lesson={playing}
+          nodes={playing.nodes}
+          startIndex={playing.startIndex}
           onClose={() => setPlaying(null)}
           onCompleted={handleLessonCompleted}
         />
