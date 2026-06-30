@@ -123,10 +123,11 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
         </div>
       )}
 
-      {/* Unidades em ordem natural (Unidade 1 no topo). A inversão do SENTIDO
-          de rolagem é feita pelo InvertedScroll (scaleY). Dentro de cada
-          unidade a trilha sobe e o banner fica embaixo. */}
-      {units.map((unit) => (
+      {/* Unidades em ordem REVERSA no DOM: como o InvertedScroll aplica
+          scaleY(-1), a última do DOM aparece no começo visual — então a
+          Unidade 1 (Candles) precisa ficar por último aqui para abrir como
+          a primeira na tela. */}
+      {[...units].reverse().map((unit) => (
         <div key={unit.id} className="mb-2">
           {/* Nós da unidade (aulas + lições-checkpoint) num caminho com pivots */}
           {(() => {
