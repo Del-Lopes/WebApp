@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { X, TrendingUp, Coins, Trophy, ChevronLeft } from 'lucide-react';
+import { X, Swords, Coins, Trophy, ChevronLeft } from 'lucide-react';
 import {
   ConceptPayload, QuizPayload,
   TrueFalsePayload, OrderPayload, ChartPayload,
@@ -30,6 +30,8 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
   const [finished, setFinished] = useState(false); // chegou ao fim do módulo
   const [saving, setSaving] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set()); // nós já gravados
+  // Tela intersticial de XP ao concluir um gain (candle vermelho de exercício).
+  const [reward, setReward] = useState<{ xp: number } | null>(null);
 
   const node = nodes[nodeIndex];
   const lesson = node?.lesson;
@@ -49,12 +51,29 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
     }
   }, [savedIds, onCompleted]);
 
-  // Conclui o nó atual e vai para o próximo (ou tela final do módulo).
+  // Move de fato para o próximo nó (ou tela final do módulo).
+  const proceed = useCallback(() => {
+    setReward(null);
+    if (isLastNode) {
+      setFinished(true);
+    } else {
+      setNodeIndex((i) => i + 1);
+      setStepIndex(0);
+    }
+  }, [isLastNode]);
+
+  // Conclui o nó atual; em gains (candle de exercício) mostra a tela de XP
+  // antes de seguir. Aulas (0 XP) e o nó final fluem direto.
   const goNextNode = useCallback(async () => {
     if (node) {
       setSaving(true);
       await saveNode(node);
       setSaving(false);
+      // Gain concluído no meio do módulo → celebra o XP ganho.
+      if (node.kind === 'licao' && !isLastNode && (node.lesson.xp_reward || 0) > 0) {
+        setReward({ xp: node.lesson.xp_reward });
+        return;
+      }
     }
     if (isLastNode) {
       setFinished(true);
@@ -157,7 +176,7 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
         <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Fechar">
           <X size={26} />
         </button>
-        {!finished && (
+        {!finished && !reward && (
           <button
             onClick={goBack}
             disabled={!canGoBack}
@@ -177,7 +196,42 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
 
       {/* Conteúdo */}
       <div className="flex-1 max-w-xl w-full mx-auto px-5 py-6 overflow-hidden">
-        {finished ? (
+        {reward ? (
+          /* XP ganho ao concluir um gain (candle de exercício) */
+          <div className="relative flex flex-col h-full items-center justify-center text-center overflow-hidden">
+            <div
+              className="absolute inset-0 opacity-[0.04]"
+              style={{
+                backgroundImage:
+                  'linear-gradient(#e11d48 1px, transparent 1px), linear-gradient(90deg, #e11d48 1px, transparent 1px)',
+                backgroundSize: '28px 28px',
+              }}
+            />
+            <div className="relative">
+              <div className="w-28 h-28 rounded-full flex items-center justify-center mb-6 mx-auto shadow-xl bg-gradient-to-br from-red-400 to-red-600 shadow-red-500/30">
+                <Swords size={50} className="text-white" strokeWidth={2.5} />
+              </div>
+              <p className="font-bold text-sm uppercase tracking-wider mb-1 text-red-500">
+                Exercícios vencidos
+              </p>
+              <h2 className="text-3xl font-extrabold text-slate-800 mb-3">
+                Gain concluído!
+              </h2>
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border mb-8 bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200">
+                <Coins size={24} className="text-amber-500" />
+                <span className="text-3xl font-extrabold text-amber-600">
+                  +{reward.xp} XP
+                </span>
+              </div>
+              <button
+                onClick={proceed}
+                className="block w-full max-w-xs mx-auto py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg transition-all shadow-lg shadow-emerald-500/30"
+              >
+                Continuar
+              </button>
+            </div>
+          </div>
+        ) : finished ? (
           <div className="relative flex flex-col h-full items-center justify-center text-center overflow-hidden">
             {/* fundo grid de gráfico */}
             <div
