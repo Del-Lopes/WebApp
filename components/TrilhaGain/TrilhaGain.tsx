@@ -58,9 +58,9 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
     );
   }
 
-  // Banner "Domine o mercado" — fica no FUNDO (começo da jornada).
+  // Banner "Domine o mercado" — FIXO no topo; a trilha passa por trás dele.
   const banner = (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800 via-slate-900 to-emerald-950 p-6 mt-6 shadow-xl">
+    <div className="sticky top-0 z-20 relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-800 via-slate-900 to-emerald-950 p-6 mb-2 shadow-xl">
       <div
         className="absolute inset-0 opacity-[0.08]"
         style={{
@@ -110,14 +110,15 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
         <GamificationBar stats={stats} />
       </div>
 
-      {/* Rolagem invertida: abre no fundo (Unidade 1), rolar p/ baixo avança.
-          Opera sobre o scroll do App (ancestral), sem criar scroll próprio. */}
+      {/* Banner fixo no topo + rolagem invertida: aula 1 visível embaixo do
+          banner; rolar p/ baixo faz a trilha descer (aula 1 some por baixo,
+          aula 2 surge de trás do banner). */}
       {loading && !activeTrack ? (
         <div className="flex justify-center py-16 text-slate-400"><Loader2 className="animate-spin" size={28} /></div>
       ) : activeTrack ? (
         <InvertedScroll>
-          <TrackMap track={activeTrack} completed={completed} isAdmin={isAdmin} onSelectLesson={setPlaying} />
           {banner}
+          <TrackMap track={activeTrack} completed={completed} isAdmin={isAdmin} onSelectLesson={setPlaying} />
         </InvertedScroll>
       ) : (
         <div className="text-center text-slate-400 py-16 flex flex-col items-center gap-3">
