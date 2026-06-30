@@ -27,13 +27,13 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
       : isRevisao
         ? { wick: 'bg-amber-500', body: 'bg-gradient-to-b from-amber-400 to-amber-600' }
         : isLicao
-          ? { wick: 'bg-rose-400', body: 'bg-gradient-to-b from-rose-300 to-rose-500' }
+          ? { wick: 'bg-red-500', body: 'bg-gradient-to-b from-red-400 to-red-600' }
           : { wick: 'bg-emerald-500', body: 'bg-gradient-to-b from-emerald-400 to-emerald-600' };
 
   // anéis/sombras por tipo, para o estado disponível e concluído
-  const ring = isRevisao ? 'ring-2 ring-amber-200' : isLicao ? 'ring-2 ring-rose-200' : 'ring-2 ring-emerald-200';
-  const shadowAvail = isRevisao ? 'shadow-lg shadow-amber-500/40' : isLicao ? 'shadow-lg shadow-rose-400/40' : 'shadow-lg shadow-emerald-500/40';
-  const shadowDone = isRevisao ? 'shadow shadow-amber-500/30' : isLicao ? 'shadow shadow-rose-400/30' : 'shadow shadow-emerald-500/30';
+  const ring = isRevisao ? 'ring-2 ring-amber-200' : isLicao ? 'ring-2 ring-red-200' : 'ring-2 ring-emerald-200';
+  const shadowAvail = isRevisao ? 'shadow-lg shadow-amber-500/40' : isLicao ? 'shadow-lg shadow-red-500/40' : 'shadow-lg shadow-emerald-500/40';
+  const shadowDone = isRevisao ? 'shadow shadow-amber-500/30' : isLicao ? 'shadow shadow-red-500/30' : 'shadow shadow-emerald-500/30';
 
   // revisão é o candle mais largo/alto da trilha (destaque de "boss" da unidade)
   const w = isRevisao ? 40 : isLicao ? 34 : 26;
@@ -51,7 +51,7 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
       {state === 'available' && isCheckpoint && xp > 0 && (
         <span
           className={`absolute -top-2 -right-3 z-10 text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow ${
-            isRevisao ? 'bg-yellow-400 text-yellow-900' : 'bg-rose-400 text-white'
+            isRevisao ? 'bg-yellow-400 text-yellow-900' : 'bg-red-500 text-white'
           }`}
         >
           +{xp}
