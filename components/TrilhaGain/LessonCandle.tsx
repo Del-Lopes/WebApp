@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, TrendingUp, BarChart3, LineChart, CandlestickChart, Trophy } from 'lucide-react';
+import { Lock, Trophy } from 'lucide-react';
 
 type LessonState = 'done' | 'available' | 'locked';
 
@@ -7,41 +7,15 @@ interface Props {
   state: LessonState;
   kind?: 'aula' | 'licao'; // 'licao' = checkpoint de revisão (visual distinto)
   xp: number;
-  iconSeed: string; // estável por aula (usa o id) para escolher o símbolo
+  num?: number;            // número da aula dentro da unidade (só para aula)
   onClick: () => void;
 }
 
-// Hash simples e estável de uma string → inteiro não-negativo.
-function hash(s: string): number {
-  let h = 0;
-  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
-  return Math.abs(h);
-}
-
-// Símbolos de mercado dentro do candle. Mistura de texto (moedas/cripto/tickers)
-// e ícones (gráficos). Escolhido de forma determinística por aula.
-type Sym =
-  | { kind: 'text'; v: string }
-  | { kind: 'icon'; C: React.ComponentType<{ size?: number; className?: string; strokeWidth?: number }> };
-
-const SYMBOLS: Sym[] = [
-  { kind: 'text', v: '$' },        // dólar
-  { kind: 'text', v: '€' },        // euro
-  { kind: 'text', v: '£' },        // libra
-  { kind: 'text', v: '¥' },        // iene
-  { kind: 'text', v: '₿' },        // bitcoin
-  { kind: 'text', v: 'Ξ' },        // ethereum
-  { kind: 'icon', C: TrendingUp },
-  { kind: 'icon', C: BarChart3 },
-  { kind: 'icon', C: LineChart },
-  { kind: 'icon', C: CandlestickChart },
-];
-
-// Nó da trilha em forma de candle (vela), com um símbolo de mercado dentro.
-//   done      → candle verde com símbolo branco
-//   available → candle verde pulsando + badge de XP
-//   locked    → candle cinza com cadeado
-export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, iconSeed, onClick }) => {
+// Nó da trilha em forma de candle (vela).
+//   aula  → candle verde com o NÚMERO da aula
+//   licao → candle dourado com troféu (checkpoint/gain)
+//   locked→ candle cinza com cadeado
+export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, onClick }) => {
   const isLicao = kind === 'licao';
   const color =
     state === 'locked'
@@ -49,8 +23,6 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, iconSe
       : isLicao
         ? { wick: 'bg-amber-500', body: 'bg-gradient-to-b from-amber-400 to-amber-600' }
         : { wick: 'bg-emerald-500', body: 'bg-gradient-to-b from-emerald-400 to-emerald-600' };
-
-  const sym = SYMBOLS[hash(iconSeed) % SYMBOLS.length];
 
   return (
     <button
@@ -83,10 +55,8 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, iconSe
           <Lock size={13} className="text-slate-400" />
         ) : isLicao ? (
           <Trophy size={18} className="text-white" strokeWidth={2.5} />
-        ) : sym.kind === 'text' ? (
-          <span className="text-white font-extrabold text-sm leading-none">{sym.v}</span>
         ) : (
-          <sym.C size={16} className="text-white" strokeWidth={2.5} />
+          <span className="text-white font-extrabold text-sm leading-none">{num}</span>
         )}
       </div>
 

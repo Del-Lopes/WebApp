@@ -182,7 +182,7 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
                         state={state}
                         kind={node.kind}
                         xp={node.xp}
-                        iconSeed={node.id}
+                        num={node.kind === 'aula' ? node.num : undefined}
                         onClick={() => onSelectLesson(node.lesson)}
                       />
                     </div>
