@@ -123,10 +123,10 @@ export const TrackMap: React.FC<Props> = ({ track, completed, isAdmin = false, o
         </div>
       )}
 
-      {/* Unidades empilhadas DE BAIXO PARA CIMA: Unidade 1 na base, as
-          seguintes acima. Dentro de cada unidade, a trilha sobe e o banner
-          fica embaixo (rola-se para cima para avançar). */}
-      {[...units].reverse().map((unit) => (
+      {/* Unidades em ordem natural (Unidade 1 no topo). A inversão do SENTIDO
+          de rolagem é feita pelo InvertedScroll (scaleY). Dentro de cada
+          unidade a trilha sobe e o banner fica embaixo. */}
+      {units.map((unit) => (
         <div key={unit.id} className="mb-2">
           {/* Nós da unidade (aulas + lições-checkpoint) num caminho com pivots */}
           {(() => {

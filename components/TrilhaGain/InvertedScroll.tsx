@@ -1,62 +1,43 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface Props {
-  children: React.ReactNode;
-  className?: string;
+  banner: React.ReactNode;   // fica FIXO no topo (não rola)
+  children: React.ReactNode; // conteúdo rolável (em ordem natural)
 }
 
-// Sobe na árvore até achar o ancestral cujo overflow-y é scroll/auto
-// (não exige que já tenha overflow agora — o conteúdo pode crescer depois).
-function findScrollParent(el: HTMLElement | null): HTMLElement | null {
-  let node = el?.parentElement ?? null;
-  while (node) {
-    const oy = getComputedStyle(node).overflowY;
-    if (oy === 'auto' || oy === 'scroll') return node;
-    node = node.parentElement;
-  }
-  return null;
-}
+// Layout: banner fixo no topo + área de rolagem REVERSA abaixo.
+// Técnica scaleY(-1): o container rola normal (barra começa no topo e desce),
+// mas o eixo visual é invertido — o conteúdo aparece de baixo p/ cima e, ao
+// rolar p/ baixo, a aula 1 sai por baixo enquanto a 2 entra de cima (atrás
+// do banner). O conteúdo interno leva outro scaleY(-1) para ficar legível.
+export const InvertedScroll: React.FC<Props> = ({ banner, children }) => {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [height, setHeight] = useState<number>(0);
 
-// Rolagem INVERTIDA aplicada ao container de scroll do App (ancestral):
-// - ao montar, posiciona no FUNDO (mostra o começo da jornada = Unidade 1)
-// - rolar a roda do mouse para BAIXO faz a trilha avançar (revela o que está acima)
-// Não cria um scroll próprio — evita scroll duplo e problemas de altura.
-export const InvertedScroll: React.FC<Props> = ({ children, className = '' }) => {
-  const ref = useRef<HTMLDivElement>(null);
-
+  // Altura disponível = do topo do componente até a base da janela.
   useEffect(() => {
-    const scroller = findScrollParent(ref.current);
-    if (!scroller) return;
-
-    let pinned = true; // gruda no fundo até o conteúdo assentar / usuário interagir
-    const toBottom = () => { if (pinned) scroller.scrollTop = scroller.scrollHeight; };
-    toBottom();
-
-    const ro = new ResizeObserver(toBottom);
-    ro.observe(scroller);
-    if (ref.current) ro.observe(ref.current);
-
-    const release = () => { pinned = false; };
-    const onWheel = (e: WheelEvent) => {
-      if (e.ctrlKey) return;          // deixa zoom passar
-      pinned = false;
-      e.preventDefault();
-      scroller.scrollTop -= e.deltaY; // inverte: baixo → avança
+    const calc = () => {
+      const el = rootRef.current;
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      setHeight(Math.max(240, window.innerHeight - top - 8));
     };
-
-    scroller.addEventListener('wheel', onWheel, { passive: false });
-    scroller.addEventListener('touchstart', release, { passive: true });
-    scroller.addEventListener('keydown', release);
-    const t = setTimeout(() => { pinned = false; }, 800);
-
-    return () => {
-      ro.disconnect();
-      scroller.removeEventListener('wheel', onWheel);
-      scroller.removeEventListener('touchstart', release);
-      scroller.removeEventListener('keydown', release);
-      clearTimeout(t);
-    };
+    calc();
+    window.addEventListener('resize', calc);
+    return () => window.removeEventListener('resize', calc);
   }, []);
 
-  return <div ref={ref} className={className}>{children}</div>;
+  return (
+    <div ref={rootRef} className="flex flex-col" style={{ height }}>
+      {/* Banner fixo no topo */}
+      <div className="shrink-0 z-20">{banner}</div>
+
+      {/* Área de rolagem reversa (barra normal, eixo invertido) */}
+      <div className="flex-1 overflow-y-auto min-h-0" style={{ transform: 'scaleY(-1)' }}>
+        <div style={{ transform: 'scaleY(-1)' }}>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 };
