@@ -32,28 +32,28 @@ export const QuizStep: React.FC<Props> = ({ payload, onResolved }) => {
   };
 
   const optionClass = (i: number): string => {
-    const base = 'w-full text-left px-4 py-3 rounded-2xl border-2 font-medium transition-all';
+    const base = 'tg-btn w-full text-left px-4 py-3.5 rounded-2xl border font-medium';
     if (!checked) {
       return `${base} ${selected === i
-        ? 'border-green-500 bg-green-50 text-green-800'
-        : 'border-slate-200 hover:border-slate-300 text-slate-700'}`;
+        ? 'border-emerald-400 bg-emerald-50/80 text-emerald-800 ring-2 ring-emerald-200/60 shadow-[0_6px_16px_-8px_rgba(16,185,129,0.45)]'
+        : 'border-slate-200 bg-white hover:border-slate-300 text-slate-700 shadow-[var(--tg-shadow-sm)]'}`;
     }
-    if (i === payload.correctIndex) return `${base} border-green-500 bg-green-50 text-green-800`;
-    if (i === selected) return `${base} border-red-400 bg-red-50 text-red-700`;
-    return `${base} border-slate-200 text-slate-400`;
+    if (i === payload.correctIndex) return `${base} border-emerald-400 bg-emerald-50/80 text-emerald-800 ring-2 ring-emerald-200/60`;
+    if (i === selected) return `${base} border-rose-300 bg-rose-50/80 text-rose-700`;
+    return `${base} border-slate-200 bg-white text-slate-400`;
   };
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto">
-        <h2 className="text-xl font-bold text-slate-800 mb-6">{payload.question}</h2>
-        <div className="space-y-3">
+      <div className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+        <h2 className="font-display text-[21px] leading-snug font-bold text-slate-900 tracking-tight mb-6">{payload.question}</h2>
+        <div className="space-y-2.5">
           {payload.options.map((opt, i) => (
             <button
               key={i}
               disabled={checked}
               onClick={() => setSelected(i)}
-              className={optionClass(i)}
+              className={`${optionClass(i)} tg-rise tg-rise-${Math.min(i + 1, 4)}`}
             >
               {opt}
             </button>
@@ -61,16 +61,16 @@ export const QuizStep: React.FC<Props> = ({ payload, onResolved }) => {
         </div>
 
         {checked && (
-          <div className={`mt-5 p-4 rounded-2xl flex gap-3 ${isCorrect ? 'bg-green-50' : 'bg-red-50'}`}>
-            <div className={`shrink-0 ${isCorrect ? 'text-green-600' : 'text-red-500'}`}>
-              {isCorrect ? <Check size={22} /> : <X size={22} />}
+          <div className={`tg-rise mt-5 p-4 rounded-2xl flex gap-3 ring-1 ${isCorrect ? 'bg-emerald-50/80 ring-emerald-100' : 'bg-rose-50/80 ring-rose-100'}`}>
+            <div className={`grid place-items-center w-7 h-7 rounded-full shrink-0 ${isCorrect ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-500'}`}>
+              {isCorrect ? <Check size={16} strokeWidth={3} /> : <X size={16} strokeWidth={3} />}
             </div>
             <div>
-              <p className={`font-bold ${isCorrect ? 'text-green-800' : 'text-red-700'}`}>
+              <p className={`font-bold tracking-tight ${isCorrect ? 'text-emerald-800' : 'text-rose-700'}`}>
                 {isCorrect ? 'Correto!' : 'Não foi dessa vez.'}
               </p>
               {payload.explanation && (
-                <p className="text-sm text-slate-600 mt-1">{payload.explanation}</p>
+                <p className="text-sm text-slate-600 leading-relaxed mt-1">{payload.explanation}</p>
               )}
             </div>
           </div>
@@ -81,15 +81,17 @@ export const QuizStep: React.FC<Props> = ({ payload, onResolved }) => {
         <button
           onClick={handleCheck}
           disabled={selected === null}
-          className="mt-6 w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-lg transition-colors"
+          className="tg-btn mt-6 w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 disabled:from-slate-200 disabled:to-slate-200 disabled:text-slate-400 disabled:shadow-none text-white font-semibold text-lg shadow-[var(--tg-shadow-glow)]"
         >
           Verificar
         </button>
       ) : (
         <button
           onClick={handleContinue}
-          className={`mt-6 w-full py-4 rounded-2xl text-white font-bold text-lg transition-colors ${
-            isCorrect ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'
+          className={`tg-btn mt-6 w-full py-4 rounded-2xl text-white font-semibold text-lg ${
+            isCorrect
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-600 shadow-[var(--tg-shadow-glow)]'
+              : 'bg-gradient-to-r from-rose-500 to-red-500 shadow-[0_8px_28px_-8px_rgba(244,63,94,0.5)]'
           }`}
         >
           {isCorrect ? 'Continuar' : 'Tentar de novo'}

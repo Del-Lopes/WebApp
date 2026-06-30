@@ -12,18 +12,24 @@ export const GamificationBar: React.FC<Props> = ({ stats }) => {
   const streak = stats?.current_streak ?? 0;
 
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-br from-yellow-50 to-amber-100 text-amber-700 font-extrabold text-sm border border-amber-200/60 shadow-sm">
-        <Coins size={16} className="text-amber-500" />
-        {xp.toLocaleString('pt-BR')}
+    <div className="flex items-center gap-2">
+      {/* XP — base sóbria, acento dourado só no ícone */}
+      <div className="flex items-center gap-1.5 pl-2 pr-3 py-1.5 rounded-full bg-white/80 ring-1 ring-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.05)]">
+        <span className="grid place-items-center w-6 h-6 rounded-full bg-amber-100">
+          <Coins size={14} className="text-amber-500" />
+        </span>
+        <span className="font-display text-sm font-bold text-slate-800 tabular-nums tracking-tight">
+          {xp.toLocaleString('pt-BR')}
+        </span>
       </div>
-      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-sm border shadow-sm ${
-        streak > 0
-          ? 'bg-gradient-to-br from-orange-50 to-red-100 text-orange-600 border-orange-200/60'
-          : 'bg-slate-50 text-slate-400 border-slate-200/60'
-      }`}>
-        <Flame size={16} className={streak > 0 ? 'text-orange-500 fill-orange-400' : 'text-slate-300'} />
-        {streak}
+      {/* Streak — acende em laranja só quando ativo */}
+      <div className="flex items-center gap-1.5 pl-2 pr-3 py-1.5 rounded-full bg-white/80 ring-1 ring-slate-200/80 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_12px_rgba(15,23,42,0.05)]">
+        <span className={`grid place-items-center w-6 h-6 rounded-full ${streak > 0 ? 'bg-orange-100' : 'bg-slate-100'}`}>
+          <Flame size={14} className={streak > 0 ? 'text-orange-500 fill-orange-400' : 'text-slate-300'} />
+        </span>
+        <span className={`font-display text-sm font-bold tabular-nums tracking-tight ${streak > 0 ? 'text-slate-800' : 'text-slate-400'}`}>
+          {streak}
+        </span>
       </div>
     </div>
   );
