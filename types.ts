@@ -1,4 +1,4 @@
-export type View = 'dashboard' | 'strategies' | 'education' | 'articles' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury' | 'chat_moderation' | 'knowledge' | 'journal' | 'analysis' | 'live_portfolio' | 'market' | 'hand_bot' | 'trilha_gain';
+export type View = 'dashboard' | 'strategies' | 'education' | 'articles' | 'marketing' | 'licenses' | 'admin' | 'course_player' | 'settings' | 'article' | 'journey' | 'downloads' | 'treasury' | 'chat_moderation' | 'knowledge' | 'journal' | 'analysis' | 'live_portfolio' | 'market' | 'hand_bot' | 'trilha_gain' | 'signals';
 
 export type ProductType = 'ea' | 'course' | 'ebook' | 'indicator' | 'robot' | 'affiliate' | 'other';
 
@@ -261,6 +261,31 @@ export interface TrilhaProgress {
   lesson_id: string;
   score: number;
   completed_at: string;
+}
+
+// ============================================================
+// Sinais — sinais de compra/venda (XAU/USD e futuros símbolos)
+// ============================================================
+
+export type SignalSource = 'auto' | 'setup';
+export type SignalAction = 'BUY' | 'SELL';
+export type SignalStatus = 'open' | 'hit_tp' | 'hit_sl' | 'cancelled';
+
+export interface Signal {
+  id: string;
+  source: SignalSource;
+  symbol: string;
+  action: SignalAction;
+  entry_price: number;
+  stop_loss: number | null;
+  take_profit: number | null;
+  status: SignalStatus;
+  timeframe: string | null;
+  rationale: string | null;
+  confidence: number | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface TrilhaStats {

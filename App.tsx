@@ -34,6 +34,7 @@ const LivePortfolio = React.lazy(() => import('./components/LivePortfolio/LivePo
 const Market = React.lazy(() => import('./components/Market').then(module => ({ default: module.Market })));
 const HandBot = React.lazy(() => import('./components/HandBot/HandBot').then(module => ({ default: module.HandBot })));
 const TrilhaGain = React.lazy(() => import('./components/TrilhaGain/TrilhaGain').then(module => ({ default: module.TrilhaGain })));
+const Signals = React.lazy(() => import('./components/Signals/Signals').then(module => ({ default: module.Signals })));
 
 function AppContent() {
   const { user, isLoading, role, isPasswordRecovery } = useAuth();
@@ -122,6 +123,7 @@ function AppContent() {
       case 'market': return 'Market - Trader AFK';
       case 'hand_bot': return 'Hand Bot - Trader AFK';
       case 'trilha_gain': return 'Trilha Gain - Trader AFK';
+      case 'signals': return 'Sinais - Trader AFK';
       case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
       default: return 'Trader AFK';
     }
@@ -237,6 +239,9 @@ function AppContent() {
 
             case 'trilha_gain':
               return <TrilhaGain onBack={() => setCurrentView('dashboard')} />;
+
+            case 'signals':
+              return <Signals onBack={() => setCurrentView('dashboard')} />;
 
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
