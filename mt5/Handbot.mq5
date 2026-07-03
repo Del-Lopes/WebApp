@@ -172,7 +172,24 @@ input int Magic_Number   = 0231;                                          //Nume
 
 input group "Trader AFK - Hand Bot Sync";
 input string ApiKey      = "";    // Chave de API gerada no app Trader AFK
+input string SupabaseUrl = "https://armhlcnmaqgudqivkpgt.supabase.co"; // URL do projeto Supabase (sem barra no final)
+input string SupabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzkzODcsImV4cCI6MjA4NTA1NTM4N30.Ak1kG41SU72X-O3L8RVdxM4nZSMIG2sbJKt0HsZy8xs"; // Anon key pública do projeto Supabase
 input int    SyncIntervalSec = 60; // Intervalo de verificação de sync (segundos)
+
+//+------------------------------------------------------------------+
+//| Base URL normalizada do Supabase (remove barra final, se houver) |
+//+------------------------------------------------------------------+
+string HandbotBaseUrl()
+{
+   string u = SupabaseUrl;
+   int len = StringLen(u);
+   while(len > 0 && StringGetCharacter(u, len - 1) == '/')
+   {
+      u = StringSubstr(u, 0, len - 1);
+      len = StringLen(u);
+   }
+   return u;
+}
 
 //+------------------------------------------------------------------+
 //| Global Variables                                                 |
@@ -920,7 +937,7 @@ bool FetchHandbotLinkId()
    // Usa SHA-256 não está disponível em MQL5 nativamente, então passamos o
    // token Bearer direto na edge function — mas para PostgREST precisamos do
    // link_id. Fazemos uma única chamada à edge function para obtê-lo.
-   string url = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/handbot-params/link-id";
+   string url = HandbotBaseUrl() + "/functions/v1/handbot-params/link-id";
 
    string headers = "Authorization: Bearer " + ApiKey + "\r\n"
                   + "Content-Type: application/json\r\n";
@@ -932,7 +949,7 @@ bool FetchHandbotLinkId()
    int res = WebRequest("GET", url, headers, 5000, postData, result, responseHeaders);
    if(res == -1)
    {
-      Print("[HandBot] FetchLinkId falhou — adicione armhlcnmaqgudqivkpgt.supabase.co em Ferramentas→Opções→Expert Advisors.");
+      Print("[HandBot] FetchLinkId falhou — adicione ", HandbotBaseUrl(), " em Ferramentas→Opções→Expert Advisors.");
       return false;
    }
    if(res != 200) return false;
@@ -959,11 +976,11 @@ bool CheckNeedsSync()
    if(StringLen(_CachedLinkId) == 0) return true; // sem cache → força fetch
 
    // PostgREST: GET /rest/v1/handbot_params?handbot_link_id=eq.<id>&select=needs_sync
-   string url = "https://armhlcnmaqgudqivkpgt.supabase.co/rest/v1/handbot_params"
+   string url = HandbotBaseUrl() + "/rest/v1/handbot_params"
               + "?handbot_link_id=eq." + _CachedLinkId
               + "&select=needs_sync";
 
-   string anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFybWhsY25tYXFndWRxaXZrcGd0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk0NzkzODcsImV4cCI6MjA4NTA1NTM4N30.Ak1kG41SU72X-O3L8RVdxM4nZSMIG2sbJKt0HsZy8xs";
+   string anonKey = SupabaseAnonKey;
 
    string headers = "apikey: " + anonKey + "\r\n"
                   + "Authorization: Bearer " + anonKey + "\r\n";
@@ -996,7 +1013,7 @@ void FetchHandbotParams()
    if(StringLen(ApiKey) < 10)
       return; // ApiKey não configurada
 
-   string supabaseUrl = "https://armhlcnmaqgudqivkpgt.supabase.co/functions/v1/handbot-params";
+   string supabaseUrl = HandbotBaseUrl() + "/functions/v1/handbot-params";
 
    string headers = "Authorization: Bearer " + ApiKey + "\r\n"
                   + "Content-Type: application/json\r\n";
