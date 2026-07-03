@@ -3,8 +3,45 @@ import { Signal, SignalSource } from '../types';
 
 // ============================================================
 // Camada de dados — Sinais
-// Leitura dos sinais (por origem) e criação manual do setup (admin).
+// Leitura dos sinais (por origem), análise on-demand paga em Coins
+// e criação manual do setup (admin).
 // ============================================================
+
+// Custo em Coins de uma análise automática (signal_config.analysis_cost).
+export async function fetchAnalysisCost(): Promise<number> {
+  const { data, error } = await supabase
+    .from('signal_config')
+    .select('value')
+    .eq('key', 'analysis_cost')
+    .maybeSingle();
+  if (error || !data) return 500;
+  return (data as { value: number }).value;
+}
+
+export interface AnalysisResult {
+  new_balance: number;
+  has_entry: boolean;
+  signal: Signal;
+}
+
+// Solicita uma análise on-demand. A edge function cobra os Coins (débito
+// transacional no servidor), gera o parecer por IA e grava um sinal privado.
+// Lança Error('insufficient_coins') quando o saldo não cobre o custo.
+export async function requestSignalAnalysis(): Promise<AnalysisResult> {
+  const { data, error } = await supabase.functions.invoke('signals-generate', {
+    body: {},
+  });
+  if (error) {
+    // supabase-js embrulha o corpo do erro; tentamos extrair o código.
+    let code = '';
+    try {
+      const ctx = (error as { context?: Response }).context;
+      if (ctx && typeof ctx.json === 'function') code = (await ctx.json())?.error ?? '';
+    } catch { /* ignore */ }
+    throw new Error(code || error.message || 'analysis_failed');
+  }
+  return data as AnalysisResult;
+}
 
 // Lista os sinais mais recentes. `source` filtra 'auto' (estratégia própria)
 // ou 'setup' (setup manual do time). Sem filtro, traz ambos.

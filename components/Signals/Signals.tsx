@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Radio, Sparkles, UserCog, Info } from 'lucide-react';
-import { Signal, SignalSource } from '../../types';
-import { fetchSignals } from '../../lib/signals';
+import { Loader2, Radio, Sparkles, UserCog, Info, Coins, Zap } from 'lucide-react';
+import { Signal, SignalSource, TrilhaStats } from '../../types';
+import { fetchSignals, fetchAnalysisCost, requestSignalAnalysis } from '../../lib/signals';
+import { fetchStats } from '../../lib/trilhaGain';
 import { BackButton } from '../BackButton';
 import { useAuth } from '../../contexts/AuthContext';
 import { SignalCard } from './SignalCard';
@@ -12,8 +13,8 @@ interface Props {
 }
 
 const TABS: { key: SignalSource; label: string; Icon: React.ElementType; hint: string }[] = [
-  { key: 'auto',  label: 'Sinais Automáticos', Icon: Sparkles, hint: 'Gerados pela nossa estratégia para XAU/USD (EMA + ATR).' },
-  { key: 'setup', label: 'Meu Setup',          Icon: UserCog,  hint: 'Sinais publicados manualmente pelo time.' },
+  { key: 'auto',  label: 'Análise IA',  Icon: Sparkles, hint: 'Análise sob demanda do XAU/USD com parecer de IA. Cada análise custa Coins.' },
+  { key: 'setup', label: 'Meu Setup',   Icon: UserCog,  hint: 'Sinais publicados manualmente pelo time.' },
 ];
 
 export const Signals: React.FC<Props> = ({ onBack }) => {
@@ -23,13 +24,54 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Economia de Coins (aba auto)
+  const [cost, setCost] = useState<number>(500);
+  const [stats, setStats] = useState<TrilhaStats | null>(null);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const balance = stats?.total_xp ?? 0;
+  const canAfford = balance >= cost;
+
   const load = async (source: SignalSource) => {
     setLoading(true);
+    setError(null);
     setSignals(await fetchSignals(source));
     setLoading(false);
   };
 
   useEffect(() => { load(tab); }, [tab]);
+
+  // Carrega custo + saldo uma vez (para a aba de análise).
+  useEffect(() => {
+    (async () => {
+      const [c, s] = await Promise.all([fetchAnalysisCost(), fetchStats()]);
+      setCost(c);
+      setStats(s);
+    })();
+  }, []);
+
+  const handleAnalyze = async () => {
+    setAnalyzing(true);
+    setError(null);
+    try {
+      const result = await requestSignalAnalysis();
+      // Novo sinal no topo + saldo atualizado a partir do retorno do servidor.
+      setSignals((prev) => [result.signal, ...prev]);
+      setStats((prev) => (prev ? { ...prev, total_xp: result.new_balance } : prev));
+    } catch (e) {
+      const code = e instanceof Error ? e.message : 'analysis_failed';
+      setError(
+        code === 'insufficient_coins' ? 'Coins insuficientes para esta análise.'
+        : code === 'quotes_fetch_failed' ? 'Não foi possível obter as cotações agora. Tente novamente (nada foi cobrado).'
+        : 'Não foi possível gerar a análise. Tente novamente.',
+      );
+      // Ressincroniza o saldo (pode ter havido estorno no servidor).
+      setStats(await fetchStats());
+    } finally {
+      setAnalyzing(false);
+    }
+  };
 
   const active = TABS.find((t) => t.key === tab)!;
 
@@ -68,6 +110,34 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
         <Info size={13} /> {active.hint}
       </p>
 
+      {/* Painel de análise paga (aba auto) */}
+      {tab === 'auto' && (
+        <div className="rounded-2xl bg-gradient-to-br from-white via-emerald-50/60 to-teal-50 ring-1 ring-emerald-100 p-5 shadow-[0_10px_30px_-16px_rgba(16,185,129,0.35)]">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="text-sm font-semibold text-slate-800">Analisar o mercado agora</p>
+              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                <Coins size={13} className="text-amber-500" />
+                Seu saldo: <span className="font-semibold text-slate-700">{balance.toLocaleString('pt-BR')} Coins</span>
+                <span className="text-slate-300">•</span>
+                Custo: <span className="font-semibold text-slate-700">{cost.toLocaleString('pt-BR')} Coins</span>
+              </p>
+            </div>
+            <button
+              onClick={handleAnalyze}
+              disabled={analyzing || !canAfford}
+              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-900/10"
+            >
+              {analyzing ? <><Loader2 size={18} className="animate-spin" /> Analisando…</> : <><Zap size={18} /> Analisar ({cost} Coins)</>}
+            </button>
+          </div>
+          {!canAfford && !analyzing && (
+            <p className="text-xs text-amber-600 mt-2">Você precisa de {(cost - balance).toLocaleString('pt-BR')} Coins a mais. Ganhe Coins na Trilha Gain.</p>
+          )}
+          {error && <p className="text-xs text-rose-600 mt-2">{error}</p>}
+        </div>
+      )}
+
       {/* Form de publicação (só admin, só na aba setup) */}
       {isAdmin && tab === 'setup' && (
         <SetupSignalForm onCreated={(s) => setSignals((prev) => [s, ...prev])} />
@@ -83,7 +153,7 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
           <Radio size={28} className="mx-auto mb-2 opacity-50" />
           <p className="text-sm">Nenhum sinal por aqui ainda.</p>
           <p className="text-xs text-slate-300 mt-1">
-            {tab === 'auto' ? 'Assim que a estratégia disparar, o sinal aparece aqui.' : 'Os sinais do setup aparecerão aqui quando publicados.'}
+            {tab === 'auto' ? 'Clique em "Analisar" para gerar sua primeira análise.' : 'Os sinais do setup aparecerão aqui quando publicados.'}
           </p>
         </div>
       ) : (

@@ -268,19 +268,24 @@ export interface TrilhaProgress {
 // ============================================================
 
 export type SignalSource = 'auto' | 'setup';
-export type SignalAction = 'BUY' | 'SELL';
+// 'NONE' = análise sem setup de entrada (só parecer).
+export type SignalAction = 'BUY' | 'SELL' | 'NONE';
 export type SignalStatus = 'open' | 'hit_tp' | 'hit_sl' | 'cancelled';
 
 export interface Signal {
   id: string;
   source: SignalSource;
+  // Dono do sinal 'auto' (privado). NULL em sinais 'setup' (públicos do time).
+  user_id: string | null;
   symbol: string;
   action: SignalAction;
-  entry_price: number;
+  entry_price: number | null;
   stop_loss: number | null;
   take_profit: number | null;
   status: SignalStatus;
   timeframe: string | null;
+  // Parecer textual entregue em toda análise (com ou sem entrada).
+  analysis: string | null;
   rationale: string | null;
   confidence: number | null;
   created_by: string | null;

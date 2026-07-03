@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowUpRight, ArrowDownRight, Target, ShieldAlert, Clock, CheckCircle2, XCircle, Ban } from 'lucide-react';
+import React, { useState } from 'react';
+import { ArrowUpRight, ArrowDownRight, Target, ShieldAlert, Clock, CheckCircle2, XCircle, Ban, MinusCircle, ChevronDown } from 'lucide-react';
 import { Signal } from '../../types';
 
 const STATUS_META: Record<Signal['status'], { label: string; className: string; Icon: React.ElementType }> = {
@@ -25,13 +25,24 @@ interface Props {
 
 export const SignalCard: React.FC<Props> = ({ signal }) => {
   const isBuy = signal.action === 'BUY';
+  const isSell = signal.action === 'SELL';
+  const isNone = signal.action === 'NONE';
   const status = STATUS_META[signal.status];
   const StatusIcon = status.Icon;
 
-  // Verde para compra, vermelho para venda.
+  // Parecer longo começa recolhido.
+  const [expanded, setExpanded] = useState(false);
+  const analysis = signal.analysis ?? signal.rationale ?? null;
+  const isLong = (analysis?.length ?? 0) > 220;
+
+  // Verde para compra, vermelho para venda, neutro (slate) para "sem entrada".
   const accent = isBuy
-    ? { ring: 'ring-emerald-100', chip: 'bg-emerald-600', glow: 'bg-emerald-200/40', text: 'text-emerald-700' }
-    : { ring: 'ring-rose-100', chip: 'bg-rose-600', glow: 'bg-rose-200/40', text: 'text-rose-700' };
+    ? { ring: 'ring-emerald-100', chip: 'bg-emerald-600', glow: 'bg-emerald-200/40', text: 'text-emerald-700', label: 'COMPRA', Icon: ArrowUpRight }
+    : isSell
+    ? { ring: 'ring-rose-100', chip: 'bg-rose-600', glow: 'bg-rose-200/40', text: 'text-rose-700', label: 'VENDA', Icon: ArrowDownRight }
+    : { ring: 'ring-slate-100', chip: 'bg-slate-400', glow: 'bg-slate-200/40', text: 'text-slate-600', label: 'SEM ENTRADA', Icon: MinusCircle };
+
+  const AccentIcon = accent.Icon;
 
   return (
     <div className={`relative overflow-hidden rounded-2xl bg-white p-5 ring-1 ${accent.ring} shadow-[0_8px_24px_-14px_rgba(15,23,42,0.25)]`}>
@@ -40,11 +51,11 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
       <div className="relative flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className={`w-11 h-11 rounded-xl ${accent.chip} text-white flex items-center justify-center shadow-lg`}>
-            {isBuy ? <ArrowUpRight size={22} /> : <ArrowDownRight size={22} />}
+            <AccentIcon size={22} />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className={`text-lg font-bold ${accent.text}`}>{isBuy ? 'COMPRA' : 'VENDA'}</span>
+              <span className={`text-lg font-bold ${accent.text}`}>{accent.label}</span>
               <span className="text-sm font-semibold text-slate-500">{signal.symbol}</span>
             </div>
             <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
@@ -53,28 +64,48 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
             </p>
           </div>
         </div>
-        <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ring-1 ${status.className}`}>
-          <StatusIcon size={13} /> {status.label}
-        </span>
+        {!isNone && (
+          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ring-1 ${status.className}`}>
+            <StatusIcon size={13} /> {status.label}
+          </span>
+        )}
       </div>
 
-      <div className="relative grid grid-cols-3 gap-2 mt-4">
-        <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-          <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Entrada</p>
-          <p className="text-base font-bold text-slate-900 tabular-nums">{fmtPrice(signal.entry_price)}</p>
+      {/* Entrada/Stop/Alvo só quando há setup */}
+      {!isNone && (
+        <div className="relative grid grid-cols-3 gap-2 mt-4">
+          <div className="rounded-xl bg-slate-50 px-3 py-2.5">
+            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Entrada</p>
+            <p className="text-base font-bold text-slate-900 tabular-nums">{fmtPrice(signal.entry_price)}</p>
+          </div>
+          <div className="rounded-xl bg-rose-50 px-3 py-2.5">
+            <p className="text-[11px] font-medium text-rose-400 uppercase tracking-wide flex items-center gap-1"><ShieldAlert size={11} /> Stop</p>
+            <p className="text-base font-bold text-rose-700 tabular-nums">{fmtPrice(signal.stop_loss)}</p>
+          </div>
+          <div className="rounded-xl bg-emerald-50 px-3 py-2.5">
+            <p className="text-[11px] font-medium text-emerald-500 uppercase tracking-wide flex items-center gap-1"><Target size={11} /> Alvo</p>
+            <p className="text-base font-bold text-emerald-700 tabular-nums">{fmtPrice(signal.take_profit)}</p>
+          </div>
         </div>
-        <div className="rounded-xl bg-rose-50 px-3 py-2.5">
-          <p className="text-[11px] font-medium text-rose-400 uppercase tracking-wide flex items-center gap-1"><ShieldAlert size={11} /> Stop</p>
-          <p className="text-base font-bold text-rose-700 tabular-nums">{fmtPrice(signal.stop_loss)}</p>
-        </div>
-        <div className="rounded-xl bg-emerald-50 px-3 py-2.5">
-          <p className="text-[11px] font-medium text-emerald-500 uppercase tracking-wide flex items-center gap-1"><Target size={11} /> Alvo</p>
-          <p className="text-base font-bold text-emerald-700 tabular-nums">{fmtPrice(signal.take_profit)}</p>
-        </div>
-      </div>
+      )}
 
-      {signal.rationale && (
-        <p className="relative text-xs text-slate-500 mt-3 leading-relaxed">{signal.rationale}</p>
+      {/* Parecer — sempre presente na análise on-demand */}
+      {analysis && (
+        <div className="relative mt-3">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Parecer</p>
+          <p className={`text-sm text-slate-600 leading-relaxed whitespace-pre-line ${!expanded && isLong ? 'line-clamp-4' : ''}`}>
+            {analysis}
+          </p>
+          {isLong && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-1 text-xs font-medium text-green-600 hover:text-green-700 inline-flex items-center gap-1"
+            >
+              {expanded ? 'Ver menos' : 'Ver mais'}
+              <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
