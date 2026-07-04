@@ -103,9 +103,18 @@ export async function fetchSkipCost(): Promise<number> {
 }
 
 export async function fetchStats(): Promise<TrilhaStats | null> {
+  // Filtra pela própria identidade em vez de confiar na RLS para isolar a linha:
+  // admin/first_mate enxergam TODAS as linhas de trilha_stats (policy select_own_or_staff),
+  // então sem o .eq(user_id) o .maybeSingle() traria várias linhas e falharia (PGRST116),
+  // fazendo o saldo aparecer como 0 para quem é staff.
+  const { data: auth } = await supabase.auth.getUser();
+  const userId = auth.user?.id;
+  if (!userId) return null;
+
   const { data, error } = await supabase
     .from('trilha_stats')
     .select('*')
+    .eq('user_id', userId)
     .maybeSingle();
   if (error) { console.error('[trilhaGain] fetchStats', error); return null; }
   return (data as TrilhaStats) ?? null;
