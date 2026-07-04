@@ -96,3 +96,35 @@ export async function updateSignalStatus(id: string, status: Signal['status']): 
   const { error } = await supabase.from('signals').update({ status }).eq('id', id);
   if (error) { console.error('[signals] updateSignalStatus', error); throw error; }
 }
+
+// ─── Painel de Tendência Multi-TF ────────────────────────────────────────────
+
+// Custo (Coins) de abrir o painel de um ativo (signal_config.trend_panel_cost).
+export async function fetchTrendPanelCost(): Promise<number> {
+  const { data, error } = await supabase
+    .from('signal_config')
+    .select('value')
+    .eq('key', 'trend_panel_cost')
+    .maybeSingle();
+  if (error || !data) return 200;
+  return (data as { value: number }).value;
+}
+
+// Símbolos que o usuário já abriu HOJE (não serão cobrados de novo).
+export async function fetchTodayPanelAccess(): Promise<Set<string>> {
+  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  const { data, error } = await supabase
+    .from('trend_panel_access')
+    .select('symbol')
+    .eq('access_day', today);
+  if (error) { console.error('[signals] fetchTodayPanelAccess', error); return new Set(); }
+  return new Set((data ?? []).map((r: { symbol: string }) => r.symbol));
+}
+
+// Abre (libera) o painel de um ativo. Cobra Coins só na 1ª vez do dia.
+// Retorna o novo saldo. Lança Error('insufficient_coins') se faltar saldo.
+export async function openTrendPanel(symbol: string): Promise<number> {
+  const { data, error } = await supabase.rpc('open_trend_panel', { p_symbol: symbol });
+  if (error) { console.error('[signals] openTrendPanel', error); throw new Error(error.message); }
+  return data as number;
+}

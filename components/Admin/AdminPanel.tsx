@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { LicenseRequest, PartnerRequest, Profile, Prospect, LicenseTitle, Article, Robot } from '../../types';
+import { UserCoinsCard } from './UserCoinsCard';
 import { 
   Users, 
   Settings, 
@@ -802,7 +803,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
             </div>
           </div>
 
-          <div className="md:col-span-2 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          {/* Coins do usuário — ver saldo e atribuir manualmente (admin) */}
+          <UserCoinsCard userId={user.id} />
+
+          <div className="md:col-span-3 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
             <h3 className="font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Activity size={18} className="text-green-600" /> Licenças Ativas

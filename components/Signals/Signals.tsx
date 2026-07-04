@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Radio, Sparkles, UserCog, Info, Coins, Zap } from 'lucide-react';
+import { Loader2, Radio, Sparkles, UserCog, Info, Coins, Zap, Gauge } from 'lucide-react';
 import { Signal, SignalSource, TrilhaStats } from '../../types';
 import { fetchSignals, fetchAnalysisCost, requestSignalAnalysis } from '../../lib/signals';
 import { fetchStats } from '../../lib/trilhaGain';
@@ -7,12 +7,17 @@ import { BackButton } from '../BackButton';
 import { useAuth } from '../../contexts/AuthContext';
 import { SignalCard } from './SignalCard';
 import { SetupSignalForm } from './SetupSignalForm';
+import { TrendPanel } from './TrendPanel';
+
+// Abas da sessão. 'trend' é o painel multi-TF; 'auto'/'setup' são sinais.
+type TabKey = 'trend' | 'auto' | 'setup';
 
 interface Props {
   onBack: () => void;
 }
 
-const TABS: { key: SignalSource; label: string; Icon: React.ElementType; hint: string }[] = [
+const TABS: { key: TabKey; label: string; Icon: React.ElementType; hint: string }[] = [
+  { key: 'trend', label: 'Tendência',   Icon: Gauge,    hint: 'Painel multi-timeframe do seu setup. Abrir um ativo custa Coins (1×/ativo/dia); atualização livre.' },
   { key: 'auto',  label: 'Análise IA',  Icon: Sparkles, hint: 'Análise sob demanda do XAU/USD com parecer de IA. Cada análise custa Coins.' },
   { key: 'setup', label: 'Meu Setup',   Icon: UserCog,  hint: 'Sinais publicados manualmente pelo time.' },
 ];
@@ -20,7 +25,7 @@ const TABS: { key: SignalSource; label: string; Icon: React.ElementType; hint: s
 export const Signals: React.FC<Props> = ({ onBack }) => {
   const { role } = useAuth();
   const isAdmin = role === 'admin';
-  const [tab, setTab] = useState<SignalSource>('auto');
+  const [tab, setTab] = useState<TabKey>('trend');
   const [signals, setSignals] = useState<Signal[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,7 +45,11 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
     setLoading(false);
   };
 
-  useEffect(() => { load(tab); }, [tab]);
+  // A aba 'trend' tem seu próprio componente; só buscamos sinais em auto/setup.
+  useEffect(() => {
+    if (tab === 'trend') return;
+    load(tab);
+  }, [tab]);
 
   // Carrega custo + saldo uma vez (para a aba de análise).
   useEffect(() => {
@@ -110,6 +119,9 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
         <Info size={13} /> {active.hint}
       </p>
 
+      {/* Aba Tendência — painel multi-TF (cálculo no browser) */}
+      {tab === 'trend' && <TrendPanel />}
+
       {/* Painel de análise paga (aba auto) */}
       {tab === 'auto' && (
         <div className="rounded-2xl bg-gradient-to-br from-white via-emerald-50/60 to-teal-50 ring-1 ring-emerald-100 p-5 shadow-[0_10px_30px_-16px_rgba(16,185,129,0.35)]">
@@ -143,23 +155,25 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
         <SetupSignalForm onCreated={(s) => setSignals((prev) => [s, ...prev])} />
       )}
 
-      {/* Lista */}
-      {loading ? (
-        <div className="flex items-center justify-center py-16 text-slate-300">
-          <Loader2 className="animate-spin" size={32} />
-        </div>
-      ) : signals.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 py-16 text-center text-slate-400">
-          <Radio size={28} className="mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Nenhum sinal por aqui ainda.</p>
-          <p className="text-xs text-slate-300 mt-1">
-            {tab === 'auto' ? 'Clique em "Analisar" para gerar sua primeira análise.' : 'Os sinais do setup aparecerão aqui quando publicados.'}
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-2">
-          {signals.map((s) => <SignalCard key={s.id} signal={s} />)}
-        </div>
+      {/* Lista de sinais (abas auto/setup) */}
+      {tab !== 'trend' && (
+        loading ? (
+          <div className="flex items-center justify-center py-16 text-slate-300">
+            <Loader2 className="animate-spin" size={32} />
+          </div>
+        ) : signals.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-slate-200 py-16 text-center text-slate-400">
+            <Radio size={28} className="mx-auto mb-2 opacity-50" />
+            <p className="text-sm">Nenhum sinal por aqui ainda.</p>
+            <p className="text-xs text-slate-300 mt-1">
+              {tab === 'auto' ? 'Clique em "Analisar" para gerar sua primeira análise.' : 'Os sinais do setup aparecerão aqui quando publicados.'}
+            </p>
+          </div>
+        ) : (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {signals.map((s) => <SignalCard key={s.id} signal={s} />)}
+          </div>
+        )
       )}
     </div>
   );
