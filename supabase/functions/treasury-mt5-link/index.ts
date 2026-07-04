@@ -18,7 +18,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info',
+  'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info, x-supabase-client-platform',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
@@ -189,7 +189,12 @@ async function handleDisconnect(req: Request, _userId: string): Promise<Response
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') {
+    const reqHeaders = req.headers.get('access-control-request-headers')
+    return new Response('ok', {
+      headers: { ...corsHeaders, ...(reqHeaders ? { 'Access-Control-Allow-Headers': reqHeaders } : {}) },
+    })
+  }
   if (req.method !== 'POST') return jsonResponse(405, { error: 'method_not_allowed' })
 
   const user = await getAuthedUser(req)

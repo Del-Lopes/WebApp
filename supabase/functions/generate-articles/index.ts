@@ -269,11 +269,14 @@ function parseAIJson(raw: string): unknown {
 Deno.serve(async (req: Request) => {
   const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
   }
 
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    const reqHeaders = req.headers.get('access-control-request-headers')
+    return new Response('ok', {
+      headers: { ...corsHeaders, ...(reqHeaders ? { 'Access-Control-Allow-Headers': reqHeaders } : {}) },
+    })
   }
 
   // Parse body BEFORE starting the stream to catch immediate errors

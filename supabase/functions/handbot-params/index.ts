@@ -26,7 +26,7 @@ const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info',
+  'Access-Control-Allow-Headers': 'authorization, content-type, apikey, x-client-info, x-supabase-client-platform',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 }
 
@@ -291,7 +291,12 @@ async function handleUserParamsGet(req: Request, userId: string): Promise<Respon
 }
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') {
+    const reqHeaders = req.headers.get('access-control-request-headers')
+    return new Response('ok', {
+      headers: { ...corsHeaders, ...(reqHeaders ? { 'Access-Control-Allow-Headers': reqHeaders } : {}) },
+    })
+  }
 
   const url = new URL(req.url)
   const action = url.pathname.split('/').filter(Boolean).pop()

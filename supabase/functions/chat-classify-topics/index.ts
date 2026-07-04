@@ -26,7 +26,7 @@ interface TopicResult {
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
 }
 
 function jsonResponse(payload: unknown, status = 200): Response {
@@ -96,7 +96,10 @@ function parseJson(raw: string): unknown {
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    const reqHeaders = req.headers.get('access-control-request-headers')
+    return new Response('ok', {
+      headers: { ...corsHeaders, ...(reqHeaders ? { 'Access-Control-Allow-Headers': reqHeaders } : {}) },
+    })
   }
   if (req.method !== 'POST') {
     return jsonResponse({ error: 'Method not allowed' }, 405)
