@@ -35,10 +35,22 @@ const SYMBOL_DB = 'XAUUSD'    // formato armazenado
 const INTERVAL = '15min'
 const OUTPUTSIZE = 120
 
+// Inclui x-supabase-client-platform (enviado pelo supabase-js recente). A lista
+// serve de fallback; o handler OPTIONS reflete os headers realmente pedidos.
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+// Reflete os headers que o browser anuncia no preflight — evita quebrar sempre
+// que o supabase-js adiciona um header novo (ex.: x-supabase-client-platform).
+function corsFor(req: Request): Record<string, string> {
+  const requested = req.headers.get('access-control-request-headers')
+  return {
+    ...corsHeaders,
+    ...(requested ? { 'Access-Control-Allow-Headers': requested } : {}),
+  }
 }
 
 function jsonResponse(status: number, body: unknown): Response {
@@ -269,7 +281,7 @@ const round5 = (v: number) => Math.round(v * 1e5) / 1e5
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsFor(req) })
   if (req.method !== 'POST') return jsonResponse(405, { error: 'method_not_allowed' })
 
   // Auth: precisamos do JWT do usuário para cobrar e vincular o sinal a ele.
