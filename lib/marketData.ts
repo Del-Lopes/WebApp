@@ -67,7 +67,13 @@ async function fetchOneTF(tdSymbol: string, tdInterval: string): Promise<Candle[
   const res = await fetch(url.toString());
   const json = await res.json();
   if (json.status === 'error' || !Array.isArray(json.values)) {
-    throw new Error(json.message || 'Falha ao buscar cotações');
+    // Rate-limit do Twelve Data (free: 8 req/min) → código próprio para a UI
+    // tratar de forma amigável ("aguarde 1 minuto") sem descartar os dados atuais.
+    const msg: string = json.message || '';
+    if (json.code === 429 || /api credits|run out of api credits/i.test(msg)) {
+      throw new Error('rate_limited');
+    }
+    throw new Error(msg || 'Falha ao buscar cotações');
   }
   // Twelve Data devolve do mais novo → cronológico (mais antigo primeiro).
   return (json.values as Array<Record<string, string>>)

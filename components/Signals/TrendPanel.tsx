@@ -10,9 +10,13 @@ import { fetchTrendPanelCost, fetchTodayPanelAccess, openTrendPanel } from '../.
 import { fetchStats } from '../../lib/trilhaGain';
 import { TFGauge } from './TFGauge';
 
-// Auto-refresh a cada 60s: com 5 TFs = 5 req/min, cabe no plano free do
-// Twelve Data (8 req/min). Reduzir isto pode estourar o rate-limit.
-const REFRESH_MS = 60_000;
+// Auto-refresh a cada 90s: com 5 TFs = 5 req por rodada, fica bem abaixo do
+// limite do plano free do Twelve Data (8 req/min).
+const REFRESH_MS = 90_000;
+// Espera o usuário parar de ajustar (ativo/TFs/MA) antes de gastar requisições.
+const DEBOUNCE_MS = 700;
+// Mínimo entre buscas automáticas — barra rajadas que estourariam o rate-limit.
+const MIN_FETCH_GAP_MS = 60_000;
 const MA_MIN = 3, MA_MAX = 50;
 
 export const TrendPanel: React.FC = () => {
@@ -32,6 +36,9 @@ export const TrendPanel: React.FC = () => {
   const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   const refreshRef = useRef<number | null>(null);
+  const debounceRef = useRef<number | null>(null);
+  const lastFetchRef = useRef<number>(0); // timestamp da última busca (throttle)
+  const inFlightRef = useRef(false);       // evita buscas concorrentes
   const balance = stats?.total_xp ?? 0;
   const isOpen = openedToday.has(asset);
   const canAfford = balance >= cost;
@@ -41,13 +48,26 @@ export const TrendPanel: React.FC = () => {
       const [c, s, acc] = await Promise.all([fetchTrendPanelCost(), fetchStats(), fetchTodayPanelAccess()]);
       setCost(c); setStats(s); setOpenedToday(acc);
     })();
-    return () => { if (refreshRef.current) window.clearInterval(refreshRef.current); };
+    return () => {
+      if (refreshRef.current) window.clearInterval(refreshRef.current);
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
   }, []);
 
   // Busca candles e calcula o Trendmeter localmente (no browser).
-  const runAnalysis = async () => {
+  // `force=true` (refresh manual) ignora o throttle; o resto respeita o mínimo
+  // entre buscas para não estourar o rate-limit do Twelve Data (8 req/min, e
+  // cada busca faz 1 req por TF).
+  const runAnalysis = async (force = false) => {
     const a = findAsset(asset);
-    if (!a) return;
+    if (!a || inFlightRef.current) return;
+
+    const now = Date.now();
+    const since = now - lastFetchRef.current;
+    if (!force && since < MIN_FETCH_GAP_MS) return; // throttle
+
+    inFlightRef.current = true;
+    lastFetchRef.current = now;
     setLoading(true);
     setError(null);
     try {
@@ -60,22 +80,35 @@ export const TrendPanel: React.FC = () => {
       setAnalysis(result);
       setLastUpdate(new Date());
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Falha ao atualizar o painel.');
+      const msg = e instanceof Error ? e.message : '';
+      // Rate-limit: mantém os dados atuais na tela e avisa para aguardar.
+      setError(msg === 'rate_limited'
+        ? 'Limite de cotações atingido (plano gratuito: 8/min). Aguarde ~1 minuto — os dados anteriores continuam válidos.'
+        : 'Falha ao atualizar o painel.');
     } finally {
+      inFlightRef.current = false;
       setLoading(false);
     }
   };
 
-  // Liga/desliga o auto-refresh conforme o ativo esteja aberto.
+  // Liga/desliga o auto-refresh conforme o ativo esteja aberto. Mudanças de
+  // ativo/timeframes/período são DEBOUNCED: espera o usuário parar de mexer
+  // antes de gastar 5 requisições, evitando rajadas que estouram o rate-limit.
   useEffect(() => {
     if (refreshRef.current) { window.clearInterval(refreshRef.current); refreshRef.current = null; }
-    if (isOpen) {
-      runAnalysis();
-      refreshRef.current = window.setInterval(runAnalysis, REFRESH_MS);
-    } else {
-      setAnalysis(null);
-    }
-    return () => { if (refreshRef.current) window.clearInterval(refreshRef.current); };
+    if (debounceRef.current) { window.clearTimeout(debounceRef.current); debounceRef.current = null; }
+
+    if (!isOpen) { setAnalysis(null); return; }
+
+    debounceRef.current = window.setTimeout(() => {
+      runAnalysis(true); // primeira busca após parametrizar: força
+      refreshRef.current = window.setInterval(() => runAnalysis(false), REFRESH_MS);
+    }, DEBOUNCE_MS);
+
+    return () => {
+      if (refreshRef.current) window.clearInterval(refreshRef.current);
+      if (debounceRef.current) window.clearTimeout(debounceRef.current);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, asset, timeframes, maPeriod]);
 
@@ -150,7 +183,7 @@ export const TrendPanel: React.FC = () => {
 
           {isOpen ? (
             <button
-              onClick={runAnalysis}
+              onClick={() => runAnalysis(true)}
               disabled={loading}
               className="px-4 py-2.5 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-60"
             >
@@ -240,7 +273,7 @@ export const TrendPanel: React.FC = () => {
 
             {lastUpdate && (
               <p className="text-[11px] text-slate-400 text-right">
-                Atualizado {lastUpdate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • auto a cada 60s
+                Atualizado {lastUpdate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • auto a cada 90s
               </p>
             )}
           </div>
