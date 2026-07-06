@@ -34,11 +34,11 @@ export function findAsset(value: string): AssetOption | undefined {
 export interface TimeframeOption { label: string; td: string; }
 
 export const DEFAULT_TIMEFRAMES: TimeframeOption[] = [
-  { label: 'M5',  td: '5min' },
+  { label: 'M1',  td: '1min' },
   { label: 'M15', td: '15min' },
-  { label: 'M30', td: '30min' },
   { label: 'H1',  td: '1h' },
   { label: 'H4',  td: '4h' },
+  { label: 'D1',  td: '1day' },
 ];
 
 // Alternativas selecionáveis (parâmetro ajustável).
