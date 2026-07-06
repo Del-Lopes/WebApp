@@ -11,7 +11,11 @@ const STATUS_META: Record<Signal['status'], { label: string; className: string; 
 
 function fmtPrice(v: number | null): string {
   if (v == null) return '—';
-  return v.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  // Casas decimais conforme a magnitude: forex (EUR/USD ~1.14) precisa de mais
+  // casas que ouro/cripto (XAU ~4000, BTC ~62000). Sem depender do símbolo.
+  const abs = Math.abs(v);
+  const digits = abs >= 1000 ? 2 : abs >= 100 ? 3 : abs >= 10 ? 4 : 5;
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
 }
 
 function fmtWhen(iso: string): string {

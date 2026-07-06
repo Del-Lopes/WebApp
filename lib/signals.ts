@@ -24,12 +24,16 @@ export interface AnalysisResult {
   signal: Signal;
 }
 
-// Solicita uma análise on-demand. A edge function cobra os Coins (débito
-// transacional no servidor), gera o parecer por IA e grava um sinal privado.
+// Solicita uma análise on-demand para um ativo/timeframe. A edge function cobra
+// os Coins (débito transacional no servidor), gera o parecer por IA focado no
+// timeframe escolhido e grava um sinal privado. symbol/interval são validados
+// contra uma allowlist no servidor (valores fora dela caem no default).
 // Lança Error('insufficient_coins') quando o saldo não cobre o custo.
-export async function requestSignalAnalysis(): Promise<AnalysisResult> {
+export async function requestSignalAnalysis(
+  symbol?: string, interval?: string,
+): Promise<AnalysisResult> {
   const { data, error } = await supabase.functions.invoke('signals-generate', {
-    body: {},
+    body: { symbol, interval },
   });
   if (error) {
     // supabase-js embrulha o corpo do erro; tentamos extrair o código.

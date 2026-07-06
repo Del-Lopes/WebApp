@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Radio, Sparkles, UserCog, Info, Coins, Zap, Gauge } from 'lucide-react';
 import { Signal, SignalSource, TrilhaStats } from '../../types';
 import { fetchSignals, fetchAnalysisCost, requestSignalAnalysis } from '../../lib/signals';
+import { ASSETS, AVAILABLE_TIMEFRAMES } from '../../lib/marketData';
 import { fetchStats } from '../../lib/trilhaGain';
 import { BackButton } from '../BackButton';
 import { useAuth } from '../../contexts/AuthContext';
@@ -35,6 +36,10 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Ativo e timeframe escolhidos para a Análise IA (default: XAU/USD 15min).
+  const [analysisAsset, setAnalysisAsset] = useState(ASSETS[0].value);
+  const [analysisTf, setAnalysisTf] = useState('15min');
+
   const balance = stats?.total_xp ?? 0;
   const canAfford = balance >= cost;
 
@@ -64,7 +69,7 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
     setAnalyzing(true);
     setError(null);
     try {
-      const result = await requestSignalAnalysis();
+      const result = await requestSignalAnalysis(analysisAsset, analysisTf);
       // Novo sinal no topo + saldo atualizado a partir do retorno do servidor.
       setSignals((prev) => [result.signal, ...prev]);
       setStats((prev) => (prev ? { ...prev, total_xp: result.new_balance } : prev));
@@ -135,13 +140,37 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
                 Custo: <span className="font-semibold text-slate-700">{cost.toLocaleString('pt-BR')} Coins</span>
               </p>
             </div>
-            <button
-              onClick={handleAnalyze}
-              disabled={analyzing || !canAfford}
-              className="flex items-center gap-2 px-5 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-900/10"
-            >
-              {analyzing ? <><Loader2 size={18} className="animate-spin" /> Analisando…</> : <><Zap size={18} /> Analisar ({cost} Coins)</>}
-            </button>
+            <div className="flex items-end gap-2 flex-wrap">
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Ativo</label>
+                <select
+                  value={analysisAsset}
+                  onChange={(e) => setAnalysisAsset(e.target.value)}
+                  disabled={analyzing}
+                  className="mt-1 block px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none text-sm bg-white disabled:opacity-60"
+                >
+                  {ASSETS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Timeframe</label>
+                <select
+                  value={analysisTf}
+                  onChange={(e) => setAnalysisTf(e.target.value)}
+                  disabled={analyzing}
+                  className="mt-1 block px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none text-sm bg-white disabled:opacity-60"
+                >
+                  {AVAILABLE_TIMEFRAMES.map((tf) => <option key={tf.td} value={tf.td}>{tf.label}</option>)}
+                </select>
+              </div>
+              <button
+                onClick={handleAnalyze}
+                disabled={analyzing || !canAfford}
+                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-900/10"
+              >
+                {analyzing ? <><Loader2 size={18} className="animate-spin" /> Analisando…</> : <><Zap size={18} /> Analisar ({cost} Coins)</>}
+              </button>
+            </div>
           </div>
           {!canAfford && !analyzing && (
             <p className="text-xs text-amber-600 mt-2">Você precisa de {(cost - balance).toLocaleString('pt-BR')} Coins a mais. Ganhe Coins na Trilha Gain.</p>

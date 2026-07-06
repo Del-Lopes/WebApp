@@ -30,9 +30,21 @@ const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? ''
 // Client admin (service_role) para gravar o sinal ignorando RLS.
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
-const SYMBOL = 'XAU/USD'      // formato Twelve Data
-const SYMBOL_DB = 'XAUUSD'    // formato armazenado
-const INTERVAL = '15min'
+// Ativos permitidos (allowlist). Chave = símbolo armazenado (SYMBOL_DB);
+// td = formato Twelve Data; digits = casas decimais p/ formatação do parecer.
+const ASSETS: Record<string, { td: string; label: string; digits: number }> = {
+  XAUUSD: { td: 'XAU/USD', label: 'Ouro (XAU/USD)',     digits: 2 },
+  EURUSD: { td: 'EUR/USD', label: 'Euro (EUR/USD)',     digits: 5 },
+  GBPUSD: { td: 'GBP/USD', label: 'Libra (GBP/USD)',    digits: 5 },
+  USDJPY: { td: 'USD/JPY', label: 'Iene (USD/JPY)',     digits: 3 },
+  BTCUSD: { td: 'BTC/USD', label: 'Bitcoin (BTC/USD)',  digits: 2 },
+  ETHUSD: { td: 'ETH/USD', label: 'Ethereum (ETH/USD)', digits: 2 },
+}
+// Intervalos permitidos (formato Twelve Data).
+const INTERVALS = new Set(['1min', '5min', '15min', '30min', '1h', '2h', '4h', '1day'])
+
+const DEFAULT_SYMBOL = 'XAUUSD'
+const DEFAULT_INTERVAL = '15min'
 const OUTPUTSIZE = 120
 
 // Inclui x-supabase-client-platform (enviado pelo supabase-js recente). A lista
@@ -87,10 +99,10 @@ function atr(candles: Candle[], period: number): number {
 
 // ─── Fontes externas ─────────────────────────────────────────────────────────
 
-async function fetchCandles(): Promise<Candle[]> {
+async function fetchCandles(tdSymbol: string, interval: string): Promise<Candle[]> {
   const url = new URL('https://api.twelvedata.com/time_series')
-  url.searchParams.set('symbol', SYMBOL)
-  url.searchParams.set('interval', INTERVAL)
+  url.searchParams.set('symbol', tdSymbol)
+  url.searchParams.set('interval', interval)
   url.searchParams.set('outputsize', String(OUTPUTSIZE))
   url.searchParams.set('apikey', TWELVEDATA_API_KEY)
   url.searchParams.set('format', 'JSON')
@@ -107,11 +119,11 @@ async function fetchCandles(): Promise<Candle[]> {
 
 // Manchetes recentes para a leitura macro. Best-effort: se falhar, seguimos
 // só com o técnico (não bloqueia a análise que o usuário já pagou).
-async function fetchHeadlines(): Promise<string[]> {
+async function fetchHeadlines(tdSymbol: string): Promise<string[]> {
   if (!TWELVEDATA_API_KEY) return []
   try {
     const url = new URL('https://api.twelvedata.com/news')
-    url.searchParams.set('symbol', SYMBOL)
+    url.searchParams.set('symbol', tdSymbol)
     url.searchParams.set('apikey', TWELVEDATA_API_KEY)
     const res = await fetch(url.toString())
     if (!res.ok) return []
@@ -237,42 +249,50 @@ async function generateText(system: string, user: string, config: AIConfig): Pro
   return null
 }
 
-function buildAnalysisPrompt(ind: Indicators, setup: Setup | null, headlines: string[]): string {
+function buildAnalysisPrompt(
+  ind: Indicators, setup: Setup | null, headlines: string[],
+  label: string, interval: string, digits: number,
+): string {
+  const f = (v: number) => v.toFixed(digits)
   const dist50 = ((ind.price - ind.ema50) / ind.ema50 * 100).toFixed(2)
   const setupBlock = setup
-    ? `SINAL DETECTADO: ${setup.action === 'BUY' ? 'COMPRA' : 'VENDA'} — entrada ${setup.entry.toFixed(2)}, stop ${setup.stop.toFixed(2)}, alvo ${setup.target.toFixed(2)} (risco:retorno 1:2).`
+    ? `SINAL DETECTADO: ${setup.action === 'BUY' ? 'COMPRA' : 'VENDA'} — entrada ${f(setup.entry)}, stop ${f(setup.stop)}, alvo ${f(setup.target)} (risco:retorno 1:2).`
     : `NENHUM SETUP DE ENTRADA no momento (não houve cruzamento de médias na direção da tendência). Explique por que é hora de aguardar.`
   const newsBlock = headlines.length
-    ? `Manchetes recentes sobre ouro/macro:\n${headlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}`
+    ? `Manchetes recentes sobre ${label}/macro:\n${headlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}`
     : `Sem manchetes disponíveis no momento — baseie a leitura macro no comportamento de preço.`
 
-  return `Você é um analista de trading do XAU/USD (ouro). Escreva um PARECER curto e objetivo em Português Brasileiro (3 a 5 parágrafos curtos) para um trader de varejo.
+  return `Você é um analista de trading de ${label}. Escreva um PARECER curto e objetivo em Português Brasileiro (3 a 5 parágrafos curtos) para um trader de varejo, focado especificamente no timeframe ${interval}.
 
-Dados técnicos (timeframe ${INTERVAL}):
-- Preço atual: ${ind.price.toFixed(2)}
-- EMA9: ${ind.ema9.toFixed(2)} | EMA21: ${ind.ema21.toFixed(2)} | EMA50: ${ind.ema50.toFixed(2)}
+Dados técnicos (${label}, timeframe ${interval}):
+- Preço atual: ${f(ind.price)}
+- EMA9: ${f(ind.ema9)} | EMA21: ${f(ind.ema21)} | EMA50: ${f(ind.ema50)}
 - Distância do preço à EMA50: ${dist50}%
-- ATR(14): ${ind.atr.toFixed(2)} (volatilidade média por candle)
-- Tendência de curto prazo: ${ind.trend}
+- ATR(14): ${f(ind.atr)} (volatilidade média por candle neste timeframe)
+- Tendência no ${interval}: ${ind.trend}
 
 ${setupBlock}
 
 ${newsBlock}
 
 Instruções:
-- Comece com a leitura de tendência e o que os indicadores indicam.
-- Comente a volatilidade (ATR) e o que ela significa para o risco.
+- Deixe claro que a leitura é do timeframe ${interval} — cite o timeframe ao comentar tendência e momento.
+- Comece com a leitura de tendência e o que os indicadores indicam neste TF.
+- Comente a volatilidade (ATR) neste timeframe e o que ela significa para o risco.
 - Faça uma leitura macro breve interpretando as manchetes (se houver).
 - Termine com uma orientação prática (operar o sinal / aguardar / cuidado com volatilidade).
 - NÃO prometa resultado. Deixe claro que é análise, não recomendação de investimento.
 - Texto corrido, sem markdown, sem títulos, sem bullet points.`
 }
 
-function fallbackAnalysis(ind: Indicators, setup: Setup | null): string {
-  const base = `Tendência de curto prazo em ${ind.trend} no ${INTERVAL}. Preço em ${ind.price.toFixed(2)}, com EMA50 em ${ind.ema50.toFixed(2)} e ATR de ${ind.atr.toFixed(2)} pontos indicando a volatilidade média por candle.`
+function fallbackAnalysis(
+  ind: Indicators, setup: Setup | null, label: string, interval: string, digits: number,
+): string {
+  const f = (v: number) => v.toFixed(digits)
+  const base = `${label}: tendência no ${interval} em ${ind.trend}. Preço em ${f(ind.price)}, com EMA50 em ${f(ind.ema50)} e ATR de ${f(ind.atr)} indicando a volatilidade média por candle neste timeframe.`
   const call = setup
-    ? ` Há um setup de ${setup.action === 'BUY' ? 'compra' : 'venda'}: entrada ${setup.entry.toFixed(2)}, stop ${setup.stop.toFixed(2)} e alvo ${setup.target.toFixed(2)} (risco:retorno 1:2).`
-    : ` Não há setup de entrada agora — as médias não cruzaram na direção da tendência. Momento de aguardar confirmação.`
+    ? ` Há um setup de ${setup.action === 'BUY' ? 'compra' : 'venda'} no ${interval}: entrada ${f(setup.entry)}, stop ${f(setup.stop)} e alvo ${f(setup.target)} (risco:retorno 1:2).`
+    : ` Não há setup de entrada agora no ${interval} — as médias não cruzaram na direção da tendência. Momento de aguardar confirmação.`
   return base + call + ' Esta é uma análise técnica automatizada, não uma recomendação de investimento.'
 }
 
@@ -298,6 +318,14 @@ Deno.serve(async (req) => {
 
   if (!TWELVEDATA_API_KEY) return jsonResponse(500, { error: 'missing_twelvedata_key' })
 
+  // ── Ativo e timeframe escolhidos (validados contra allowlist) ──────────────
+  let body: { symbol?: string; interval?: string } = {}
+  try { body = await req.json() } catch { /* corpo vazio = defaults */ }
+
+  const symbolDb = (body.symbol && ASSETS[body.symbol]) ? body.symbol : DEFAULT_SYMBOL
+  const interval = (body.interval && INTERVALS.has(body.interval)) ? body.interval : DEFAULT_INTERVAL
+  const asset = ASSETS[symbolDb]
+
   // Cobra a análise ANTES de rodar (cobra sempre, com ou sem entrada). O débito
   // é transacional na RPC, no contexto do usuário (RLS-safe).
   const { data: newBalance, error: chargeErr } = await userClient.rpc('charge_signal_analysis')
@@ -312,7 +340,7 @@ Deno.serve(async (req) => {
   // secundária falhar. Se os candles falharem, estornamos.
   let candles: Candle[]
   try {
-    candles = await fetchCandles()
+    candles = await fetchCandles(asset.td, interval)
   } catch (e) {
     console.error('[signals-generate] fetchCandles', e)
     // Estorno: devolve o custo (recredita o mesmo valor debitado).
@@ -327,26 +355,26 @@ Deno.serve(async (req) => {
   }
 
   const setup = detectSetup(candles, ind)
-  const headlines = await fetchHeadlines()
+  const headlines = await fetchHeadlines(asset.td)
 
   // Parecer por IA (best-effort com fallback técnico local).
   const { data: aiConfig } = await supabaseAdmin.from('ai_configurations').select('*').maybeSingle()
-  const system = 'Você é um analista técnico de ouro (XAU/USD) objetivo e conservador. Nunca promete lucro.'
-  const aiText = await generateText(system, buildAnalysisPrompt(ind, setup, headlines), aiConfig || {})
-  const analysis = (aiText?.trim()) || fallbackAnalysis(ind, setup)
+  const system = `Você é um analista técnico de ${asset.label} objetivo e conservador. Nunca promete lucro.`
+  const aiText = await generateText(system, buildAnalysisPrompt(ind, setup, headlines, asset.label, interval, asset.digits), aiConfig || {})
+  const analysis = (aiText?.trim()) || fallbackAnalysis(ind, setup, asset.label, interval, asset.digits)
 
   const { data: inserted, error: insertErr } = await supabaseAdmin
     .from('signals')
     .insert({
       source: 'auto',
       user_id: userId,
-      symbol: SYMBOL_DB,
+      symbol: symbolDb,
       action: setup ? setup.action : 'NONE',
       entry_price: setup ? round5(setup.entry) : null,
       stop_loss: setup ? round5(setup.stop) : null,
       take_profit: setup ? round5(setup.target) : null,
       status: 'open',
-      timeframe: INTERVAL,
+      timeframe: interval,
       analysis,
       confidence: setup ? setup.confidence : null,
     })
