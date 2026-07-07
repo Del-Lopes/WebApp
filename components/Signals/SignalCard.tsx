@@ -99,26 +99,7 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
         </div>
       )}
 
-      {/* Parecer — sempre presente na análise on-demand */}
-      {analysis && (
-        <div className="relative mt-3">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Parecer</p>
-          <p className={`text-sm text-slate-600 leading-relaxed whitespace-pre-line ${!expanded && isLong ? 'line-clamp-4' : ''}`}>
-            {analysis}
-          </p>
-          {isLong && (
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className="mt-1 text-xs font-medium text-green-600 hover:text-green-700 inline-flex items-center gap-1"
-            >
-              {expanded ? 'Ver menos' : 'Ver mais'}
-              <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Gráfico TradingView sob demanda (só Análise IA) */}
+      {/* Gráfico TradingView sob demanda (só Análise IA) — acima do parecer */}
       {canShowChart && (
         <div className="relative mt-3">
           <button
@@ -137,6 +118,25 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
                 height={320}
               />
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Parecer — sempre presente na análise on-demand */}
+      {analysis && (
+        <div className="relative mt-3">
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Parecer</p>
+          <p className={`text-sm text-slate-600 leading-relaxed whitespace-pre-line ${!expanded && isLong ? 'line-clamp-4' : ''}`}>
+            {analysis}
+          </p>
+          {isLong && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="mt-1 text-xs font-medium text-green-600 hover:text-green-700 inline-flex items-center gap-1"
+            >
+              {expanded ? 'Ver menos' : 'Ver mais'}
+              <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
+            </button>
           )}
         </div>
       )}

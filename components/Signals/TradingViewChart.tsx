@@ -36,13 +36,19 @@ export const TradingViewChart: React.FC<Props> = ({ symbol, interval, height = 3
       interval,
       timezone: 'America/Sao_Paulo',
       theme: 'light',
-      style: '1',              // candles
+      style: '1',                    // candles
       locale: 'br',
-      hide_top_toolbar: false,
-      hide_legend: false,
+      // Visual limpo: só os candles, sem toolbars/legenda/barras.
+      hide_top_toolbar: true,
+      hide_side_toolbar: true,
+      hide_legend: true,
+      hide_volume: true,
+      withdateranges: false,
       allow_symbol_change: false,
       save_image: false,
       calendar: false,
+      details: false,
+      backgroundColor: 'rgba(255, 255, 255, 1)',
       support_host: 'https://www.tradingview.com',
     });
     container.appendChild(script);
