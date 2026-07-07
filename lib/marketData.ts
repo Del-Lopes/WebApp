@@ -15,19 +15,34 @@ export interface AssetOption {
   value: string;   // id interno / armazenado (ex.: 'XAUUSD')
   label: string;   // exibição (ex.: 'Ouro — XAU/USD')
   td: string;      // símbolo Twelve Data (ex.: 'XAU/USD')
+  tv: string;      // símbolo TradingView (ex.: 'OANDA:XAUUSD')
 }
 
 export const ASSETS: AssetOption[] = [
-  { value: 'XAUUSD', label: 'Ouro — XAU/USD',      td: 'XAU/USD' },
-  { value: 'EURUSD', label: 'Euro — EUR/USD',      td: 'EUR/USD' },
-  { value: 'GBPUSD', label: 'Libra — GBP/USD',     td: 'GBP/USD' },
-  { value: 'USDJPY', label: 'Iene — USD/JPY',      td: 'USD/JPY' },
-  { value: 'BTCUSD', label: 'Bitcoin — BTC/USD',   td: 'BTC/USD' },
-  { value: 'ETHUSD', label: 'Ethereum — ETH/USD',  td: 'ETH/USD' },
+  { value: 'XAUUSD', label: 'Ouro — XAU/USD',      td: 'XAU/USD', tv: 'OANDA:XAUUSD' },
+  { value: 'EURUSD', label: 'Euro — EUR/USD',      td: 'EUR/USD', tv: 'OANDA:EURUSD' },
+  { value: 'GBPUSD', label: 'Libra — GBP/USD',     td: 'GBP/USD', tv: 'OANDA:GBPUSD' },
+  { value: 'USDJPY', label: 'Iene — USD/JPY',      td: 'USD/JPY', tv: 'OANDA:USDJPY' },
+  { value: 'BTCUSD', label: 'Bitcoin — BTC/USD',   td: 'BTC/USD', tv: 'BINANCE:BTCUSDT' },
+  { value: 'ETHUSD', label: 'Ethereum — ETH/USD',  td: 'ETH/USD', tv: 'BINANCE:ETHUSDT' },
 ];
 
 export function findAsset(value: string): AssetOption | undefined {
   return ASSETS.find((a) => a.value === value);
+}
+
+// Símbolo TradingView a partir do símbolo armazenado (ex.: 'XAUUSD' → 'OANDA:XAUUSD').
+export function tvSymbol(value: string): string {
+  return findAsset(value)?.tv ?? `OANDA:${value}`;
+}
+
+// Intervalo Twelve Data → intervalo do widget TradingView.
+const TV_INTERVAL: Record<string, string> = {
+  '1min': '1', '5min': '5', '15min': '15', '30min': '30',
+  '1h': '60', '2h': '120', '4h': '240', '1day': 'D',
+};
+export function tvInterval(tdInterval: string | null): string {
+  return (tdInterval && TV_INTERVAL[tdInterval]) || '15';
 }
 
 // Timeframes do painel (curto → longo). `td` = intervalo Twelve Data.

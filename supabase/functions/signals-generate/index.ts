@@ -40,8 +40,26 @@ const ASSETS: Record<string, { td: string; label: string; digits: number }> = {
   BTCUSD: { td: 'BTC/USD', label: 'Bitcoin (BTC/USD)',  digits: 2 },
   ETHUSD: { td: 'ETH/USD', label: 'Ethereum (ETH/USD)', digits: 2 },
 }
-// Intervalos permitidos (formato Twelve Data).
-const INTERVALS = new Set(['1min', '5min', '15min', '30min', '1h', '2h', '4h', '1day'])
+// Escala ordenada de intervalos (do menor para o maior). Usada para a
+// confluência multi-timeframe: TF escolhido + um acima + um abaixo.
+const TF_SCALE = ['1min', '5min', '15min', '30min', '1h', '2h', '4h', '1day'] as const
+const INTERVALS = new Set(TF_SCALE)
+
+// Retorna [abaixo, escolhido, acima] limitando às bordas da escala.
+function confluenceTFs(interval: string): string[] {
+  const i = TF_SCALE.indexOf(interval as typeof TF_SCALE[number])
+  if (i < 0) return [interval]
+  const below = TF_SCALE[Math.max(0, i - 1)]
+  const above = TF_SCALE[Math.min(TF_SCALE.length - 1, i + 1)]
+  // Set remove duplicatas nas bordas (ex.: escolhido = 1min → below = 1min).
+  return [...new Set([below, interval, above])]
+}
+
+// Rótulo curto do timeframe para o texto.
+const TF_LABEL: Record<string, string> = {
+  '1min': 'M1', '5min': 'M5', '15min': 'M15', '30min': 'M30',
+  '1h': 'H1', '2h': 'H2', '4h': 'H4', '1day': 'D1',
+}
 
 const DEFAULT_SYMBOL = 'XAUUSD'
 const DEFAULT_INTERVAL = '15min'
@@ -97,6 +115,57 @@ function atr(candles: Candle[], period: number): number {
   return a
 }
 
+// RSI de Wilder — retorna o valor no último candle (0..100).
+function rsi(closes: number[], period = 14): number {
+  if (closes.length < period + 1) return 50
+  let gain = 0, loss = 0
+  for (let i = 1; i <= period; i++) {
+    const d = closes[i] - closes[i - 1]
+    if (d >= 0) gain += d; else loss -= d
+  }
+  let avgGain = gain / period, avgLoss = loss / period
+  for (let i = period + 1; i < closes.length; i++) {
+    const d = closes[i] - closes[i - 1]
+    avgGain = (avgGain * (period - 1) + (d > 0 ? d : 0)) / period
+    avgLoss = (avgLoss * (period - 1) + (d < 0 ? -d : 0)) / period
+  }
+  if (avgLoss === 0) return 100
+  const rs = avgGain / avgLoss
+  return 100 - 100 / (1 + rs)
+}
+
+// MACD (12,26,9) — retorna linha, sinal e histograma no último candle.
+function macd(closes: number[]): { macd: number; signal: number; hist: number } {
+  const e12 = ema(closes, 12), e26 = ema(closes, 26)
+  const line = closes.map((_, i) => e12[i] - e26[i])
+  const sig = ema(line, 9)
+  const n = closes.length - 1
+  return { macd: line[n], signal: sig[n], hist: line[n] - sig[n] }
+}
+
+// Bollinger (20, 2σ) sobre os closes — banda superior/média/inferior + %B.
+function bollinger(closes: number[], period = 20, mult = 2): { upper: number; mid: number; lower: number; pctB: number } {
+  const n = closes.length
+  if (n < period) { const p = closes[n - 1]; return { upper: p, mid: p, lower: p, pctB: 0.5 } }
+  const slice = closes.slice(n - period)
+  const mid = slice.reduce((s, v) => s + v, 0) / period
+  const variance = slice.reduce((s, v) => s + (v - mid) ** 2, 0) / period
+  const sd = Math.sqrt(variance)
+  const upper = mid + mult * sd, lower = mid - mult * sd
+  const price = closes[n - 1]
+  const pctB = upper === lower ? 0.5 : (price - lower) / (upper - lower)
+  return { upper, mid, lower, pctB }
+}
+
+// Suporte/resistência simples: mínima e máxima recentes (janela de N candles).
+function supportResistance(candles: Candle[], lookback = 30): { support: number; resistance: number } {
+  const slice = candles.slice(-lookback)
+  return {
+    support: Math.min(...slice.map((c) => c.low)),
+    resistance: Math.max(...slice.map((c) => c.high)),
+  }
+}
+
 // ─── Fontes externas ─────────────────────────────────────────────────────────
 
 async function fetchCandles(tdSymbol: string, interval: string): Promise<Candle[]> {
@@ -140,6 +209,10 @@ async function fetchHeadlines(tdSymbol: string): Promise<string[]> {
 interface Indicators {
   price: number; ema9: number; ema21: number; ema50: number; atr: number
   trend: 'alta' | 'baixa' | 'lateral'
+  rsi: number
+  macd: { macd: number; signal: number; hist: number }
+  boll: { upper: number; mid: number; lower: number; pctB: number }
+  sr: { support: number; resistance: number }
 }
 
 interface Setup {
@@ -159,7 +232,13 @@ function computeIndicators(candles: Candle[]): Indicators | null {
     price > e50[n] && e9[n] > e21[n] ? 'alta'
     : price < e50[n] && e9[n] < e21[n] ? 'baixa'
     : 'lateral'
-  return { price, ema9: e9[n], ema21: e21[n], ema50: e50[n], atr: a, trend }
+  return {
+    price, ema9: e9[n], ema21: e21[n], ema50: e50[n], atr: a, trend,
+    rsi: rsi(closes, 14),
+    macd: macd(closes),
+    boll: bollinger(closes, 20, 2),
+    sr: supportResistance(candles, 30),
+  }
 }
 
 function detectSetup(candles: Candle[], ind: Indicators): Setup | null {
@@ -249,12 +328,21 @@ async function generateText(system: string, user: string, config: AIConfig): Pro
   return null
 }
 
+interface TFTrend { label: string; trend: string }
+
 function buildAnalysisPrompt(
   ind: Indicators, setup: Setup | null, headlines: string[],
-  label: string, interval: string, digits: number,
+  label: string, interval: string, digits: number, confluence: TFTrend[],
 ): string {
   const f = (v: number) => v.toFixed(digits)
   const dist50 = ((ind.price - ind.ema50) / ind.ema50 * 100).toFixed(2)
+  const rsiZone = ind.rsi >= 70 ? 'sobrecomprado' : ind.rsi <= 30 ? 'sobrevendido' : 'neutro'
+  const macdBias = ind.macd.hist > 0 ? 'comprador' : 'vendedor'
+  const bollZone = ind.boll.pctB >= 1 ? 'acima da banda superior (esticado)'
+    : ind.boll.pctB <= 0 ? 'abaixo da banda inferior (esticado)'
+    : ind.boll.pctB > 0.8 ? 'perto da banda superior'
+    : ind.boll.pctB < 0.2 ? 'perto da banda inferior' : 'no meio das bandas'
+
   const setupBlock = setup
     ? `SINAL DETECTADO: ${setup.action === 'BUY' ? 'COMPRA' : 'VENDA'} — entrada ${f(setup.entry)}, stop ${f(setup.stop)}, alvo ${f(setup.target)} (risco:retorno 1:2).`
     : `NENHUM SETUP DE ENTRADA no momento (não houve cruzamento de médias na direção da tendência). Explique por que é hora de aguardar.`
@@ -262,34 +350,48 @@ function buildAnalysisPrompt(
     ? `Manchetes recentes sobre ${label}/macro:\n${headlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}`
     : `Sem manchetes disponíveis no momento — baseie a leitura macro no comportamento de preço.`
 
-  return `Você é um analista de trading de ${label}. Escreva um PARECER curto e objetivo em Português Brasileiro (3 a 5 parágrafos curtos) para um trader de varejo, focado especificamente no timeframe ${interval}.
+  // Confluência: tendência de cada TF (menor → maior).
+  const confBlock = confluence.map((c) => `${c.label}: ${c.trend}`).join(' | ')
+  const aligned = confluence.every((c) => c.trend === confluence[0].trend) && confluence[0].trend !== 'lateral'
+
+  return `Você é um analista de trading de ${label}. Escreva um PARECER curto e objetivo em Português Brasileiro (4 a 6 parágrafos curtos) para um trader de varejo, focado no timeframe ${interval} mas usando os outros timeframes como contexto.
 
 Dados técnicos (${label}, timeframe ${interval}):
 - Preço atual: ${f(ind.price)}
 - EMA9: ${f(ind.ema9)} | EMA21: ${f(ind.ema21)} | EMA50: ${f(ind.ema50)}
 - Distância do preço à EMA50: ${dist50}%
-- ATR(14): ${f(ind.atr)} (volatilidade média por candle neste timeframe)
+- ATR(14): ${f(ind.atr)} (volatilidade média por candle)
 - Tendência no ${interval}: ${ind.trend}
+- RSI(14): ${ind.rsi.toFixed(1)} (${rsiZone})
+- MACD: histograma ${ind.macd.hist >= 0 ? '+' : ''}${ind.macd.hist.toFixed(4)} (viés ${macdBias})
+- Bollinger(20,2): preço ${bollZone} | superior ${f(ind.boll.upper)}, média ${f(ind.boll.mid)}, inferior ${f(ind.boll.lower)}
+- Suporte recente: ${f(ind.sr.support)} | Resistência recente: ${f(ind.sr.resistance)}
+
+Confluência multi-timeframe (tendência por TF): ${confBlock}
+${aligned ? `Os timeframes estão ALINHADOS em ${confluence[0].trend} — confluência forte.` : `Os timeframes NÃO estão totalmente alinhados — há divergência entre eles.`}
 
 ${setupBlock}
 
 ${newsBlock}
 
 Instruções:
-- Deixe claro que a leitura é do timeframe ${interval} — cite o timeframe ao comentar tendência e momento.
-- Comece com a leitura de tendência e o que os indicadores indicam neste TF.
-- Comente a volatilidade (ATR) neste timeframe e o que ela significa para o risco.
-- Faça uma leitura macro breve interpretando as manchetes (se houver).
-- Termine com uma orientação prática (operar o sinal / aguardar / cuidado com volatilidade).
+- Comece pela confluência multi-timeframe: diga se os TFs concordam e o que isso significa para a força do movimento.
+- Faça a leitura do ${interval}: tendência, RSI (sobrecompra/sobrevenda), MACD (momentum) e posição nas Bandas de Bollinger.
+- Cite suporte e resistência como referências concretas de alvo/invalidação.
+- Comente a volatilidade (ATR) e o risco.
+- Leitura macro breve interpretando as manchetes (se houver).
+- Termine com orientação prática (operar o sinal / aguardar / cautela).
 - NÃO prometa resultado. Deixe claro que é análise, não recomendação de investimento.
 - Texto corrido, sem markdown, sem títulos, sem bullet points.`
 }
 
 function fallbackAnalysis(
-  ind: Indicators, setup: Setup | null, label: string, interval: string, digits: number,
+  ind: Indicators, setup: Setup | null, label: string, interval: string, digits: number, confluence: TFTrend[],
 ): string {
   const f = (v: number) => v.toFixed(digits)
-  const base = `${label}: tendência no ${interval} em ${ind.trend}. Preço em ${f(ind.price)}, com EMA50 em ${f(ind.ema50)} e ATR de ${f(ind.atr)} indicando a volatilidade média por candle neste timeframe.`
+  const rsiZone = ind.rsi >= 70 ? 'sobrecomprado' : ind.rsi <= 30 ? 'sobrevendido' : 'neutro'
+  const conf = confluence.map((c) => `${c.label} ${c.trend}`).join(', ')
+  const base = `${label}: tendência no ${interval} em ${ind.trend} (confluência — ${conf}). Preço em ${f(ind.price)}, RSI ${ind.rsi.toFixed(0)} (${rsiZone}), ATR ${f(ind.atr)}. Suporte ${f(ind.sr.support)} e resistência ${f(ind.sr.resistance)} como referências.`
   const call = setup
     ? ` Há um setup de ${setup.action === 'BUY' ? 'compra' : 'venda'} no ${interval}: entrada ${f(setup.entry)}, stop ${f(setup.stop)} e alvo ${f(setup.target)} (risco:retorno 1:2).`
     : ` Não há setup de entrada agora no ${interval} — as médias não cruzaram na direção da tendência. Momento de aguardar confirmação.`
@@ -337,22 +439,33 @@ Deno.serve(async (req) => {
   }
 
   // A partir daqui o usuário JÁ pagou — entregamos a análise mesmo se uma fonte
-  // secundária falhar. Se os candles falharem, estornamos.
-  let candles: Candle[]
+  // secundária falhar. Se os candles do TF principal falharem, estornamos.
+  //
+  // Confluência: busca o TF escolhido + um acima + um abaixo (até 3 req). O TF
+  // escolhido é o principal (setup/indicadores); os outros só p/ a tendência.
+  const tfs = confluenceTFs(interval)
+  let candlesByTf: Record<string, Candle[]>
   try {
-    candles = await fetchCandles(asset.td, interval)
+    const results = await Promise.all(tfs.map((tf) => fetchCandles(asset.td, tf)))
+    candlesByTf = Object.fromEntries(tfs.map((tf, i) => [tf, results[i]]))
   } catch (e) {
     console.error('[signals-generate] fetchCandles', e)
-    // Estorno: devolve o custo (recredita o mesmo valor debitado).
     await supabaseAdmin.rpc('refund_signal_analysis', { p_user_id: userId }).catch(() => {})
     return jsonResponse(502, { error: 'quotes_fetch_failed' })
   }
 
+  const candles = candlesByTf[interval]
   const ind = computeIndicators(candles)
   if (!ind) {
     await supabaseAdmin.rpc('refund_signal_analysis', { p_user_id: userId }).catch(() => {})
     return jsonResponse(502, { error: 'insufficient_data' })
   }
+
+  // Tendência de cada TF (menor → maior) para a confluência.
+  const confluence: TFTrend[] = tfs.map((tf) => {
+    const i = computeIndicators(candlesByTf[tf])
+    return { label: TF_LABEL[tf] ?? tf, trend: i ? i.trend : 'lateral' }
+  })
 
   const setup = detectSetup(candles, ind)
   const headlines = await fetchHeadlines(asset.td)
@@ -360,8 +473,8 @@ Deno.serve(async (req) => {
   // Parecer por IA (best-effort com fallback técnico local).
   const { data: aiConfig } = await supabaseAdmin.from('ai_configurations').select('*').maybeSingle()
   const system = `Você é um analista técnico de ${asset.label} objetivo e conservador. Nunca promete lucro.`
-  const aiText = await generateText(system, buildAnalysisPrompt(ind, setup, headlines, asset.label, interval, asset.digits), aiConfig || {})
-  const analysis = (aiText?.trim()) || fallbackAnalysis(ind, setup, asset.label, interval, asset.digits)
+  const aiText = await generateText(system, buildAnalysisPrompt(ind, setup, headlines, asset.label, interval, asset.digits, confluence), aiConfig || {})
+  const analysis = (aiText?.trim()) || fallbackAnalysis(ind, setup, asset.label, interval, asset.digits, confluence)
 
   const { data: inserted, error: insertErr } = await supabaseAdmin
     .from('signals')

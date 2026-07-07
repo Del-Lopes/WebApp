@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { ArrowUpRight, ArrowDownRight, Target, ShieldAlert, Clock, CheckCircle2, XCircle, Ban, MinusCircle, ChevronDown } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Target, ShieldAlert, Clock, CheckCircle2, XCircle, Ban, MinusCircle, ChevronDown, CandlestickChart } from 'lucide-react';
 import { Signal } from '../../types';
+import { tvSymbol, tvInterval } from '../../lib/marketData';
+import { TradingViewChart } from './TradingViewChart';
 
 const STATUS_META: Record<Signal['status'], { label: string; className: string; Icon: React.ElementType }> = {
   open:      { label: 'Ativo',       className: 'bg-emerald-50 text-emerald-700 ring-emerald-200', Icon: Clock },
@@ -36,7 +38,11 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
 
   // Parecer longo começa recolhido.
   const [expanded, setExpanded] = useState(false);
+  // Gráfico TradingView sob demanda (carrega iframe só quando aberto).
+  const [showChart, setShowChart] = useState(false);
   const analysis = signal.analysis ?? signal.rationale ?? null;
+  // Gráfico só para sinais da Análise IA (source 'auto'); setup manual não tem.
+  const canShowChart = signal.source === 'auto';
   const isLong = (analysis?.length ?? 0) > 220;
 
   // Verde para compra, vermelho para venda, neutro (slate) para "sem entrada".
@@ -108,6 +114,29 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
               {expanded ? 'Ver menos' : 'Ver mais'}
               <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />
             </button>
+          )}
+        </div>
+      )}
+
+      {/* Gráfico TradingView sob demanda (só Análise IA) */}
+      {canShowChart && (
+        <div className="relative mt-3">
+          <button
+            onClick={() => setShowChart((v) => !v)}
+            className="text-xs font-medium text-slate-600 hover:text-green-700 inline-flex items-center gap-1"
+          >
+            <CandlestickChart size={14} />
+            {showChart ? 'Ocultar gráfico' : 'Ver gráfico'}
+            <ChevronDown size={13} className={`transition-transform ${showChart ? 'rotate-180' : ''}`} />
+          </button>
+          {showChart && (
+            <div className="mt-2">
+              <TradingViewChart
+                symbol={tvSymbol(signal.symbol)}
+                interval={tvInterval(signal.timeframe)}
+                height={320}
+              />
+            </div>
           )}
         </div>
       )}
