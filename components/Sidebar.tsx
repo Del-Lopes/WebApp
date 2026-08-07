@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Shield, User, Map, Download, DollarSign, FileText, MessagesSquare, BookOpen, Notebook, BarChart3, Activity, ShoppingBag, Bot, Milestone, Radio } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Shield, User, Map, Download, DollarSign, FileText, MessagesSquare, BookOpen, Notebook, BarChart3, Activity, ShoppingBag, Bot, Milestone, Radio, Bitcoin } from 'lucide-react';
 import { View, UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { Logo } from './Logo';
@@ -97,6 +97,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <Radio size={20} className={currentView === 'signals' ? 'animate-pulse' : ''} />
             <span className="font-medium">Sinais</span>
+          </button>
+
+          <button
+            onClick={() => handleViewChange('crypto')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              currentView === 'crypto' ? 'bg-green-600 text-white shadow-lg shadow-green-900/20' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+            }`}
+          >
+            <Bitcoin size={20} className={currentView === 'crypto' ? 'animate-pulse' : ''} />
+            <span className="font-medium">Crypto</span>
           </button>
 
           <button
