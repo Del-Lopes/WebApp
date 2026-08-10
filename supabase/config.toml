@@ -364,6 +364,18 @@ authorization_url_path = "/oauth/consent"
 # Allow dynamic client registration
 allow_dynamic_registration = false
 
+[functions]
+  # Chamada por agendador (sem JWT de usuário) e pelo app ao abrir a sessão Crypto.
+  # Não aceita entrada do chamador, não expõe dado privado e é idempotente por dia:
+  # chamadas repetidas só leem uma contagem e retornam.
+  [functions.crypto-snapshot]
+    verify_jwt = false
+
+  # Mesma justificativa: agendador sem JWT, sem entrada do chamador, só grava
+  # cronograma público de vesting. Processa um lote por execução.
+  [functions.crypto-unlocks]
+    verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

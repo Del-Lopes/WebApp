@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, Rocket, RefreshCw } from 'lucide-react';
 import { fetchMarkets, topGainers, MarketCoin } from '../../lib/cryptoData';
 import { fmtUsd, fmtCompact, fmtPct, pctColor } from './format';
+import { WatchStar } from './WatchStar';
 
 // Maiores altas em 24h, com filtro opcional de "baixo valor de mercado" — o
 // território onde as narrativas costumam nascer. Dados reais, sem promessas.
@@ -55,7 +56,7 @@ export const GainersView: React.FC = () => {
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           {list.map((c) => (
-            <div key={c.id} className="flex items-center gap-3 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-sm">
+            <div key={c.id} className="flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-sm">
               {c.image && <img src={c.image} alt={c.name} className="w-8 h-8 rounded-full" />}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-800 text-sm truncate">{c.name} <span className="text-slate-400 font-medium">{c.symbol}</span></p>
@@ -65,6 +66,7 @@ export const GainersView: React.FC = () => {
                 <p className="text-sm font-semibold text-slate-700 tabular-nums">{fmtUsd(c.price)}</p>
                 <p className={`text-xs font-bold tabular-nums ${pctColor(c.change24h)}`}>{fmtPct(c.change24h)}</p>
               </div>
+              <WatchStar coin={{ id: c.id, symbol: c.symbol, name: c.name, image: c.image }} />
             </div>
           ))}
           {list.length === 0 && <p className="text-sm text-slate-400 py-8 text-center col-span-full">Nenhuma moeda encontrada com esse filtro.</p>}
