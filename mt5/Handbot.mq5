@@ -42,7 +42,8 @@ input group "Gerenciamento Automático de Stop";
 input group "Hedge Dinâmico";
 input bool   InpEnableDynamicHedge = false; // Ligar Hedge Dinâmico
 input double InpDynamicHedgePercent = 1.0;  // Porcentagem de flutuante para ativar (%)
-input double InpDynamicHedgeLot = 0.01;     // Lote para o Hedge Dinâmico
+// O lote do hedge não é configurável: a trava usa sempre o volume líquido em aberto,
+// para zerar a exposição direcional de uma vez (ver HedgeLockManager/coverVolume).
 input group "";
 input group "Trailing Avg";
 input bool                  _AllowTrailingAvg          = false;    // Liga e desliga o Trailing Stop para pontos
@@ -240,7 +241,9 @@ bool _leverage = _AllowGrid;
 bool _AddKey = _AllowAdd;
 bool _Addckey = _AllowAddc;
 bool _BarStop = _AllowTrailingBar;
-int dynamic_hedge_count = 0; // Contador de niveis do hedge dinamico
+//--- Hedge Dinâmico — disparo único + stand by
+bool     _HedgeLocked     = false; // true após o hedge total: EA parado até liquidar tudo
+datetime _HedgeLockedTime = 0;     // momento em que o stand by foi acionado
 
 // ── Variáveis espelho para parâmetros remotos (Hand Bot Sync) ─────────────
 // Inicializadas com os valores dos inputs; sobrescritas pelo poll do Supabase.
@@ -1008,12 +1011,18 @@ bool CheckNeedsSync()
 //| Hand Bot Sync — busca parâmetros remotos no Supabase            |
 //+------------------------------------------------------------------+
 
-void FetchHandbotParams()
+void FetchHandbotParams(bool forceFull = false)
 {
    if(StringLen(ApiKey) < 10)
       return; // ApiKey não configurada
 
    string supabaseUrl = HandbotBaseUrl() + "/functions/v1/handbot-params";
+
+   // forceFull → usado apenas no OnInit: pede os parâmetros mesmo sem needs_sync pendente.
+   // Sem isso, um EA reinicializado depois que a flag já foi consumida recebe {sync:false}
+   // e passa a operar com os inputs locais em vez dos parâmetros do painel.
+   if(forceFull)
+      supabaseUrl += "?full=1";
 
    string headers = "Authorization: Bearer " + ApiKey + "\r\n"
                   + "Content-Type: application/json\r\n";
@@ -1303,8 +1312,8 @@ int OnInit()
         pause=true;
         // Obtém link_id para PostgREST (1 invocação na inicialização, depois PostgREST grátis)
         FetchHandbotLinkId();
-        // Primeiro carregamento de parâmetros remotos
-        FetchHandbotParams();
+        // Primeiro carregamento de parâmetros remotos (full=1: ignora needs_sync)
+        FetchHandbotParams(true);
         //--- create application dialog
         if(!ExtDialog.Create(0,InpPanelTitle,0,40,40,InpPanelWidth,InpPanelheight))
         return(INIT_FAILED);
@@ -1758,42 +1767,40 @@ void OnTick()
     //Refresh candle timer
     refreshClock();
 
+    //--- Hedge Dinâmico — arma a trava total ou libera o stand by.
+    //    Roda ANTES de IsNegociationTime() de propósito: aquela função fecha as
+    //    posições no fim da sessão, e em stand by nem isso pode acontecer.
+    HedgeLockManager();
+
+    //--- STAND BY TOTAL: o EA não envia ordem de nenhuma natureza enquanto a trava
+    //    estiver ativa. Nada de entradas, grids, adds, trailing, break even, cut gain
+    //    dinâmico, meta do dia ou fechamento por fim de sessão. Só o painel continua
+    //    sendo atualizado (getFloatingProfit_value e Lucrododia apenas leem estado).
+    //    A saída depende de o cliente liquidar tudo manualmente.
+    if(_HedgeLocked)
+      {
+        HorarioTrade = "HEDGE TRAVADO - liquide manualmente para liberar";
+        ExtDialog.UpdatePanel();
+        return;
+      }
 
         //--- Negociation
         if(IsNegociationTime() == true && ChaveGeralKey == true )
-          {  
+          {
             //atualiza as linhas de preço medio
             refresh_average_line_buy(ChartID());
             refresh_average_line_sell(ChartID());
+            //Verificações.
+            getFloatingProfit(); // Atualiza o flutuante.
+            DailyGainChecker(); // Checka se bateu a meta do dia.
+            Lucrododia();       // Atualiza o Lucro do dia.
+            CutGainDinamico();  // Liquida ao atingir saldo + % configurado.
+
             //verifica proteção de exposição
             if(isAutomaticProtect == true)
               {
               automaticProtect();
               }
-            //Verificações. 
-            getFloatingProfit(); // Atualiza o flutuante.
-            DailyGainChecker(); // Checka se bateu a meta do dia.
-            Lucrododia();       // Atualiza o Lucro do dia.
-            CutGainDinamico();  // Liquida ao atingir saldo + % configurado.
-            
-            // Hedge Dinâmico
-            bool   _hedgeEnabled = _RemoteParamsLoaded ? _RemoteDynamicHedgeEnabled  : InpEnableDynamicHedge;
-            double _hedgePercent = _RemoteParamsLoaded ? _RemoteDynamicHedgePercent  : InpDynamicHedgePercent;
-            if(_hedgeEnabled) {
-               if(Posicionado()) {
-                   double current_float = getFloatingProfit_value();
-                   double step = (saldo_inicial * _hedgePercent / 100.0);
-                   if(step > 0 && current_float < 0) {
-                       int expected_level = (int)(MathAbs(current_float) / step);
-                       if(expected_level > dynamic_hedge_count) {
-                           dynamic_hedge_count = expected_level;
-                           coverVolume();
-                       }
-                   }
-               } else {
-                   dynamic_hedge_count = 0;
-               }
-            }
             //Sinais
             SinalDeCompra(); // procura sinal de compra
             SinalDeVenda();  // procura sinal de venda
@@ -4522,7 +4529,10 @@ double getFloatingProfit_Sell()
 //------------------------------------------------------------------------------------
 
 
-void coverVolume(){
+// Trava a exposição: envia uma ordem no lado oposto com o volume líquido em aberto
+// (total comprado − total vendido), deixando a exposição direcional em zero.
+// Retorna true se uma ordem foi efetivamente enviada.
+bool coverVolume(){
 
   double totalVolumeBuy = 0.00;
   double totalVolumeSell = 0.00;
@@ -4546,18 +4556,180 @@ void coverVolume(){
         } 
     }
      
-    if(totalVolumeBuy > totalVolumeSell){
-         
-        double difference = totalVolumeBuy - totalVolumeSell;
-        m_trade.Sell(difference, _Symbol, ask, NULL, NULL, "COVER SELL");
-         
-    }else{
-     
-        double difference = totalVolumeSell - totalVolumeBuy;
-        m_trade.Buy(difference, _Symbol, bid, NULL, NULL, "COVER BUY");
-     
-    }
-     
+    double volMin  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+    double volStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
+    double difference = MathAbs(totalVolumeBuy - totalVolumeSell);
+
+    // Sem exposição líquida (já travada, ou sem posições): não envia ordem de volume
+    // zero — o broker rejeitaria com "invalid volume".
+    if(difference < volMin)
+      {
+        Print("[HandBot] coverVolume: exposicao liquida ja neutra - nenhuma ordem enviada.");
+        return false;
+      }
+
+    if(volStep > 0)
+       difference = MathFloor(difference / volStep) * volStep;
+    difference = NormalizeDouble(difference, (int)volumeDigits);
+
+    if(difference < volMin)
+       return false;
+
+    if(totalVolumeBuy > totalVolumeSell)
+       return m_trade.Sell(difference, _Symbol, ask, NULL, NULL, "COVER SELL");
+
+    return m_trade.Buy(difference, _Symbol, bid, NULL, NULL, "COVER BUY");
+
+}
+
+//+-----------------------------------------------------------------+
+//| Hedge Dinâmico — trava total e stand by                         |
+//+-----------------------------------------------------------------+
+//
+// Fluxo:
+//   1. InpEnableDynamicHedge (ou dynamic_hedge_enabled, vindo do webapp) ligado;
+//   2. o flutuante negativo atinge InpDynamicHedgePercent % do saldo inicial;
+//   3. cancela todas as pendentes do símbolo/magic;
+//   4. coverVolume() zera a exposição direcional com UMA ordem do tamanho do
+//      volume líquido em aberto;
+//   5. remove stop loss e take profit de todas as posições;
+//   6. o EA entra em STAND BY TOTAL: não envia ordem de nenhuma natureza — nem
+//      entrada, nem grid, nem add, nem gestão de stop, nem cut gain dinâmico,
+//      nem meta do dia, nem fechamento por fim de sessão.
+//
+// O stand by só termina quando TODAS as posições forem liquidadas, o que depende
+// de intervenção manual do cliente. O EA não interfere nessa intervenção: as
+// teclas e os botões do painel continuam funcionando normalmente.
+//
+// Diferença para o comportamento anterior: o hedge era escalonado (disparava a
+// cada novo múltiplo do percentual, empilhando coberturas) e o EA continuava
+// operando normalmente depois — grids e adds desbalanceavam a trava logo em seguida.
+
+// Remove stop loss e take profit de todas as posições deste símbolo/magic.
+// Durante o stand by qualquer SL/TP que disparasse desfaria a trava, devolvendo
+// exposição direcional justamente no momento em que o EA não pode mais reagir.
+void ClearAllStopsAndTakes(){
+
+   int alterados = 0;
+
+   for(int i = PositionsTotal() - 1; i >= 0; i--)
+     {
+       if(!m_position.SelectByIndex(i))
+          continue;
+
+       if(_Symbol != m_position.Symbol() || m_position.Magic() != Magic_Number)
+          continue;
+
+       if(m_position.StopLoss() == 0 && m_position.TakeProfit() == 0)
+          continue;
+
+       if(m_trade.PositionModify(m_position.Ticket(), 0, 0))
+          alterados++;
+       else
+          Print("[HandBot] Falha ao limpar stop/take do ticket ", m_position.Ticket(),
+                " - retcode ", m_trade.ResultRetcode());
+     }
+
+   if(alterados > 0)
+      Print("[HandBot] Stops e takes removidos de ", alterados, " posicao(oes).");
+}
+
+// Cancela apenas as ordens pendentes deste símbolo/magic.
+void CancelOrdersMagic(){
+
+   for(int i = OrdersTotal() - 1; i >= 0; i--)
+     {
+       if(m_order.SelectByIndex(i))
+         {
+           string symbol = OrderGetString(ORDER_SYMBOL);
+           ulong  magic  = OrderGetInteger(ORDER_MAGIC);
+
+           if(_Symbol == symbol && magic == Magic_Number)
+              m_trade.OrderDelete(m_order.Ticket());
+         }
+     }
+}
+
+void TriggerHedgeLock(double currentFloat, double trigger, double percent){
+
+   if(_HedgeLocked)
+      return;
+
+   // Ordem importa:
+   //  1. cancela as pendentes — nada novo pode executar e alterar o volume líquido;
+   //  2. trava a exposição com o volume líquido já estabilizado;
+   //  3. só então remove os stops/takes, para que as posições não fiquem
+   //     desprotegidas caso a trava falhe.
+   CancelOrdersMagic();
+
+   bool sent = coverVolume();
+
+   // Só limpa stops/takes quando a trava foi realmente executada agora. Se o EA está
+   // apenas re-armando o stand by (reinício do MT5 com a exposição já neutra), não
+   // mexe em nada — o cliente pode ter colocado stops manualmente nesse meio tempo.
+   if(sent)
+      ClearAllStopsAndTakes();
+
+   _HedgeLocked     = true;
+   _HedgeLockedTime = TimeCurrent();
+
+   // Desarma os gatilhos de gestão que continuariam mexendo nas posições travadas
+   _PanelTrailingAvg  = false;
+   _PanelBreakEvenAvg = false;
+
+   Print("[HandBot] HEDGE TOTAL acionado — flutuante ", DoubleToString(currentFloat, 2),
+         " atingiu o gatilho de ", DoubleToString(trigger * -1, 2),
+         " (", DoubleToString(percent, 2), "% de ", DoubleToString(saldo_inicial, 2), "). ",
+         sent ? "Exposicao travada." : "Exposicao ja estava neutra.",
+         " EA em STAND BY TOTAL: nenhuma ordem sera enviada ate que o cliente ",
+         "liquide manualmente TODAS as posicoes.");
+}
+
+void ReleaseHedgeLock(){
+
+   if(!_HedgeLocked)
+      return;
+
+   long duracao = (_HedgeLockedTime > 0) ? (long)(TimeCurrent() - _HedgeLockedTime) : 0;
+
+   _HedgeLocked     = false;
+   _HedgeLockedTime = 0;
+
+   Print("[HandBot] Stand by encerrado apos ", duracao / 60, " min — todas as posicoes ",
+         "liquidadas. EA operacional novamente.");
+}
+
+// Chamado a cada tick, fora do bloco de negociação: arma o stand by quando o gatilho
+// é atingido e o desarma assim que a conta fica sem posições. Roda também fora do
+// horário de operação e com a chave geral desligada — se a exposição estourou o
+// limite, ela precisa ser travada independentemente do horário.
+void HedgeLockManager(){
+
+   bool   hedgeEnabled = _RemoteParamsLoaded ? _RemoteDynamicHedgeEnabled : InpEnableDynamicHedge;
+   double hedgePercent = _RemoteParamsLoaded ? _RemoteDynamicHedgePercent : InpDynamicHedgePercent;
+
+   // Liquidou tudo → volta a operar. Exige posições E pendentes zeradas: uma pendente
+   // sobrevivente executaria logo depois, reabrindo exposição sem nenhuma gestão.
+   // Vale mesmo com o hedge desligado depois de travado, senão o EA ficaria preso
+   // em stand by para sempre.
+   if(_HedgeLocked)
+     {
+       if(!Posicionado() && !Pendurado())
+          ReleaseHedgeLock();
+       return;
+     }
+
+   if(!hedgeEnabled || !Posicionado())
+      return;
+
+   double trigger = saldo_inicial * hedgePercent / 100.0;
+   if(trigger <= 0)
+      return;
+
+   double currentFloat = getFloatingProfit_value();
+
+   if(currentFloat <= trigger * -1)
+      TriggerHedgeLock(currentFloat, trigger, hedgePercent);
 }
 
 //------------------------------------------------------------------------------------

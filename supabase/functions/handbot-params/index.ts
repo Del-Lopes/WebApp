@@ -84,7 +84,13 @@ async function handleEaLinkId(req: Request): Promise<Response> {
 }
 
 // GET para o EA: autentica via Bearer token do EA, devolve parâmetros
+//
+// ?full=1 → inicialização do EA: devolve os parâmetros mesmo sem needs_sync pendente.
+// Sem isso, um EA reinicializado depois que a flag já foi consumida recebe {sync:false},
+// mantém _RemoteParamsLoaded=false e passa a operar com os inputs locais do .mq5.
 async function handleEaGet(req: Request): Promise<Response> {
+  const force = new URL(req.url).searchParams.get('full') === '1'
+
   const token = extractBearer(req)
   if (!token) return jsonResponse(401, { error: 'missing_bearer_token' })
 
@@ -118,14 +124,17 @@ async function handleEaGet(req: Request): Promise<Response> {
 
   if (!params) return jsonResponse(404, { error: 'params_not_found' })
 
-  // Caso comum (~99%): sem mudanças pendentes — responde sem nenhuma query adicional
-  if (!params.needs_sync) return jsonResponse(200, { sync: false })
+  // Caso comum (~99%): sem mudanças pendentes — responde sem nenhuma query adicional.
+  // Com full=1 (inicialização do EA) devolve os parâmetros de qualquer forma.
+  if (!params.needs_sync && !force) return jsonResponse(200, { sync: false })
 
   // Só executa o UPDATE quando realmente há algo para sincronizar
-  await supabaseAdmin
-    .from('handbot_params')
-    .update({ needs_sync: false })
-    .eq('handbot_link_id', link.id)
+  if (params.needs_sync) {
+    await supabaseAdmin
+      .from('handbot_params')
+      .update({ needs_sync: false })
+      .eq('handbot_link_id', link.id)
+  }
 
   return jsonResponse(200, {
     sync: true,

@@ -956,13 +956,19 @@ const ParamsForm: React.FC<{
           />
           <div className={`space-y-3 pl-2 transition-opacity ${params.dynamic_hedge_enabled ? '' : 'opacity-40 pointer-events-none'}`}>
             <NumericInput
-              label="% de flutuante para ativar"
+              label="% do saldo para travar o hedge"
               value={params.dynamic_hedge_percent}
               onChange={(v) => set('dynamic_hedge_percent', v)}
               step={0.1}
               min={0}
               decimal
             />
+            <p className="text-xs text-slate-500">
+              Percentual do saldo inicial da sessão. Quando o prejuízo flutuante atingir esse valor, o robô trava
+              <strong> toda a exposição de uma vez</strong>: cancela as ordens pendentes, remove stops e takes, e
+              <strong> para completamente</strong> — não abre entradas, não faz grid, não fecha por meta do dia nem
+              por fim de sessão. Para liberar, feche manualmente todas as posições e ordens.
+            </p>
           </div>
         </div>
       </div>
