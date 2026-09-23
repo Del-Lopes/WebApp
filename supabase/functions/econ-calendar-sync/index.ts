@@ -248,31 +248,60 @@ interface AIConfig {
   groq_api_key?: string; groq_model?: string
 }
 
+// Modelos que falharam por erro permanente (400/403/404: modelo inexistente ou
+// sem suporte a instrução de sistema / modo JSON) ou por cota (429) nesta
+// execução. Pulados nos próximos eventos do lote, para não gastar o orçamento
+// de tempo repetindo a mesma falha.
+const deadModels = new Set<string>()
+
 // Tenta cada modelo até obter um JSON válido — um modelo que devolve JSON
-// quebrado conta como falha e passa a vez ao próximo.
-async function generateInterpretation(system: string, user: string, config: AIConfig): Promise<Interpretation | null> {
-  const attempts: Array<() => Promise<string>> = []
+// quebrado conta como falha e passa a vez ao próximo. Devolve também o motivo
+// de cada falha, gravado em interpret_error para diagnóstico sem precisar dos
+// logs da function.
+async function generateInterpretation(
+  system: string, user: string, config: AIConfig, fallbackTitle: string,
+): Promise<{ result: Interpretation | null; errors: string[] }> {
+  const attempts: Array<[string, () => Promise<string>]> = []
   const geminiKey = config.gemini_api_key || GEMINI_API_KEY
   if (geminiKey) {
     const models = [config.gemini_model || 'gemini-2.0-flash-lite', config.gemini_model_2, config.gemini_model_3].filter(Boolean) as string[]
-    for (const m of models) attempts.push(() => callGemini(system, user, geminiKey, m))
+    for (const m of models) attempts.push([m, () => callGemini(system, user, geminiKey, m)])
   }
   const groqKey = config.groq_api_key || GROQ_API_KEY
-  if (groqKey) attempts.push(() => callGroq(system, user, groqKey, config.groq_model || 'llama-3.3-70b-versatile'))
+  const groqModel = config.groq_model || 'llama-3.3-70b-versatile'
+  if (groqKey) attempts.push([groqModel, () => callGroq(system, user, groqKey, groqModel)])
+  if (attempts.length === 0) return { result: null, errors: ['no_ai_keys'] }
 
-  for (const attempt of attempts) {
+  const errors: string[] = []
+  for (const [label, attempt] of attempts) {
+    if (deadModels.has(label)) continue
     try {
-      const parsed = normalizeInterpretation(JSON.parse(stripFences(await attempt())))
-      if (parsed) return parsed
+      const text = await attempt()
+      let parsed: unknown
+      try { parsed = JSON.parse(extractJson(text)) }
+      catch { errors.push(`${label}: json_parse (${text.slice(0, 80)})`); continue }
+      const result = normalizeInterpretation(Array.isArray(parsed) ? parsed[0] : parsed, fallbackTitle)
+      if (result) return { result, errors }
+      errors.push(`${label}: invalid_shape (${Object.keys((parsed as object) ?? {}).join(',').slice(0, 80)})`)
     } catch (e) {
-      console.error('[econ-calendar-sync] ai attempt failed', e instanceof Error ? e.message : e)
+      const msg = e instanceof Error ? (e.name === 'AbortError' ? 'timeout' : e.message) : String(e)
+      if (/HTTP (400|403|404|429)/.test(msg)) deadModels.add(label)
+      // Erro de rede do Deno traz a URL, e a do Gemini leva a chave na query.
+      // A mensagem vai para a resposta e para uma coluna legível por usuários.
+      errors.push(`${label}: ${msg.replace(/key=[^&\s)"']+/gi, 'key=***').slice(0, 160)}`)
     }
   }
-  return null
+  console.error('[econ-calendar-sync] ai failed', errors)
+  return { result: null, errors }
 }
 
-function stripFences(s: string): string {
-  return s.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
+// Tira cercas de markdown e texto em volta do objeto, caso o modelo ignore o
+// modo JSON.
+function extractJson(s: string): string {
+  const t = s.trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
+  const i = t.search(/[[{]/)
+  const j = Math.max(t.lastIndexOf('}'), t.lastIndexOf(']'))
+  return i >= 0 && j > i ? t.slice(i, j + 1) : t
 }
 
 // ─── Interpretação: formato e validação ─────────────────────────────────────
@@ -311,17 +340,20 @@ function normalizeScenario(raw: any, fallbackLabel: string): Scenario | null {
   return { rotulo: asStr(raw.rotulo) || fallbackLabel, moeda: asDir(raw.moeda), intensidade, leitura, ativos }
 }
 
-function normalizeInterpretation(raw: any): Interpretation | null {
+function normalizeInterpretation(raw: any, fallbackTitle: string): Interpretation | null {
   if (!raw || typeof raw !== 'object') return null
   const tipo = raw.tipo === 'qualitativo' ? 'qualitativo' : 'dado'
-  const c = raw.cenarios ?? {}
+  // Aceita as variações de nome mais comuns que os modelos devolvem.
+  const c = raw.cenarios ?? raw.cenários ?? raw.scenarios ?? {}
+  if (!c.em_linha) c.em_linha = c.emLinha ?? c['em linha'] ?? c.neutro
   const acima = normalizeScenario(c.acima, tipo === 'dado' ? 'Acima do esperado' : 'Tom mais duro (hawkish)')
   const abaixo = normalizeScenario(c.abaixo, tipo === 'dado' ? 'Abaixo do esperado' : 'Tom mais brando (dovish)')
   const emLinha = normalizeScenario(c.em_linha, tipo === 'dado' ? 'Em linha com o esperado' : 'Sem sinalização nova')
-  const titulo = asStr(raw.titulo)
+  // Sem título em PT não é motivo para descartar a análise inteira.
+  const titulo = asStr(raw.titulo) || asStr(raw.título) || fallbackTitle
   const resumo = asStr(raw.resumo)
   const contexto = asStr(raw.contexto)
-  if (!acima || !abaixo || !emLinha || !titulo || !resumo || !contexto) return null
+  if (!acima || !abaixo || !emLinha || !resumo || !contexto) return null
   return { titulo, tipo, resumo, contexto, cenarios: { acima, abaixo, em_linha: emLinha }, atencao: asStr(raw.atencao) }
 }
 
@@ -537,6 +569,7 @@ Deno.serve(async (req) => {
   for (const s of ordered) if (!sampleByKey.has(s.key)) sampleByKey.set(s.key, s.e)
 
   let interpreted = 0
+  let firstAiError: string | null = null
   if (priority.length > 0) {
     const retryCutoff = new Date(now - INTERPRET_RETRY_MS).toISOString()
     const { data: pending } = await supabaseAdmin
@@ -555,16 +588,19 @@ Deno.serve(async (req) => {
       for (const key of batch) {
         if (Date.now() - startedAt > INTERPRET_BUDGET_MS) break
         const profile = profiles.get(key)!
-        const result = await generateInterpretation(system, buildPrompt(profile, sampleByKey.get(key)), aiConfig || {})
+        const { result, errors } = await generateInterpretation(system, buildPrompt(profile, sampleByKey.get(key)), aiConfig || {}, profile.title)
         if (result) {
+          // Título em PT só quando a IA deu um (o fallback é o próprio título em inglês).
+          const titlePt = result.titulo !== profile.title ? result.titulo : null
           await supabaseAdmin.from('econ_event_profile')
-            .update({ interpretation: result, title_pt: result.titulo, interpreted_at: new Date().toISOString(), interpret_error: null })
+            .update({ interpretation: result, title_pt: titlePt, interpreted_at: new Date().toISOString(), interpret_error: null })
             .eq('event_key', key)
           interpreted++
         } else {
           await supabaseAdmin.from('econ_event_profile')
-            .update({ interpreted_at: new Date().toISOString(), interpret_error: 'ai_failed' })
+            .update({ interpreted_at: new Date().toISOString(), interpret_error: errors.join(' | ').slice(0, 500) })
             .eq('event_key', key)
+          if (!firstAiError) firstAiError = errors[0] ?? null
         }
       }
     }
@@ -576,5 +612,7 @@ Deno.serve(async (req) => {
     events: occurrenceRows.length,
     profiles: profileRows.length,
     interpreted,
+    // Só o motivo (ex.: "gemini-2.0-flash-lite: Gemini HTTP 429"), nunca chave.
+    ...(firstAiError ? { ai_error: firstAiError } : {}),
   })
 })
