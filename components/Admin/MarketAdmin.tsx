@@ -188,7 +188,7 @@ export const MarketAdmin: React.FC = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-[32px] border border-slate-100 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-[32px] border border-slate-100 shadow-xs overflow-hidden">
         {loading ? (
           <div className="p-12 flex justify-center"><Loader2 className="animate-spin text-green-600" size={28} /></div>
         ) : products.length === 0 ? (
@@ -232,7 +232,7 @@ export const MarketAdmin: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold uppercase tracking-wider">
+                      <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-sm text-[10px] font-bold uppercase tracking-wider">
                         {TYPE_LABELS[p.type] || p.type}
                       </span>
                     </td>
@@ -242,7 +242,7 @@ export const MarketAdmin: React.FC = () => {
                     <td className="px-6 py-4">
                       <button
                         onClick={() => togglePublished(p)}
-                        className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+                        className={`px-2 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 ${
                           p.is_published ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500'
                         }`}
                         title="Alternar publicação"
@@ -270,7 +270,7 @@ export const MarketAdmin: React.FC = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
               <h3 className="text-xl font-bold text-slate-800">{editing ? 'Editar Produto' : 'Novo Produto'}</h3>
@@ -283,7 +283,7 @@ export const MarketAdmin: React.FC = () => {
                 <select
                   value={form.type}
                   onChange={e => setForm({ ...form, type: e.target.value as ProductType })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 bg-white"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 bg-white"
                 >
                   {PRODUCT_TYPES.map(t => (
                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -303,7 +303,7 @@ export const MarketAdmin: React.FC = () => {
                   required
                   value={form.title}
                   onChange={e => setForm({ ...form, title: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                 />
               </div>
 
@@ -313,7 +313,7 @@ export const MarketAdmin: React.FC = () => {
                   rows={3}
                   value={form.description}
                   onChange={e => setForm({ ...form, description: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                 />
               </div>
 
@@ -351,7 +351,7 @@ export const MarketAdmin: React.FC = () => {
                       placeholder="Ou cole a URL"
                       value={form.image_url}
                       onChange={e => setForm({ ...form, image_url: e.target.value })}
-                      className="w-full mt-2 text-[11px] border-b border-slate-200 bg-transparent py-1 outline-none focus:border-green-500"
+                      className="w-full mt-2 text-[11px] border-b border-slate-200 bg-transparent py-1 outline-hidden focus:border-green-500"
                     />
                   </div>
                 </div>
@@ -364,7 +364,7 @@ export const MarketAdmin: React.FC = () => {
                   placeholder="https://..."
                   value={form.external_link}
                   onChange={e => setForm({ ...form, external_link: e.target.value })}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                  className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                 />
                 <p className="text-[11px] text-slate-500 mt-1">Para onde o botão "Acessar" leva o cliente. Sem gateway por enquanto.</p>
               </div>
@@ -377,7 +377,7 @@ export const MarketAdmin: React.FC = () => {
                     placeholder="Ex: R$ 297 ou 12x R$ 29"
                     value={form.price_label}
                     onChange={e => setForm({ ...form, price_label: e.target.value })}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                   />
                 </div>
                 <div>
@@ -387,7 +387,7 @@ export const MarketAdmin: React.FC = () => {
                     placeholder="Ex: Iniciante"
                     value={form.category}
                     onChange={e => setForm({ ...form, category: e.target.value })}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                   />
                 </div>
               </div>
@@ -399,7 +399,7 @@ export const MarketAdmin: React.FC = () => {
                     type="number"
                     value={form.sort_order}
                     onChange={e => setForm({ ...form, sort_order: Number(e.target.value) })}
-                    className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
+                    className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500"
                   />
                 </div>
                 <div className="flex flex-col gap-2 justify-end pb-1">

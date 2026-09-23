@@ -147,7 +147,7 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-slate-200">
           <h3 className="font-bold text-slate-900 text-lg">
@@ -435,7 +435,7 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
                 </button>
                 {uploadError && (
                   <div className="flex items-start gap-2 mt-2 p-2 rounded-lg bg-red-50 text-red-700 text-xs">
-                    <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                     <span>{uploadError}</span>
                   </div>
                 )}
@@ -445,7 +445,7 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
 
           {error && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
-              <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
@@ -472,7 +472,7 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
   );
 }
 
-const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent';
+const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent';
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (

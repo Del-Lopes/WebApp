@@ -111,7 +111,7 @@ export const WatchlistView: React.FC = () => {
           return (
             <div
               key={i.coin_id}
-              className={`rounded-xl bg-white p-3 shadow-sm ring-1 ${
+              className={`rounded-xl bg-white p-3 shadow-xs ring-1 ${
                 inTrending || strongMove || unlock ? 'ring-amber-200' : 'ring-slate-100'
               }`}
             >

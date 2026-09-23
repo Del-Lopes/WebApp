@@ -56,7 +56,7 @@ export const UnlocksPanel: React.FC = () => {
               key={d}
               onClick={() => setDays(d)}
               className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                days === d ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                days === d ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
               }`}
             >
               {d}d
@@ -81,7 +81,7 @@ export const UnlocksPanel: React.FC = () => {
             return (
               <div
                 key={u.protocol_slug}
-                className={`flex items-center gap-3 rounded-xl bg-white p-3 shadow-sm ring-1 ${
+                className={`flex items-center gap-3 rounded-xl bg-white p-3 shadow-xs ring-1 ${
                   heavy ? 'ring-rose-200' : 'ring-slate-100'
                 }`}
               >

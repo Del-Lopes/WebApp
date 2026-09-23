@@ -75,13 +75,13 @@ export const PlatformTour: React.FC<PlatformTourProps> = ({ onClose, onComplete 
   const step = TOUR_STEPS[currentStep];
 
   return (
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-300">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col md:flex-row relative animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
         
         {/* Close Button */}
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 bg-white/20 hover:bg-white/40 backdrop-blur rounded-full text-white md:text-slate-500 transition-colors"
+          className="absolute top-4 right-4 z-20 p-2 bg-white/20 hover:bg-white/40 backdrop-blur-sm rounded-full text-white md:text-slate-500 transition-colors"
         >
           <X size={24} />
         </button>

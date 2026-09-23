@@ -2,75 +2,219 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
+/*
+ * Tailwind v4 compilado (antes vinha do CDN v3 em runtime).
+ * source(none) + @source: só varre o código do app — sem isso a detecção
+ * automática entra em supabase/, php_api/, mt5/ e docs/.
+ */
+@import "tailwindcss" source(none);
+@source "./components";
+@source "./contexts";
+@source "./hooks";
+@source "./lib";
+@source "./App.tsx";
+@source "./index.tsx";
+@source "./index.html";
+@source "./constants.ts";
+
+/*
+ * Classes montadas em runtime (Journey.tsx: bg-${session.color}-50). O CDN lia
+ * o DOM e as gerava na hora; o compilador só enxerga classes escritas por
+ * inteiro, então elas precisam estar listadas aqui.
+ */
+@source inline("bg-{indigo,blue,purple,green,slate,orange}-50 text-{indigo,blue,purple,green,slate,orange}-600");
+
+/*
+ * Altura de linha da escala de fonte com os valores absolutos do v3. No v4 ela
+ * é proporção (text-sm = 1.4286) e é herdada proporcionalmente: um selo
+ * text-[10px] dentro de uma tabela text-sm ficava com 14px de linha em vez de
+ * 20px, e várias listas encolhiam 1–2px. Revisto na Fase 2 (design system).
+ */
+@theme {
+  --text-xs--line-height: 1rem;
+  --text-sm--line-height: 1.25rem;
+  --text-base--line-height: 1.5rem;
+  --text-lg--line-height: 1.75rem;
+  --text-xl--line-height: 1.75rem;
+  --text-2xl--line-height: 2rem;
+  --text-3xl--line-height: 2.25rem;
+  --text-4xl--line-height: 2.5rem;
+  --text-5xl--line-height: 1;
+  --text-6xl--line-height: 1;
+  --text-7xl--line-height: 1;
+  --text-8xl--line-height: 1;
+  --text-9xl--line-height: 1;
+}
+
+/*
+ * Compatibilidade com os padrões do v3, para a migração não mudar o visual:
+ * - borda sem cor explícita era gray-200 (no v4 é currentColor);
+ * - placeholder era gray-400 (no v4 é o texto com 50% de opacidade);
+ * - botões tinham cursor pointer (no v4 voltam ao padrão do navegador).
+ * Saem na Fase 2, quando as telas passam a usar os tokens do design system.
+ */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  /* O preflight do v4 zera o padding dos campos internos do input de data e
+     fixa a altura mínima; o v3 deixava o padrão do navegador (tabelas do Admin
+     ficavam 2px mais baixas por linha). */
+  ::-webkit-calendar-picker-indicator {
+    line-height: revert;
+  }
+
+  ::-webkit-date-and-time-value {
+    min-height: revert;
+    text-align: revert;
+  }
+
+  ::-webkit-datetime-edit,
+  ::-webkit-datetime-edit-year-field,
+  ::-webkit-datetime-edit-month-field,
+  ::-webkit-datetime-edit-day-field,
+  ::-webkit-datetime-edit-hour-field,
+  ::-webkit-datetime-edit-minute-field,
+  ::-webkit-datetime-edit-second-field,
+  ::-webkit-datetime-edit-millisecond-field,
+  ::-webkit-datetime-edit-meridiem-field {
+    padding-block: revert;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    scrollbar-gutter: stable;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: 'Outfit', sans-serif;
+  }
+}
+
+/*
+ * space-y/space-x no comportamento do v3. O v4 trocou "margin-top nos irmãos
+ * seguintes" por "margin-bottom em todos menos o último", e isso muda o espaço
+ * quando um filho tem margem própria (ex.: header com mb-2 dentro de
+ * space-y-6: no v3 as margens colapsavam em 24px, no v4 sobram 8px).
+ * Aqui: anula o margin-bottom do v4 (mesma especificidade zero do :where, então
+ * a margem própria do filho continua valendo) e recoloca o seletor do v3.
+ * Só os valores usados no código. Sai quando as telas forem refeitas.
+ */
+@layer utilities {
+  :where(.space-y-0\.5 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-0\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 0.5); margin-bottom: 0; }
+  :where(.space-y-1 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-1 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 1); margin-bottom: 0; }
+  :where(.space-y-1\.5 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-1\.5 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 1.5); margin-bottom: 0; }
+  :where(.space-y-2 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-2 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 2); margin-bottom: 0; }
+  :where(.space-y-3 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-3 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 3); margin-bottom: 0; }
+  :where(.space-y-4 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 4); margin-bottom: 0; }
+  :where(.space-y-5 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-5 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 5); margin-bottom: 0; }
+  :where(.space-y-6 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 6); margin-bottom: 0; }
+  :where(.space-y-8 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-8 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 8); margin-bottom: 0; }
+  :where(.space-y-10 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-10 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 10); margin-bottom: 0; }
+  :where(.space-y-12 > :not(:last-child)) { margin-block-end: 0; }
+  .space-y-12 > :not([hidden]) ~ :not([hidden]) { margin-top: calc(var(--spacing) * 12); margin-bottom: 0; }
+  :where(.space-x-2 > :not(:last-child)) { margin-inline-end: 0; }
+  .space-x-2 > :not([hidden]) ~ :not([hidden]) { margin-left: calc(var(--spacing) * 2); margin-right: 0; }
+  :where(.-space-x-2 > :not(:last-child)) { margin-inline-end: 0; }
+  .-space-x-2 > :not([hidden]) ~ :not([hidden]) { margin-left: calc(var(--spacing) * -2); margin-right: 0; }
+}
+
 :root {
   --sidebar-width: 280px;
   --header-height: 72px;
 }
 
-body {
-  font-family: 'Inter', sans-serif;
-  scrollbar-gutter: stable;
-}
+/*
+ * Classes próprias em @layer components: com o CDN, os utilitários eram
+ * injetados depois deste arquivo e venciam no empate. No v4, CSS fora de
+ * layer venceria os utilitários — o layer mantém a ordem antiga.
+ */
+@layer components {
+  .font-display {
+    font-family: 'Outfit', sans-serif;
+  }
 
-h1, h2, h3, h4, .font-display {
-  font-family: 'Outfit', sans-serif;
-}
+  /* Custom Premium Scrollbar */
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
-/* Custom Premium Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #cbd5e1; /* slate-300 */
+    border-radius: 10px;
+  }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1; /* slate-300 */
-  border-radius: 10px;
-}
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8; /* slate-400 */
+  }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8; /* slate-400 */
-}
+  /* Dark mode scrollbar support if needed */
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #334155; /* slate-700 */
+  }
 
-/* Dark mode scrollbar support if needed */
-.dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #334155; /* slate-700 */
-}
+  /* Glassmorphism Classes */
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
 
-/* Glassmorphism Classes */
-.glass-panel {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-}
+  .dark .glass-panel {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
 
-.dark .glass-panel {
-  background: rgba(15, 23, 42, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  .animate-fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+
+  /* Smooth transitions for interactive elements */
+  .btn-premium {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .btn-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -5px rgba(22, 163, 74, 0.3);
+  }
 }
 
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
-}
-
-/* Smooth transitions for interactive elements */
-.btn-premium {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-premium:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px -5px rgba(22, 163, 74, 0.3);
 }
 
 @keyframes shimmer {

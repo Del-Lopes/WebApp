@@ -152,7 +152,7 @@ export const TrendPanel: React.FC = () => {
         <AlertTriangle size={18} className="mt-0.5 shrink-0" />
         <div>
           <p className="font-semibold">Fonte de cotações não configurada.</p>
-          <p className="text-amber-700 mt-1">Defina <code className="bg-amber-100 px-1 rounded">VITE_TWELVEDATA_KEY</code> no ambiente do front para ativar o painel de tendência.</p>
+          <p className="text-amber-700 mt-1">Defina <code className="bg-amber-100 px-1 rounded-sm">VITE_TWELVEDATA_KEY</code> no ambiente do front para ativar o painel de tendência.</p>
         </div>
       </div>
     );
@@ -161,14 +161,14 @@ export const TrendPanel: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Controles */}
-      <div className="rounded-2xl bg-white ring-1 ring-slate-100 p-4 shadow-sm">
+      <div className="rounded-2xl bg-white ring-1 ring-slate-100 p-4 shadow-xs">
         <div className="flex items-end gap-3 flex-wrap">
           <div className="flex-1 min-w-[180px]">
             <label className="text-xs font-semibold text-slate-500">Ativo</label>
             <select
               value={asset}
               onChange={(e) => setAsset(e.target.value)}
-              className="mt-1 w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none text-sm bg-white"
+              className="mt-1 w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden text-sm bg-white"
             >
               {ASSETS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
             </select>
@@ -252,7 +252,7 @@ export const TrendPanel: React.FC = () => {
         loading && !analysis ? (
           <div className="flex items-center justify-center py-16 text-slate-300"><Loader2 className="animate-spin" size={32} /></div>
         ) : analysis ? (
-          <div className="rounded-2xl bg-white ring-1 ring-slate-100 p-5 shadow-sm space-y-4">
+          <div className="rounded-2xl bg-white ring-1 ring-slate-100 p-5 shadow-xs space-y-4">
             {/* Gauges */}
             <div className="flex flex-wrap justify-center gap-2">
               {analysis.perByTF.map((r) => <TFGauge key={r.label} result={r} />)}

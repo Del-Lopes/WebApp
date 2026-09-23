@@ -101,7 +101,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
       )}
 
       {/* Profile Section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-slate-100 rounded-lg text-slate-600">
             <User size={24} />
@@ -116,7 +116,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all"
+              className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden transition-all"
             />
           </div>
           <div className="flex justify-end">
@@ -133,7 +133,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
       </div>
 
       {/* Security Section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 bg-slate-100 rounded-lg text-slate-600">
             <Lock size={24} />
@@ -149,7 +149,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all"
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden transition-all"
                 placeholder="••••••••"
               />
             </div>
@@ -159,7 +159,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none transition-all"
+                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden transition-all"
                 placeholder="••••••••"
               />
             </div>

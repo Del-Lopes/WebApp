@@ -197,24 +197,24 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
       {/* Header com totais (quando já tem contas) */}
       {!loading && accounts.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Equity total</p>
             <p className="text-2xl font-bold text-slate-900 font-mono">{currencyFmt(totalEquity)}</p>
           </div>
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
             <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">P&L do dia</p>
             <p className={`text-2xl font-bold font-mono ${totalDailyPnl >= 0 ? 'text-green-600' : 'text-red-600'}`}>
               {currencyFmt(totalDailyPnl)}
             </p>
           </div>
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-center justify-between">
+          <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex items-center justify-between">
             <div>
               <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Contas</p>
               <p className="text-2xl font-bold text-slate-900">{accounts.length}</p>
             </div>
             <button
               onClick={() => setIsAdding(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg shadow transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg shadow-sm transition-colors"
             >
               <Plus size={16} /> Nova
             </button>
@@ -226,7 +226,7 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
       {isAdding && (
         <form
           onSubmit={handleCreate}
-          className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm animate-in slide-in-from-top-2 duration-200"
+          className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs animate-in slide-in-from-top-2 duration-200"
         >
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-base font-bold text-slate-900">Nova conta do portfólio</h3>
@@ -243,7 +243,7 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
                 value={newAccount.name}
                 onChange={(e) => setNewAccount({ ...newAccount, name: e.target.value })}
                 placeholder="Ex: Conta principal"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
               />
             </div>
             <div>
@@ -253,7 +253,7 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
                 value={newAccount.broker_display}
                 onChange={(e) => setNewAccount({ ...newAccount, broker_display: e.target.value })}
                 placeholder="Ex: XP Investimentos"
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
               />
             </div>
           </div>
@@ -268,7 +268,7 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
             <button
               type="submit"
               disabled={submitting || !newAccount.name.trim()}
-              className="px-5 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-lg shadow transition-colors disabled:opacity-50"
+              className="px-5 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-lg shadow-sm transition-colors disabled:opacity-50"
             >
               {submitting ? 'Criando…' : 'Criar conta'}
             </button>
@@ -297,7 +297,7 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
             return (
               <div
                 key={account.id}
-                className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col"
+                className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs flex flex-col"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between mb-4">
@@ -411,7 +411,7 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
                     <p className="text-sm text-slate-500 mb-3">Conta sem vínculo MT5.</p>
                     <button
                       onClick={() => setConnectingAccount(account)}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow transition-colors"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-lg shadow-sm transition-colors"
                     >
                       <Link2Off size={14} /> Conectar ao MT5
                     </button>

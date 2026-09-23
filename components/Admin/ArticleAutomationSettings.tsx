@@ -257,7 +257,7 @@ export const ArticleAutomationSettings: React.FC = () => {
               placeholder="https://exemplo.com/artigo-didatico"
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
-              className="flex-1 outline-none text-sm text-slate-800 placeholder:text-slate-400 bg-transparent"
+              className="flex-1 outline-hidden text-sm text-slate-800 placeholder:text-slate-400 bg-transparent"
             />
             {sourceUrl && (
               <a
@@ -285,7 +285,7 @@ export const ArticleAutomationSettings: React.FC = () => {
             rows={2}
             value={settings.writer_persona}
             onChange={(e) => setSettings({ ...settings, writer_persona: e.target.value })}
-            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-violet-500 resize-none transition-colors bg-white"
+            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-hidden focus:border-violet-500 resize-none transition-colors bg-white"
           />
         </div>
 
@@ -298,7 +298,7 @@ export const ArticleAutomationSettings: React.FC = () => {
             type="text"
             value={settings.default_category}
             onChange={(e) => setSettings({ ...settings, default_category: e.target.value })}
-            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-violet-500 transition-colors bg-white"
+            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-hidden focus:border-violet-500 transition-colors bg-white"
             placeholder="Análise Geral"
           />
         </div>
@@ -339,7 +339,7 @@ export const ArticleAutomationSettings: React.FC = () => {
       <div className="h-[1px] w-full bg-slate-100 my-8" />
 
       {/* AI Configuration Section */}
-      <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm overflow-hidden relative group">
+      <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-xs overflow-hidden relative group">
         <div className="flex items-center gap-4 mb-8">
           <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
             <Sparkles size={24} />
@@ -364,7 +364,7 @@ export const ArticleAutomationSettings: React.FC = () => {
                   type="password" 
                   value={aiConfig.gemini_api_key || ''} 
                   onChange={e => setAiConfig({...aiConfig, gemini_api_key: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
                   placeholder="Sk-..."
                 />
               </div>
@@ -374,7 +374,7 @@ export const ArticleAutomationSettings: React.FC = () => {
                   type="text" 
                   value={aiConfig.gemini_model || ''} 
                   onChange={e => setAiConfig({...aiConfig, gemini_model: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
                   placeholder="gemini-2.0-flash-lite"
                 />
               </div>
@@ -384,7 +384,7 @@ export const ArticleAutomationSettings: React.FC = () => {
                   type="text" 
                   value={aiConfig.gemini_model_2 || ''} 
                   onChange={e => setAiConfig({...aiConfig, gemini_model_2: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
                   placeholder="gemini-2.0-flash"
                 />
               </div>
@@ -394,7 +394,7 @@ export const ArticleAutomationSettings: React.FC = () => {
                   type="text" 
                   value={aiConfig.gemini_model_3 || ''} 
                   onChange={e => setAiConfig({...aiConfig, gemini_model_3: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
                   placeholder="gemini-1.5-pro"
                 />
               </div>
@@ -412,7 +412,7 @@ export const ArticleAutomationSettings: React.FC = () => {
                   type="password" 
                   value={aiConfig.groq_api_key || ''} 
                   onChange={e => setAiConfig({...aiConfig, groq_api_key: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
                   placeholder="gsk_..."
                 />
               </div>
@@ -422,7 +422,7 @@ export const ArticleAutomationSettings: React.FC = () => {
                   type="text" 
                   value={aiConfig.groq_model || ''} 
                   onChange={e => setAiConfig({...aiConfig, groq_model: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
                   placeholder="llama-3.3-70b-versatile"
                 />
               </div>

@@ -84,7 +84,7 @@ export const ReportView: React.FC = () => {
       ) : (
         <div className="space-y-3">
           {reports.map((r) => (
-            <div key={r.id} className="rounded-2xl bg-white ring-1 ring-slate-100 p-5 shadow-sm">
+            <div key={r.id} className="rounded-2xl bg-white ring-1 ring-slate-100 p-5 shadow-xs">
               <p className="text-sm font-bold text-slate-800">{r.title}</p>
               <p className="text-[11px] text-slate-400 mb-2">{new Date(r.created_at).toLocaleString('pt-BR')}</p>
               {/* chips dos setores em destaque */}

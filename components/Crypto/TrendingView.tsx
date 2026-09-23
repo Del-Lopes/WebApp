@@ -84,7 +84,7 @@ export const TrendingView: React.FC = () => {
                 key={p}
                 onClick={() => setPeriod(p)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  period === p ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  period === p ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 {p}
@@ -128,7 +128,7 @@ export const TrendingView: React.FC = () => {
       ) : period === '24h' ? (
         <div className="grid gap-2 sm:grid-cols-2">
           {searched.map((c, i) => (
-            <div key={c.id} className="flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-sm">
+            <div key={c.id} className="flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-xs">
               <span className="text-xs font-bold text-slate-300 w-5 text-center">{i + 1}</span>
               {c.thumb && <img src={c.thumb} alt={c.name} className="w-8 h-8 rounded-full" />}
               <div className="flex-1 min-w-0">
@@ -146,7 +146,7 @@ export const TrendingView: React.FC = () => {
       ) : usingHistory ? (
         <div className="grid gap-2 sm:grid-cols-2">
           {persistence.map((c, i) => (
-            <div key={c.coin_id} className="flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-sm">
+            <div key={c.coin_id} className="flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-xs">
               <span className="text-xs font-bold text-slate-300 w-5 text-center">{i + 1}</span>
               {c.thumb && <img src={c.thumb} alt={c.name} className="w-8 h-8 rounded-full" />}
               <div className="flex-1 min-w-0">
@@ -166,7 +166,7 @@ export const TrendingView: React.FC = () => {
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           {movers.map((c, i) => (
-            <div key={c.id} className="flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-sm">
+            <div key={c.id} className="flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-xs">
               <span className="text-xs font-bold text-slate-300 w-5 text-center">{i + 1}</span>
               {c.image && <img src={c.image} alt={c.name} className="w-8 h-8 rounded-full" />}
               <div className="flex-1 min-w-0">

@@ -87,7 +87,7 @@ const NextEventCard: React.FC<{ event: EconEvent; profile: EconProfile | undefin
             </p>
             <p className="mt-1.5 text-lg font-bold leading-snug">{displayTitle(event, profile)}</p>
             <p className="mt-1 text-xs text-slate-400 flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-white bg-white/10 px-1.5 py-0.5 rounded">{event.currency}</span>
+              <span className="font-bold text-white bg-white/10 px-1.5 py-0.5 rounded-sm">{event.currency}</span>
               {CURRENCY_LABEL[event.currency] && <span>{CURRENCY_LABEL[event.currency]}</span>}
               <Stars n={event.importance} />
               <span>
@@ -280,7 +280,7 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
                 key={key}
                 onClick={() => setRange(key)}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
-                  range === key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  range === key ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 {label}
@@ -293,7 +293,7 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
                 key={String(high)}
                 onClick={() => setPrefs((p) => ({ ...p, onlyHigh: high }))}
                 className={`flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all ${
-                  prefs.onlyHigh === high ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  prefs.onlyHigh === high ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 <Stars n={high ? 3 : 2} /> {high ? 'Só 3' : '2 e 3'}

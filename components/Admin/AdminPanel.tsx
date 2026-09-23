@@ -748,7 +748,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     
     return (
       <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300 pb-20">
-        <div className="flex flex-col md:flex-row md:items-center justify-between bg-white p-6 rounded-3xl border border-slate-200 shadow-sm gap-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between bg-white p-6 rounded-3xl border border-slate-200 shadow-xs gap-4">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setSelectedUser(null)}
@@ -781,7 +781,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
             <h3 className="font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
               <User size={18} className="text-green-600" /> Informações
             </h3>
@@ -806,7 +806,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           {/* Coins do usuário — ver saldo e atribuir manualmente (admin) */}
           <UserCoinsCard userId={user.id} />
 
-          <div className="md:col-span-3 bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+          <div className="md:col-span-3 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
             <h3 className="font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Activity size={18} className="text-green-600" /> Licenças Ativas
@@ -845,7 +845,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           </div>
         </div>
 
-        <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm space-y-6">
+        <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-xs space-y-6">
             <h3 className="font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Users size={18} className="text-green-600" /> Lista de Prospectos (CRM)
@@ -880,7 +880,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                     <div className="text-[10px] text-slate-400">{p.phone || '-'}</div>
                                 </td>
                                 <td className="px-6 py-4">
-                                    <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-widest ${
+                                    <span className={`px-2 py-0.5 rounded-sm text-[9px] font-black uppercase tracking-widest ${
                                         p.status === 'converted' ? 'bg-green-100 text-green-700' :
                                         p.status === 'lost' ? 'bg-red-100 text-red-700' :
                                         p.status === 'negotiating' ? 'bg-blue-100 text-blue-700' :
@@ -914,7 +914,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={() => setViewingProspect(null)}
-                        className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-green-600 hover:border-green-200 transition-all shadow-sm"
+                        className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-green-600 hover:border-green-200 transition-all shadow-xs"
                     >
                         <ArrowLeft size={20} />
                     </button>
@@ -937,7 +937,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 <div className="flex gap-3">
                     <button 
                         onClick={() => handleDeleteProspect(prospect.id)}
-                        className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all shadow-sm flex items-center gap-2 text-xs font-bold"
+                        className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all shadow-xs flex items-center gap-2 text-xs font-bold"
                     >
                         <Trash2 size={18} /> Excluir
                     </button>
@@ -947,7 +947,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 px-4">
                 {/* Info Cards */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm space-y-6">
+                    <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-xs space-y-6">
                         <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.15em]">Informações de Contato</h4>
                         
                         <div className="space-y-4">
@@ -987,7 +987,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
                 {/* Notes/Detailed Area */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-sm h-full flex flex-col">
+                    <div className="bg-white p-10 rounded-[40px] border border-slate-200 shadow-xs h-full flex flex-col">
                         <div className="flex items-center justify-between mb-8">
                             <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.15em]">Área de Trabalho / Anotações</h4>
                             <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold">
@@ -996,7 +996,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                         </div>
                         
                         <textarea 
-                            className="flex-1 w-full p-8 bg-slate-50 border-2 border-slate-100 rounded-[32px] outline-none font-medium text-slate-700 leading-relaxed focus:bg-white focus:border-green-500 transition-all resize-none min-h-[400px]"
+                            className="flex-1 w-full p-8 bg-slate-50 border-2 border-slate-100 rounded-[32px] outline-hidden font-medium text-slate-700 leading-relaxed focus:bg-white focus:border-green-500 transition-all resize-none min-h-[400px]"
                             placeholder="Adicione observações administrativas aqui..."
                             defaultValue={prospect.notes}
                             onBlur={(e) => handleUpdateField(prospect.id, 'notes', e.target.value)}
@@ -1107,12 +1107,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                   placeholder={activeTab === 'licenses' ? "Buscar por nome, email ou conta MT5..." : "Buscar por nome, email ou telefone..."}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-sm"
+                  className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all shadow-xs"
                 />
               </div>
 
               {activeTab === 'licenses' && (
-                <div className="flex bg-slate-100 p-1 rounded-2xl w-fit gap-1 border border-slate-200 shadow-sm">
+                <div className="flex bg-slate-100 p-1 rounded-2xl w-fit gap-1 border border-slate-200 shadow-xs">
                   {(['AFK TRADER', 'SNOW BALL', 'BOLETA PRO', 'FX SQUAD'] as const).map((tab) => (
                     <button
                       key={tab}
@@ -1131,7 +1131,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
             </div>
           )}
 
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-xs overflow-hidden">
         {errorMsg && (
           <div className="p-4 bg-red-50 text-red-600 border-b border-red-100 text-sm">
             Erro: {errorMsg}
@@ -1182,7 +1182,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             <select
                                 value={editLicenseTitle}
                                 onChange={(e) => setEditLicenseTitle(e.target.value)}
-                                className="bg-white border border-slate-300 rounded px-2 py-1 text-[10px] font-bold uppercase focus:ring-1 focus:ring-green-500 outline-none"
+                                className="bg-white border border-slate-300 rounded-sm px-2 py-1 text-[10px] font-bold uppercase focus:ring-1 focus:ring-green-500 outline-hidden"
                             >
                                 {titles.map(t => (
                                     <option key={t.id} value={t.name}>{t.name}</option>
@@ -1190,7 +1190,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                 {titles.length === 0 && <option value="MT5">MT5</option>}
                             </select>
                         ) : (
-                            <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded uppercase tracking-wider">
+                            <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-1 rounded-sm uppercase tracking-wider">
                                 {lic.license_title || 'MT5'}
                             </span>
                         )}
@@ -1201,7 +1201,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                 type="text"
                                 value={editLicenseValue}
                                 onChange={(e) => setEditLicenseValue(e.target.value)}
-                                className="bg-white border border-slate-300 rounded px-2 py-1 text-xs font-mono focus:ring-1 focus:ring-green-500 outline-none"
+                                className="bg-white border border-slate-300 rounded-sm px-2 py-1 text-xs font-mono focus:ring-1 focus:ring-green-500 outline-hidden"
                                 autoFocus
                             />
                         ) : (
@@ -1223,7 +1223,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     <td className="px-6 py-4">
                         <input 
                             type="text"
-                            className="bg-transparent border-b border-transparent hover:border-slate-200 focus:border-blue-400 text-xs text-slate-600 focus:ring-0 w-full outline-none"
+                            className="bg-transparent border-b border-transparent hover:border-slate-200 focus:border-blue-400 text-xs text-slate-600 focus:ring-0 w-full outline-hidden"
                             placeholder="Adicionar nota..."
                             defaultValue={lic.notes || ''}
                             onBlur={(e) => handleUpdateLicenseNotes(lic.id, e.target.value)}
@@ -1327,7 +1327,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                              <div className="flex justify-end gap-2">
                                                 <button 
                                                     onClick={() => handlePartnerRequestAction(req, 'approved')}
-                                                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-500 text-xs font-bold shadow-sm transition-colors"
+                                                    className="px-3 py-1.5 bg-green-600 text-white rounded-lg hover:bg-green-500 text-xs font-bold shadow-xs transition-colors"
                                                 >
                                                     Aprovar
                                                 </button>
@@ -1356,7 +1356,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                           type="checkbox" 
                           onChange={() => toggleSelectAll(sortedPartners.map(p => p.id))}
                           checked={selectedIds.length > 0 && selectedIds.length === sortedPartners.length}
-                          className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                          className="rounded-sm border-slate-300 text-green-600 focus:ring-green-500"
                         />
                     </th>
                     <th
@@ -1435,7 +1435,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                               type="checkbox" 
                               checked={selectedIds.includes(partner.id)}
                               onChange={() => toggleSelect(partner.id)}
-                              className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                              className="rounded-sm border-slate-300 text-green-600 focus:ring-green-500"
                             />
                         </td>
                         <td className="px-6 py-4">
@@ -1457,7 +1457,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             <select
                             value={partner.role}
                             onChange={(e) => handleUpdateUserRole(partner.id, e.target.value)}
-                            className="px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-green-500 outline-none"
+                            className="px-2 py-1 border border-slate-300 rounded-sm text-xs focus:ring-2 focus:ring-green-500 outline-hidden"
                             autoFocus
                             onBlur={() => setEditingUserRole(null)}
                             >
@@ -1485,7 +1485,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                         <td className="px-6 py-4 text-right">
                         <button
                             onClick={() => setEditingUserRole(partner.id)}
-                            className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors"
+                            className="text-slate-400 hover:text-blue-600 p-1 rounded-sm transition-colors"
                             title="Alterar Função"
                         >
                             <Edit2 size={16} />
@@ -1507,7 +1507,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                       type="checkbox" 
                       onChange={() => toggleSelectAll(sortedUsers.map(u => u.id))}
                       checked={selectedIds.length > 0 && selectedIds.length === sortedUsers.length}
-                      className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                      className="rounded-sm border-slate-300 text-green-600 focus:ring-green-500"
                     />
                   </th>
                   <th
@@ -1586,7 +1586,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                           type="checkbox" 
                           checked={selectedIds.includes(user.id)}
                           onChange={() => toggleSelect(user.id)}
-                          className="rounded border-slate-300 text-green-600 focus:ring-green-500"
+                          className="rounded-sm border-slate-300 text-green-600 focus:ring-green-500"
                         />
                     </td>
                     <td className="px-6 py-4">
@@ -1613,7 +1613,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                         <select
                           value={user.role}
                           onChange={(e) => handleUpdateUserRole(user.id, e.target.value)}
-                          className="px-2 py-1 border border-slate-300 rounded text-xs focus:ring-2 focus:ring-green-500 outline-none"
+                          className="px-2 py-1 border border-slate-300 rounded-sm text-xs focus:ring-2 focus:ring-green-500 outline-hidden"
                           autoFocus
                           onBlur={() => setEditingUserRole(null)}
                         >
@@ -1641,7 +1641,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     <td className="px-6 py-4 text-right">
                        <button
                           onClick={() => setEditingUserRole(user.id)}
-                          className="text-slate-400 hover:text-blue-600 p-1 rounded transition-colors"
+                          className="text-slate-400 hover:text-blue-600 p-1 rounded-sm transition-colors"
                           title="Alterar Função"
                        >
                          <Edit2 size={16} />
@@ -1693,7 +1693,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                       <tr key={prospect.id} className="hover:bg-slate-50 transition-colors group">
                           <td className="px-6 py-4 align-top">
                               {editingProspect === prospect.id ? (
-                                  <input autoFocus className="w-full border rounded px-2 py-1 outline-none font-bold" defaultValue={prospect.full_name} onChange={(e) => handleUpdateField(prospect.id, 'full_name', e.target.value)} />
+                                  <input autoFocus className="w-full border rounded-sm px-2 py-1 outline-hidden font-bold" defaultValue={prospect.full_name} onChange={(e) => handleUpdateField(prospect.id, 'full_name', e.target.value)} />
                               ) : ( 
                                 <button 
                                   onClick={() => setViewingProspect(prospect)}
@@ -1709,13 +1709,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                   <div className="flex items-center gap-2 text-slate-600">
                                      <Mail size={14} />
                                      {editingProspect === prospect.id ? (
-                                         <input className="w-full border rounded px-2 py-0.5 text-xs" defaultValue={prospect.email} onChange={(e) => handleUpdateField(prospect.id, 'email', e.target.value)} />
+                                         <input className="w-full border rounded-sm px-2 py-0.5 text-xs" defaultValue={prospect.email} onChange={(e) => handleUpdateField(prospect.id, 'email', e.target.value)} />
                                      ) : ( <a href={`mailto:${prospect.email}`} className="truncate hover:text-green-600">{prospect.email || 'Sem email'}</a> )}
                                   </div>
                                   <div className="flex items-center gap-2 text-slate-600">
                                      <Phone size={14} />
                                      {editingProspect === prospect.id ? (
-                                         <input className="w-full border rounded px-2 py-0.5 text-xs" defaultValue={prospect.phone} onChange={(e) => handleUpdateField(prospect.id, 'phone', e.target.value)} />
+                                         <input className="w-full border rounded-sm px-2 py-0.5 text-xs" defaultValue={prospect.phone} onChange={(e) => handleUpdateField(prospect.id, 'phone', e.target.value)} />
                                      ) : ( <a href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} target="_blank" className="hover:text-green-600">{prospect.phone || 'Sem telefone'}</a> )}
                                   </div>
                               </div>
@@ -1729,7 +1729,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                 <select 
                                    value={prospect.status}
                                    onChange={(e) => handleProspectStatus(prospect.id, e.target.value as Prospect['status'])}
-                                   className="w-full px-2 py-1.5 rounded text-xs font-bold border outline-none font-mono tracking-tighter"
+                                   className="w-full px-2 py-1.5 rounded-sm text-xs font-bold border outline-hidden font-mono tracking-tighter"
                                 >
                                     <option value="new">NOVO</option>
                                     <option value="contacted">CONTATADO</option>
@@ -1740,7 +1740,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                           </td>
                           <td className="px-6 py-4 align-top">
                               {editingProspect === prospect.id ? (
-                                  <textarea className="w-full border rounded px-2 py-1 text-xs" defaultValue={prospect.notes || ''} onChange={(e) => handleUpdateField(prospect.id, 'notes', e.target.value)} />
+                                  <textarea className="w-full border rounded-sm px-2 py-1 text-xs" defaultValue={prospect.notes || ''} onChange={(e) => handleUpdateField(prospect.id, 'notes', e.target.value)} />
                               ) : ( <p className="text-xs whitespace-pre-wrap">{prospect.notes || '-'}</p> )}
                           </td>
                           <td className="px-6 py-4 align-top text-right">
@@ -1761,7 +1761,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         ) : activeTab === 'content' ? (
           <div className="space-y-12 p-2">
             
-            <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-sm overflow-hidden relative group">
+            <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-xs overflow-hidden relative group">
                 <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
                     <Database size={80} className="text-slate-900" />
                 </div>
@@ -1853,7 +1853,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     </button>
                 </div>
 
-                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-xs">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                             <tr>
@@ -1875,13 +1875,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                         <div className="text-xs text-slate-500 line-clamp-1">{article.excerpt}</div>
                                     </td>
                                     <td className="px-6 py-4">
-                                        <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded text-[10px] font-bold uppercase tracking-wider">{article.category || 'Geral'}</span>
+                                        <span className="px-2 py-1 bg-blue-50 text-blue-600 rounded-sm text-[10px] font-bold uppercase tracking-wider">{article.category || 'Geral'}</span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex -space-x-2">
-                                            {article.image_url && <img src={article.image_url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />}
+                                            {article.image_url && <img src={article.image_url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-xs" />}
                                             {article.gallery_urls?.slice(0, 3).map((url, i) => (
-                                                <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />
+                                                <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-xs" />
                                             ))}
                                         </div>
                                     </td>
@@ -1935,7 +1935,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     </div>
                 </div>
 
-                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-xs">
                     <table className="w-full text-left text-sm">
                         <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                             <tr>
@@ -2014,7 +2014,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                     </span>
                 </div>
 
-                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-sm">
+                <div className="overflow-x-auto bg-white rounded-[32px] border border-slate-100 shadow-xs">
                     <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
                         <tr>
@@ -2034,7 +2034,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             </td>
                             <td className="px-6 py-4">
                                 {robot.avatar_url ? (
-                                    <div className="w-10 h-10 rounded-xl border border-slate-100 overflow-hidden shadow-sm">
+                                    <div className="w-10 h-10 rounded-xl border border-slate-100 overflow-hidden shadow-xs">
                                         <img src={robot.avatar_url} className="w-full h-full object-cover" />
                                     </div>
                                 ) : (
@@ -2046,10 +2046,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             <td className="px-6 py-4">
                                 <div className="flex -space-x-2">
                                     {robot.images?.slice(0, 3).map((url, i) => (
-                                        <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-sm" />
+                                        <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-white object-cover shadow-xs" />
                                     ))}
                                     {(robot.images?.length || 0) > 3 && (
-                                        <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-900 text-white text-[8px] font-black flex items-center justify-center shadow-sm">
+                                        <div className="w-8 h-8 rounded-full border-2 border-white bg-slate-900 text-white text-[8px] font-black flex items-center justify-center shadow-xs">
                                             +{robot.images!.length - 3}
                                         </div>
                                     )}
@@ -2063,7 +2063,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                 </div>
                             </td>
                             <td className="px-6 py-4 text-right">
-                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                <span className={`px-2 py-0.5 rounded-sm text-[10px] font-bold uppercase tracking-wider ${
                                     robot.status === 'Operacional' ? 'bg-green-50 text-green-600' : 'bg-orange-50 text-orange-600'
                                 }`}>
                                     {robot.status}
@@ -2100,7 +2100,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {legacyItems.map((item, idx) => (
-                                <div key={idx} className="bg-white p-4 rounded-2xl border border-orange-100 shadow-sm flex items-center justify-between group hover:border-orange-300 transition-all">
+                                <div key={idx} className="bg-white p-4 rounded-2xl border border-orange-100 shadow-xs flex items-center justify-between group hover:border-orange-300 transition-all">
                                     <div className="overflow-hidden">
                                         <div className="text-[10px] font-black uppercase text-orange-600 mb-1">{item.type}</div>
                                         <div className="text-sm font-bold text-slate-800 truncate mb-1">{item.title}</div>
@@ -2160,8 +2160,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                       <button onClick={() => setIsNewsletterOpen(false)} className="p-4 hover:bg-slate-200 rounded-2xl transition-all"><X size={28} className="text-slate-400" /></button>
                   </div>
                   <div className="p-12 space-y-8 overflow-y-auto custom-scrollbar">
-                      <div className="space-y-2"><label className="text-[12px] font-black uppercase text-slate-400">Assunto</label><input type="text" value={newsletterSubject} onChange={e => setNewsletterSubject(e.target.value)} className="w-full px-8 py-6 bg-slate-50 border rounded-[28px] outline-none font-bold" /></div>
-                      <div className="space-y-2"><label className="text-[12px] font-black uppercase text-slate-400">Mensagem</label><textarea value={newsletterContent} onChange={e => setNewsletterContent(e.target.value)} rows={6} className="w-full px-8 py-8 bg-slate-50 border rounded-[32px] outline-none font-bold resize-none" /></div>
+                      <div className="space-y-2"><label className="text-[12px] font-black uppercase text-slate-400">Assunto</label><input type="text" value={newsletterSubject} onChange={e => setNewsletterSubject(e.target.value)} className="w-full px-8 py-6 bg-slate-50 border rounded-[28px] outline-hidden font-bold" /></div>
+                      <div className="space-y-2"><label className="text-[12px] font-black uppercase text-slate-400">Mensagem</label><textarea value={newsletterContent} onChange={e => setNewsletterContent(e.target.value)} rows={6} className="w-full px-8 py-8 bg-slate-50 border rounded-[32px] outline-hidden font-bold resize-none" /></div>
                   </div>
                   <div className="px-12 py-10 bg-slate-50/50 border-t flex justify-end gap-5">
                       <button onClick={() => setIsNewsletterOpen(false)} className="px-8 py-4 text-slate-500 font-black">Cancelar</button>
@@ -2194,9 +2194,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                   <form onSubmit={handleSaveArticle} className="flex-1 overflow-y-auto custom-scrollbar p-10 space-y-6">
                       <div className="grid grid-cols-2 gap-6">
                           <div className="space-y-2"><label className="text-[10px] font-black uppercase text-slate-400">Título</label>
-                          <input type="text" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-none font-bold" /></div>
+                          <input type="text" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-hidden font-bold" /></div>
                           <div className="space-y-2"><label className="text-[10px] font-black uppercase text-slate-400">Categoria</label>
-                          <input type="text" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-none font-bold" /></div>
+                          <input type="text" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-hidden font-bold" /></div>
                       </div>
 
                       <div className="space-y-2">
@@ -2224,7 +2224,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                            {articleForm.gallery_urls.length > 0 && (
                                <div className="grid grid-cols-5 gap-2 mt-4">
                                   {articleForm.gallery_urls.map((url, i) => (
-                                      <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-white shadow-sm">
+                                      <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border-2 border-white shadow-xs">
                                           <img src={url} className="w-full h-full object-cover" />
                                           <button type="button" onClick={() => setArticleForm(prev => ({...prev, gallery_urls: prev.gallery_urls.filter((_, idx) => idx !== i)}))} className="absolute top-0.5 right-0.5 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><X size={10} /></button>
                                           <button type="button" onClick={() => setArticleForm({...articleForm, image_url: url})} className={`absolute bottom-0 left-0 right-0 py-0.5 text-[8px] font-black text-center ${articleForm.image_url === url ? 'bg-green-600 text-white' : 'bg-slate-900/40 text-white opacity-0 group-hover:opacity-100 italic'}`}>CAPA</button>
@@ -2235,10 +2235,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                       </div>
 
                       <div className="space-y-2"><label className="text-[10px] font-black uppercase text-slate-400">Resumo</label>
-                      <textarea rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-none font-bold resize-none" /></div>
+                      <textarea rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-2xl outline-hidden font-bold resize-none" /></div>
 
                       <div className="space-y-2"><label className="text-[10px] font-black uppercase text-slate-400">Conteúdo</label>
-                      <textarea rows={6} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-[32px] outline-none font-semibold resize-none" /></div>
+                      <textarea rows={6} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full px-5 py-4 bg-slate-50 border rounded-[32px] outline-hidden font-semibold resize-none" /></div>
                       
                       <div className="sticky bottom-0 bg-white pt-4">
                           <button type="submit" disabled={isUploading} className="w-full bg-slate-900 text-white font-black py-5 rounded-[28px] hover:bg-green-600 shadow-xl transition-all disabled:opacity-50">

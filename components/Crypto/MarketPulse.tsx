@@ -15,7 +15,7 @@ import { fmtCompact, fmtPct, pctColor } from './format';
 // se uma falhar, os outros cartões continuam de pé.
 
 const Card: React.FC<{ label: string; children: React.ReactNode; hint?: string }> = ({ label, children, hint }) => (
-  <div className="rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-sm min-w-0">
+  <div className="rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-xs min-w-0">
     <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400 truncate">{label}</p>
     <div className="mt-1">{children}</div>
     {hint && <p className="text-[10px] text-slate-400 mt-0.5 truncate">{hint}</p>}

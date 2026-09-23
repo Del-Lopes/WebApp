@@ -30,7 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       <div 
-        className={`fixed inset-0 bg-black/50 backdrop-blur-sm z-40 transition-opacity md:hidden ${
+        className={`fixed inset-0 bg-black/50 backdrop-blur-xs z-40 transition-opacity md:hidden ${
           isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setIsOpen(false)}

@@ -78,7 +78,7 @@ export const CoursePlayer: React.FC<CoursePlayerProps> = ({ courseId, onBack }) 
   if (modules.length === 0) return <div className="p-8 text-center">Curso sem conteúdo disponível.</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] lg:flex-row bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+    <div className="flex flex-col h-[calc(100vh-100px)] lg:flex-row bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
         {/* Main Content (Video) */}
         <div className="flex-1 flex flex-col bg-slate-900 relative">
             <div className="absolute top-4 left-4 z-10 lg:hidden">

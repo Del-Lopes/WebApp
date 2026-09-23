@@ -69,7 +69,7 @@ export const NarrativesView: React.FC = () => {
                 key={p}
                 onClick={() => setPeriod(p)}
                 className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                  period === p ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  period === p ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
                 {p}
@@ -112,7 +112,7 @@ export const NarrativesView: React.FC = () => {
       ) : usingHistory ? (
         <div className="space-y-2">
           {history.map((n) => (
-            <div key={n.category_id} className="flex items-center gap-3 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-sm">
+            <div key={n.category_id} className="flex items-center gap-3 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-xs">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${n.sum_change >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                 {n.sum_change >= 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
               </div>
@@ -132,7 +132,7 @@ export const NarrativesView: React.FC = () => {
       ) : (
         <div className="space-y-2">
           {live.map((n) => (
-            <div key={n.id} className="flex items-center gap-3 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-sm">
+            <div key={n.id} className="flex items-center gap-3 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-xs">
               <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${n.change24h >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
                 {n.change24h >= 0 ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
               </div>

@@ -79,7 +79,7 @@ export function ConversationDetail({ conversation, onClose, onChanged }: Convers
     new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="flex items-start justify-between p-5 border-b border-slate-200">
@@ -122,7 +122,7 @@ export function ConversationDetail({ conversation, onClose, onChanged }: Convers
             </div>
           ) : error ? (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
-              <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           ) : messages.length === 0 ? (
@@ -132,7 +132,7 @@ export function ConversationDetail({ conversation, onClose, onChanged }: Convers
               {messages.map((msg) => (
                 <div key={msg.id} className={`flex gap-3 ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   {msg.role === 'assistant' && (
-                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                       <Bot size={16} className="text-green-600" />
                     </div>
                   )}
@@ -159,7 +159,7 @@ export function ConversationDetail({ conversation, onClose, onChanged }: Convers
                     </div>
                   </div>
                   {msg.role === 'user' && (
-                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center shrink-0">
                       <UserIcon size={16} className="text-slate-600" />
                     </div>
                   )}

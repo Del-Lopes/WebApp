@@ -56,7 +56,7 @@ export const DefiView: React.FC = () => {
       ) : (
         <>
           {total && (
-            <div className="rounded-xl bg-white ring-1 ring-slate-100 p-4 shadow-sm flex items-center justify-between gap-4 flex-wrap">
+            <div className="rounded-xl bg-white ring-1 ring-slate-100 p-4 shadow-xs flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">TVL total em DeFi</p>
                 <p className="text-2xl font-bold text-slate-800 tabular-nums">{fmtCompact(total.total)}</p>
@@ -76,7 +76,7 @@ export const DefiView: React.FC = () => {
 
           <div className="space-y-1.5">
             {chains.map((c, i) => (
-              <div key={c.name} className="rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-sm">
+              <div key={c.name} className="rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-xs">
                 <div className="flex items-center gap-3">
                   <span className="text-xs font-bold text-slate-300 w-5 text-center">{i + 1}</span>
                   <div className="flex-1 min-w-0">

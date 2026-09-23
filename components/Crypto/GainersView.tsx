@@ -56,7 +56,7 @@ export const GainersView: React.FC = () => {
       ) : (
         <div className="grid gap-2 sm:grid-cols-2">
           {list.map((c) => (
-            <div key={c.id} className="flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-sm">
+            <div key={c.id} className="flex items-center gap-2 rounded-xl bg-white ring-1 ring-slate-100 p-3 shadow-xs">
               {c.image && <img src={c.image} alt={c.name} className="w-8 h-8 rounded-full" />}
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-slate-800 text-sm truncate">{c.name} <span className="text-slate-400 font-medium">{c.symbol}</span></p>

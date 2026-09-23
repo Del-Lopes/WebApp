@@ -86,7 +86,7 @@ export const TreasuryMt5ConnectModal: React.FC<TreasuryMt5ConnectModalProps> = (
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div>
@@ -129,7 +129,7 @@ export const TreasuryMt5ConnectModal: React.FC<TreasuryMt5ConnectModalProps> = (
                   inputMode="numeric"
                   value={accountLogin}
                   onChange={(e) => setAccountLogin(e.target.value.replace(/\D/g, ''))}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
                   placeholder="12345678"
                 />
                 {accountError && <p className="text-xs text-red-600 mt-1">{accountError}</p>}
@@ -145,7 +145,7 @@ export const TreasuryMt5ConnectModal: React.FC<TreasuryMt5ConnectModalProps> = (
                   value={broker}
                   onChange={(e) => setBroker(e.target.value)}
                   maxLength={60}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
                   placeholder="Ex: XP Investimentos"
                 />
               </div>
@@ -218,10 +218,10 @@ export const TreasuryMt5ConnectModal: React.FC<TreasuryMt5ConnectModalProps> = (
 
                 {howToOpen && (
                   <ol className="mt-3 list-decimal pl-5 text-xs text-slate-600 space-y-1.5 leading-relaxed">
-                    <li>Copie o arquivo para <code className="bg-slate-100 px-1 rounded">MQL5/Experts</code> do MT5 (Arquivo → Abrir Pasta de Dados → MQL5 → Experts).</li>
+                    <li>Copie o arquivo para <code className="bg-slate-100 px-1 rounded-sm">MQL5/Experts</code> do MT5 (Arquivo → Abrir Pasta de Dados → MQL5 → Experts).</li>
                     <li>No Navegador do MT5 (Ctrl+N), clique direito em "Expert Advisors" → Atualizar.</li>
-                    <li>Arraste <code className="bg-slate-100 px-1 rounded">TradexperienceMT5</code> para o gráfico de qualquer ativo.</li>
-                    <li>Na aba "Entradas", marque <code className="bg-slate-100 px-1 rounded">EnableTreasury</code> e cole a chave em <code className="bg-slate-100 px-1 rounded">TreasuryApiKey</code>.</li>
+                    <li>Arraste <code className="bg-slate-100 px-1 rounded-sm">TradexperienceMT5</code> para o gráfico de qualquer ativo.</li>
+                    <li>Na aba "Entradas", marque <code className="bg-slate-100 px-1 rounded-sm">EnableTreasury</code> e cole a chave em <code className="bg-slate-100 px-1 rounded-sm">TreasuryApiKey</code>.</li>
                     <li>Confirme com OK.</li>
                   </ol>
                 )}

@@ -66,10 +66,10 @@ export const SetupSignalForm: React.FC<Props> = ({ onCreated }) => {
     );
   }
 
-  const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none text-sm';
+  const inputCls = 'w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden text-sm';
 
   return (
-    <form onSubmit={submit} className="rounded-2xl bg-white p-5 ring-1 ring-slate-100 shadow-sm mb-4 space-y-3">
+    <form onSubmit={submit} className="rounded-2xl bg-white p-5 ring-1 ring-slate-100 shadow-xs mb-4 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="text-xs font-semibold text-slate-500">Direção</label>

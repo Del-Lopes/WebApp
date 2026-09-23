@@ -10,13 +10,18 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.93.1",
+    "@tailwindcss/vite": "^4.3.3",
     "@vercel/analytics": "^2.0.1",
+    "clsx": "^2.1.1",
     "ldrs": "^1.1.9",
     "lucide-react": "^0.562.0",
+    "prop-types": "^15.8.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-helmet-async": "^2.0.5",
-    "react-quick-pinch-zoom": "^5.1.1"
+    "react-quick-pinch-zoom": "^5.1.1",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

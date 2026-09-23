@@ -77,7 +77,7 @@ export const Mt5ManageModal: React.FC<Mt5ManageModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <h2 className="text-lg font-bold text-slate-900">Gerenciar conexão MT5</h2>
@@ -185,12 +185,12 @@ export const Mt5ManageModal: React.FC<Mt5ManageModalProps> = ({
                   Nova chave gerada. Copie agora — não será exibida novamente.
                 </div>
                 <div className="flex items-center gap-2">
-                  <code className="flex-1 bg-white border border-green-200 rounded px-2 py-1.5 text-xs font-mono text-slate-700 break-all">
+                  <code className="flex-1 bg-white border border-green-200 rounded-sm px-2 py-1.5 text-xs font-mono text-slate-700 break-all">
                     {newKey}
                   </code>
                   <button
                     onClick={copyKey}
-                    className="shrink-0 px-3 py-1.5 bg-white border border-slate-300 hover:border-green-500 hover:text-green-700 text-slate-700 rounded text-xs font-semibold flex items-center gap-1"
+                    className="shrink-0 px-3 py-1.5 bg-white border border-slate-300 hover:border-green-500 hover:text-green-700 text-slate-700 rounded-sm text-xs font-semibold flex items-center gap-1"
                   >
                     {copied ? <><Check size={12} /> Copiado</> : <><Copy size={12} /> Copiar</>}
                   </button>

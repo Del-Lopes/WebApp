@@ -145,7 +145,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-12">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex justify-between items-center">
+      <div className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <button 
             onClick={onBack}
@@ -180,7 +180,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
             <input
               type="text"
               placeholder="Título"
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-hidden"
               value={newItem.title || ''}
               onChange={e => setNewItem({...newItem, title: e.target.value})}
               required
@@ -188,7 +188,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
             <input
               type="text"
               placeholder="URL de Download"
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-hidden"
               value={newItem.download_url || ''}
               onChange={e => setNewItem({...newItem, download_url: e.target.value})}
               required
@@ -196,19 +196,19 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
             <input
               type="text"
               placeholder="Versão (ex: 1.0.0)"
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-hidden"
               value={newItem.version || ''}
               onChange={e => setNewItem({...newItem, version: e.target.value})}
             />
             <input
               type="text"
               placeholder="Tamanho (ex: 50MB)"
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-hidden"
               value={newItem.size || ''}
               onChange={e => setNewItem({...newItem, size: e.target.value})}
             />
             <select
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-hidden"
               value={newItem.platform}
               onChange={e => setNewItem({...newItem, platform: e.target.value as any})}
             >
@@ -218,7 +218,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
               <option value="PDF">PDF</option>
             </select>
              <select
-              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+              className="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-hidden"
               value={newItem.icon_type}
               onChange={e => setNewItem({...newItem, icon_type: e.target.value})}
             >
@@ -232,7 +232,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
             </select>
             <textarea
               placeholder="Descrição"
-              className="col-span-1 md:col-span-2 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none h-24"
+              className="col-span-1 md:col-span-2 px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-hidden h-24"
               value={newItem.description || ''}
               onChange={e => setNewItem({...newItem, description: e.target.value})}
               required
@@ -255,7 +255,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {items.map((item) => (
-            <div key={item.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-all group relative">
+            <div key={item.id} className="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs hover:shadow-md transition-all group relative">
               {isAdmin && (
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   {editingId === item.id ? (
@@ -299,7 +299,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
                        {getIcon(editValues.icon_type || item.icon_type)}
                      </div>
                      <select
-                        className="text-[10px] border rounded p-1 w-28"
+                        className="text-[10px] border rounded-sm p-1 w-28"
                         value={editValues.icon_type}
                         onChange={e => setEditValues({...editValues, icon_type: e.target.value})}
                       >
@@ -321,7 +321,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
 
                 {editingId === item.id ? (
                    <select
-                      className="text-xs border rounded p-1"
+                      className="text-xs border rounded-sm p-1"
                       value={editValues.platform}
                       onChange={e => setEditValues({...editValues, platform: e.target.value as any})}
                     >
@@ -339,7 +339,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
               
               {editingId === item.id ? (
                 <input 
-                  className="w-full text-lg font-bold text-slate-900 mb-2 border-b border-blue-200 focus:outline-none"
+                  className="w-full text-lg font-bold text-slate-900 mb-2 border-b border-blue-200 focus:outline-hidden"
                   value={editValues.title}
                   onChange={e => setEditValues({...editValues, title: e.target.value})}
                 />
@@ -351,7 +351,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
 
               {editingId === item.id ? (
                 <textarea 
-                  className="w-full text-sm text-slate-500 mb-6 border rounded p-2 min-h-[60px]"
+                  className="w-full text-sm text-slate-500 mb-6 border rounded-sm p-2 min-h-[60px]"
                   value={editValues.description}
                   onChange={e => setEditValues({...editValues, description: e.target.value})}
                 />
@@ -366,13 +366,13 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
                    {editingId === item.id ? (
                      <div className="flex gap-1">
                         <input 
-                          className="w-16 border rounded px-1" 
+                          className="w-16 border rounded-sm px-1" 
                           value={editValues.version || ''} 
                           placeholder="v1.0"
                           onChange={e => setEditValues({...editValues, version: e.target.value})}
                         />
                         <input 
-                          className="w-16 border rounded px-1" 
+                          className="w-16 border rounded-sm px-1" 
                           value={editValues.size || ''} 
                           placeholder="Size"
                           onChange={e => setEditValues({...editValues, size: e.target.value})}
@@ -388,7 +388,7 @@ export const Downloads: React.FC<DownloadsProps> = ({ onBack }) => {
                  
                  {editingId === item.id ? (
                     <input 
-                      className="text-xs border rounded px-1 w-24"
+                      className="text-xs border rounded-sm px-1 w-24"
                       value={editValues.download_url}
                       placeholder="URL..."
                       onChange={e => setEditValues({...editValues, download_url: e.target.value})}

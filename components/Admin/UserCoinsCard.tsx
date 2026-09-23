@@ -46,7 +46,7 @@ export const UserCoinsCard: React.FC<Props> = ({ userId }) => {
   const typed = Number(amount);
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
       <h3 className="font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
         <Coins size={18} className="text-amber-500" /> Coins
       </h3>
@@ -84,7 +84,7 @@ export const UserCoinsCard: React.FC<Props> = ({ userId }) => {
           onChange={(e) => setAmount(e.target.value)}
           inputMode="numeric"
           placeholder="Valor"
-          className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none text-sm"
+          className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden text-sm"
         />
         <button
           onClick={() => applyDelta(Math.abs(typed))}

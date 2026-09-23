@@ -13,11 +13,11 @@ export const GamificationBar: React.FC<Props> = ({ stats }) => {
 
   return (
     <div className="flex items-center gap-2.5">
-      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-br from-yellow-50 to-amber-100 text-amber-700 font-extrabold text-sm border border-amber-200/60 shadow-sm">
+      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-br from-yellow-50 to-amber-100 text-amber-700 font-extrabold text-sm border border-amber-200/60 shadow-xs">
         <Coins size={16} className="text-amber-500" />
         {xp.toLocaleString('pt-BR')}
       </div>
-      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-sm border shadow-sm ${
+      <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-extrabold text-sm border shadow-xs ${
         streak > 0
           ? 'bg-gradient-to-br from-orange-50 to-red-100 text-orange-600 border-orange-200/60'
           : 'bg-slate-50 text-slate-400 border-slate-200/60'

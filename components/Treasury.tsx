@@ -199,7 +199,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {/* Total Capital Card - 25% width */}
-        <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm h-full flex flex-col justify-center">
+        <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs h-full flex flex-col justify-center">
           <div className="flex flex-col items-center text-center gap-4 mb-4">
             <div className="p-4 bg-green-100 rounded-full">
               <DollarSign className="text-green-600" size={32} />
@@ -214,7 +214,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
         </div>
 
         {/* Pie Chart Card - Row 2 */}
-        <div className="md:col-span-3 bg-white p-8 rounded-2xl border border-slate-200 shadow-sm flex flex-col items-center">
+        <div className="md:col-span-3 bg-white p-8 rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center">
            <h4 className="text-xl font-bold text-slate-800 mb-8 self-start w-full border-b border-slate-100 pb-4">Distribuição do Capital</h4>
            
            <div className="flex flex-col lg:flex-row items-center gap-12 w-full">
@@ -294,9 +294,9 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                <h4 className="text-xl font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Distribuição do Capital</h4>
                <div className="space-y-2">
                    {accounts.map((acc, idx) => (
-                       <div key={acc.id} className="flex items-center justify-between text-base p-2 hover:bg-slate-50 rounded-xl transition-all hover:shadow-sm border border-transparent hover:border-slate-100">
+                       <div key={acc.id} className="flex items-center justify-between text-base p-2 hover:bg-slate-50 rounded-xl transition-all hover:shadow-xs border border-transparent hover:border-slate-100">
                            <div className="flex items-center gap-4">
-                               <div className="w-4 h-4 rounded-full flex-shrink-0 shadow-sm" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                               <div className="w-4 h-4 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
                                <div className="flex flex-col">
                                    <span className="font-bold text-slate-700 truncate max-w-[200px]" title={acc.name}>{acc.name}</span>
                                    <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">{acc.location || 'N/A'}</span>
@@ -318,7 +318,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
           <h2 className="text-lg font-semibold text-slate-900">Contas Registradas</h2>
           {isAdmin && (
@@ -341,7 +341,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                   type="text"
                   value={newAccount.name}
                   onChange={e => setNewAccount({ ...newAccount, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-sm"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900 shadow-xs"
                   placeholder="Ex: Binance Main"
                   required
                 />
@@ -354,7 +354,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                       type="number"
                       value={newAccount.balance}
                       onChange={e => setNewAccount({ ...newAccount, balance: e.target.value })}
-                      className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-sm"
+                      className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900 shadow-xs"
                       placeholder="0.00"
                       step="0.01"
                       required
@@ -367,7 +367,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                   type="text"
                   value={newAccount.location}
                   onChange={e => setNewAccount({ ...newAccount, location: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900 shadow-sm"
+                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900 shadow-xs"
                   placeholder="Ex: Carteira Fria / Binance"
                 />
               </div>
@@ -440,7 +440,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                               }));
                             }
                           }}
-                          className={`flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all border ${
+                          className={`shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all border ${
                             (editingId === account.id ? editValues.trend : account.trend) === 'positive'
                               ? 'bg-green-100 text-green-600 border-green-200'
                               : 'bg-slate-100 text-slate-500 border-slate-200 group-hover:bg-white group-hover:shadow-md'
@@ -459,7 +459,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                                 type="text"
                                 value={editValues.name || ''}
                                 onChange={e => setEditValues({ ...editValues, name: e.target.value })}
-                                className="px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-900 w-full"
+                                className="px-2 py-1 border border-slate-300 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-slate-900 w-full"
                                 autoFocus
                               />
                               <button
@@ -481,7 +481,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                             <div className="flex items-center gap-2">
                               <div className="text-sm font-bold text-slate-900">{account.name}</div>
                               {account.is_cent && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-black bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-900 uppercase tracking-wider">
+                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-black bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-900 uppercase tracking-wider">
                                   <Coins size={10} /> Cent
                                 </span>
                               )}
@@ -496,7 +496,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                           type="text"
                           value={editValues.location || ''}
                           onChange={e => setEditValues({ ...editValues, location: e.target.value })}
-                          className="px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-900 text-sm w-full"
+                          className="px-2 py-1 border border-slate-300 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-sm w-full"
                           placeholder="Local"
                         />
                       ) : (
@@ -511,7 +511,7 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                           type="number"
                           value={editValues.balance}
                           onChange={e => setEditValues({ ...editValues, balance: Number(e.target.value) })}
-                          className="px-2 py-1 border border-slate-300 rounded focus:outline-none focus:ring-2 focus:ring-slate-900 text-right w-32"
+                          className="px-2 py-1 border border-slate-300 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-right w-32"
                           step="0.01"
                         />
                       ) : (
@@ -554,14 +554,14 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                         <div className="flex justify-end gap-2">
                            <button
                             onClick={() => saveEditing(account.id)}
-                            className="text-green-600 hover:text-green-800 transition-colors p-1 bg-green-50 rounded"
+                            className="text-green-600 hover:text-green-800 transition-colors p-1 bg-green-50 rounded-sm"
                             title="Salvar"
                           >
                             <Check size={18} />
                           </button>
                           <button
                             onClick={cancelEditing}
-                            className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-100 rounded"
+                            className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-100 rounded-sm"
                             title="Cancelar"
                           >
                             <X size={18} />
@@ -571,14 +571,14 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                         <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => startEditing(account)}
-                            className="text-blue-400 hover:text-blue-600 transition-colors p-1 hover:bg-blue-50 rounded"
+                            className="text-blue-400 hover:text-blue-600 transition-colors p-1 hover:bg-blue-50 rounded-sm"
                             title="Editar"
                           >
                             <Edit2 size={18} />
                           </button>
                           <button
                             onClick={() => handleDeleteAccount(account.id)}
-                            className="text-red-400 hover:text-red-600 transition-colors p-1 hover:bg-red-50 rounded"
+                            className="text-red-400 hover:text-red-600 transition-colors p-1 hover:bg-red-50 rounded-sm"
                             title="Excluir"
                           >
                             <Trash2 size={18} />

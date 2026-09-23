@@ -240,7 +240,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                 <div className="flex items-center gap-4">
                     <button 
                         onClick={() => setViewingProspect(null)}
-                        className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-sm"
+                        className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-xs"
                     >
                         <ArrowLeft size={20} />
                     </button>
@@ -263,7 +263,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                 <div className="flex gap-3">
                     <button 
                         onClick={() => handleDeleteProspect(viewingProspect.id)}
-                        className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all shadow-sm flex items-center gap-2 text-xs font-bold"
+                        className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all shadow-xs flex items-center gap-2 text-xs font-bold"
                     >
                         <Trash2 size={18} /> Excluir
                     </button>
@@ -273,7 +273,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Info Cards */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-sm space-y-6">
+                    <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-xs space-y-6">
                         <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Informações de Contato</h4>
                         
                         <div className="space-y-4">
@@ -316,7 +316,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
                 {/* Notes/Detailed Area */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-sm h-full flex flex-col">
+                    <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-xs h-full flex flex-col">
                         <div className="flex items-center justify-between mb-8">
                             <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Anotações e Histórico</h4>
                             <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold">
@@ -325,7 +325,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                         </div>
                         
                         <textarea 
-                            className="flex-1 w-full p-8 bg-slate-50 border-2 border-slate-100 rounded-[32px] outline-none font-medium text-slate-700 leading-relaxed focus:bg-white focus:border-indigo-500 transition-all resize-none min-h-[400px]"
+                            className="flex-1 w-full p-8 bg-slate-50 border-2 border-slate-100 rounded-[32px] outline-hidden font-medium text-slate-700 leading-relaxed focus:bg-white focus:border-indigo-500 transition-all resize-none min-h-[400px]"
                             placeholder="Escreva aqui detalhes sobre o atendimento, preferências do cliente ou próximos passos..."
                             defaultValue={viewingProspect.notes}
                             onBlur={(e) => handleUpdateProspectField(viewingProspect.id, 'notes', e.target.value)}
@@ -468,7 +468,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
             {assets.map((asset) => (
               <div key={asset.id} className="group bg-white rounded-[40px] border border-slate-100 p-8 hover:shadow-2xl hover:shadow-slate-200 transition-all duration-500 flex flex-col relative overflow-hidden">
                  <div className="flex items-center justify-between mb-8">
-                    <div className={`p-4 rounded-3xl shadow-sm ${
+                    <div className={`p-4 rounded-3xl shadow-xs ${
                       asset.type === 'PDF' ? 'bg-red-50 text-red-600' :
                       asset.type === 'Slide' ? 'bg-orange-50 text-orange-600' :
                       asset.type === 'Image' ? 'bg-blue-50 text-blue-600' :
@@ -542,7 +542,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
               <input 
                 type="text"
                 placeholder="Buscar por nome, email ou telefone..."
-                className="w-full pl-14 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl outline-none focus:border-green-500 font-medium text-sm transition-all shadow-sm"
+                className="w-full pl-14 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl outline-hidden focus:border-green-500 font-medium text-sm transition-all shadow-xs"
                 value={prospectSearchTerm}
                 onChange={(e) => setProspectSearchTerm(e.target.value)}
               />
@@ -577,7 +577,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                       {editingProspectId === prospect.id ? (
                         <input 
                           autoFocus 
-                          className="w-full border-2 border-green-200 rounded-xl px-4 py-2 outline-none font-bold bg-white shadow-inner" 
+                          className="w-full border-2 border-green-200 rounded-xl px-4 py-2 outline-hidden font-bold bg-white shadow-inner" 
                           defaultValue={prospect.full_name} 
                           onBlur={(e) => {
                             handleUpdateProspectField(prospect.id, 'full_name', e.target.value);
@@ -601,7 +601,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                           </div>
                           {editingProspectId === prospect.id ? (
                             <input 
-                              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-green-500" 
+                              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-hidden focus:border-green-500" 
                               defaultValue={prospect.email} 
                               onBlur={(e) => handleUpdateProspectField(prospect.id, 'email', e.target.value)} 
                             />
@@ -615,7 +615,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                           </div>
                           {editingProspectId === prospect.id ? (
                             <input 
-                              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-none focus:border-green-500" 
+                              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-hidden focus:border-green-500" 
                               defaultValue={prospect.phone} 
                               onBlur={(e) => handleUpdateProspectField(prospect.id, 'phone', e.target.value)} 
                             />
@@ -637,7 +637,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                       <select 
                         value={prospect.status}
                         onChange={(e) => handleUpdateProspectField(prospect.id, 'status', e.target.value)}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all outline-none cursor-pointer appearance-none text-center min-w-[130px] ${
+                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all outline-hidden cursor-pointer appearance-none text-center min-w-[130px] ${
                           prospect.status === 'new' ? 'bg-blue-50 text-blue-700 border-blue-100 hover:border-blue-300' :
                           prospect.status === 'contacted' ? 'bg-orange-50 text-orange-700 border-orange-100 hover:border-orange-300' :
                           prospect.status === 'negotiating' ? 'bg-purple-50 text-purple-700 border-purple-100 hover:border-purple-300' :
@@ -655,7 +655,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                     <td className="px-8 py-6 align-top">
                       {editingProspectId === prospect.id ? (
                         <textarea 
-                          className="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-xs outline-none focus:border-green-500 bg-white min-h-[100px] font-medium leading-relaxed" 
+                          className="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-xs outline-hidden focus:border-green-500 bg-white min-h-[100px] font-medium leading-relaxed" 
                           defaultValue={prospect.notes} 
                           onBlur={(e) => handleUpdateProspectField(prospect.id, 'notes', e.target.value)}
                         />
@@ -669,7 +669,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                       <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
                         <button 
                           onClick={() => setEditingProspectId(editingProspectId === prospect.id ? null : prospect.id)}
-                          className={`p-3 rounded-2xl transition-all shadow-sm ${
+                          className={`p-3 rounded-2xl transition-all shadow-xs ${
                             editingProspectId === prospect.id ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-white text-slate-400 hover:text-blue-600 hover:shadow-lg'
                           }`}
                         >
@@ -677,7 +677,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                         </button>
                         <button 
                           onClick={() => handleDeleteProspect(prospect.id)}
-                          className="p-3 bg-white text-slate-400 hover:text-red-600 rounded-2xl transition-all hover:shadow-lg shadow-sm"
+                          className="p-3 bg-white text-slate-400 hover:text-red-600 rounded-2xl transition-all hover:shadow-lg shadow-xs"
                         >
                           <Trash2 size={18} />
                         </button>
@@ -718,7 +718,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                           <input 
                             type="text" 
                             required 
-                            className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-none font-bold focus:border-green-500 focus:bg-white transition-all text-lg"
+                            className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-hidden font-bold focus:border-green-500 focus:bg-white transition-all text-lg"
                             value={newAsset.title}
                             onChange={e => setNewAsset({...newAsset, title: e.target.value})}
                           />
@@ -727,7 +727,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                         <div className="space-y-3">
                             <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">Tipo de Mídia</label>
                             <select 
-                              className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-none font-black appearance-none focus:border-green-500 focus:bg-white transition-all text-sm uppercase tracking-widest"
+                              className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-hidden font-black appearance-none focus:border-green-500 focus:bg-white transition-all text-sm uppercase tracking-widest"
                               value={newAsset.type}
                               onChange={e => setNewAsset({...newAsset, type: e.target.value as any})}
                             >
@@ -742,7 +742,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                             <input 
                               type="text" 
                               placeholder="Ex: 5 MB"
-                               className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-none font-bold focus:border-green-500 focus:bg-white transition-all text-lg"
+                               className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-hidden font-bold focus:border-green-500 focus:bg-white transition-all text-lg"
                               value={newAsset.size}
                               onChange={e => setNewAsset({...newAsset, size: e.target.value})}
                             />
@@ -756,7 +756,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                                 <input 
                                   type="text" 
                                   placeholder="https://..."
-                                  className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-none font-bold focus:border-green-500 focus:bg-white transition-all"
+                                  className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-hidden font-bold focus:border-green-500 focus:bg-white transition-all"
                                   value={newAsset.image_url}
                                   onChange={e => setNewAsset({...newAsset, image_url: e.target.value})}
                                 />
@@ -766,7 +766,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                                 <textarea 
                                   required 
                                   rows={6}
-                                  className="w-full px-8 py-8 bg-slate-50 border-2 border-slate-100 rounded-[40px] outline-none font-bold resize-none focus:border-green-500 focus:bg-white transition-all leading-relaxed"
+                                  className="w-full px-8 py-8 bg-slate-50 border-2 border-slate-100 rounded-[40px] outline-hidden font-bold resize-none focus:border-green-500 focus:bg-white transition-all leading-relaxed"
                                   placeholder="Escreva seu artigo aqui..."
                                   value={newAsset.content}
                                   onChange={e => setNewAsset({...newAsset, content: e.target.value})}
@@ -780,7 +780,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                                 type="text" 
                                 required 
                                 placeholder="https://..."
-                                className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-none font-bold focus:border-green-500 focus:bg-white transition-all"
+                                className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-hidden font-bold focus:border-green-500 focus:bg-white transition-all"
                                 value={newAsset.url}
                                 onChange={e => setNewAsset({...newAsset, url: e.target.value})}
                               />
@@ -816,14 +816,14 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                 <input
                   type="text"
                   placeholder="Título (ex: Grupo VIP WhatsApp)"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all outline-hidden"
                   value={newLink.title}
                   onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
                 />
                 <input
                   type="text"
                   placeholder="URL Completa (https://...)"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all outline-none"
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all outline-hidden"
                   value={newLink.url}
                   onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
                 />

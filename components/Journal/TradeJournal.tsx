@@ -109,7 +109,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
 
       {error && (
         <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
-          <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+          <AlertTriangle size={16} className="shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
@@ -151,14 +151,14 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por ativo, motivo, análise…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
 
         <select
           value={periodDays}
           onChange={(e) => setPeriodDays(Number(e.target.value))}
-          className="text-sm rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-500"
+          className="text-sm rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-green-500"
         >
           {PERIOD_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -234,7 +234,7 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete }: TradeCardPro
   const isLoss = result < 0;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-sm transition-shadow">
+    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-xs transition-shadow">
       {/* Header (clicável pra expandir) */}
       <button
         onClick={onToggle}

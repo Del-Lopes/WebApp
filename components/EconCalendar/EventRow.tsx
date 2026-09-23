@@ -43,7 +43,7 @@ export const EventRow: React.FC<Props> = ({ event, profile, now, open, onToggle 
   const eventType = profile?.event_type;
 
   return (
-    <div className={`rounded-2xl bg-white ring-1 shadow-sm overflow-hidden ${imminent ? 'ring-amber-300' : 'ring-slate-100'}`}>
+    <div className={`rounded-2xl bg-white ring-1 shadow-xs overflow-hidden ${imminent ? 'ring-amber-300' : 'ring-slate-100'}`}>
       <button onClick={onToggle} className="w-full text-left px-4 py-3 hover:bg-slate-50/60 transition-colors">
         <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
           {/* Hora + moeda + importância */}

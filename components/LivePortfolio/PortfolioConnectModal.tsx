@@ -80,7 +80,7 @@ export const PortfolioConnectModal: React.FC<PortfolioConnectModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
         <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
           <div>
@@ -123,7 +123,7 @@ export const PortfolioConnectModal: React.FC<PortfolioConnectModalProps> = ({
                   inputMode="numeric"
                   value={accountLogin}
                   onChange={(e) => setAccountLogin(e.target.value.replace(/\D/g, ''))}
-                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
                   placeholder="12345678"
                 />
                 {accountError && <p className="text-xs text-red-600 mt-1">{accountError}</p>}
@@ -200,10 +200,10 @@ export const PortfolioConnectModal: React.FC<PortfolioConnectModalProps> = ({
 
                 {howToOpen && (
                   <ol className="mt-3 list-decimal pl-5 text-xs text-slate-600 space-y-1.5 leading-relaxed">
-                    <li>Copie o arquivo para <code className="bg-slate-100 px-1 rounded">MQL5/Experts</code> do MT5 (Arquivo → Abrir Pasta de Dados → MQL5 → Experts).</li>
+                    <li>Copie o arquivo para <code className="bg-slate-100 px-1 rounded-sm">MQL5/Experts</code> do MT5 (Arquivo → Abrir Pasta de Dados → MQL5 → Experts).</li>
                     <li>No Navegador do MT5 (Ctrl+N), clique direito em "Expert Advisors" → Atualizar.</li>
-                    <li>Arraste <code className="bg-slate-100 px-1 rounded">TradexperiencePortfolio</code> para o gráfico de qualquer ativo.</li>
-                    <li>Na aba "Entradas", cole a chave no campo <code className="bg-slate-100 px-1 rounded">ApiKey</code>.</li>
+                    <li>Arraste <code className="bg-slate-100 px-1 rounded-sm">TradexperiencePortfolio</code> para o gráfico de qualquer ativo.</li>
+                    <li>Na aba "Entradas", cole a chave no campo <code className="bg-slate-100 px-1 rounded-sm">ApiKey</code>.</li>
                     <li>Confirme com OK.</li>
                   </ol>
                 )}

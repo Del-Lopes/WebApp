@@ -262,7 +262,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {sortedRobots.map((robot) => (
-            <div key={robot.id} className="group bg-white border border-slate-200 hover:border-green-500/50 rounded-xl p-5 transition-all duration-300 relative overflow-hidden shadow-sm hover:shadow-md cursor-pointer" onClick={() => setSelectedRobot(robot)}>
+            <div key={robot.id} className="group bg-white border border-slate-200 hover:border-green-500/50 rounded-xl p-5 transition-all duration-300 relative overflow-hidden shadow-xs hover:shadow-md cursor-pointer" onClick={() => setSelectedRobot(robot)}>
               {/* Background Icon Decoration */}
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 pointer-events-none">
                 <Activity size={80} />
@@ -270,7 +270,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
               
               <div className="flex justify-between items-start mb-4 relative z-10">
                 {robot.avatar_url ? (
-                   <div className="w-20 h-20 rounded-xl border border-slate-200 overflow-hidden shadow-sm">
+                   <div className="w-20 h-20 rounded-xl border border-slate-200 overflow-hidden shadow-xs">
                      <img src={robot.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                    </div>
                 ) : (
@@ -302,7 +302,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
 
               <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-green-700 transition-colors relative z-10">{robot.name}</h3>
               <div className="text-sm text-slate-500 mb-6 flex items-center gap-2 relative z-10">
-                <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded text-slate-600 border border-slate-200">{robot.version}</span>
+                <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded-sm text-slate-600 border border-slate-200">{robot.version}</span>
                 <span>•</span>
                 <span className="font-semibold">{robot.pair}</span>
               </div>
@@ -325,7 +325,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 px-1.5 py-0.5 rounded text-[10px] font-bold hover:bg-orange-100 transition-colors"
+                            className="flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 px-1.5 py-0.5 rounded-sm text-[10px] font-bold hover:bg-orange-100 transition-colors"
                             title="Verificado no MyFxBook"
                         >
                             <ShieldCheck size={10} />
@@ -335,7 +335,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
                     {/* Live indicator — só quando há status MT5 recente */}
                     {isStrategyLive(robot.id) && (
                         <span
-                            className="flex items-center gap-1 bg-green-50 border border-green-200 text-green-700 px-1.5 py-0.5 rounded text-[10px] font-bold"
+                            className="flex items-center gap-1 bg-green-50 border border-green-200 text-green-700 px-1.5 py-0.5 rounded-sm text-[10px] font-bold"
                             title="Dados ao vivo da conta MT5"
                         >
                             <span className="relative flex w-2 h-2">
@@ -374,7 +374,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
 
       {/* Modal - Manage Strategies */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white border border-slate-200 w-full max-w-md rounded-2xl p-6 shadow-2xl transform transition-all">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-xl font-bold text-slate-900">Gerenciar Estratégias</h3>
@@ -414,7 +414,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
                     required
                     value={newRobot.name}
                     onChange={(e) => setNewRobot({...newRobot, name: e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-hidden focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
                     placeholder="Ex: Alpha Global Trader"
                   />
                 </div>
@@ -425,7 +425,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
                       type="text"
                       value={newRobot.version}
                       onChange={(e) => setNewRobot({...newRobot, version: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-hidden focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
                       placeholder="Ex: 20%"
                     />
                   </div>
@@ -436,7 +436,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
                       required
                       value={newRobot.pair}
                       onChange={(e) => setNewRobot({...newRobot, pair: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
+                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-hidden focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
                       placeholder="Ex: EURUSD"
                     />
                   </div>
@@ -473,7 +473,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
                     required
                     value={robotToDeleteId}
                     onChange={(e) => setRobotToDeleteId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all cursor-pointer appearance-none"
+                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-hidden focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all cursor-pointer appearance-none"
                     disabled={robots.length === 0}
                   >
                     <option value="" disabled>

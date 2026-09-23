@@ -60,7 +60,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
       <BackButton onClick={onBack} />
 
-      <article className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+      <article className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden">
         {article.image_url && (
           <div className="w-full h-64 md:h-80 relative">
             <img 
@@ -76,7 +76,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
                    {article.category || 'Geral'}
                  </span>
                </div>
-               <h1 className="text-3xl md:text-4xl font-bold leading-tight shadow-sm text-shadow-sm">
+               <h1 className="text-3xl md:text-4xl font-bold leading-tight shadow-xs text-shadow-sm">
                  {article.title}
                </h1>
             </div>

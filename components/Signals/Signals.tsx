@@ -112,7 +112,7 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
             key={key}
             onClick={() => setTab(key)}
             className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === key ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+              tab === key ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
             }`}
           >
             <Icon size={16} /> {label}
@@ -147,7 +147,7 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
                   value={analysisAsset}
                   onChange={(e) => setAnalysisAsset(e.target.value)}
                   disabled={analyzing}
-                  className="mt-1 block px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none text-sm bg-white disabled:opacity-60"
+                  className="mt-1 block px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden text-sm bg-white disabled:opacity-60"
                 >
                   {ASSETS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
                 </select>
@@ -158,7 +158,7 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
                   value={analysisTf}
                   onChange={(e) => setAnalysisTf(e.target.value)}
                   disabled={analyzing}
-                  className="mt-1 block px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-none text-sm bg-white disabled:opacity-60"
+                  className="mt-1 block px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden text-sm bg-white disabled:opacity-60"
                 >
                   {AVAILABLE_TIMEFRAMES.map((tf) => <option key={tf.td} value={tf.td}>{tf.label}</option>)}
                 </select>

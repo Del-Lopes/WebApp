@@ -332,7 +332,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
   // --- Render Helpers ---
 
   const renderLessonModal = () => (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
           <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6">
               <div className="flex justify-between items-center mb-4">
                   <h3 className="text-xl font-bold text-slate-800">{editingLesson ? 'Editar Aula' : 'Nova Aula'}</h3>
@@ -341,19 +341,19 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
               <form onSubmit={handleSaveLesson} className="space-y-4">
                   <div>
                       <label className="block text-sm font-medium mb-1">Título</label>
-                      <input type="text" required value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" />
+                      <input type="text" required value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500" />
                   </div>
                   <div>
                       <label className="block text-sm font-medium mb-1">Video URL (Youtube/Vimeo)</label>
-                      <input type="text" value={lessonForm.video_url} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" placeholder="https://..." />
+                      <input type="text" value={lessonForm.video_url} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500" placeholder="https://..." />
                   </div>
                   <div>
                        <label className="block text-sm font-medium mb-1">Duração</label>
-                       <input type="text" value={lessonForm.duration} onChange={e => setLessonForm({...lessonForm, duration: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" placeholder="05:00" />
+                       <input type="text" value={lessonForm.duration} onChange={e => setLessonForm({...lessonForm, duration: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500" placeholder="05:00" />
                   </div>
                   <div>
                        <label className="block text-sm font-medium mb-1">Descrição / Material de Apoio</label>
-                       <textarea rows={4} value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500" placeholder="Sobre esta aula..." />
+                       <textarea rows={4} value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500" placeholder="Sobre esta aula..." />
                   </div>
                   <button type="submit" className="w-full bg-green-600 text-white font-bold py-2 rounded-lg hover:bg-green-500 mt-2">Salvar Aula</button>
               </form>
@@ -389,7 +389,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
   };
 
   const renderCourseModal = () => (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
           <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8">
               <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
                   <h3 className="text-xl font-bold text-slate-800">{editingCourse ? 'Editar Curso' : 'Novo Curso'}</h3>
@@ -409,8 +409,8 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
               </div>
               <div className="p-6 space-y-6">
                   <form id="course-form" onSubmit={handleSaveCourse} className="space-y-4">
-                      <div><label className="block text-sm font-medium mb-1">Título</label><input type="text" required value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none" /></div>
-                      <div><label className="block text-sm font-medium mb-1 text-slate-700">Descrição</label><textarea rows={3} value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-none focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all" /></div>
+                      <div><label className="block text-sm font-medium mb-1">Título</label><input type="text" required value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden" /></div>
+                      <div><label className="block text-sm font-medium mb-1 text-slate-700">Descrição</label><textarea rows={3} value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all" /></div>
                       
                       <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
                           <label className="flex items-center gap-3 cursor-pointer select-none">
@@ -437,7 +437,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                                       value={courseForm.lock_note}
                                       onChange={e => setCourseForm({ ...courseForm, lock_note: e.target.value })}
                                       placeholder="Ex: Em produção, lançamento em junho. Disponível só para alunos Premium."
-                                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-green-500"
+                                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-hidden focus:border-green-500"
                                   />
                               </div>
                           )}
@@ -478,7 +478,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                                         placeholder="Ou cole a URL aqui" 
                                         value={courseForm.image_url} 
                                         onChange={e => setCourseForm({...courseForm, image_url: e.target.value})} 
-                                        className="w-full text-[10px] border-b border-slate-200 bg-transparent py-1 outline-none focus:border-green-500" 
+                                        className="w-full text-[10px] border-b border-slate-200 bg-transparent py-1 outline-hidden focus:border-green-500" 
                                     />
                                 </div>
                             </div>
@@ -502,11 +502,11 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                                                   <Trash2 size={14} />
                                               </button>
                                           </div>
-                                          <button onClick={() => openLessonModal(mod.id)} className="text-xs bg-white border border-slate-300 px-2 py-1 rounded hover:bg-green-50 hover:text-green-600 font-medium">+ Aula</button>
+                                          <button onClick={() => openLessonModal(mod.id)} className="text-xs bg-white border border-slate-300 px-2 py-1 rounded-sm hover:bg-green-50 hover:text-green-600 font-medium">+ Aula</button>
                                       </div>
                                       <div className="pl-4 space-y-1">
                                           {mod.lessons?.map(lesson => (
-                                              <div key={lesson.id} className="flex items-center justify-between text-sm text-slate-600 bg-white p-2 rounded border border-transparent hover:border-slate-200 group">
+                                              <div key={lesson.id} className="flex items-center justify-between text-sm text-slate-600 bg-white p-2 rounded-sm border border-transparent hover:border-slate-200 group">
                                                   <div className="flex items-center gap-2">
                                                       <Play size={12} className="text-slate-400" /> {lesson.title}
                                                   </div>
@@ -604,7 +604,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                            )}
                        </div>
                        
-                       <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm">
+                       <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-xs">
                            <h3 className="font-bold text-lg mb-2 text-slate-900">
                                {selectedLesson ? `Sobre esta aula: ${selectedLesson.title}` : 'Sobre este curso'}
                            </h3>
@@ -627,7 +627,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                        
                        <div className="space-y-3">
                            {modules.map((module, idx) => (
-                               <div key={module.id} className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-sm">
+                               <div key={module.id} className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
                                    <button 
                                       onClick={() => toggleModule(module.id)}
                                       className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
@@ -734,7 +734,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                     {role === 'admin' && (
                       <button
                         onClick={(e) => { e.stopPropagation(); openArticleModal(article); }}
-                        className="p-1 text-slate-400 hover:text-green-600 rounded transition-colors"
+                        className="p-1 text-slate-400 hover:text-green-600 rounded-sm transition-colors"
                       >
                         <Edit2 size={13} />
                       </button>
@@ -747,7 +747,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
         )}
 
         {isArticleModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
             <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-xl font-bold text-slate-800">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>
@@ -803,11 +803,11 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
               <div key={course.id} className={`group flex flex-col h-full bg-white border rounded-xl overflow-hidden hover:shadow-lg transition-all relative ${course.is_locked ? 'border-slate-300' : 'border-slate-200'}`}>
                 {role === 'admin' && (
                     <div className="absolute top-2 right-2 z-20 flex gap-2">
-                        <button onClick={(e) => { e.stopPropagation(); handleEditClick(course); }} className="p-2 bg-white/90 text-slate-600 hover:text-green-600 rounded-lg shadow-sm"><Edit2 size={16} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleEditClick(course); }} className="p-2 bg-white/90 text-slate-600 hover:text-green-600 rounded-lg shadow-xs"><Edit2 size={16} /></button>
                     </div>
                 )}
                 {course.is_locked && (
-                    <div className="absolute top-2 left-2 z-20 flex items-center gap-1 px-2 py-1 bg-slate-900/90 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm">
+                    <div className="absolute top-2 left-2 z-20 flex items-center gap-1 px-2 py-1 bg-slate-900/90 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xs">
                         <Lock size={12} /> Trancado
                     </div>
                 )}
@@ -862,7 +862,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
 
       {/* Locked course info modal (cliente) */}
       {lockedCourse && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setLockedCourse(null)}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" onClick={() => setLockedCourse(null)}>
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="relative aspect-video bg-slate-100">
               <img src={lockedCourse.image_url || 'https://picsum.photos/400/225'} alt={lockedCourse.title} className="w-full h-full object-cover grayscale opacity-70" />
@@ -902,7 +902,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
 
       {/* Article Modal */}
       {isArticleModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
               <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6">
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-xl font-bold text-slate-800">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>

@@ -160,7 +160,7 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
           <select
             value={periodDays}
             onChange={(e) => setPeriodDays(Number(e.target.value))}
-            className="text-sm rounded-lg border border-slate-300 bg-white px-3 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-500"
+            className="text-sm rounded-lg border border-slate-300 bg-white px-3 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-green-500"
           >
             {PERIOD_OPTIONS.map((opt) => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -179,7 +179,7 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
 
       {error && (
         <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
-          <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+          <AlertTriangle size={16} className="shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
@@ -245,7 +245,7 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
                       <div key={d.date} className="flex-1 flex flex-col items-center gap-1 min-w-0 group">
                         <div className="text-[10px] text-slate-500 leading-none">{d.count > 0 ? d.count : ''}</div>
                         <div
-                          className="w-full bg-green-500 hover:bg-green-600 rounded-t transition-all"
+                          className="w-full bg-green-500 hover:bg-green-600 rounded-t-sm transition-all"
                           style={{ height: `${heightPct}%`, minHeight: d.count > 0 ? '4px' : '0' }}
                           title={`${d.date}: ${d.count} mensagens`}
                         />
@@ -388,7 +388,7 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
 
           {classifyError && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
-              <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
               <span>{classifyError}</span>
             </div>
           )}
@@ -406,7 +406,7 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
                       <Tag size={16} className="text-green-600" />
                       <h4 className="font-semibold text-slate-900">{t.topic}</h4>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-600 flex-shrink-0">
+                    <div className="flex items-center gap-3 text-xs text-slate-600 shrink-0">
                       <span className="font-medium tabular-nums">{t.message_count} msgs</span>
                       <span className="tabular-nums">{t.user_count} usuários</span>
                     </div>

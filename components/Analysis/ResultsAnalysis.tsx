@@ -160,7 +160,7 @@ export function ResultsAnalysis({ onBack }: Props) {
               : 'bg-green-50 border-green-200 text-green-700'
           }`}
         >
-          <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+          <AlertCircle size={16} className="shrink-0 mt-0.5" />
           <span>{feedback.text}</span>
         </div>
       )}
@@ -193,7 +193,7 @@ export function ResultsAnalysis({ onBack }: Props) {
           {reports.map((r) => (
             <div
               key={r.id}
-              className="bg-white border border-slate-200 rounded-xl p-4 hover:border-green-400 hover:shadow-sm transition-all"
+              className="bg-white border border-slate-200 rounded-xl p-4 hover:border-green-400 hover:shadow-xs transition-all"
             >
               <div className="flex items-center justify-between gap-4 flex-wrap">
                 <button

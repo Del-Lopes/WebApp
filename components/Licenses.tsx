@@ -177,7 +177,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                  <BackButton onClick={onBack} />
             </div>
         )}
-        <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-200 shadow-sm">
+        <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-200 shadow-xs">
           <Key size={32} className="text-green-600" />
         </div>
         <h2 className="text-3xl font-bold text-slate-900 mb-2">Gestor de Licença</h2>
@@ -187,7 +187,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
       <div className="grid md:grid-cols-2 gap-8">
         <div className="space-y-8">
           {/* Request Form */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm relative overflow-hidden h-fit animate-in fade-in slide-in-from-left-4 duration-500">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs relative overflow-hidden h-fit animate-in fade-in slide-in-from-left-4 duration-500">
             {submitted && (
               <div className="absolute inset-0 bg-white/95 z-10 flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-300">
                 <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
@@ -244,7 +244,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                     value={mt5Account}
                     onChange={(e) => setMt5Account(e.target.value)}
                     disabled={loading}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 pl-12 text-slate-900 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400 font-mono text-lg disabled:opacity-50"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 pl-12 text-slate-900 focus:outline-hidden focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400 font-mono text-lg disabled:opacity-50"
                     placeholder="Ex: 50123456"
                   />
                   <ShieldCheck size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
@@ -269,7 +269,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
           </div>
 
           {/* Request Status (formerly History) */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm h-fit">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs h-fit">
             <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 font-display">
               <Clock size={20} className="text-slate-400" />
               Status da Solicitação
@@ -285,7 +285,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                   <div key={req.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors">
                     <div className="flex-1 mr-4">
                       <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider border ${eaConfig[(req as any).ea as keyof typeof eaConfig]?.color || 'bg-slate-200 text-slate-600'}`}>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider border ${eaConfig[(req as any).ea as keyof typeof eaConfig]?.color || 'bg-slate-200 text-slate-600'}`}>
                               {req.license_title || (req as any).ea || 'AFK'}
                           </span>
                           <span className="block font-mono font-medium text-slate-700">Conta: {req.mt5_account}</span>
@@ -305,7 +305,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
         <div className="space-y-8">
           {/* Active Licenses */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-sm h-fit animate-in fade-in slide-in-from-right-4 duration-500">
+          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs h-fit animate-in fade-in slide-in-from-right-4 duration-500">
             <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 font-display">
               <ShieldCheck size={20} className="text-green-600" />
               Licenças Ativas
@@ -328,7 +328,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                                 type="text"
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
-                                className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none focus:border-green-500 w-full"
+                                className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-mono focus:outline-hidden focus:border-green-500 w-full"
                                 autoFocus
                               />
                             </div>
@@ -352,14 +352,14 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                         <div className="flex gap-2">
                           <button 
                             onClick={() => handleUpdateAccount(req.id)}
-                            className="p-2 text-green-600 hover:bg-green-100 rounded-xl transition-all shadow-sm bg-white"
+                            className="p-2 text-green-600 hover:bg-green-100 rounded-xl transition-all shadow-xs bg-white"
                             title="Confirmar"
                           >
                             <CheckCircle2 size={18} />
                           </button>
                           <button 
                             onClick={() => setEditingId(null)}
-                            className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-all shadow-sm bg-white"
+                            className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-all shadow-xs bg-white"
                             title="Cancelar"
                           >
                             <XCircle size={18} />
@@ -388,7 +388,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
       {/* Admin Title Manager Modal */}
       {showTitleManager && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
               <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
                   <div className="flex justify-between items-center mb-6">
                       <h3 className="text-xl font-bold text-slate-800">Gerenciar Títulos</h3>
@@ -402,7 +402,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                             value={newTitleName}
                             onChange={(e) => setNewTitleName(e.target.value)}
                             placeholder="Ex: MT4 Gold"
-                            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-all"
+                            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 outline-hidden focus:border-green-500 transition-all"
                           />
                           <button 
                             onClick={async () => {
@@ -415,7 +415,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                                     fetchTitles();
                                 }
                             }}
-                            className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-500 transition-colors shadow-sm"
+                            className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-500 transition-colors shadow-xs"
                           >
                               <Plus size={20} />
                           </button>

@@ -135,7 +135,7 @@ export const Journey: React.FC<JourneyProps> = ({ onBack, onNavigate }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
+      <div className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button 
             onClick={onBack}
@@ -159,7 +159,7 @@ export const Journey: React.FC<JourneyProps> = ({ onBack, onNavigate }) => {
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-500/10 rounded-full blur-[80px] -ml-20 -mb-20"></div>
         
         <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur-sm border border-white/10">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur-xs border border-white/10">
             <Info size={14} className="text-indigo-400" />
             Guia do Ecossistema
           </div>
@@ -175,7 +175,7 @@ export const Journey: React.FC<JourneyProps> = ({ onBack, onNavigate }) => {
         {SESSIONS.map((session) => (
           <div 
             key={session.id}
-            className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300 group flex flex-col"
+            className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-xl hover:border-indigo-200 transition-all duration-300 group flex flex-col"
           >
             <div className="p-8 flex-1">
               {/* Header Card */}
@@ -224,7 +224,7 @@ export const Journey: React.FC<JourneyProps> = ({ onBack, onNavigate }) => {
             <div className="p-4 bg-slate-50 border-t border-slate-100 mt-auto">
               <button 
                 onClick={() => onNavigate(session.view)}
-                className="w-full bg-white border border-slate-200 py-3 rounded-xl text-slate-700 font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-sm"
+                className="w-full bg-white border border-slate-200 py-3 rounded-xl text-slate-700 font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-xs"
               >
                 Acessar Sessão
                 <ChevronRight size={16} />

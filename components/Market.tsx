@@ -132,7 +132,7 @@ export const Market: React.FC<MarketProps> = ({ onBack }) => {
                     <ShoppingBag size={36} />
                   </div>
                 )}
-                <span className="absolute top-2 left-2 px-2 py-1 bg-white/95 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm">
+                <span className="absolute top-2 left-2 px-2 py-1 bg-white/95 text-slate-700 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xs">
                   {TYPE_LABELS[product.type] || product.type}
                 </span>
                 {product.category && (

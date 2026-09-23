@@ -89,7 +89,7 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
   // ─── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <Activity size={16} className="text-green-600" /> Conexão MT5
@@ -106,7 +106,7 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
   if (!link) {
     return (
       <>
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-3">
             <Activity size={16} className="text-green-600" /> Conexão MT5
           </h3>
@@ -152,7 +152,7 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
   if (!status) {
     return (
       <>
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
               <Activity size={16} className="text-green-600" /> Conexão MT5
@@ -199,7 +199,7 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
 
   return (
     <>
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3">
           <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
             <Activity size={16} className="text-green-600" /> Conexão MT5

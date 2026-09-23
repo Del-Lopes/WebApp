@@ -62,7 +62,7 @@ export function KnowledgeEditor({ entry, initial, onClose, onSave }: KnowledgeEd
   const isEditing = !!entry;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between p-5 border-b border-slate-200">
           <h3 className="font-bold text-slate-900 text-lg">
@@ -86,7 +86,7 @@ export function KnowledgeEditor({ entry, initial, onClose, onSave }: KnowledgeEd
               onChange={(e) => setTitle(e.target.value)}
               maxLength={TITLE_MAX}
               placeholder="Ex: Como ativar uma licença AFK Trader"
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
             <div className="text-xs text-slate-400 mt-1 text-right">{title.length} / {TITLE_MAX}</div>
           </div>
@@ -97,7 +97,7 @@ export function KnowledgeEditor({ entry, initial, onClose, onSave }: KnowledgeEd
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as KnowledgeCategory)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-green-500"
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-green-500"
               >
                 {KNOWLEDGE_CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
@@ -112,7 +112,7 @@ export function KnowledgeEditor({ entry, initial, onClose, onSave }: KnowledgeEd
                   type="checkbox"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="rounded text-green-600 focus:ring-green-500"
+                  className="rounded-sm text-green-600 focus:ring-green-500"
                 />
                 <span className="text-sm text-slate-700">Ativo (incluído nas respostas)</span>
               </label>
@@ -127,14 +127,14 @@ export function KnowledgeEditor({ entry, initial, onClose, onSave }: KnowledgeEd
               maxLength={CONTENT_MAX}
               rows={12}
               placeholder="Escreva em texto puro como o bot deve responder. Quanto mais detalhado e específico, melhor.&#10;&#10;Exemplo:&#10;Para ativar uma licença AFK Trader:&#10;1. Acesse a tela Licenças no menu lateral&#10;2. Clique em 'Solicitar nova licença'&#10;3. Informe o número da conta MT5&#10;4. Aguarde aprovação do admin (em até 24h)"
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent custom-scrollbar font-mono"
+              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent custom-scrollbar font-mono"
             />
             <div className="text-xs text-slate-400 mt-1 text-right">{content.length} / {CONTENT_MAX}</div>
           </div>
 
           {error && (
             <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
-              <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+              <AlertTriangle size={16} className="shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}

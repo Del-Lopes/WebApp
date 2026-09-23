@@ -33,7 +33,7 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
   // anéis/sombras por tipo, para o estado disponível e concluído
   const ring = isRevisao ? 'ring-2 ring-amber-200' : isLicao ? 'ring-2 ring-red-200' : 'ring-2 ring-emerald-200';
   const shadowAvail = isRevisao ? 'shadow-lg shadow-amber-500/40' : isLicao ? 'shadow-lg shadow-red-500/40' : 'shadow-lg shadow-emerald-500/40';
-  const shadowDone = isRevisao ? 'shadow shadow-amber-500/30' : isLicao ? 'shadow shadow-red-500/30' : 'shadow shadow-emerald-500/30';
+  const shadowDone = isRevisao ? 'shadow-sm shadow-amber-500/30' : isLicao ? 'shadow-sm shadow-red-500/30' : 'shadow-sm shadow-emerald-500/30';
 
   // revisão é o candle mais largo/alto da trilha (destaque de "boss" da unidade)
   const w = isRevisao ? 40 : isLicao ? 34 : 26;
@@ -50,7 +50,7 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
       {/* badge de XP nos candles que dão ganho (gain e revisão), quando disponível */}
       {state === 'available' && isCheckpoint && xp > 0 && (
         <span
-          className={`absolute -top-2 -right-3 z-10 text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow ${
+          className={`absolute -top-2 -right-3 z-10 text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow-sm ${
             isRevisao ? 'bg-yellow-400 text-yellow-900' : 'bg-red-500 text-white'
           }`}
         >
@@ -63,7 +63,7 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
 
       {/* corpo do candle (o "nó" clicável). */}
       <div
-        className={`relative rounded flex items-center justify-center ${color.body} ${
+        className={`relative rounded-sm flex items-center justify-center ${color.body} ${
           state === 'available' ? `${shadowAvail} ${ring}` : ''
         } ${state === 'done' ? shadowDone : ''}`}
         style={{ width: w, height: h }}

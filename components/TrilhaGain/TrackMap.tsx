@@ -163,7 +163,7 @@ export const TrackMap: React.FC<Props> = ({
     <div className="max-w-md mx-auto pb-20">
       {/* Barra de progresso geral da trilha */}
       {flatNodes.length > 0 && (
-        <div className="mb-8 bg-white rounded-2xl p-4 border border-slate-100 shadow-sm">
+        <div className="mb-8 bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-semibold text-slate-600 flex items-center gap-1.5">
               <TrendingUp size={16} className="text-emerald-500" />
@@ -346,7 +346,7 @@ const UnitHeader: React.FC<{
           {mode === 'redeem' || mode === 'skip' ? (
             <button
               onClick={() => { setError(null); setConfirming(true); }}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-amber-950 text-[11px] font-extrabold transition-colors shadow-sm"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-amber-950 text-[11px] font-extrabold transition-colors shadow-xs"
             >
               <Coins size={13} strokeWidth={2.5} /> {actionLabel} · {cost.toLocaleString('pt-BR')} Coins
             </button>

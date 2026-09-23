@@ -104,7 +104,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                type="text"
                value={formData.status}
                onChange={(e) => handleChange('status', e.target.value)}
-               className="px-3 py-1 rounded-full text-sm font-semibold border bg-white border-green-300 text-slate-700 focus:outline-none focus:border-green-500 w-32"
+               className="px-3 py-1 rounded-full text-sm font-semibold border bg-white border-green-300 text-slate-700 focus:outline-hidden focus:border-green-500 w-32"
                placeholder="Corretora"
              />
            ) : (
@@ -112,7 +112,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                 {formData.status}
               </span>
            )}
-          <span className="font-mono text-sm bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200" title="Performance Fee">
+          <span className="font-mono text-sm bg-slate-100 px-2 py-1 rounded-sm text-slate-600 border border-slate-200" title="Performance Fee">
             {formData.version}
           </span>
           
@@ -123,7 +123,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                 <>
                   <button 
                     onClick={handleSave}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors shadow-sm"
+                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors shadow-xs"
                   >
                     <Save size={16} /> Salvar
                   </button>
@@ -151,7 +151,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
 
       {/* Main Info Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-sm">
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs">
         <div className="flex flex-col lg:flex-row gap-8">
 
           {/* Left Column: Info & Description */}
@@ -164,7 +164,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                       type="text" 
                       value={formData.name}
                       onChange={(e) => handleChange('name', e.target.value)}
-                      className="text-3xl font-bold text-slate-900 border-b-2 border-green-500 focus:outline-none bg-transparent w-full"
+                      className="text-3xl font-bold text-slate-900 border-b-2 border-green-500 focus:outline-hidden bg-transparent w-full"
                       placeholder="Nome do Robô"
                     />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -174,13 +174,13 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                           type="text" 
                           value={formData.external_url || ''}
                           onChange={(e) => handleChange('external_url', e.target.value)}
-                          className="w-full border border-slate-300 rounded px-2 py-1.5 text-sm"
+                          className="w-full border border-slate-300 rounded-sm px-2 py-1.5 text-sm"
                           placeholder="https://..."
                         />
                       </div>
                       <div>
                          <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Upload de Avatar</label>
-                         <label className={`flex items-center gap-2 px-4 py-1.5 border border-slate-300 rounded text-sm cursor-pointer hover:bg-slate-50 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                         <label className={`flex items-center gap-2 px-4 py-1.5 border border-slate-300 rounded-sm text-sm cursor-pointer hover:bg-slate-50 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                             <Upload size={14} className={isUploading ? 'animate-spin' : ''} />
                             {isUploading ? 'Enviando...' : 'Selecionar Arquivo'}
                             <input type="file" accept="image/*" className="hidden" disabled={isUploading} onChange={(e) => handleUpload(e, 'avatar_url')} />
@@ -191,7 +191,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                 ) : (
                   <div className="flex items-center gap-4">
                      {formData.avatar_url && (
-                        <div className="w-24 h-24 rounded-xl border border-slate-200 overflow-hidden shadow-sm shrink-0">
+                        <div className="w-24 h-24 rounded-xl border border-slate-200 overflow-hidden shadow-xs shrink-0">
                            <img src={formData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                         </div>
                      )}
@@ -209,7 +209,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                       type="text" 
                       value={formData.pair}
                       onChange={(e) => handleChange('pair', e.target.value)}
-                      className="border border-slate-300 rounded px-2 py-0.5 w-24 text-slate-900 font-bold"
+                      className="border border-slate-300 rounded-sm px-2 py-0.5 w-24 text-slate-900 font-bold"
                     />
                   ) : (
                     <strong className="text-slate-900">{formData.pair}</strong>
@@ -224,7 +224,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                       type="text" 
                       value={formData.profitability}
                       onChange={(e) => handleChange('profitability', e.target.value)}
-                      className="border border-slate-300 rounded px-2 py-0.5 w-24 text-slate-900 font-bold"
+                      className="border border-slate-300 rounded-sm px-2 py-0.5 w-24 text-slate-900 font-bold"
                     />
                   ) : (
                     <strong className={formData.profitability.includes('+') ? 'text-green-600' : 'text-red-500'}>{formData.profitability}</strong>
@@ -251,7 +251,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                       type="text" 
                       value={formData.version}
                       onChange={(e) => handleChange('version', e.target.value)}
-                      className="border border-slate-300 rounded px-2 py-0.5 w-20 text-slate-900 font-bold"
+                      className="border border-slate-300 rounded-sm px-2 py-0.5 w-20 text-slate-900 font-bold"
                     />
                   </div>
                 )}
@@ -268,7 +268,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                   value={formData.description}
                   onChange={(e) => handleChange('description', e.target.value)}
                   rows={6}
-                  className="w-full mt-2 p-3 border border-slate-300 rounded-lg text-slate-600 leading-relaxed focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                  className="w-full mt-2 p-3 border border-slate-300 rounded-lg text-slate-600 leading-relaxed focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
                   placeholder="Descrição da estratégia..."
                 />
               ) : (
@@ -324,7 +324,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {formData.images?.map((img, idx) => (
-            <div key={idx} className="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-sm aspect-[4/3]">
+            <div key={idx} className="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-xs aspect-[4/3]">
               <img 
                 src={img} 
                 alt={`Operacional ${idx + 1}`} 
@@ -407,7 +407,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                 )}
                 {!isEditing && (
                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                         <div className="bg-black/50 text-white p-2 rounded-full backdrop-blur-sm">
+                         <div className="bg-black/50 text-white p-2 rounded-full backdrop-blur-xs">
                              <ZoomIn size={24} />
                          </div>
                      </div>
@@ -429,7 +429,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
       {/* Image Viewer Overlay */}
       {viewingImage && (
         <div 
-            className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-sm flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
+            className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-xs flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
             onClick={() => setViewingImage(null)}
         >
             <button 

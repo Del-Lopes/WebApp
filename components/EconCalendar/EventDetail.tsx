@@ -31,7 +31,7 @@ const ScenarioCard: React.FC<{ s: Scenario; currency: string; state: 'hit' | 'mi
     <div className="flex items-center justify-between gap-2">
       <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{s.rotulo}</p>
       {state === 'hit' && (
-        <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded bg-indigo-600 text-white">Aconteceu</span>
+        <span className="text-[10px] font-bold uppercase px-1.5 py-0.5 rounded-sm bg-indigo-600 text-white">Aconteceu</span>
       )}
     </div>
     <p className={`mt-1.5 flex items-center gap-1 text-sm font-semibold ${dirColor(s.moeda)}`}>

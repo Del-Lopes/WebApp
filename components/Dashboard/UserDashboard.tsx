@@ -254,7 +254,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
           <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-2xl -mr-10 -mt-10"></div>
           
           <div className="flex items-center gap-4 mb-4 relative z-10">
-            <div className="p-3 bg-white/20 text-white rounded-xl backdrop-blur-sm group-hover:bg-white group-hover:text-indigo-600 transition-colors">
+            <div className="p-3 bg-white/20 text-white rounded-xl backdrop-blur-xs group-hover:bg-white group-hover:text-indigo-600 transition-colors">
               <LayoutDashboard size={24} />
             </div>
             <div>
@@ -390,7 +390,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Articles Section (Now on the left) */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
             <div className="flex items-center justify-between mb-6">
                  <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">Artigos e Análises Recentes</h3>
                  {role === 'admin' && (
@@ -449,7 +449,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                             <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                               <button
                                 onClick={(e) => { e.stopPropagation(); openArticleModal(article); }}
-                                className="p-1 text-slate-400 hover:text-green-600 hover:bg-white rounded shadow-sm"
+                                className="p-1 text-slate-400 hover:text-green-600 hover:bg-white rounded-sm shadow-xs"
                               >
                                 <Edit2 size={12} />
                               </button>
@@ -478,7 +478,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
           </div>
 
           {/* Recent Activity / Licenses List (Now on the right) */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-bold text-slate-900">Suas Contas</h3>
               <div
@@ -511,7 +511,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
 
                     {/* Linha 2: Ativo e Validade */}
                     <div className="flex items-center justify-between pt-2 border-t border-slate-200/50">
-                      <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black rounded-lg border border-green-200/50 shadow-sm uppercase tracking-[0.2em]">
+                      <div className="flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-600 text-[10px] font-black rounded-lg border border-green-200/50 shadow-xs uppercase tracking-[0.2em]">
                         <CheckCircle2 size={10} />
                         <span>ATIVO</span>
                       </div>
@@ -539,7 +539,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
 
       {/* Article Modal */}
       {isArticleModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
               <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
                   <div className="flex justify-between items-center mb-4 sticky top-0 bg-white z-10 pb-2">
                       <h3 className="text-xl font-bold text-slate-800">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>
@@ -560,19 +560,19 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                   <form onSubmit={handleSaveArticle} className="space-y-4">
                       <div>
                           <label className="block text-sm font-medium mb-1 text-slate-600">Título</label>
-                          <input type="text" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="Ex: Análise do Ouro" />
+                          <input type="text" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500 transition-colors" placeholder="Ex: Análise do Ouro" />
                       </div>
                       <div>
                           <label className="block text-sm font-medium mb-1 text-slate-600">Categoria</label>
-                          <input type="text" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="Ex: Forex, Crypto..." />
+                          <input type="text" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500 transition-colors" placeholder="Ex: Forex, Crypto..." />
                       </div>
                       <div>
                           <label className="block text-sm font-medium mb-1 text-slate-600">Resumo (Card)</label>
-                          <textarea rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="Breve descrição..." />
+                          <textarea rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500 transition-colors" placeholder="Breve descrição..." />
                       </div>
                       <div>
                           <label className="block text-sm font-medium mb-1 text-slate-600">Conteúdo Completo</label>
-                          <textarea rows={6} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-none focus:border-green-500 transition-colors" placeholder="Texto completo da análise..." />
+                          <textarea rows={6} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500 transition-colors" placeholder="Texto completo da análise..." />
                       </div>
                       <div>
                         <label className="block text-sm font-medium mb-1 text-slate-600">Fotos (Supabase Storage)</label>

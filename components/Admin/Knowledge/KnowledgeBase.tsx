@@ -83,7 +83,7 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
 
       {error && (
         <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
-          <AlertTriangle size={16} className="flex-shrink-0 mt-0.5" />
+          <AlertTriangle size={16} className="shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
@@ -97,7 +97,7 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por título, conteúdo ou categoria…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent"
           />
         </div>
         <button
@@ -144,7 +144,7 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
                 <div className="flex items-start gap-3">
                   <button
                     onClick={() => toggleActive(e.id, !e.is_active)}
-                    className="mt-0.5 flex-shrink-0"
+                    className="mt-0.5 shrink-0"
                     title={e.is_active ? 'Desativar (não será incluída no contexto)' : 'Ativar'}
                   >
                     {e.is_active ? (
@@ -171,7 +171,7 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-1 flex-shrink-0">
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => { setEditing(e); setCreatingNew(false); }}
                       className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"

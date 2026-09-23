@@ -95,12 +95,12 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; disab
     aria-checked={checked}
     disabled={disabled}
     onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed ${
+    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed ${
       checked ? 'bg-green-500' : 'bg-slate-300'
     }`}
   >
     <span
-      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+      className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${
         checked ? 'translate-x-6' : 'translate-x-1'
       }`}
     />
@@ -129,7 +129,7 @@ const NumericInput: React.FC<{
         const v = decimal ? parseFloat(e.target.value) : parseInt(e.target.value, 10);
         if (!isNaN(v)) onChange(v);
       }}
-      className="w-28 text-right border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none disabled:opacity-50 disabled:cursor-not-allowed bg-white"
+      className="w-28 text-right border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden disabled:opacity-50 disabled:cursor-not-allowed bg-white"
     />
   </div>
 );
@@ -198,7 +198,7 @@ const ConnectSection: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs">
       <div className="px-6 py-5 border-b border-slate-200">
         <div className="flex items-center gap-2 text-xs mb-4">
           <div className={`flex items-center gap-2 ${step === 1 ? 'text-green-600 font-semibold' : 'text-slate-400'}`}>
@@ -223,7 +223,7 @@ const ConnectSection: React.FC<{
                 inputMode="numeric"
                 value={accountLogin}
                 onChange={(e) => setAccountLogin(e.target.value.replace(/\D/g, ''))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
                 placeholder="12345678"
               />
               <p className="text-xs text-slate-500 mt-1">Disponível no MT5 em Arquivo → Login.</p>
@@ -236,7 +236,7 @@ const ConnectSection: React.FC<{
                 value={broker}
                 onChange={(e) => setBroker(e.target.value)}
                 maxLength={60}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none"
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
                 placeholder="Ex: XP Investimentos"
               />
             </div>
@@ -298,10 +298,10 @@ const ConnectSection: React.FC<{
               </button>
               {howToOpen && (
                 <ol className="mt-3 list-decimal pl-5 text-xs text-slate-600 space-y-1.5 leading-relaxed">
-                  <li>Copie o arquivo para <code className="bg-slate-100 px-1 rounded">MQL5/Experts</code> (Arquivo → Abrir Pasta de Dados).</li>
+                  <li>Copie o arquivo para <code className="bg-slate-100 px-1 rounded-sm">MQL5/Experts</code> (Arquivo → Abrir Pasta de Dados).</li>
                   <li>No Navegador do MT5 (Ctrl+N), clique direito em "Expert Advisors" → Atualizar.</li>
-                  <li>Arraste <code className="bg-slate-100 px-1 rounded">HandBot</code> para o gráfico.</li>
-                  <li>Na aba "Entradas", cole a chave em <code className="bg-slate-100 px-1 rounded">ApiKey</code>.</li>
+                  <li>Arraste <code className="bg-slate-100 px-1 rounded-sm">HandBot</code> para o gráfico.</li>
+                  <li>Na aba "Entradas", cole a chave em <code className="bg-slate-100 px-1 rounded-sm">ApiKey</code>.</li>
                   <li>Confirme com OK. O EA passará a sincronizar parâmetros automaticamente.</li>
                 </ol>
               )}
@@ -410,7 +410,7 @@ const ManageSection: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
       <h3 className="text-sm font-bold text-slate-900">Conexão MT5</h3>
 
       <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
@@ -468,12 +468,12 @@ const ManageSection: React.FC<{
         <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
           <div className="text-xs font-semibold text-green-800">Nova chave gerada. Copie agora.</div>
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-white border border-green-200 rounded px-2 py-1.5 text-xs font-mono text-slate-700 break-all">
+            <code className="flex-1 bg-white border border-green-200 rounded-sm px-2 py-1.5 text-xs font-mono text-slate-700 break-all">
               {newKey}
             </code>
             <button
               onClick={copyNewKey}
-              className="shrink-0 px-3 py-1.5 bg-white border border-slate-300 hover:border-green-500 hover:text-green-700 text-slate-700 rounded text-xs font-semibold flex items-center gap-1"
+              className="shrink-0 px-3 py-1.5 bg-white border border-slate-300 hover:border-green-500 hover:text-green-700 text-slate-700 rounded-sm text-xs font-semibold flex items-center gap-1"
             >
               {copied ? <><Check size={12} /> Copiado</> : <><Copy size={12} /> Copiar</>}
             </button>
@@ -566,7 +566,7 @@ const ParamsForm: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs">
       <div className="px-6 py-5 border-b border-slate-200">
         <h3 className="text-base font-bold text-slate-900">Parâmetros do Hand Bot</h3>
         <p className="text-xs text-slate-500 mt-1">
@@ -892,7 +892,7 @@ const ParamsForm: React.FC<{
             <select
               value={params.bar_timeframe}
               onChange={(e) => set('bar_timeframe', Number(e.target.value))}
-              className="w-28 text-right border border-slate-300 rounded-lg px-2 py-1.5 text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none bg-white"
+              className="w-28 text-right border border-slate-300 rounded-lg px-2 py-1.5 text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden bg-white"
             >
               <option value={0}>Atual</option>
               <option value={1}>M1</option>
