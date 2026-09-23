@@ -1,6 +1,7 @@
 /* Global Styles - Trader AFK */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 /*
  * Tailwind v4 compilado (antes vinha do CDN v3 em runtime).
@@ -102,8 +103,269 @@
   }
 
   h1, h2, h3, h4 {
-    font-family: 'Outfit', sans-serif;
+    font-family: var(--font-display);
   }
+
+  [data-theme] :is(h1, h2, h3, h4) {
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+}
+
+/* ==========================================================================
+ * DESIGN SYSTEM — Trader AFK (Fase 2 do REDESIGN_ROADMAP.md)
+ *
+ * Linguagem da landing (../afk-landing): fundo quase preto neutro, um único
+ * destaque (o verde da marca), títulos em Space Grotesk, eyebrows com tracking
+ * largo, cards de vidro e linhas finas em gradiente.
+ *
+ * Dois temas pelo mesmo código: as telas usam tokens SEMÂNTICOS (bg-page,
+ * bg-surface, text-fg, border-line, bg-tint/5…), e o tema só troca os valores
+ * das variáveis em [data-theme]. Nada de `dark:` espalhado nas telas.
+ * O escuro é o padrão (:root); o claro vale dentro de [data-theme=light].
+ *
+ * Mapa de conversão das telas: docs/DESIGN_TOKENS.md.
+ * ======================================================================== */
+
+/* Cores fixas da marca (iguais nos dois temas) */
+@theme {
+  --color-brand-dark: #0a0a0a;
+  --color-brand-surface: #111111;
+  --color-brand-elevated: #171717;
+  --color-brand-line: #262626;
+  --color-brand-green: #22c55e;
+  --color-brand-green-bright: #5eea96;
+  --color-brand-green-deep: #15803d;
+  --color-brand-emerald: #16a34a;
+  --color-brand-red: #ef4444;
+  --color-brand-gold: #c9a86a;
+  --color-brand-muted: #a3a3a3;
+  --color-brand-subtle: #737373;
+
+  --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-line-flow: line-flow 6s ease-in-out infinite;
+  --animate-sweep: sweep 7s ease-in-out infinite;
+
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 0.7; }
+  }
+  @keyframes line-flow {
+    0% { stroke-dashoffset: 1200; opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { stroke-dashoffset: 0; opacity: 0; }
+  }
+  @keyframes sweep {
+    0% { transform: translateX(-100%); opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateX(100%); opacity: 0; }
+  }
+}
+
+/* Tokens semânticos → utilitários (bg-page, text-fg-muted, border-line...).
+   "inline" faz o utilitário ler a variável no próprio elemento, então um
+   [data-theme] em qualquer ancestral troca o tema daquele trecho. */
+@theme inline {
+  --color-page: var(--ds-page);
+  --color-surface: var(--ds-surface);
+  --color-elevated: var(--ds-elevated);
+  --color-line: var(--ds-line);
+  --color-line-strong: var(--ds-line-strong);
+  /* Camada translúcida sobre a superfície: branco no escuro, preto no claro.
+     Use com opacidade: bg-tint/3 (área secundária), border-tint/8 (borda). */
+  --color-tint: var(--ds-tint);
+
+  --color-fg: var(--ds-fg);
+  --color-fg-muted: var(--ds-fg-muted);
+  --color-fg-subtle: var(--ds-fg-subtle);
+  --color-fg-inverse: var(--ds-fg-inverse);
+
+  /* Destaque: fundo (accent) e texto legível sobre a superfície (accent-fg) */
+  --color-accent: var(--ds-accent);
+  --color-accent-fg: var(--ds-accent-fg);
+
+  /* Semânticas: base (fundo/borda com opacidade) + texto legível */
+  --color-success: var(--ds-success);
+  --color-success-fg: var(--ds-success-fg);
+  --color-danger: var(--ds-danger);
+  --color-danger-fg: var(--ds-danger-fg);
+  --color-warning: var(--ds-warning);
+  --color-warning-fg: var(--ds-warning-fg);
+  --color-info: var(--ds-info);
+  --color-info-fg: var(--ds-info-fg);
+
+  /* Fontes: novas só dentro de [data-theme] (ver abaixo), para o app atual
+     manter Outfit e a mono do sistema até a Fase 3. */
+  --font-display: var(--ds-font-display);
+  --font-mono: var(--ds-font-mono);
+}
+
+:root {
+  --ds-font-display: 'Outfit', sans-serif;
+  --ds-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+}
+
+[data-theme] {
+  --ds-font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --ds-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+:root,
+[data-theme="dark"] {
+  --ds-page: #0a0a0a;
+  --ds-surface: #111111;
+  --ds-elevated: #171717;
+  --ds-line: #262626;
+  --ds-line-strong: #333333;
+  --ds-tint: #ffffff;
+
+  --ds-fg: #f5f5f5;
+  --ds-fg-muted: #a3a3a3;   /* mínimo AA para texto secundário sobre #0a0a0a */
+  --ds-fg-subtle: #737373;  /* só texto não essencial (datas, rodapés) */
+  --ds-fg-inverse: #0a0a0a;
+
+  --ds-accent: #22c55e;
+  --ds-accent-fg: #4ade80;
+
+  --ds-success: #22c55e;
+  --ds-success-fg: #4ade80;
+  --ds-danger: #ef4444;
+  --ds-danger-fg: #f87171;
+  --ds-warning: #f59e0b;
+  --ds-warning-fg: #fcd34d;
+  --ds-info: #0ea5e9;
+  --ds-info-fg: #7dd3fc;
+
+  --ds-glass-from: rgb(23 23 23 / 0.7);
+  --ds-glass-to: rgb(17 17 17 / 0.3);
+  --ds-glass-border: rgb(255 255 255 / 0.08);
+  --ds-glass-shadow: none;
+  --ds-eyebrow: color-mix(in oklab, #22c55e 85%, white);
+  --ds-gradient-brand: linear-gradient(135deg, #5eea96 0%, #22c55e 50%, #15803d 110%);
+  --ds-scroll-thumb: #262626;
+  --ds-scroll-thumb-hover: #333333;
+}
+
+/* color-scheme só com data-theme explícito: aplicar no :root agora faria os
+   controles nativos do app atual (claro) ficarem escuros. Entra na Fase 3. */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+  --ds-page: #fafafa;
+  --ds-surface: #ffffff;
+  --ds-elevated: #f5f5f5;
+  --ds-line: #e5e5e5;
+  --ds-line-strong: #d4d4d4;
+  --ds-tint: #000000;
+
+  --ds-fg: #0a0a0a;
+  --ds-fg-muted: #525252;
+  --ds-fg-subtle: #737373;
+  --ds-fg-inverse: #ffffff;
+
+  /* No claro o verde vivo não passa em contraste como texto: texto usa o 700. */
+  --ds-accent: #16a34a;
+  --ds-accent-fg: #15803d;
+
+  --ds-success: #16a34a;
+  --ds-success-fg: #15803d;
+  --ds-danger: #dc2626;
+  --ds-danger-fg: #b91c1c;
+  --ds-warning: #d97706;
+  --ds-warning-fg: #b45309;
+  --ds-info: #0284c7;
+  --ds-info-fg: #0369a1;
+
+  --ds-glass-from: rgb(255 255 255 / 0.9);
+  --ds-glass-to: rgb(250 250 250 / 0.75);
+  --ds-glass-border: rgb(0 0 0 / 0.08);
+  --ds-glass-shadow: 0 1px 2px rgb(0 0 0 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.08);
+  --ds-eyebrow: #15803d;
+  --ds-gradient-brand: linear-gradient(135deg, #22c55e 0%, #16a34a 50%, #14532d 110%);
+  --ds-scroll-thumb: #d4d4d4;
+  --ds-scroll-thumb-hover: #a3a3a3;
+}
+
+/* Rótulo acima dos títulos: caixa alta, tracking largo, verde contido */
+@utility eyebrow {
+  font-size: 0.72rem;
+  line-height: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--ds-eyebrow);
+}
+
+/* Rótulo neutro (cabeçalho de tabela, rótulo de Stat) */
+@utility eyebrow-muted {
+  font-size: 0.68rem;
+  line-height: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--ds-fg-subtle);
+}
+
+@utility text-gradient-brand {
+  background: var(--ds-gradient-brand);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Card de vidro; a borda acende em verde no hover com glass-card-hover */
+@utility glass-card {
+  position: relative;
+  border-radius: 1rem;
+  border: 1px solid var(--ds-glass-border);
+  background-image: linear-gradient(135deg, var(--ds-glass-from), var(--ds-glass-to));
+  box-shadow: var(--ds-glass-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transition: border-color 0.5s ease, box-shadow 0.5s ease, transform 0.5s ease;
+}
+
+@utility glass-card-hover {
+  &:hover {
+    border-color: color-mix(in oklab, var(--ds-accent) 45%, transparent);
+    box-shadow: 0 20px 60px -30px color-mix(in oklab, var(--ds-accent) 55%, transparent);
+  }
+}
+
+/* Linha fina horizontal em gradiente */
+@utility hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-brand-green) 35%, transparent), transparent);
+}
+
+@utility hairline-neutral {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--ds-tint) 12%, transparent), transparent);
+}
+
+/* Grid de fundo que some nas bordas */
+@utility bg-grid-fade {
+  background-size: 56px 56px;
+  background-image:
+    linear-gradient(to right, color-mix(in oklab, var(--ds-tint) 3.5%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--ds-tint) 3.5%, transparent) 1px, transparent 1px);
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 75%);
+}
+
+/* Scrollbar do tema */
+@utility ds-scrollbar {
+  scrollbar-color: var(--ds-scroll-thumb) transparent;
+  scrollbar-width: thin;
+  &::-webkit-scrollbar { width: 6px; height: 6px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: var(--ds-scroll-thumb); border-radius: 10px; }
+  &::-webkit-scrollbar-thumb:hover { background: var(--ds-scroll-thumb-hover); }
 }
 
 /*
@@ -155,10 +417,6 @@
  * layer venceria os utilitários — o layer mantém a ordem antiga.
  */
 @layer components {
-  .font-display {
-    font-family: 'Outfit', sans-serif;
-  }
-
   /* Custom Premium Scrollbar */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -220,4 +478,13 @@
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
