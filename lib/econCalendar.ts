@@ -1,9 +1,11 @@
 // ============================================================
 // Calendário Econômico — leitura das tabelas alimentadas pela edge
-// econ-calendar-sync (Investing.com, 2 e 3 estrelas, com interpretação IA).
+// econ-calendar-sync (TradingView, 2 e 3 estrelas pela nossa régua, com
+// interpretação IA).
 //
-// O browser não fala com o Investing: o Cloudflare bloqueia chamadas de outra
-// origem. Aqui só lemos o banco e pedimos um sync (no-op se rodou há < 60s).
+// O browser não fala com a fonte: a coleta e a classificação de importância
+// ficam no servidor. Aqui só lemos o banco e pedimos um sync (no-op se rodou
+// há < 60s).
 // ============================================================
 
 import { supabase } from './supabase';
@@ -20,6 +22,7 @@ export interface Scenario {
 }
 
 export interface Interpretation {
+  titulo: string;
   tipo: 'dado' | 'qualitativo';
   resumo: string;
   contexto: string;
@@ -28,25 +31,27 @@ export interface Interpretation {
 }
 
 export interface EconEvent {
-  occurrence_id: number;
-  event_id: number;
+  occurrence_id: string;
+  event_key: string;
   occurs_at: string;
+  country: string;
   currency: string;
   title: string;
+  variant: string | null;
   importance: number;
   unit: string | null;
   precision: number | null;
   reference_period: string | null;
-  preliminary: boolean;
   actual: number | null;
   forecast: number | null;
   previous: number | null;
-  actual_to_forecast: 'positive' | 'negative' | 'neutral' | null;
 }
 
 export interface EconProfile {
-  event_id: number;
+  event_key: string;
+  country: string;
   title: string;
+  title_pt: string | null;
   currency: string;
   category: string | null;
   event_type: string | null;
@@ -54,8 +59,6 @@ export interface EconProfile {
   description: string | null;
   source: string | null;
   source_url: string | null;
-  page_link: string | null;
-  polarity: number | null;
   interpretation: Interpretation | null;
 }
 
@@ -64,7 +67,7 @@ export interface SyncStatus {
   last_error: string | null;
 }
 
-const EVENT_COLS = 'occurrence_id, event_id, occurs_at, currency, title, importance, unit, precision, reference_period, preliminary, actual, forecast, previous, actual_to_forecast';
+const EVENT_COLS = 'occurrence_id, event_key, occurs_at, country, currency, title, variant, importance, unit, precision, reference_period, actual, forecast, previous';
 
 // numeric do Postgres chega como string pelo PostgREST quando tem casas decimais.
 function toNum(v: unknown): number | null {
@@ -89,25 +92,25 @@ export async function fetchEvents(from: Date, to: Date): Promise<EconEvent[]> {
   return (data ?? []).map(mapEvent);
 }
 
-export async function fetchProfiles(eventIds: number[]): Promise<Map<number, EconProfile>> {
-  const map = new Map<number, EconProfile>();
-  if (eventIds.length === 0) return map;
+export async function fetchProfiles(keys: string[]): Promise<Map<string, EconProfile>> {
+  const map = new Map<string, EconProfile>();
+  if (keys.length === 0) return map;
   const { data, error } = await supabase
     .from('econ_event_profile')
-    .select('event_id, title, currency, category, event_type, importance, description, source, source_url, page_link, polarity, interpretation')
-    .in('event_id', eventIds);
+    .select('event_key, country, title, title_pt, currency, category, event_type, importance, description, source, source_url, interpretation')
+    .in('event_key', keys);
   if (error) throw error;
-  for (const p of data ?? []) map.set(p.event_id, p as EconProfile);
+  for (const p of data ?? []) map.set(p.event_key, p as EconProfile);
   return map;
 }
 
 // Últimas divulgações já ocorridas do mesmo indicador — mostra se o dado
 // costuma surpreender para cima ou para baixo.
-export async function fetchHistory(eventId: number, before: string, limit = 6): Promise<EconEvent[]> {
+export async function fetchHistory(eventKey: string, before: string, limit = 6): Promise<EconEvent[]> {
   const { data, error } = await supabase
     .from('econ_calendar_event')
     .select(EVENT_COLS)
-    .eq('event_id', eventId)
+    .eq('event_key', eventKey)
     .lt('occurs_at', before)
     .not('actual', 'is', null)
     .order('occurs_at', { ascending: false })
@@ -153,6 +156,22 @@ export function evaluateOutcome(e: EconEvent): Outcome | null {
   return { scenario, baseline: e.forecast != null ? 'forecast' : 'previous', diff };
 }
 
+// A fonte traz o título em inglês; o português vem com a interpretação da IA.
+// Nos países do euro o país entra no nome, já que a moeda não o identifica.
+export function displayTitle(e: EconEvent, p: EconProfile | undefined): string {
+  const base = p?.title_pt ? `${p.title_pt}${e.variant ? ` (${e.variant})` : ''}` : e.title;
+  const country = e.currency === 'EUR' && e.country !== 'EU' ? COUNTRY_LABEL[e.country] : null;
+  return country ? `${country} · ${base}` : base;
+}
+
+// Leitura do "atual" para a moeda, a partir do cenário que se concretizou:
+// 1 = favorável, -1 = desfavorável, 0 = neutro/indefinido.
+export function actualBias(e: EconEvent, p: EconProfile | undefined): number {
+  const o = evaluateOutcome(e);
+  const s = o && p?.interpretation ? p.interpretation.cenarios[o.scenario] : null;
+  return s?.moeda === 'alta' ? 1 : s?.moeda === 'baixa' ? -1 : 0;
+}
+
 export function fmtValue(v: number | null, unit: string | null, precision: number | null): string {
   if (v == null) return '—';
   const p = precision ?? 2;
@@ -185,6 +204,10 @@ export function dayKey(iso: string): string {
   const d = new Date(iso);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+
+export const COUNTRY_LABEL: Record<string, string> = {
+  DE: 'Alemanha', FR: 'França', IT: 'Itália', ES: 'Espanha',
+};
 
 export const CURRENCY_LABEL: Record<string, string> = {
   USD: 'EUA', EUR: 'Zona do Euro', GBP: 'Reino Unido', JPY: 'Japão', CNY: 'China',

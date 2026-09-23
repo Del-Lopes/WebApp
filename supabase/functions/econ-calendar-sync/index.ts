@@ -1,26 +1,32 @@
 // Supabase Edge Function — econ-calendar-sync
 //
-// Coleta o calendário econômico do Investing.com (apenas 2 e 3 estrelas, em
-// PT-BR) e interpreta cada indicador com IA.
+// Coleta o calendário econômico do TradingView (eventos de média e alta
+// importância, mais os indicadores-chave de econ_key_indicator) e interpreta
+// cada indicador com IA.
 //
 //   POST|GET /functions/v1/econ-calendar-sync
 //     → { ok: true, skipped: boolean, events?: n, profiles?: n, interpreted?: n }
 //
-// Fonte: endpoint JSON que o próprio site do Investing usa para montar o
-// calendário (endpoints.investing.com). Não é API pública documentada — se o
-// formato mudar ou o Cloudflare passar a bloquear, o sync falha e o app continua
-// mostrando o que já está no banco. O erro fica em econ_calendar_sync.last_error.
-// O Cloudflare bloqueia chamadas com Origin de terceiros, por isso a coleta é
-// server-side e não no browser.
+// Fonte: endpoint JSON que o widget de calendário do TradingView usa
+// (economic-calendar.tradingview.com). Não é API pública documentada — se o
+// formato mudar, o sync falha, o app continua mostrando o que está no banco e o
+// erro fica em econ_calendar_sync.last_error.
+// Por que não o Investing.com: o Cloudflare dele bloqueia IPs de datacenter
+// (403 sempre a partir do Supabase). O TradingView responde normalmente.
 //
-// Interpretação: uma por INDICADOR (event_id), não por divulgação — o CPI de
-// setembro e o de outubro têm a mesma leitura de cenários. Gerada uma vez, em
-// lotes pequenos por execução, e reaproveitada por todos os usuários. A
-// polaridade observada no Investing (acima da projeção = positivo ou negativo
-// para a moeda) entra no prompt como verdade de referência.
+// Importância: a régua é nossa, não a do TradingView, que classifica como
+// "baixa" dados que o trader brasileiro considera centrais (IPCA-15, CAGED,
+// IGP-M). Vale a maior entre a do TradingView (alta → 3★, média → 2★) e a lista
+// econ_key_indicator; "baixa" só entra se estiver na lista.
+//
+// Interpretação: uma por INDICADOR (país + título normalizado), não por
+// divulgação — o CPI de setembro e o de outubro têm a mesma leitura de cenários.
+// Gerada uma vez, em lotes pequenos, e reaproveitada por todos os usuários.
+// Também traz o título em português.
 //
 // Frequência: trava global de 60s (RPC econ_calendar_claim_sync). O cron chama a
-// cada 5 min e o app chama ao abrir a sessão; chamadas dentro da janela são no-op.
+// cada 5 min e o app chama enquanto a sessão está aberta; chamadas dentro da
+// janela são no-op.
 //
 // Requer "Verify JWT" DESLIGADO: o agendador chama sem JWT de usuário. A função
 // não aceita entrada do chamador e só grava dado público.
@@ -55,6 +61,8 @@ const WINDOW_FUTURE_DAYS = 8
 // Primeira execução (tabela vazia): puxa um mês e meio para o histórico de cada
 // indicador já nascer com algumas divulgações.
 const BACKFILL_DAYS = 45
+// A API corta a resposta em 2000 eventos; blocos de 7 dias ficam bem abaixo.
+const CHUNK_DAYS = 7
 const INTERPRET_BATCH = 5
 // Orçamento de tempo para a IA — a coleta já aconteceu, o resto fica para a
 // próxima execução.
@@ -62,100 +70,133 @@ const INTERPRET_BUDGET_MS = 90_000
 // Falhou ao interpretar? Tenta de novo depois disso, para não queimar cota em loop.
 const INTERPRET_RETRY_MS = 6 * 3600_000
 
-// ─── Investing.com ───────────────────────────────────────────────────────────
+// ─── TradingView ─────────────────────────────────────────────────────────────
 
-const INV_BASE = 'https://endpoints.investing.com/pd-instruments/v1/calendars/economic/events/occurrences'
-// domain_id 30 = br.investing.com → títulos e descrições em português.
-const INV_DOMAIN_PT = '30'
+const TV_BASE = 'https://economic-calendar.tradingview.com/events'
 
-interface InvEvent {
-  event_id: number
-  country_id?: number
-  currency: string
+// Países acompanhados. Sem filtro a API devolve ~100 países, quase todos com
+// eventos irrelevantes para o público do app.
+const TV_COUNTRIES = [
+  'US', 'EU', 'DE', 'FR', 'IT', 'ES', 'GB', 'JP', 'CN', 'BR',
+  'CA', 'AU', 'NZ', 'CH', 'MX', 'ZA', 'SE', 'NO', 'IN', 'KR',
+]
+
+interface TvEvent {
+  id: string
+  title: string
+  country: string
+  currency?: string
+  indicator?: string
+  ticker?: string
   category?: string
-  event_type?: string
-  importance: 'low' | 'medium' | 'high'
-  event_translated?: string
-  long_name?: string
-  short_name?: string
-  description?: string
+  period?: string
   source?: string
   source_url?: string
-  page_link?: string
+  comment?: string
+  actual?: number | null
+  forecast?: number | null
+  previous?: number | null
+  unit?: string | null
+  scale?: string | null
+  importance: number // -1 baixa · 0 média · 1 alta
+  date: string
 }
 
-interface InvOccurrence {
-  occurrence_id: number
-  event_id: number
-  occurrence_time: string
-  unit?: string
-  precision?: number
-  reference_period?: string
-  preliminary?: boolean
-  actual?: number
-  forecast?: number
-  previous?: number
-  actual_to_forecast?: string
-  revised_to_previous?: string
-}
-
-async function fetchInvesting(start: Date, end: Date): Promise<{ events: InvEvent[]; occurrences: InvOccurrence[] }> {
-  const events: InvEvent[] = []
-  const occurrences: InvOccurrence[] = []
-  let cursor: string | null = null
-
-  // Paginação por cursor. Com limit=500 uma janela de ~10 dias cabe numa página;
-  // o teto de páginas protege contra cursor que não avança.
-  for (let page = 0; page < 10; page++) {
-    const url = new URL(INV_BASE)
-    url.searchParams.set('domain_id', INV_DOMAIN_PT)
-    url.searchParams.set('limit', '500')
-    url.searchParams.set('start_date', start.toISOString())
-    url.searchParams.set('end_date', end.toISOString())
-    // 2 e 3 estrelas. O parâmetro não é "explodido": vai separado por vírgula.
-    url.searchParams.set('importance', 'medium,high')
-    if (cursor) url.searchParams.set('cursor', cursor)
+async function fetchTradingView(start: Date, end: Date): Promise<TvEvent[]> {
+  const all: TvEvent[] = []
+  for (let from = start.getTime(); from < end.getTime(); from += CHUNK_DAYS * 86_400_000) {
+    const to = Math.min(from + CHUNK_DAYS * 86_400_000, end.getTime())
+    const url = new URL(TV_BASE)
+    url.searchParams.set('from', new Date(from).toISOString())
+    url.searchParams.set('to', new Date(to).toISOString())
+    url.searchParams.set('countries', TV_COUNTRIES.join(','))
 
     const res = await fetch(url.toString(), {
       headers: {
-        // Sem User-Agent de navegador o Cloudflare responde 403.
+        // Sem Origin do TradingView a API recusa a chamada.
+        'Origin': 'https://www.tradingview.com',
+        'Referer': 'https://www.tradingview.com/',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0 Safari/537.36',
         'Accept': 'application/json',
-        'Origin': 'https://br.investing.com',
-        'Referer': 'https://br.investing.com/',
       },
     })
-    if (!res.ok) throw new Error(`investing_http_${res.status}`)
+    if (!res.ok) throw new Error(`tradingview_http_${res.status}`)
     const json = await res.json()
-    if (!Array.isArray(json?.occurrences)) throw new Error('investing_bad_payload')
-
-    events.push(...(json.events ?? []))
-    occurrences.push(...json.occurrences)
-    cursor = json.next_page_cursor ?? null
-    if (!cursor) break
+    if (json?.status !== 'ok' || !Array.isArray(json.result)) throw new Error('tradingview_bad_payload')
+    all.push(...json.result)
   }
-
-  return { events, occurrences }
+  // Blocos se tocam na borda: remove repetidos.
+  const seen = new Set<string>()
+  return all.filter((e) => e?.id && !seen.has(e.id) && seen.add(e.id))
 }
 
-// A descrição vem com HTML escapado (&lt;BR/&gt;) e quebras \r\n. Às vezes a
-// entidade vem sem o ";" (<BR/&gt), por isso o ";" opcional.
-function cleanDescription(raw: string | undefined): string | null {
-  if (!raw) return null
-  const text = raw
-    .replace(/&lt;?/gi, '<').replace(/&gt;?/gi, '>')
-    .replace(/<br\s*\/?>/gi, '\n')
-    .replace(/<[^>]+>/g, '')
-    .replace(/&amp;/gi, '&').replace(/&quot;/gi, '"').replace(/&#39;/gi, "'").replace(/&nbsp;/gi, ' ')
-    .replace(/\r/g, '')
-    .replace(/[ \t]+\n/g, '\n')
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-  return text || null
+// ─── Normalização ────────────────────────────────────────────────────────────
+
+// Sufixos de versão da mesma divulgação. Removidos da chave para que prévia e
+// final do PIB, por exemplo, sejam o mesmo indicador (mesma interpretação e
+// histórico contínuo).
+const VARIANTS: [RegExp, string][] = [
+  [/\s+(Adv|Advance)$/i, 'Preliminar'],
+  [/\s+(Prel|Preliminary)$/i, 'Preliminar'],
+  [/\s+Flash$/i, 'Prévia'],
+  [/\s+(2nd|Second) Est(imate)?$/i, '2ª estimativa'],
+  [/\s+(3rd|Third) Est(imate)?$/i, '3ª estimativa'],
+  [/\s+Final$/i, 'Final'],
+]
+
+function splitVariant(title: string): { base: string; variant: string | null } {
+  const t = title.trim()
+  for (const [re, label] of VARIANTS) {
+    if (re.test(t)) return { base: t.replace(re, '').trim(), variant: label }
+  }
+  return { base: t, variant: null }
 }
 
-const importanceStars = (i: string) => (i === 'high' ? 3 : 2)
+const eventKey = (country: string, base: string) => `${country}:${base}`
+
+// Tipo qualitativo pelo título: discursos e atas/relatórios não têm número.
+function eventType(title: string, hasNumbers: boolean): string | null {
+  if (hasNumbers) return null
+  if (/speech|speaks|testimony|press conference|hearing/i.test(title)) return 'speech'
+  if (/minutes|meeting|readout|report|statement|summary|outlook/i.test(title)) return 'report'
+  return null
+}
+
 const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : null)
+
+// O TradingView não informa precisão; usa as casas decimais do próprio dado.
+function precisionOf(...vals: (number | null)[]): number {
+  let p = 0
+  for (const v of vals) {
+    if (v == null) continue
+    const dec = (String(v).split('.')[1] ?? '').length
+    p = Math.max(p, dec)
+  }
+  return Math.min(p, 3)
+}
+
+// 'K', 'M', 'B' vêm em scale; '%' em unit. Símbolo de moeda é omitido — a moeda
+// do evento já aparece na linha.
+function unitOf(e: TvEvent): string | null {
+  const u = (e.scale ?? '') + (e.unit === '%' ? '%' : '')
+  return u || null
+}
+
+interface KeyIndicator { country: string; pattern: string; importance: number }
+
+// Padrão LIKE (% e _) → regex ancorada, sem diferenciar maiúsculas.
+function likeToRegex(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/%/g, '.*').replace(/_/g, '.')
+  return new RegExp(`^${escaped}$`, 'i')
+}
+
+function importanceFor(e: TvEvent, base: string, keys: { country: string; re: RegExp; importance: number }[]): number | null {
+  let imp = e.importance >= 1 ? 3 : e.importance === 0 ? 2 : 0
+  for (const k of keys) {
+    if (k.country === e.country && k.re.test(base)) imp = Math.max(imp, k.importance)
+  }
+  return imp >= 2 ? imp : null
+}
 
 // ─── IA (cascata Gemini → Groq, mesma configuração dos outros módulos) ──────
 
@@ -245,6 +286,7 @@ interface Scenario {
   ativos: { ativo: string; direcao: Dir }[]
 }
 interface Interpretation {
+  titulo: string
   tipo: 'dado' | 'qualitativo'
   resumo: string
   contexto: string
@@ -276,10 +318,11 @@ function normalizeInterpretation(raw: any): Interpretation | null {
   const acima = normalizeScenario(c.acima, tipo === 'dado' ? 'Acima do esperado' : 'Tom mais duro (hawkish)')
   const abaixo = normalizeScenario(c.abaixo, tipo === 'dado' ? 'Abaixo do esperado' : 'Tom mais brando (dovish)')
   const emLinha = normalizeScenario(c.em_linha, tipo === 'dado' ? 'Em linha com o esperado' : 'Sem sinalização nova')
+  const titulo = asStr(raw.titulo)
   const resumo = asStr(raw.resumo)
   const contexto = asStr(raw.contexto)
-  if (!acima || !abaixo || !emLinha || !resumo || !contexto) return null
-  return { tipo, resumo, contexto, cenarios: { acima, abaixo, em_linha: emLinha }, atencao: asStr(raw.atencao) }
+  if (!acima || !abaixo || !emLinha || !titulo || !resumo || !contexto) return null
+  return { titulo, tipo, resumo, contexto, cenarios: { acima, abaixo, em_linha: emLinha }, atencao: asStr(raw.atencao) }
 }
 
 // Ativos que o público do app (trader BR, MT5) acompanha, por moeda do evento.
@@ -296,32 +339,34 @@ const ASSETS_BY_CURRENCY: Record<string, string> = {
   CHF: 'USD/CHF, EUR/CHF, Ouro',
 }
 
-function buildPrompt(p: ProfileRow, sample: InvOccurrence | undefined): string {
+const COUNTRY_PT: Record<string, string> = {
+  US: 'Estados Unidos', EU: 'Zona do Euro', DE: 'Alemanha', FR: 'França', IT: 'Itália', ES: 'Espanha',
+  GB: 'Reino Unido', JP: 'Japão', CN: 'China', BR: 'Brasil', CA: 'Canadá', AU: 'Austrália',
+  NZ: 'Nova Zelândia', CH: 'Suíça', MX: 'México', ZA: 'África do Sul', SE: 'Suécia', NO: 'Noruega',
+  IN: 'Índia', KR: 'Coreia do Sul',
+}
+
+function buildPrompt(p: ProfileRow, sample: TvEvent | undefined): string {
   const assets = ASSETS_BY_CURRENCY[p.currency] ?? `pares com ${p.currency}, índice de ações local`
   const qualitative = p.event_type === 'speech' || p.event_type === 'report'
-  const polarityLine = p.polarity === 1
-    ? `Referência observada no Investing: leitura ACIMA da projeção é classificada como POSITIVA para ${p.currency}. Respeite isso.`
-    : p.polarity === -1
-      ? `Referência observada no Investing: leitura ACIMA da projeção é classificada como NEGATIVA para ${p.currency} (ex.: desemprego, estoques). Respeite isso.`
-      : ''
-  const sampleLine = sample && (sample.previous != null || sample.forecast != null)
-    ? `Última divulgação conhecida: anterior ${sample.previous ?? '—'}${sample.unit ?? ''}, projeção ${sample.forecast ?? '—'}${sample.unit ?? ''}.`
+  const sampleLine = sample && (num(sample.previous) != null || num(sample.forecast) != null)
+    ? `Divulgação mais próxima: anterior ${sample.previous ?? '—'}${unitOf(sample) ?? ''}, projeção ${sample.forecast ?? '—'}${unitOf(sample) ?? ''}.`
     : ''
 
   return `Indicador do calendário econômico:
-- Nome: ${p.title}
-- Moeda/país: ${p.currency}
+- Nome original (inglês): ${p.title}
+- País: ${COUNTRY_PT[p.country] ?? p.country} · Moeda: ${p.currency}
 - Categoria: ${p.category ?? '—'}
 - Importância: ${p.importance} estrelas (de 3)
 - Tipo: ${qualitative ? 'qualitativo (discurso, ata ou relatório — sem número a comparar)' : 'dado numérico (atual × projeção × anterior)'}
 - Descrição da fonte: ${p.description ?? '—'}
-${polarityLine}
 ${sampleLine}
 
 Ativos relevantes para o público (trader brasileiro que opera forex, índices e B3): ${assets}
 
 Escreva a interpretação deste indicador para um trader. Devolva SOMENTE um JSON neste formato:
 {
+  "titulo": "nome do indicador em português como o mercado brasileiro chama (ex.: 'Payroll', 'IPC (CPI) anual', 'IPCA-15 mensal', 'Decisão de juros do BCE', 'Discurso de Powell'), sem o nome do país",
   "tipo": "${qualitative ? 'qualitativo' : 'dado'}",
   "resumo": "o que o indicador mede, em 1-2 frases simples",
   "contexto": "por que o mercado acompanha: relação com inflação, juros, política do banco central, crescimento; como costuma mexer o preço (2-4 frases)",
@@ -335,6 +380,7 @@ Escreva a interpretação deste indicador para um trader. Devolva SOMENTE um JSO
 
 Regras:
 - "moeda" é a direção esperada de ${p.currency} naquele cenário.
+- Atenção à polaridade: em indicadores onde número MAIOR é notícia RUIM para a economia (desemprego, pedidos de seguro-desemprego, estoques, déficit), "acima" tende a ser NEGATIVO para a moeda. Em inflação, número maior costuma ser positivo para a moeda (expectativa de juros mais altos).
 - "intensidade" reflete o peso do indicador (3 estrelas com surpresa grande tende a "forte"; 2 estrelas tende a "moderada"; em linha tende a "fraca").
 - Em "ativos", 3 a 5 itens da lista de ativos relevantes, com a direção coerente com a moeda (ex.: USD em alta → EUR/USD em baixa, WDO em alta).
 - Linguagem de probabilidade ("tende a", "costuma"), nunca certeza. Não recomende compra ou venda.
@@ -344,14 +390,14 @@ Regras:
 // ─── Handler ─────────────────────────────────────────────────────────────────
 
 interface ProfileRow {
-  event_id: number
+  event_key: string
+  country: string
   title: string
   currency: string
   category: string | null
   event_type: string | null
   importance: number
   description: string | null
-  polarity: number | null
 }
 
 Deno.serve(async (req) => {
@@ -371,102 +417,104 @@ Deno.serve(async (req) => {
   }
   if (!claimed) return jsonResponse(200, { ok: true, skipped: true })
 
+  const fail = async (status: number, error: string, detail?: string) => {
+    await supabaseAdmin.from('econ_calendar_sync').update({ last_error: detail ?? error }).eq('id', 1)
+    return jsonResponse(status, { error, ...(detail ? { detail } : {}) })
+  }
+
   // ── 1. Coleta ──
-  const { count: existing } = await supabaseAdmin
-    .from('econ_calendar_event')
-    .select('occurrence_id', { count: 'exact', head: true })
+  const [{ count: existing }, { data: keyRows }] = await Promise.all([
+    supabaseAdmin.from('econ_calendar_event').select('occurrence_id', { count: 'exact', head: true }),
+    supabaseAdmin.from('econ_key_indicator').select('country, pattern, importance'),
+  ])
+  const keys = ((keyRows ?? []) as KeyIndicator[]).map((k) => ({ country: k.country, re: likeToRegex(k.pattern), importance: k.importance }))
 
   const now = Date.now()
   const pastDays = (existing ?? 0) === 0 ? BACKFILL_DAYS : WINDOW_PAST_DAYS
   const start = new Date(now - pastDays * 86_400_000)
   const end = new Date(now + WINDOW_FUTURE_DAYS * 86_400_000)
 
-  let events: InvEvent[], occurrences: InvOccurrence[]
+  let raw: TvEvent[]
   try {
-    ({ events, occurrences } = await fetchInvesting(start, end))
+    raw = await fetchTradingView(start, end)
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e)
     console.error('[econ-calendar-sync] fetch failed', msg)
-    await supabaseAdmin.from('econ_calendar_sync').update({ last_error: msg }).eq('id', 1)
-    return jsonResponse(502, { error: 'source_fetch_failed', detail: msg })
+    return fail(502, 'source_fetch_failed', msg)
   }
 
-  const eventById = new Map<number, InvEvent>()
-  for (const ev of events) {
-    if (ev?.event_id && (ev.importance === 'medium' || ev.importance === 'high')) eventById.set(ev.event_id, ev)
+  interface Selected { e: TvEvent; key: string; base: string; variant: string | null; importance: number }
+  const selected: Selected[] = []
+  for (const e of raw) {
+    if (!e?.id || !e.title || !e.country || !e.date) continue
+    const { base, variant } = splitVariant(e.title)
+    const importance = importanceFor(e, base, keys)
+    if (importance == null) continue
+    selected.push({ e, key: eventKey(e.country, base), base, variant, importance })
   }
 
-  // Polaridade: quando o dado sai diferente da projeção, o Investing marca a
-  // leitura como positiva/negativa para a moeda. Daí sai se "acima" é bom ou
-  // ruim para aquele indicador (desemprego e estoques, por exemplo, são
-  // invertidos).
-  const polarity = new Map<number, number>()
-  for (const o of occurrences) {
-    const a = num(o.actual), f = num(o.forecast)
-    if (a == null || f == null || a === f) continue
-    if (o.actual_to_forecast !== 'positive' && o.actual_to_forecast !== 'negative') continue
-    polarity.set(o.event_id, Math.sign(a - f) * (o.actual_to_forecast === 'positive' ? 1 : -1))
+  // Um perfil por indicador. A importância do perfil é a maior entre as
+  // divulgações vistas (a prévia do PMI pode vir média e o final, alta).
+  const profiles = new Map<string, ProfileRow & { source: string | null; source_url: string | null; updated_at: string }>()
+  const hasNumbers = new Map<string, boolean>()
+  for (const s of selected) {
+    const numeric = num(s.e.actual) != null || num(s.e.forecast) != null || num(s.e.previous) != null
+    hasNumbers.set(s.key, (hasNumbers.get(s.key) ?? false) || numeric)
   }
-
-  const profileRows = [...eventById.values()].map((ev) => ({
-    event_id: ev.event_id,
-    title: ev.event_translated || ev.long_name || ev.short_name || `Evento ${ev.event_id}`,
-    currency: ev.currency || '—',
-    country_id: ev.country_id ?? null,
-    category: ev.category ?? null,
-    event_type: ev.event_type ?? null,
-    importance: importanceStars(ev.importance),
-    description: cleanDescription(ev.description),
-    source: ev.source ?? null,
-    source_url: ev.source_url ?? null,
-    page_link: ev.page_link ?? null,
-    updated_at: new Date().toISOString(),
-  }))
-
-  const occurrenceRows = occurrences
-    .filter((o) => o?.occurrence_id && eventById.has(o.event_id))
-    .map((o) => {
-      const ev = eventById.get(o.event_id)!
-      return {
-        occurrence_id: o.occurrence_id,
-        event_id: o.event_id,
-        occurs_at: o.occurrence_time,
-        currency: ev.currency || '—',
-        title: ev.event_translated || ev.long_name || ev.short_name || `Evento ${ev.event_id}`,
-        importance: importanceStars(ev.importance),
-        unit: o.unit ?? null,
-        precision: typeof o.precision === 'number' ? o.precision : null,
-        reference_period: o.reference_period ?? null,
-        preliminary: !!o.preliminary,
-        actual: num(o.actual),
-        forecast: num(o.forecast),
-        previous: num(o.previous),
-        actual_to_forecast: o.actual_to_forecast ?? null,
-        revised_to_previous: o.revised_to_previous ?? null,
-        updated_at: new Date().toISOString(),
-      }
+  for (const s of selected) {
+    const prev = profiles.get(s.key)
+    if (prev && prev.importance >= s.importance) continue
+    profiles.set(s.key, {
+      event_key: s.key,
+      country: s.e.country,
+      currency: s.e.currency || '—',
+      title: s.base,
+      category: s.e.category ?? null,
+      event_type: eventType(s.base, hasNumbers.get(s.key) ?? false),
+      importance: s.importance,
+      description: s.e.comment?.trim() || null,
+      source: s.e.source ?? null,
+      source_url: s.e.source_url ?? null,
+      updated_at: new Date().toISOString(),
     })
+  }
 
-  // Dois lotes com colunas homogêneas: quem tem polaridade observada nesta
-  // janela grava a coluna; quem não tem fica fora dela, para o upsert não
-  // sobrescrever com null uma polaridade aprendida em execuções anteriores.
-  const withPolarity = profileRows.filter((r) => polarity.has(r.event_id)).map((r) => ({ ...r, polarity: polarity.get(r.event_id)! }))
-  const withoutPolarity = profileRows.filter((r) => !polarity.has(r.event_id))
-  for (const rows of [withPolarity, withoutPolarity]) {
-    if (rows.length === 0) continue
-    const { error } = await supabaseAdmin.from('econ_event_profile').upsert(rows, { onConflict: 'event_id' })
+  const occurrenceRows = selected.map((s) => {
+    const actual = num(s.e.actual), forecast = num(s.e.forecast), previous = num(s.e.previous)
+    return {
+      occurrence_id: s.e.id,
+      event_key: s.key,
+      occurs_at: s.e.date,
+      country: s.e.country,
+      currency: s.e.currency || '—',
+      title: s.e.title,
+      variant: s.variant,
+      importance: s.importance,
+      unit: unitOf(s.e),
+      precision: precisionOf(actual, forecast, previous),
+      reference_period: s.e.period || null,
+      actual,
+      forecast,
+      previous,
+      updated_at: new Date().toISOString(),
+    }
+  })
+
+  // Upsert só das colunas de metadado: interpretação e título em PT, gravados
+  // pela etapa de IA, não são tocados.
+  const profileRows = [...profiles.values()]
+  if (profileRows.length > 0) {
+    const { error } = await supabaseAdmin.from('econ_event_profile').upsert(profileRows, { onConflict: 'event_key' })
     if (error) {
       console.error('[econ-calendar-sync] profile upsert', error)
-      await supabaseAdmin.from('econ_calendar_sync').update({ last_error: 'profile_upsert_failed' }).eq('id', 1)
-      return jsonResponse(500, { error: 'profile_upsert_failed' })
+      return fail(500, 'profile_upsert_failed')
     }
   }
   if (occurrenceRows.length > 0) {
     const { error } = await supabaseAdmin.from('econ_calendar_event').upsert(occurrenceRows, { onConflict: 'occurrence_id' })
     if (error) {
       console.error('[econ-calendar-sync] event upsert', error)
-      await supabaseAdmin.from('econ_calendar_sync').update({ last_error: 'event_upsert_failed' }).eq('id', 1)
-      return jsonResponse(500, { error: 'event_upsert_failed' })
+      return fail(500, 'event_upsert_failed')
     }
   }
 
@@ -475,53 +523,48 @@ Deno.serve(async (req) => {
     .eq('id', 1)
 
   // ── 2. Interpretação dos indicadores que ainda não têm ──
-  // Prioridade: próximos a acontecer (mais cedo primeiro, 3★ antes de 2★),
-  // depois os já passados.
-  const ordered = [...occurrences]
-    .filter((o) => eventById.has(o.event_id))
-    .sort((a, b) => {
-      const ta = Date.parse(a.occurrence_time), tb = Date.parse(b.occurrence_time)
-      const fa = ta >= now ? 0 : 1, fb = tb >= now ? 0 : 1
-      if (fa !== fb) return fa - fb
-      const ia = importanceStars(eventById.get(a.event_id)!.importance)
-      const ib = importanceStars(eventById.get(b.event_id)!.importance)
-      if (ia !== ib) return ib - ia
-      return fa === 0 ? ta - tb : tb - ta
-    })
-  const priority = [...new Set(ordered.map((o) => o.event_id))]
-  const sampleByEvent = new Map<number, InvOccurrence>()
-  for (const o of ordered) if (!sampleByEvent.has(o.event_id)) sampleByEvent.set(o.event_id, o)
+  // Prioridade: próximos a acontecer (3★ antes de 2★, mais cedo primeiro),
+  // depois os já passados (mais recentes primeiro).
+  const ordered = [...selected].sort((a, b) => {
+    const ta = Date.parse(a.e.date), tb = Date.parse(b.e.date)
+    const fa = ta >= now ? 0 : 1, fb = tb >= now ? 0 : 1
+    if (fa !== fb) return fa - fb
+    if (a.importance !== b.importance) return b.importance - a.importance
+    return fa === 0 ? ta - tb : tb - ta
+  })
+  const priority = [...new Set(ordered.map((s) => s.key))]
+  const sampleByKey = new Map<string, TvEvent>()
+  for (const s of ordered) if (!sampleByKey.has(s.key)) sampleByKey.set(s.key, s.e)
 
   let interpreted = 0
   if (priority.length > 0) {
     const retryCutoff = new Date(now - INTERPRET_RETRY_MS).toISOString()
     const { data: pending } = await supabaseAdmin
       .from('econ_event_profile')
-      .select('event_id, title, currency, category, event_type, importance, description, polarity')
-      .in('event_id', priority)
+      .select('event_key')
       .is('interpretation', null)
       .or(`interpreted_at.is.null,interpreted_at.lt.${retryCutoff}`)
 
-    const pendingById = new Map<number, ProfileRow>((pending ?? []).map((p: ProfileRow) => [p.event_id, p]))
-    const batch = priority.filter((id) => pendingById.has(id)).slice(0, INTERPRET_BATCH)
+    const pendingKeys = new Set((pending ?? []).map((p: { event_key: string }) => p.event_key))
+    const batch = priority.filter((k) => pendingKeys.has(k)).slice(0, INTERPRET_BATCH)
 
     if (batch.length > 0) {
       const { data: aiConfig } = await supabaseAdmin.from('ai_configurations').select('*').maybeSingle()
       const system = 'Você é um economista e analista de mercado que explica o calendário econômico para traders de forma didática e objetiva. Responde sempre em JSON válido, em português do Brasil. Nunca recomenda compra ou venda nem promete resultado.'
 
-      for (const eventId of batch) {
+      for (const key of batch) {
         if (Date.now() - startedAt > INTERPRET_BUDGET_MS) break
-        const profile = pendingById.get(eventId)!
-        const result = await generateInterpretation(system, buildPrompt(profile, sampleByEvent.get(eventId)), aiConfig || {})
+        const profile = profiles.get(key)!
+        const result = await generateInterpretation(system, buildPrompt(profile, sampleByKey.get(key)), aiConfig || {})
         if (result) {
           await supabaseAdmin.from('econ_event_profile')
-            .update({ interpretation: result, interpreted_at: new Date().toISOString(), interpret_error: null })
-            .eq('event_id', eventId)
+            .update({ interpretation: result, title_pt: result.titulo, interpreted_at: new Date().toISOString(), interpret_error: null })
+            .eq('event_key', key)
           interpreted++
         } else {
           await supabaseAdmin.from('econ_event_profile')
             .update({ interpreted_at: new Date().toISOString(), interpret_error: 'ai_failed' })
-            .eq('event_id', eventId)
+            .eq('event_key', key)
         }
       }
     }

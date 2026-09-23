@@ -60,11 +60,11 @@ export const EventDetail: React.FC<Props> = ({ event, profile }) => {
 
   useEffect(() => {
     let alive = true;
-    fetchHistory(event.event_id, event.occurs_at)
+    fetchHistory(event.event_key, event.occurs_at)
       .then((h) => { if (alive) setHistory(h); })
       .catch(() => { if (alive) setHistory([]); });
     return () => { alive = false; };
-  }, [event.event_id, event.occurs_at]);
+  }, [event.event_key, event.occurs_at]);
 
   const hitScenario = outcome && interp ? interp.cenarios[outcome.scenario] : null;
 
@@ -190,20 +190,21 @@ export const EventDetail: React.FC<Props> = ({ event, profile }) => {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-400">
         {profile?.description && (
           <details className="w-full">
-            <summary className="cursor-pointer hover:text-slate-600">Descrição oficial do indicador</summary>
+            <summary className="cursor-pointer hover:text-slate-600">Descrição original do indicador (inglês)</summary>
             <p className="mt-1.5 text-xs text-slate-500 leading-relaxed whitespace-pre-line">{profile.description}</p>
           </details>
         )}
-        {profile?.source && <span>Órgão: {profile.source}</span>}
-        {profile?.page_link && (
-          <a
-            href={`https://br.investing.com${profile.page_link}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 hover:text-indigo-600"
-          >
-            Ver no Investing <ExternalLink size={11} />
-          </a>
+        {profile?.source && (
+          profile.source_url ? (
+            <a
+              href={profile.source_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 hover:text-indigo-600"
+            >
+              Fonte oficial: {profile.source} <ExternalLink size={11} />
+            </a>
+          ) : <span>Fonte oficial: {profile.source}</span>
         )}
       </div>
     </div>

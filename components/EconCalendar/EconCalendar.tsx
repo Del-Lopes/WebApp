@@ -4,7 +4,7 @@ import { BackButton } from '../BackButton';
 import {
   EconEvent, EconProfile, SyncStatus,
   fetchEvents, fetchProfiles, fetchSyncStatus, requestSync,
-  fmtValue, fmtCountdown, fmtTime, dayKey, CURRENCY_LABEL,
+  fmtValue, fmtCountdown, fmtTime, dayKey, displayTitle, CURRENCY_LABEL,
 } from '../../lib/econCalendar';
 import { EventRow, Stars } from './EventRow';
 import { EventDetail, DirIcon } from './EventDetail';
@@ -85,7 +85,7 @@ const NextEventCard: React.FC<{ event: EconEvent; profile: EconProfile | undefin
             <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
               <Clock size={13} /> Próximo evento de alto impacto
             </p>
-            <p className="mt-1.5 text-lg font-bold leading-snug">{event.title}</p>
+            <p className="mt-1.5 text-lg font-bold leading-snug">{displayTitle(event, profile)}</p>
             <p className="mt-1 text-xs text-slate-400 flex items-center gap-2 flex-wrap">
               <span className="font-bold text-white bg-white/10 px-1.5 py-0.5 rounded">{event.currency}</span>
               {CURRENCY_LABEL[event.currency] && <span>{CURRENCY_LABEL[event.currency]}</span>}
@@ -140,13 +140,13 @@ const NextEventCard: React.FC<{ event: EconEvent; profile: EconProfile | undefin
 
 export const EconCalendar: React.FC<Props> = ({ onBack }) => {
   const [events, setEvents] = useState<EconEvent[]>([]);
-  const [profiles, setProfiles] = useState<Map<number, EconProfile>>(new Map());
+  const [profiles, setProfiles] = useState<Map<string, EconProfile>>(new Map());
   const [sync, setSync] = useState<SyncStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [range, setRange] = useState<RangeKey>('today');
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
-  const [openId, setOpenId] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<string | null>(null);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -159,7 +159,7 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
     try {
       const evs = await fetchEvents(startOfDay(-1), startOfDay(8));
       const [profs, status] = await Promise.all([
-        fetchProfiles([...new Set(evs.map((e) => e.event_id))]),
+        fetchProfiles([...new Set(evs.map((e) => e.event_key))]),
         fetchSyncStatus(),
       ]);
       setEvents(evs);
@@ -256,7 +256,7 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
       <div className="rounded-xl bg-amber-50 ring-1 ring-amber-100 p-3 flex items-start gap-2">
         <AlertTriangle size={15} className="text-amber-500 mt-0.5 shrink-0" />
         <p className="text-xs text-amber-800 leading-relaxed">
-          Eventos de 2 e 3 estrelas via Investing.com, horários no seu fuso. As interpretações são geradas por IA e descrevem a
+          Eventos de 2 e 3 estrelas (dados via TradingView), horários no seu fuso. As interpretações são geradas por IA e descrevem a
           reação <strong>típica</strong> do mercado — não são recomendação de operação. Na divulgação o spread abre e o preço pode
           oscilar forte para os dois lados.
         </p>
@@ -269,7 +269,7 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
         </div>
       )}
 
-      {nextHigh && <NextEventCard event={nextHigh} profile={profiles.get(nextHigh.event_id)} now={now} />}
+      {nextHigh && <NextEventCard event={nextHigh} profile={profiles.get(nextHigh.event_key)} now={now} />}
 
       {/* Filtros */}
       <div className="space-y-2">
@@ -358,7 +358,7 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
                 <EventRow
                   key={e.occurrence_id}
                   event={e}
-                  profile={profiles.get(e.event_id)}
+                  profile={profiles.get(e.event_key)}
                   now={now}
                   open={openId === e.occurrence_id}
                   onToggle={() => setOpenId((id) => (id === e.occurrence_id ? null : e.occurrence_id))}

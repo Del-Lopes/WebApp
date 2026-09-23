@@ -1,6 +1,6 @@
 import React from 'react';
 import { Star, ChevronDown, Mic, FileText } from 'lucide-react';
-import { EconEvent, EconProfile, evaluateOutcome, fmtValue, fmtTime, fmtCountdown } from '../../lib/econCalendar';
+import { EconEvent, EconProfile, evaluateOutcome, actualBias, displayTitle, fmtValue, fmtTime, fmtCountdown } from '../../lib/econCalendar';
 import { EventDetail, DirIcon } from './EventDetail';
 
 interface Props {
@@ -19,12 +19,11 @@ export const Stars: React.FC<{ n: number }> = ({ n }) => (
   </span>
 );
 
-// Cor do "Atual" segue a classificação do Investing para a moeda:
-// positivo = bom para a moeda (verde), negativo = ruim (vermelho).
-function actualColor(e: EconEvent): string {
-  if (e.actual_to_forecast === 'positive') return 'text-emerald-600';
-  if (e.actual_to_forecast === 'negative') return 'text-rose-600';
-  return 'text-slate-800';
+// Cor do "Atual" segue o cenário que se concretizou para a moeda:
+// favorável (verde), desfavorável (vermelho). Sem interpretação, fica neutra.
+function actualColor(e: EconEvent, p: EconProfile | undefined): string {
+  const bias = actualBias(e, p);
+  return bias > 0 ? 'text-emerald-600' : bias < 0 ? 'text-rose-600' : 'text-slate-800';
 }
 
 const Value: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
@@ -63,7 +62,7 @@ export const EventRow: React.FC<Props> = ({ event, profile, now, open, onToggle 
             <p className="text-sm font-semibold text-slate-800 truncate flex items-center gap-1.5">
               {eventType === 'speech' && <Mic size={13} className="text-slate-400 shrink-0" />}
               {eventType === 'report' && <FileText size={13} className="text-slate-400 shrink-0" />}
-              <span className="truncate">{event.title}</span>
+              <span className="truncate">{displayTitle(event, profile)}</span>
               {event.reference_period && <span className="text-xs font-normal text-slate-400 shrink-0">({event.reference_period})</span>}
             </p>
             {scenario ? (
@@ -82,7 +81,7 @@ export const EventRow: React.FC<Props> = ({ event, profile, now, open, onToggle 
 
           {/* Números */}
           <div className="flex items-center gap-3 md:gap-5 justify-between md:justify-end">
-            <Value label="Atual"><span className={`font-bold ${actualColor(event)}`}>{fmtValue(event.actual, event.unit, event.precision)}</span></Value>
+            <Value label="Atual"><span className={`font-bold ${actualColor(event, profile)}`}>{fmtValue(event.actual, event.unit, event.precision)}</span></Value>
             <Value label="Projeção"><span className="text-slate-600">{fmtValue(event.forecast, event.unit, event.precision)}</span></Value>
             <Value label="Anterior"><span className="text-slate-400">{fmtValue(event.previous, event.unit, event.precision)}</span></Value>
             <ChevronDown size={18} className={`text-slate-300 transition-transform shrink-0 ${open ? 'rotate-180' : ''}`} />
