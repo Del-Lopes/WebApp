@@ -47,6 +47,7 @@ import { formatBytes, getStorageStats, StorageStats, uploadToSupabase, listAllFi
 import { BackButton } from '../BackButton';
 import { ArticleAutomationSettings } from './ArticleAutomationSettings';
 import { MarketAdmin } from './MarketAdmin';
+import { LiveRoomAdmin } from './LiveRoomAdmin';
 import {
   Badge, Button, Card, EmptyState, Input, Label, PageHeader, Select, Skeleton, Tabs, Textarea,
   Table, THead, TBody, TR, TH, TD,
@@ -118,7 +119,7 @@ function findLegacyItems(articlesData: any[], productsData: any[]): LegacyItem[]
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) => {
-  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users' | 'content' | 'market' | 'automation'>('licenses');
+  const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users' | 'content' | 'market' | 'automation' | 'live_room'>('licenses');
   const [activeLicenseSubTab, setActiveLicenseSubTab] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO' | 'FX SQUAD'>('AFK TRADER');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<Profile[]>([]);
@@ -1058,6 +1059,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               { key: 'content', label: 'Storage' },
               { key: 'market', label: 'Market' },
               { key: 'automation', label: 'Automação IA' },
+              { key: 'live_room', label: 'Sala ao Vivo' },
             ]}
           />
 
@@ -2066,6 +2068,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         ) : activeTab === 'automation' ? (
           <div className="p-4 sm:p-6">
             <ArticleAutomationSettings />
+          </div>
+        ) : activeTab === 'live_room' ? (
+          <div className="p-4 sm:p-6">
+            <LiveRoomAdmin />
           </div>
         ) : null}
       </div>

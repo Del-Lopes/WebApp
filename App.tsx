@@ -37,6 +37,7 @@ const HandBot = React.lazy(() => import('./components/HandBot/HandBot').then(mod
 const TrilhaGain = React.lazy(() => import('./components/TrilhaGain/TrilhaGain').then(module => ({ default: module.TrilhaGain })));
 const Signals = React.lazy(() => import('./components/Signals/Signals').then(module => ({ default: module.Signals })));
 const Crypto = React.lazy(() => import('./components/Crypto/Crypto').then(module => ({ default: module.Crypto })));
+const LiveRoom = React.lazy(() => import('./components/LiveRoom/LiveRoom').then(module => ({ default: module.LiveRoom })));
 const EconCalendar = React.lazy(() => import('./components/EconCalendar/EconCalendar').then(module => ({ default: module.EconCalendar })));
 
 // Telas restritas por role; as demais são livres para qualquer usuário logado.
@@ -163,6 +164,7 @@ function AppContent() {
       case 'signals': return 'Sinais - Trader AFK';
       case 'crypto': return 'Crypto - Trader AFK';
       case 'econ_calendar': return 'Calendário Econômico - Trader AFK';
+      case 'live_room': return 'Sala ao Vivo - Trader AFK';
       case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
       default: return 'Trader AFK';
     }
@@ -272,6 +274,9 @@ function AppContent() {
 
             case 'econ_calendar':
               return <EconCalendar onBack={() => setCurrentView('dashboard')} />;
+
+            case 'live_room':
+              return <LiveRoom onBack={() => setCurrentView('dashboard')} />;
 
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;

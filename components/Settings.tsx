@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
-import { User, Lock, Save, Loader2, AlertCircle, CheckCircle, ShieldCheck, FileText, ExternalLink, Mail } from 'lucide-react';
+import { User, Lock, Save, Loader2, AlertCircle, CheckCircle, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { BackButton } from './BackButton';
 import { Button, Card, Input, Label, PageHeader } from './ui';
@@ -9,10 +9,6 @@ import { Button, Card, Input, Label, PageHeader } from './ui';
 interface SettingsProps {
   onBack?: () => void;
 }
-
-// TODO(conformidade): confirmar com o dono o e-mail do Encarregado/DPO antes do lançamento
-// (deve ser o mesmo informado na Política de Privacidade). Exclusão self-service fica para depois.
-const PRIVACY_CONTACT_EMAIL = 'privacidade@traderafk.com';
 
 const LEGAL_DOCS = [
   { href: '/legal/termos.html', label: 'Termos de Uso' },
@@ -89,10 +85,6 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
       setLoading(false);
     }
   };
-
-  const privacyMailto = `mailto:${PRIVACY_CONTACT_EMAIL}?subject=${encodeURIComponent('Solicitação LGPD — exclusão da conta / cópia dos dados')}&body=${encodeURIComponent(
-    `Olá,\n\nSolicito (marque o que se aplica):\n[ ] Exclusão da minha conta e dos meus dados pessoais\n[ ] Cópia dos meus dados pessoais\n\nE-mail da conta: ${user?.email ?? ''}\n`,
-  )}`;
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
@@ -216,13 +208,9 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
           <p className="text-sm text-fg-muted leading-relaxed">
             Você pode pedir a exclusão da sua conta, uma cópia dos seus dados pessoais ou exercer outros direitos previstos na LGPD.
           </p>
-          <a
-            href={privacyMailto}
-            className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-accent-fg hover:underline underline-offset-4 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
-          >
-            <Mail size={16} /> Solicitar exclusão da conta ou cópia dos meus dados
-          </a>
-          <p className="mt-1 text-xs text-fg-subtle">Contato do Encarregado (DPO): {PRIVACY_CONTACT_EMAIL}</p>
+          <p className="mt-2 text-sm text-fg-muted leading-relaxed">
+            Para fazer a solicitação, fale com o suporte da Trader AFK pelos canais de atendimento da plataforma.
+          </p>
         </div>
       </Card>
     </div>

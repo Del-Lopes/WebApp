@@ -1,17 +1,27 @@
 import React from 'react';
 import {
-  
   LayoutDashboard,
   Cpu,
   GraduationCap,
-  TrendingUp,
   Download,
   Users,
   ChevronRight,
   Info,
   ShieldCheck,
   Zap,
-  Target
+  Target,
+  Milestone,
+  Radio,
+  Bitcoin,
+  CalendarClock,
+  Video,
+  FileText,
+  Bot,
+  Notebook,
+  BarChart3,
+  Activity,
+  ShoppingBag,
+  Key,
 } from 'lucide-react';
 import { View } from '../types';
 import { Button, PageHeader } from './ui';
@@ -39,95 +49,271 @@ const SESSIONS: PlatformSession[] = [
     id: 'dashboard',
     title: "Painel de Controle",
     subtitle: "Sua Central de Inteligência",
-    description: "Uma visão 360º de tudo o que acontece na sua conta em tempo real.",
-    longDescription: "O Dashboard foi projetado para ser o seu centro de comando. Aqui você acompanha o status de suas contas MT5, visualiza as últimas análises de mercado da nossa equipe e tem acesso rápido às ferramentas que mais utiliza. É o ponto de partida para qualquer operação.",
+    description: "Uma visão geral de tudo o que acontece na sua conta.",
+    longDescription: "O Painel é o seu ponto de partida. Aqui você acompanha o status das suas licenças e contas MT5, vê os artigos e análises mais recentes da equipe e acessa com um clique as ferramentas que mais usa.",
     icon: <LayoutDashboard size={32} />,
-    color: "indigo",
+    color: "green",
     view: 'dashboard',
     features: [
-      "Status das Contas MT5",
-      "Feed de Notícias e Análises",
-      "Monitor de Armazenamento",
-      "Atalhos de Navegação Rápida"
+      "Status das Licenças",
+      "Artigos Recentes",
+      "Atalhos para as Sessões",
+      "Visão Geral da Conta"
     ]
   },
   {
-    id: 'strategies',
-    title: "Estratégias (Robôs)",
-    subtitle: "Automação com Gestão de Risco",
-    description: "Gerencie e configure seus algoritmos de trading de forma simplificada.",
-    longDescription: "Nesta sessão, você encontra o 'cérebro' das nossas operações. Você pode visualizar todos os robôs disponíveis (como o AFK Trader e Snow Ball), entender o perfil de risco de cada um e gerenciar quais estratégias estão ativas em suas contas vinculadas.",
-    icon: <Cpu size={32} />,
-    color: "blue",
-    view: 'strategies',
-    features: [
-      "Catálogo de Algoritmos",
-      "Configurações de Risco",
-      "Monitor de Performance",
-      "Gestão de Parâmetros"
-    ]
-  },
-  {
-    id: 'education',
-    title: "Biblioteca (Cursos)",
-    subtitle: "Conhecimento é Poder",
-    description: "Aprenda as metodologias por trás das estratégias e domine o mercado.",
-    longDescription: "Não acreditamos em 'caixa preta'. Na Biblioteca, você tem acesso a todo o material educativo da Trader AFK. Desde tutoriais básicos de instalação até mentorias avançadas sobre como os robôs funcionam, como ajustar parâmetros e como gerenciar o risco.",
-    icon: <GraduationCap size={32} />,
-    color: "purple",
-    view: 'education',
-    features: [
-      "Aulas em Vídeo",
-      "E-books e Manuais",
-      "Mentorias Gravadas",
-      "Certificações"
-    ]
-  },
-  {
-    id: 'licenses',
-    title: "Gestão de Licenças",
-    subtitle: "Controle Total das suas Contas",
-    description: "Vincule suas contas de corretora e acompanhe suas permissões de uso.",
-    longDescription: "Aqui é onde você oficializa sua operação. Você pode solicitar novas chaves de licença, vincular números de contas MT5 específicos e verificar a validade de cada assinatura. É o portal que garante que seus robôs tenham permissão total para rodar nos servidores.",
-    icon: <TrendingUp size={32} />,
+    id: 'trilha_gain',
+    title: "Trilha Gain",
+    subtitle: "Educação Gamificada",
+    description: "Aprenda o mercado do zero, uma lição por vez, e ganhe Coins.",
+    longDescription: "Uma jornada de lições curtas e interativas — conceitos, quizzes, verdadeiro ou falso e leitura de gráfico — organizada em unidades do básico ao operacional. Cada lição concluída rende Coins e mantém sua sequência de dias. As Coins podem ser usadas para desbloquear unidades Premium e recursos da plataforma, como o painel de Sinais e o Relatório IA de Crypto.",
+    icon: <Milestone size={32} />,
     color: "green",
-    view: 'licenses',
+    view: 'trilha_gain',
     features: [
-      "Vínculo de Contas MT5",
-      "Renovação de Assinaturas",
-      "Histórico de Solicitações",
-      "Status de Aprovação"
+      "Lições Interativas",
+      "Coins e Sequência Diária",
+      "Unidades Premium",
+      "Do Básico ao Operacional"
+    ]
+  },
+  {
+    id: 'signals',
+    title: "Sinais",
+    subtitle: "Tendência e Análise por IA",
+    description: "Leitura técnica em vários timeframes e análises por IA.",
+    longDescription: "Acompanhe o painel de tendência com a leitura de vários timeframes ao mesmo tempo e solicite análises por IA do ativo usando suas Coins. Os setups publicados pela equipe trazem a leitura técnica do momento. Todo o conteúdo é informativo e educacional — não é recomendação de investimento.",
+    icon: <Radio size={32} />,
+    color: "green",
+    view: 'signals',
+    features: [
+      "Painel Multi-timeframe",
+      "Análise por IA",
+      "Setups da Equipe",
+      "Gráfico Interativo"
+    ]
+  },
+  {
+    id: 'crypto',
+    title: "Crypto",
+    subtitle: "Inteligência de Mercado",
+    description: "Tendências, narrativas e indicadores do mercado cripto.",
+    longDescription: "Termômetro do mercado (capitalização, dominância, medo e ganância), moedas mais buscadas, desempenho por narrativa e setor, DeFi, calendário de desbloqueio de tokens e sua lista de acompanhamento. Um relatório por IA resume as narrativas do momento.",
+    icon: <Bitcoin size={32} />,
+    color: "green",
+    view: 'crypto',
+    features: [
+      "Termômetro de Mercado",
+      "Narrativas e Setores",
+      "Desbloqueios de Tokens",
+      "Relatório por IA"
+    ]
+  },
+  {
+    id: 'econ_calendar',
+    title: "Calendário Econômico",
+    subtitle: "Notícias de Alto Impacto",
+    description: "Os eventos que movem o mercado e como ele costuma reagir.",
+    longDescription: "Eventos de 2 e 3 estrelas no seu fuso horário, com projeção, dado anterior e o resultado assim que é divulgado. Cada indicador traz uma interpretação por IA: o que ele mede, por que importa e os cenários típicos se vier acima, em linha ou abaixo do esperado.",
+    icon: <CalendarClock size={32} />,
+    color: "green",
+    view: 'econ_calendar',
+    features: [
+      "Eventos de Alto Impacto",
+      "Atual × Projeção × Anterior",
+      "Cenários por IA",
+      "Histórico de Divulgações"
+    ]
+  },
+  {
+    id: 'live_room',
+    title: "Sala ao Vivo",
+    subtitle: "Aprendizado em Tempo Real",
+    description: "Sessões ao vivo com a equipe Trader AFK.",
+    longDescription: "A equipe acompanha o mercado ao vivo, comenta o contexto do dia, mostra o uso das ferramentas da plataforma e responde às dúvidas dos membros. O acesso é exclusivo para assinantes e liberado pela equipe.",
+    icon: <Video size={32} />,
+    color: "green",
+    view: 'live_room',
+    features: [
+      "Leitura de Mercado ao Vivo",
+      "Dúvidas em Tempo Real",
+      "Uso das Ferramentas",
+      "Exclusivo para Assinantes"
+    ]
+  },
+  {
+    id: 'articles',
+    title: "Artigos e Análises",
+    subtitle: "Conteúdo Atualizado",
+    description: "Artigos sobre padrões, método e hábitos de trading.",
+    longDescription: "Uma coleção de artigos sobre análise técnica, padrões gráficos, gestão de risco e comportamento, atualizada com frequência para complementar a sua formação.",
+    icon: <FileText size={32} />,
+    color: "green",
+    view: 'articles',
+    features: [
+      "Padrões Gráficos",
+      "Estratégia e Método",
+      "Gestão de Risco",
+      "Novos Conteúdos"
+    ]
+  },
+  {
+    id: 'hand_bot',
+    title: "Hand Bot",
+    subtitle: "Controle Remoto do EA",
+    description: "Ajuste os parâmetros do seu robô sem abrir o MetaTrader.",
+    longDescription: "Vincule sua conta MT5 e ajuste pela plataforma os parâmetros do Hand Bot — trailing, grid, hedge e stand by. As alterações são enviadas ao EA na próxima sincronização automática, com a conexão protegida por chave.",
+    icon: <Bot size={32} />,
+    color: "green",
+    view: 'hand_bot',
+    features: [
+      "Vínculo com a Conta MT5",
+      "Parâmetros Remotos",
+      "Sincronização Automática",
+      "Conexão Protegida"
     ]
   },
   {
     id: 'downloads',
     title: "Central de Downloads",
     subtitle: "Kit de Ferramentas Completo",
-    description: "Tudo o que você precisa instalar para começar a operar.",
-    longDescription: "Sua caixa de ferramentas técnica. Aqui você baixa o MetaTrader 5 customizado, nossos indicadores exclusivos, arquivos de configuração (.set) otimizados e as versões mais recentes dos robôs que você adquiriu.",
+    description: "Tudo o que você precisa instalar para começar.",
+    longDescription: "Sua caixa de ferramentas técnica. Aqui você baixa o MetaTrader 5, os indicadores, os arquivos de configuração (.set) e as versões mais recentes dos robôs licenciados.",
     icon: <Download size={32} />,
     color: "slate",
     view: 'downloads',
     features: [
       "Instalador MT5",
-      "Indicadores Proprietários",
+      "Indicadores",
       "Arquivos de Setup (.set)",
-      "Updates de Software"
+      "Atualizações dos Robôs"
+    ]
+  },
+  {
+    id: 'journal',
+    title: "Diário de Operações",
+    subtitle: "Disciplina e Registro",
+    description: "Registre cada operação com motivo, emocional e aprendizado.",
+    longDescription: "Anote suas operações com ativo, lado, lote, preços, motivo da entrada, estado emocional e conclusões, anexando o print do gráfico. As estatísticas do diário mostram os seus padrões ao longo do tempo.",
+    icon: <Notebook size={32} />,
+    color: "green",
+    view: 'journal',
+    features: [
+      "Registro Detalhado",
+      "Estado Emocional",
+      "Prints do Gráfico",
+      "Estatísticas do Diário"
+    ]
+  },
+  {
+    id: 'analysis',
+    title: "Análise de Resultados",
+    subtitle: "Métricas do seu MT5",
+    description: "Envie o relatório do MetaTrader e veja suas métricas.",
+    longDescription: "Exporte o relatório HTML do MetaTrader 5 e envie aqui: a plataforma calcula métricas como resultado, taxa de acerto, drawdown e curva de capital, com a lista de operações para você revisar.",
+    icon: <BarChart3 size={32} />,
+    color: "green",
+    view: 'analysis',
+    features: [
+      "Upload do Relatório MT5",
+      "Métricas de Desempenho",
+      "Curva de Capital",
+      "Lista de Operações"
+    ]
+  },
+  {
+    id: 'live_portfolio',
+    title: "Live Portfólio",
+    subtitle: "Telemetria em Tempo Real",
+    description: "Acompanhe suas contas MT5 ao vivo.",
+    longDescription: "Conecte suas contas MT5 com o EA de telemetria e acompanhe equity, resultado do dia e o status de cada conta em tempo real, num só lugar.",
+    icon: <Activity size={32} />,
+    color: "green",
+    view: 'live_portfolio',
+    features: [
+      "Equity em Tempo Real",
+      "Resultado do Dia",
+      "Várias Contas",
+      "Status de Conexão"
+    ]
+  },
+  {
+    id: 'strategies',
+    title: "Estratégias (Robôs)",
+    subtitle: "Automação com Gestão de Risco",
+    description: "Conheça os robôs e o perfil de risco de cada um.",
+    longDescription: "Nesta sessão você encontra os robôs disponíveis (como o AFK Trader e o Snow Ball), com a descrição da lógica, o perfil de risco, o manual e o histórico de cada estratégia. Rentabilidade passada não garante resultados futuros.",
+    icon: <Cpu size={32} />,
+    color: "green",
+    view: 'strategies',
+    features: [
+      "Catálogo de Robôs",
+      "Perfil de Risco",
+      "Manuais",
+      "Histórico das Estratégias"
+    ]
+  },
+  {
+    id: 'education',
+    title: "Biblioteca (Cursos)",
+    subtitle: "Conhecimento é Poder",
+    description: "Aprenda as metodologias por trás das estratégias.",
+    longDescription: "Não acreditamos em 'caixa preta'. Na Biblioteca você acessa o material educativo da Trader AFK: de tutoriais de instalação a aulas sobre como os robôs funcionam, como ajustar parâmetros e como gerenciar o risco.",
+    icon: <GraduationCap size={32} />,
+    color: "green",
+    view: 'education',
+    features: [
+      "Aulas em Vídeo",
+      "E-books e Manuais",
+      "Mentorias Gravadas",
+      "Tutoriais de Instalação"
+    ]
+  },
+  {
+    id: 'market',
+    title: "Market",
+    subtitle: "Produtos Selecionados",
+    description: "Cursos, e-books, indicadores e robôs.",
+    longDescription: "Uma vitrine de produtos selecionados — cursos, e-books, indicadores e robôs — com a descrição e as condições de cada um.",
+    icon: <ShoppingBag size={32} />,
+    color: "green",
+    view: 'market',
+    features: [
+      "Cursos e E-books",
+      "Indicadores",
+      "Robôs",
+      "Condições de Cada Produto"
+    ]
+  },
+  {
+    id: 'licenses',
+    title: "Gestão de Licenças",
+    subtitle: "Controle das suas Contas",
+    description: "Vincule suas contas de corretora e acompanhe suas licenças.",
+    longDescription: "Aqui você solicita licenças dos robôs, vincula os números das suas contas MT5 e acompanha a validade e o status de cada licença. A licença ativa é o que permite ao robô rodar na conta vinculada.",
+    icon: <Key size={32} />,
+    color: "green",
+    view: 'licenses',
+    features: [
+      "Vínculo de Contas MT5",
+      "Solicitação de Licenças",
+      "Histórico de Solicitações",
+      "Status de Aprovação"
     ]
   },
   {
     id: 'marketing',
-    title: "Comunidade & Afiliados",
-    subtitle: "Cresça com a Trader AFK",
-    description: "Explore nosso ecossistema de marketing e rede de parceiros.",
-    longDescription: "A Trader AFK é mais que uma plataforma, é uma comunidade. Nesta sessão, você entende como funciona nosso programa de afiliados, acessa materiais de divulgação e entende as regras de comissão por indicação da plataforma, conforme o regulamento do programa.",
+    title: "Comunidade & Parceiros",
+    subtitle: "Programa de Indicação",
+    description: "Conheça o programa de parceiros da Trader AFK.",
+    longDescription: "Nesta sessão você entende como funciona o programa de parceiros, acessa os materiais de divulgação e as regras de comissão por indicação, conforme o regulamento do programa.",
     icon: <Users size={32} />,
-    color: "orange",
+    color: "green",
     view: 'marketing',
     features: [
-      "Painel de Afiliado",
+      "Painel do Parceiro",
       "Materiais de Apoio",
-      "Redes Sociais",
+      "Links de Indicação",
       "Suporte Direto"
     ]
   }
