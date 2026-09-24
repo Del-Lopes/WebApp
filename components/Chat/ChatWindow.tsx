@@ -85,23 +85,24 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
   const limitReached = usage ? usage.count >= usage.limit : false;
 
   return (
-    <div className="fixed bottom-24 right-4 md:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-w-md h-[32rem] max-h-[calc(100vh-8rem)] flex flex-col rounded-2xl shadow-2xl border border-slate-200 bg-white overflow-hidden animate-fade-in">
+    <div className="fixed bottom-24 right-4 md:right-6 z-50 w-[calc(100vw-2rem)] sm:w-96 max-w-md h-[32rem] max-h-[calc(100vh-8rem)] flex flex-col rounded-2xl shadow-2xl border border-tint/10 bg-surface text-fg overflow-hidden animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-green-600 to-green-500 text-white">
+      <div className="relative flex items-center justify-between px-4 py-3 border-b border-tint/6 bg-elevated">
+        <div className="hairline absolute inset-x-0 top-0" aria-hidden />
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center overflow-hidden">
+          <div className="w-9 h-9 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center overflow-hidden">
             <img src={ASSISTANT_AVATAR_SRC} alt="Assistente Trader AFK" className="w-7 h-7 object-contain" />
           </div>
           <div>
-            <h3 className="font-semibold text-sm leading-tight">Assistente Trader AFK</h3>
-            <p className="text-xs text-green-50/90">Suporte da plataforma</p>
+            <h3 className="font-display font-semibold text-sm leading-tight text-fg">Assistente Trader AFK</h3>
+            <p className="text-xs text-fg-muted flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-brand-green" aria-hidden />Suporte da plataforma</p>
           </div>
         </div>
         <div className="flex items-center gap-1">
           {messages.length > 0 && (
             <button
               onClick={handleResetToHome}
-              className="p-1.5 rounded-lg hover:bg-white/15 transition-colors"
+              className="p-1.5 rounded-lg text-fg-subtle hover:text-fg hover:bg-tint/5 transition-colors"
               aria-label="Voltar ao início"
               title="Voltar ao início"
             >
@@ -112,7 +113,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
             <button
               onClick={handleClear}
               disabled={isClearing}
-              className="p-1.5 rounded-lg hover:bg-white/15 transition-colors disabled:opacity-50"
+              className="p-1.5 rounded-lg text-fg-subtle hover:text-fg hover:bg-tint/5 transition-colors disabled:opacity-50"
               aria-label="Apagar histórico"
               title="Apagar histórico"
             >
@@ -121,7 +122,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
           )}
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-white/15 transition-colors"
+            className="p-1.5 rounded-lg text-fg-subtle hover:text-fg hover:bg-tint/5 transition-colors"
             aria-label="Fechar"
           >
             <X size={18} />
@@ -130,28 +131,28 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
       </div>
 
       {/* Messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto custom-scrollbar px-4 py-4 bg-slate-50">
+      <div ref={scrollRef} className="flex-1 overflow-y-auto ds-scrollbar px-4 py-4 bg-page">
         {isLoadingHistory ? (
           <div className="flex items-center justify-center h-full">
-            <Loader2 className="animate-spin text-green-600" size={28} />
+            <Loader2 className="animate-spin text-accent" size={28} />
           </div>
         ) : messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-2">
-            <div className="w-14 h-14 rounded-full bg-green-100 flex items-center justify-center mb-3 overflow-hidden">
+            <div className="w-14 h-14 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center mb-3 overflow-hidden">
               <img src={ASSISTANT_AVATAR_SRC} alt="Assistente Trader AFK" className="w-10 h-10 object-contain" />
             </div>
-            <h4 className="font-semibold text-slate-800 mb-1">Olá! Como posso ajudar?</h4>
-            <p className="text-sm text-slate-500 leading-relaxed mb-4 px-2">
+            <h4 className="font-display font-semibold text-fg mb-1">Olá! Como posso ajudar?</h4>
+            <p className="text-sm text-fg-muted leading-relaxed mb-4 px-2">
               Tire dúvidas sobre licenças, robôs, navegação e demais recursos da plataforma Trader AFK.
             </p>
             <div className="w-full flex flex-col gap-2 mt-2">
-              <span className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">Sugestões</span>
+              <span className="eyebrow-muted">Sugestões</span>
               {QUICK_PROMPTS.map((q) => (
                 <button
                   key={q}
                   onClick={() => submit(q)}
                   disabled={isSending}
-                  className="text-left text-sm text-slate-700 bg-white border border-slate-200 hover:border-green-400 hover:bg-green-50 rounded-xl px-3 py-2 transition-colors disabled:opacity-50"
+                  className="text-left text-sm text-fg bg-tint/3 border border-tint/10 hover:border-accent/50 hover:bg-accent/5 rounded-xl px-3 py-2 transition-colors disabled:opacity-50"
                 >
                   {q}
                 </button>
@@ -168,8 +169,8 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
                 <div
                   className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words ${
                     msg.role === 'user'
-                      ? 'bg-green-600 text-white rounded-br-md'
-                      : 'bg-white border border-slate-200 text-slate-800 rounded-bl-md'
+                      ? 'bg-accent/15 border border-accent/25 text-fg rounded-br-md'
+                      : 'bg-surface border border-tint/10 text-fg rounded-bl-md'
                   }`}
                 >
                   {msg.content}
@@ -180,8 +181,8 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
                       onClick={() => handleFeedback(msg.id, 'up', msg.feedback ?? null)}
                       className={`p-1 rounded-sm transition-colors ${
                         msg.feedback === 'up'
-                          ? 'text-green-600 bg-green-50'
-                          : 'text-slate-400 hover:text-green-600 hover:bg-slate-100'
+                          ? 'text-success-fg bg-success/10'
+                          : 'text-fg-subtle hover:text-success-fg hover:bg-tint/5'
                       }`}
                       aria-label="Resposta útil"
                       title={msg.feedback === 'up' ? 'Remover avaliação' : 'Útil'}
@@ -192,8 +193,8 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
                       onClick={() => handleFeedback(msg.id, 'down', msg.feedback ?? null)}
                       className={`p-1 rounded-sm transition-colors ${
                         msg.feedback === 'down'
-                          ? 'text-red-600 bg-red-50'
-                          : 'text-slate-400 hover:text-red-600 hover:bg-slate-100'
+                          ? 'text-danger-fg bg-danger/10'
+                          : 'text-fg-subtle hover:text-danger-fg hover:bg-tint/5'
                       }`}
                       aria-label="Resposta não foi útil"
                       title={msg.feedback === 'down' ? 'Remover avaliação' : 'Não foi útil'}
@@ -206,11 +207,11 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
             ))}
             {isSending && (
               <div className="flex justify-start">
-                <div className="bg-white border border-slate-200 rounded-2xl rounded-bl-md px-3.5 py-2.5">
+                <div className="bg-surface border border-tint/10 rounded-2xl rounded-bl-md px-3.5 py-2.5">
                   <div className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.3s]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:-0.15s]" />
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-fg-subtle animate-bounce [animation-delay:-0.3s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-fg-subtle animate-bounce [animation-delay:-0.15s]" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-fg-subtle animate-bounce" />
                   </div>
                 </div>
               </div>
@@ -224,8 +225,8 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
         <div
           className={`px-4 py-2 text-xs flex items-start gap-2 border-t ${
             feedback.type === 'error'
-              ? 'bg-red-50 text-red-700 border-red-100'
-              : 'bg-amber-50 text-amber-800 border-amber-100'
+              ? 'bg-danger/10 text-danger-fg border-danger/20'
+              : 'bg-warning/10 text-warning-fg border-warning/20'
           }`}
         >
           <AlertTriangle size={14} className="shrink-0 mt-0.5" />
@@ -234,7 +235,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
       )}
 
       {/* Input */}
-      <div className="border-t border-slate-200 bg-white p-3">
+      <div className="border-t border-tint/6 bg-surface p-3">
         <div className="flex items-end gap-2">
           <textarea
             value={input}
@@ -244,20 +245,20 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
             disabled={isSending || limitReached}
             rows={1}
             maxLength={2000}
-            className="flex-1 resize-none rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent disabled:bg-slate-100 disabled:text-slate-400 max-h-32 custom-scrollbar"
+            className="flex-1 resize-none rounded-xl border border-tint/10 bg-tint/3 px-3 py-2 text-sm text-fg placeholder:text-fg-subtle focus:outline-hidden focus:border-accent/60 focus:ring-3 focus:ring-accent/20 disabled:opacity-50 max-h-32 ds-scrollbar"
             style={{ minHeight: '40px' }}
           />
           <button
             onClick={handleSend}
             disabled={isSending || !input.trim() || limitReached}
-            className="h-10 w-10 shrink-0 rounded-xl bg-green-600 text-white flex items-center justify-center hover:bg-green-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors"
+            className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-brand-green-bright to-brand-green text-brand-dark flex items-center justify-center hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             aria-label="Enviar"
           >
             {isSending ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
           </button>
         </div>
         {usage && (
-          <div className="mt-2 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="mt-2 flex items-center justify-between text-[11px] text-fg-subtle">
             <span>
               {usage.count} / {usage.limit} mensagens hoje
             </span>

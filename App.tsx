@@ -5,6 +5,7 @@ import { Menu, Loader2 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { INITIAL_ROBOTS } from './constants';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { View, UserRole, Robot, Article } from './types';
 import type { KnowledgeInput } from './hooks/useKnowledge';
 import { Logo } from './components/Logo';
@@ -134,11 +135,11 @@ function AppContent() {
   };
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50">
+      <div className="flex items-center justify-center h-screen bg-page text-fg-muted">
         <Helmet>
           <title>Login - Trader AFK</title>
         </Helmet>
-        Loading...
+        <Loader2 className="animate-spin text-accent" size={32} aria-label="Carregando" />
       </div>
     );
   }
@@ -151,7 +152,7 @@ function AppContent() {
     return (
       <Suspense fallback={
         <div className="flex items-center justify-center h-full min-h-[400px]">
-          <Loader2 className="animate-spin text-green-600" size={40} />
+          <Loader2 className="animate-spin text-accent" size={36} aria-label="Carregando" />
         </div>
       }>
         {(() => {
@@ -262,7 +263,7 @@ function AppContent() {
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 text-slate-900 font-sans selection:bg-green-500/30 selection:text-green-900">
+    <div className="flex h-screen bg-page text-fg font-sans selection:bg-brand-green/30 selection:text-fg">
       <Helmet>
         <title>{getPageTitle(currentView, selectedArticle)}</title>
         <meta name="description" content="Plataforma de negociação algorítmica Trader AFK." />
@@ -279,7 +280,7 @@ function AppContent() {
       
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
         {/* Mobile Header */}
-        <header className="md:hidden flex items-center justify-between p-4 border-b border-slate-200 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+        <header className="md:hidden flex items-center justify-between px-4 py-3 border-b border-tint/6 bg-page/80 backdrop-blur-md sticky top-0 z-10">
           <div 
             className="flex items-center gap-3 cursor-pointer"
             onClick={() => setCurrentView('dashboard')}
@@ -287,20 +288,21 @@ function AppContent() {
              <div className="w-8 h-8">
                <Logo className="w-full h-full" variant="mobile" />
              </div>
-             <h1 className="text-lg font-bold text-slate-900">
+             <span className="font-display text-lg font-semibold text-fg">
               Trader AFK
-            </h1>
+            </span>
           </div>
           <button 
             onClick={() => setIsSidebarOpen(true)}
-            className="p-2 text-slate-500 hover:text-slate-900 rounded-lg hover:bg-slate-100"
+            aria-label="Abrir menu"
+            className="p-2 text-fg-muted hover:text-fg rounded-lg hover:bg-tint/5 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
           >
             <Menu size={24} />
           </button>
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth custom-scrollbar">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth ds-scrollbar">
           <div className="max-w-7xl mx-auto w-full">
             {renderView()}
           </div>
@@ -327,9 +329,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }
 
