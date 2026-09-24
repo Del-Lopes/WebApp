@@ -20,11 +20,11 @@ export const Candle: React.FC<Props> = ({ filled, high, open, close, low }) => {
   const bodyH = Math.max(Math.abs(open - close), 2);
 
   const bodyColor = !filled
-    ? 'bg-slate-200'
+    ? 'bg-tint/12'
     : isUp ? 'bg-gradient-to-b from-emerald-400 to-emerald-500'
            : 'bg-gradient-to-b from-rose-400 to-rose-500';
   const wickColor = !filled
-    ? 'bg-slate-200'
+    ? 'bg-tint/12'
     : isUp ? 'bg-emerald-500' : 'bg-rose-500';
 
   return (

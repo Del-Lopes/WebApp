@@ -11,6 +11,7 @@ import { QuizStep } from './steps/QuizStep';
 import { TrueFalseStep } from './steps/TrueFalseStep';
 import { OrderStep } from './steps/OrderStep';
 import { ChartStep } from './steps/ChartStep';
+import { Button } from '../ui';
 
 interface Props {
   // Sequência de nós da unidade (aulas + gains + revisão) e o índice inicial.
@@ -156,11 +157,11 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
         );
       default:
         return (
-          <div className="flex flex-col h-full items-center justify-center text-slate-400">
+          <div className="flex flex-col h-full items-center justify-center text-fg-muted">
             <p>Tipo de exercício desconhecido: {current.type}</p>
-            <button onClick={advance} className="mt-4 px-6 py-3 rounded-2xl bg-green-600 text-white font-bold">
+            <Button size="lg" onClick={advance} className="mt-4">
               Pular
-            </button>
+            </Button>
           </div>
         );
     }
@@ -170,108 +171,96 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
   const moduleXp = nodes.reduce((a, n) => a + (n.lesson.xp_reward || 0), 0);
 
   return (
-    <div className="fixed inset-0 z-[60] bg-white flex flex-col">
+    <div className="fixed inset-0 z-[60] bg-page text-fg flex flex-col">
       {/* Header com voltar + progresso do MÓDULO */}
-      <div className="flex items-center gap-3 px-4 py-4 border-b border-slate-100">
-        <button onClick={onClose} className="text-slate-400 hover:text-slate-600" aria-label="Fechar">
+      <div className="flex items-center gap-3 px-4 py-4 border-b border-tint/6">
+        <button onClick={onClose} className="rounded-lg text-fg-muted hover:text-fg transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60" aria-label="Fechar">
           <X size={26} />
         </button>
         {!finished && !reward && (
           <button
             onClick={goBack}
             disabled={!canGoBack}
-            className="text-slate-400 enabled:hover:text-slate-600 disabled:opacity-30 transition-colors"
+            className="rounded-lg text-fg-muted enabled:hover:text-fg disabled:opacity-30 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
             aria-label="Voltar"
           >
             <ChevronLeft size={26} />
           </button>
         )}
-        <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+        <div className="flex-1 h-3 bg-tint/6 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-300"
+            className="h-full bg-gradient-to-r from-brand-green-bright to-brand-green rounded-full transition-all duration-300"
             style={{ width: `${progress}%` }}
           />
         </div>
       </div>
 
       {/* Conteúdo */}
-      <div className="flex-1 max-w-xl w-full mx-auto px-5 py-6 overflow-hidden">
+      <div className="flex-1 max-w-xl w-full mx-auto px-4 sm:px-5 py-6 overflow-hidden">
         {reward ? (
           /* XP ganho ao concluir um gain (candle de exercício) */
           <div className="relative flex flex-col h-full items-center justify-center text-center overflow-hidden">
-            <div
-              className="absolute inset-0 opacity-[0.04]"
-              style={{
-                backgroundImage:
-                  'linear-gradient(#e11d48 1px, transparent 1px), linear-gradient(90deg, #e11d48 1px, transparent 1px)',
-                backgroundSize: '28px 28px',
-              }}
-            />
+            <div className="pointer-events-none absolute inset-0 bg-grid-fade" aria-hidden />
             <div className="relative">
-              <div className="w-28 h-28 rounded-full flex items-center justify-center mb-6 mx-auto shadow-xl bg-gradient-to-br from-red-400 to-red-600 shadow-red-500/30">
+              <div className="w-28 h-28 rounded-full flex items-center justify-center mb-6 mx-auto bg-gradient-to-br from-red-400 to-red-600 ring-8 ring-danger/10">
                 <Swords size={50} className="text-white" strokeWidth={2.5} />
               </div>
-              <p className="font-bold text-sm uppercase tracking-wider mb-1 text-red-500">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] mb-2 text-danger-fg">
                 Exercícios vencidos
               </p>
-              <h2 className="text-3xl font-extrabold text-slate-800 mb-3">
+              <h2 className="font-display text-3xl font-semibold text-fg mb-3">
                 Gain concluído!
               </h2>
-              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border mb-8 bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200">
-                <Coins size={24} className="text-amber-500" />
-                <span className="text-3xl font-extrabold text-amber-600">
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border mb-8 bg-warning/10 border-warning/25">
+                <Coins size={24} className="text-warning" />
+                <span className="font-display text-3xl font-bold tabular-nums whitespace-nowrap text-warning-fg">
                   +{reward.xp} Coins
                 </span>
               </div>
-              <button
+              <Button
+                size="lg"
                 onClick={proceed}
-                className="block w-full max-w-xs mx-auto py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg transition-all shadow-lg shadow-emerald-500/30"
+                className="flex w-full max-w-xs mx-auto h-14 rounded-2xl text-lg"
               >
                 Continuar
-              </button>
+              </Button>
             </div>
           </div>
         ) : finished ? (
           <div className="relative flex flex-col h-full items-center justify-center text-center overflow-hidden">
             {/* fundo grid de gráfico */}
-            <div
-              className="absolute inset-0 opacity-[0.04]"
-              style={{
-                backgroundImage:
-                  'linear-gradient(#059669 1px, transparent 1px), linear-gradient(90deg, #059669 1px, transparent 1px)',
-                backgroundSize: '28px 28px',
-              }}
-            />
+            <div className="pointer-events-none absolute inset-0 bg-grid-fade" aria-hidden />
             <div className="relative">
-              <div className="w-28 h-28 rounded-full flex items-center justify-center mb-6 mx-auto shadow-xl bg-gradient-to-br from-amber-400 to-amber-600 shadow-amber-500/30">
+              <div className="w-28 h-28 rounded-full flex items-center justify-center mb-6 mx-auto bg-gradient-to-br from-amber-400 to-amber-600 ring-8 ring-warning/10">
                 <Trophy size={52} className="text-white" strokeWidth={2.5} />
               </div>
-              <p className="font-bold text-sm uppercase tracking-wider mb-1 text-amber-600">
+              <p className="text-xs font-semibold uppercase tracking-[0.25em] mb-2 text-warning-fg">
                 Módulo dominado
               </p>
-              <h2 className="text-3xl font-extrabold text-slate-800 mb-3">
+              <h2 className="font-display text-3xl font-semibold text-fg mb-3">
                 Módulo concluído!
               </h2>
-              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border mb-8 bg-gradient-to-br from-yellow-50 to-amber-100 border-amber-200">
-                <Coins size={24} className="text-amber-500" />
-                <span className="text-3xl font-extrabold text-amber-600">
+              <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl border mb-8 bg-warning/10 border-warning/25">
+                <Coins size={24} className="text-warning" />
+                <span className="font-display text-3xl font-bold tabular-nums whitespace-nowrap text-warning-fg">
                   +{moduleXp} Coins
                 </span>
               </div>
-              <button
+              <Button
+                size="lg"
                 onClick={onClose}
-                className="block w-full max-w-xs mx-auto py-4 rounded-2xl bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white font-bold text-lg transition-all shadow-lg shadow-emerald-500/30"
+                className="flex w-full max-w-xs mx-auto h-14 rounded-2xl text-lg"
               >
                 Voltar à trilha
-              </button>
+              </Button>
             </div>
           </div>
         ) : saving ? (
-          <div className="flex h-full items-center justify-center text-slate-400">Salvando…</div>
+          <div className="flex h-full items-center justify-center text-fg-muted">Salvando…</div>
         ) : (
           <>
             {/* Título do nó atual, para situar dentro do módulo */}
-            <p className={`text-[11px] font-bold uppercase tracking-wider mb-3 ${isRevisao ? 'text-amber-600' : node?.kind === 'licao' ? 'text-rose-500' : 'text-emerald-600'}`}>
+            <p className={`text-[11px] font-bold uppercase tracking-wider mb-3 ${isRevisao ? 'text-warning-fg' : node?.kind === 'licao' ? 'text-danger-fg' : 'text-accent-fg'}`}>
               {isRevisao ? 'Revisão geral' : node?.kind === 'licao' ? 'Exercícios (Gain)' : `Aula ${node?.kind === 'aula' ? node.num : ''}`}
             </p>
             {renderStep()}

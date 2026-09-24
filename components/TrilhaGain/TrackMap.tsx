@@ -5,6 +5,7 @@ import { Candle } from './Candle';
 import { LessonCandle } from './LessonCandle';
 import { makeCandleSeries } from './candleSeries';
 import { buildUnitNodes, TrackNode } from './unitNodes';
+import { Button, EmptyState } from '../ui';
 
 interface Props {
   track: TrilhaTrack;
@@ -69,18 +70,19 @@ function isLineBreak(a: { x: number }, b: { x: number }): boolean {
   return b.x < a.x - 1; // próximo voltou para a esquerda
 }
 
-// Acento de cor (claro) por bloco temático, derivado do título da unidade.
-// Cards de unidade ficam claros, com uma tinta sutil + barra lateral colorida.
+// Acento de cor por bloco temático, derivado do título da unidade.
+// Cards de unidade usam a superfície do tema, com uma tinta sutil + barra lateral.
+// Sem azul/roxo decorativo: verde da marca em intensidades, neutro e dourado.
 interface UnitAccent { bar: string; tint: string; ring: string; eyebrow: string; }
 const ACCENTS: Record<string, UnitAccent> = {
-  // Fundamentos → emerald
-  fundamentos: { bar: 'bg-emerald-500', tint: 'from-emerald-50 to-white', ring: 'ring-emerald-100', eyebrow: 'text-emerald-600' },
-  // Análise Técnica → sky
-  tecnica:     { bar: 'bg-sky-500',     tint: 'from-sky-50 to-white',     ring: 'ring-sky-100',     eyebrow: 'text-sky-600' },
-  // Conceitos Avançados → violet
-  avancado:    { bar: 'bg-violet-500',  tint: 'from-violet-50 to-white',  ring: 'ring-violet-100',  eyebrow: 'text-violet-600' },
-  // Operacional → amber
-  operacional: { bar: 'bg-amber-500',   tint: 'from-amber-50 to-white',   ring: 'ring-amber-100',   eyebrow: 'text-amber-600' },
+  // Fundamentos → verde da marca
+  fundamentos: { bar: 'bg-accent',        tint: 'from-accent/10 to-transparent', ring: 'ring-tint/8', eyebrow: 'text-accent-fg' },
+  // Análise Técnica → verde suave
+  tecnica:     { bar: 'bg-accent/50',     tint: 'from-accent/5 to-transparent',  ring: 'ring-tint/8', eyebrow: 'text-accent-fg' },
+  // Conceitos Avançados → neutro
+  avancado:    { bar: 'bg-tint/30',       tint: 'from-tint/5 to-transparent',    ring: 'ring-tint/8', eyebrow: 'text-fg-muted' },
+  // Operacional → dourado
+  operacional: { bar: 'bg-brand-gold',    tint: 'from-warning/8 to-transparent', ring: 'ring-tint/8', eyebrow: 'text-warning-fg' },
 };
 function unitAccent(title: string): UnitAccent {
   const t = title.toLowerCase();
@@ -163,21 +165,21 @@ export const TrackMap: React.FC<Props> = ({
     <div className="max-w-md mx-auto pb-20">
       {/* Barra de progresso geral da trilha */}
       {flatNodes.length > 0 && (
-        <div className="mb-8 bg-white rounded-2xl p-4 border border-slate-100 shadow-xs">
+        <div className="mb-8 bg-surface rounded-2xl p-4 border border-tint/8">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-slate-600 flex items-center gap-1.5">
-              <TrendingUp size={16} className="text-emerald-500" />
+            <span className="text-sm font-semibold text-fg-muted flex items-center gap-1.5">
+              <TrendingUp size={16} className="text-accent-fg" />
               Progresso da trilha
             </span>
-            <span className="text-sm font-bold text-emerald-600">{pct}%</span>
+            <span className="text-sm font-bold font-mono tabular-nums text-accent-fg">{pct}%</span>
           </div>
-          <div className="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+          <div className="h-2.5 bg-tint/6 rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-green-400 to-emerald-500 rounded-full transition-all duration-500"
+              className="h-full bg-gradient-to-r from-brand-green-bright to-brand-green rounded-full transition-all duration-500"
               style={{ width: `${pct}%` }}
             />
           </div>
-          <p className="text-xs text-slate-400 mt-2">{doneCount} de {flatNodes.length} etapas concluídas</p>
+          <p className="text-xs text-fg-subtle mt-2 tabular-nums">{doneCount} de {flatNodes.length} etapas concluídas</p>
         </div>
       )}
 
@@ -265,10 +267,7 @@ export const TrackMap: React.FC<Props> = ({
       ))}
 
       {flatNodes.length === 0 && (
-        <div className="text-center text-slate-400 py-12 flex flex-col items-center gap-3">
-          <Star size={40} className="opacity-40" />
-          <p>Esta trilha ainda não tem lições.</p>
-        </div>
+        <EmptyState icon={Star} title="Esta trilha ainda não tem lições." />
       )}
     </div>
   );
@@ -330,68 +329,69 @@ const UnitHeader: React.FC<{
   const actionLabel = mode === 'skip' ? 'Destravar' : 'Desbloquear';
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl mt-2 mb-8 bg-gradient-to-r ${a.tint} ring-1 ${a.ring} shadow-[0_4px_16px_-8px_rgba(15,23,42,0.18)] ${mode === 'redeem' || mode === 'skip' ? 'opacity-95' : ''}`}>
+    <div className={`relative overflow-hidden rounded-2xl mt-2 mb-8 bg-surface bg-gradient-to-r ${a.tint} ring-1 ${a.ring} ${mode === 'redeem' || mode === 'skip' ? 'opacity-95' : ''}`}>
       <div className="flex items-stretch">
         {/* barra lateral colorida */}
         <span className={`w-1.5 shrink-0 ${a.bar}`} />
         <div className="flex-1 flex items-center justify-between gap-3 px-4 py-3.5">
           <div className="min-w-0">
-            <p className={`text-[10px] uppercase tracking-[0.18em] font-bold mb-0.5 ${a.eyebrow}`}>
+            <p className={`text-[10px] uppercase tracking-[0.18em] font-semibold mb-0.5 ${a.eyebrow}`}>
               {unit.subtitle || 'Unidade'}
             </p>
-            <h3 className="text-[17px] font-bold text-slate-800 tracking-tight truncate">{unit.title}</h3>
+            <h3 className="font-display text-[17px] font-semibold text-fg tracking-tight truncate">{unit.title}</h3>
           </div>
 
           {/* Lado direito conforme o modo */}
           {mode === 'redeem' || mode === 'skip' ? (
             <button
               onClick={() => { setError(null); setConfirming(true); }}
-              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 hover:bg-amber-300 text-amber-950 text-[11px] font-extrabold transition-colors shadow-xs"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-warning/30 bg-warning/15 hover:bg-warning/25 text-warning-fg text-[11px] font-bold tabular-nums whitespace-nowrap transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
             >
               <Coins size={13} strokeWidth={2.5} /> {actionLabel} · {cost.toLocaleString('pt-BR')} Coins
             </button>
           ) : mode === 'bought' ? (
-            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 text-[11px] font-bold">
+            <span className="shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-success/20 bg-success/10 text-success-fg text-[11px] font-bold">
               <Coins size={12} strokeWidth={2.5} /> Desbloqueado
             </span>
           ) : unit.image_url ? (
-            <img src={unit.image_url} alt="" className="shrink-0 w-20 h-12 rounded-lg object-cover ring-1 ring-black/5" />
+            <img src={unit.image_url} alt="" className="shrink-0 w-20 h-12 rounded-lg object-cover ring-1 ring-tint/10" />
           ) : null}
         </div>
       </div>
 
       {/* Confirmação inline (dentro do card) */}
       {confirming && (
-        <div className="border-t border-black/5 bg-white/70 px-4 py-3">
-          <p className="text-sm text-slate-700 mb-1">
-            {mode === 'skip' ? 'Destravar' : 'Liberar'} <span className="font-semibold">{unit.title}</span> por <span className="font-bold text-amber-600">{cost.toLocaleString('pt-BR')} Coins</span>?
+        <div className="border-t border-tint/8 bg-tint/3 px-4 py-3">
+          <p className="text-sm text-fg-muted mb-1">
+            {mode === 'skip' ? 'Destravar' : 'Liberar'} <span className="font-semibold text-fg">{unit.title}</span> por <span className="font-bold font-mono tabular-nums whitespace-nowrap text-warning-fg">{cost.toLocaleString('pt-BR')} Coins</span>?
           </p>
           {mode === 'skip' && unit.is_locked && premiumCost > 0 && (
-            <p className="text-[11px] text-slate-400 mb-1">
+            <p className="text-[11px] text-fg-subtle tabular-nums mb-1">
               ({skipCost.toLocaleString('pt-BR')} do pulo + {premiumCost.toLocaleString('pt-BR')} da unidade Premium)
             </p>
           )}
-          <p className="text-xs text-slate-400 mb-3">
-            Seu saldo: <span className="tabular-nums">{coins.toLocaleString('pt-BR')}</span> Coins
-            {!canAfford && <span className="text-rose-500 font-semibold"> · faltam {(cost - coins).toLocaleString('pt-BR')} Coins</span>}
+          <p className="text-xs text-fg-muted mb-3">
+            Seu saldo: <span className="font-mono tabular-nums">{coins.toLocaleString('pt-BR')}</span> Coins
+            {!canAfford && <span className="text-danger-fg font-semibold tabular-nums"> · faltam {(cost - coins).toLocaleString('pt-BR')} Coins</span>}
           </p>
-          {error && <p className="text-xs text-rose-600 mb-2">{error}</p>}
+          {error && <p className="text-xs text-danger-fg mb-2">{error}</p>}
           <div className="flex gap-2">
-            <button
+            <Button
+              size="sm"
               onClick={doAction}
               disabled={busy || !canAfford}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white text-sm font-bold transition-colors"
             >
               {busy ? <Loader2 size={15} className="animate-spin" /> : <Coins size={15} />}
               Confirmar
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={() => setConfirming(false)}
               disabled={busy}
-              className="px-4 py-2 rounded-xl text-slate-500 hover:bg-slate-100 text-sm font-semibold transition-colors"
             >
               Cancelar
-            </button>
+            </Button>
           </div>
         </div>
       )}

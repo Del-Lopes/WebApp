@@ -33,7 +33,7 @@ export const InvertedScroll: React.FC<Props> = ({ banner, children }) => {
       <div className="shrink-0 z-20">{banner}</div>
 
       {/* Área de rolagem reversa (barra normal, eixo invertido) */}
-      <div className="flex-1 overflow-y-auto min-h-0" style={{ transform: 'scaleY(-1)' }}>
+      <div className="ds-scrollbar flex-1 overflow-y-auto min-h-0" style={{ transform: 'scaleY(-1)' }}>
         <div style={{ transform: 'scaleY(-1)' }}>
           {children}
         </div>

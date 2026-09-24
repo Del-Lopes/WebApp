@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { TrueFalsePayload } from '../../../types';
+import { Button } from '../../ui';
 
 interface Props {
   payload: TrueFalsePayload;
@@ -25,24 +26,24 @@ export const TrueFalseStep: React.FC<Props> = ({ payload, onResolved }) => {
   };
 
   const btnClass = (value: boolean): string => {
-    const base = 'flex-1 py-6 rounded-2xl border-2 font-bold text-lg transition-all';
+    const base = 'flex-1 py-6 rounded-2xl border-2 font-bold text-lg transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60';
     if (!checked) {
       return `${base} ${selected === value
-        ? 'border-green-500 bg-green-50 text-green-800'
-        : 'border-slate-200 hover:border-slate-300 text-slate-700'}`;
+        ? 'border-accent/60 bg-accent/10 text-fg'
+        : 'border-tint/10 bg-tint/3 hover:border-tint/20 hover:bg-tint/5 text-fg'}`;
     }
-    if (value === payload.answer) return `${base} border-green-500 bg-green-50 text-green-800`;
-    if (value === selected) return `${base} border-red-400 bg-red-50 text-red-700`;
-    return `${base} border-slate-200 text-slate-400`;
+    if (value === payload.answer) return `${base} border-success/60 bg-success/10 text-success-fg`;
+    if (value === selected) return `${base} border-danger/60 bg-danger/10 text-danger-fg`;
+    return `${base} border-tint/8 bg-tint/2 text-fg-subtle`;
   };
 
   return (
     <div className="flex flex-col h-full">
       <div className="flex-1 overflow-y-auto">
-        <p className="text-xs uppercase tracking-wider text-slate-400 mb-3">Verdadeiro ou Falso?</p>
-        <h2 className="text-xl font-bold text-slate-800 mb-8">{payload.statement}</h2>
+        <p className="eyebrow-muted mb-3">Verdadeiro ou Falso?</p>
+        <h2 className="font-display text-xl font-semibold text-fg mb-8">{payload.statement}</h2>
 
-        <div className="flex gap-4">
+        <div className="flex gap-3 sm:gap-4">
           <button disabled={checked} onClick={() => setSelected(true)} className={btnClass(true)}>
             Verdadeiro
           </button>
@@ -52,16 +53,16 @@ export const TrueFalseStep: React.FC<Props> = ({ payload, onResolved }) => {
         </div>
 
         {checked && (
-          <div className={`mt-5 p-4 rounded-2xl flex gap-3 ${isCorrect ? 'bg-green-50' : 'bg-red-50'}`}>
-            <div className={`shrink-0 ${isCorrect ? 'text-green-600' : 'text-red-500'}`}>
+          <div className={`mt-5 p-4 rounded-2xl border flex gap-3 ${isCorrect ? 'bg-success/10 border-success/20' : 'bg-danger/10 border-danger/20'}`}>
+            <div className={`shrink-0 ${isCorrect ? 'text-success-fg' : 'text-danger-fg'}`}>
               {isCorrect ? <Check size={22} /> : <X size={22} />}
             </div>
             <div>
-              <p className={`font-bold ${isCorrect ? 'text-green-800' : 'text-red-700'}`}>
+              <p className={`font-bold ${isCorrect ? 'text-success-fg' : 'text-danger-fg'}`}>
                 {isCorrect ? 'Correto!' : 'Não foi dessa vez.'}
               </p>
               {payload.explanation && (
-                <p className="text-sm text-slate-600 mt-1">{payload.explanation}</p>
+                <p className="text-sm text-fg-muted mt-1">{payload.explanation}</p>
               )}
             </div>
           </div>
@@ -69,22 +70,23 @@ export const TrueFalseStep: React.FC<Props> = ({ payload, onResolved }) => {
       </div>
 
       {!checked ? (
-        <button
+        <Button
+          size="lg"
           onClick={() => selected !== null && setChecked(true)}
           disabled={selected === null}
-          className="mt-6 w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-lg transition-colors"
+          className="mt-6 w-full h-14 rounded-2xl text-lg font-bold"
         >
           Verificar
-        </button>
+        </Button>
       ) : (
-        <button
+        <Button
+          size="lg"
+          variant={isCorrect ? 'primary' : 'danger'}
           onClick={handleContinue}
-          className={`mt-6 w-full py-4 rounded-2xl text-white font-bold text-lg transition-colors ${
-            isCorrect ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'
-          }`}
+          className="mt-6 w-full h-14 rounded-2xl text-lg font-bold"
         >
           {isCorrect ? 'Continuar' : 'Tentar de novo'}
-        </button>
+        </Button>
       )}
     </div>
   );

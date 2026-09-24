@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Check, X } from 'lucide-react';
 import { ChartPayload } from '../../../types';
+import { Button } from '../../ui';
 
 interface Props {
   payload: ChartPayload;
@@ -25,15 +26,15 @@ export const ChartStep: React.FC<Props> = ({ payload, onResolved }) => {
   };
 
   const optionClass = (i: number): string => {
-    const base = 'w-full text-left px-4 py-3 rounded-2xl border-2 font-medium transition-all';
+    const base = 'w-full text-left px-4 py-3 rounded-2xl border-2 font-medium transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60';
     if (!checked) {
       return `${base} ${selected === i
-        ? 'border-green-500 bg-green-50 text-green-800'
-        : 'border-slate-200 hover:border-slate-300 text-slate-700'}`;
+        ? 'border-accent/60 bg-accent/10 text-fg'
+        : 'border-tint/10 bg-tint/3 hover:border-tint/20 hover:bg-tint/5 text-fg'}`;
     }
-    if (i === payload.correctIndex) return `${base} border-green-500 bg-green-50 text-green-800`;
-    if (i === selected) return `${base} border-red-400 bg-red-50 text-red-700`;
-    return `${base} border-slate-200 text-slate-400`;
+    if (i === payload.correctIndex) return `${base} border-success/60 bg-success/10 text-success-fg`;
+    if (i === selected) return `${base} border-danger/60 bg-danger/10 text-danger-fg`;
+    return `${base} border-tint/8 bg-tint/2 text-fg-subtle`;
   };
 
   return (
@@ -42,9 +43,9 @@ export const ChartStep: React.FC<Props> = ({ payload, onResolved }) => {
         <img
           src={payload.image_url}
           alt="Gráfico"
-          className="w-full rounded-2xl mb-4 object-cover max-h-72 bg-slate-100"
+          className="w-full rounded-2xl mb-4 object-cover max-h-72 bg-tint/5 border border-tint/8"
         />
-        <h2 className="text-lg font-bold text-slate-800 mb-5">{payload.question}</h2>
+        <h2 className="font-display text-lg font-semibold text-fg mb-5">{payload.question}</h2>
 
         <div className="space-y-3">
           {payload.options.map((opt, i) => (
@@ -55,16 +56,16 @@ export const ChartStep: React.FC<Props> = ({ payload, onResolved }) => {
         </div>
 
         {checked && (
-          <div className={`mt-5 p-4 rounded-2xl flex gap-3 ${isCorrect ? 'bg-green-50' : 'bg-red-50'}`}>
-            <div className={`shrink-0 ${isCorrect ? 'text-green-600' : 'text-red-500'}`}>
+          <div className={`mt-5 p-4 rounded-2xl border flex gap-3 ${isCorrect ? 'bg-success/10 border-success/20' : 'bg-danger/10 border-danger/20'}`}>
+            <div className={`shrink-0 ${isCorrect ? 'text-success-fg' : 'text-danger-fg'}`}>
               {isCorrect ? <Check size={22} /> : <X size={22} />}
             </div>
             <div>
-              <p className={`font-bold ${isCorrect ? 'text-green-800' : 'text-red-700'}`}>
+              <p className={`font-bold ${isCorrect ? 'text-success-fg' : 'text-danger-fg'}`}>
                 {isCorrect ? 'Correto!' : 'Não foi dessa vez.'}
               </p>
               {payload.explanation && (
-                <p className="text-sm text-slate-600 mt-1">{payload.explanation}</p>
+                <p className="text-sm text-fg-muted mt-1">{payload.explanation}</p>
               )}
             </div>
           </div>
@@ -72,22 +73,23 @@ export const ChartStep: React.FC<Props> = ({ payload, onResolved }) => {
       </div>
 
       {!checked ? (
-        <button
+        <Button
+          size="lg"
           onClick={() => selected !== null && setChecked(true)}
           disabled={selected === null}
-          className="mt-6 w-full py-4 rounded-2xl bg-green-600 hover:bg-green-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold text-lg transition-colors"
+          className="mt-6 w-full h-14 rounded-2xl text-lg font-bold"
         >
           Verificar
-        </button>
+        </Button>
       ) : (
-        <button
+        <Button
+          size="lg"
+          variant={isCorrect ? 'primary' : 'danger'}
           onClick={handleContinue}
-          className={`mt-6 w-full py-4 rounded-2xl text-white font-bold text-lg transition-colors ${
-            isCorrect ? 'bg-green-600 hover:bg-green-700' : 'bg-red-500 hover:bg-red-600'
-          }`}
+          className="mt-6 w-full h-14 rounded-2xl text-lg font-bold"
         >
           {isCorrect ? 'Continuar' : 'Tentar de novo'}
-        </button>
+        </Button>
       )}
     </div>
   );

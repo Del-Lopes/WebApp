@@ -23,7 +23,7 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
   const isCheckpoint = isLicao || isRevisao; // qualquer nó que dá XP
   const color =
     state === 'locked'
-      ? { wick: 'bg-slate-300', body: 'bg-gradient-to-b from-slate-200 to-slate-300' }
+      ? { wick: 'bg-tint/15', body: 'bg-tint/10 border border-tint/10' }
       : isRevisao
         ? { wick: 'bg-amber-500', body: 'bg-gradient-to-b from-amber-400 to-amber-600' }
         : isLicao
@@ -31,8 +31,8 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
           : { wick: 'bg-emerald-500', body: 'bg-gradient-to-b from-emerald-400 to-emerald-600' };
 
   // anéis/sombras por tipo, para o estado disponível e concluído
-  const ring = isRevisao ? 'ring-2 ring-amber-200' : isLicao ? 'ring-2 ring-red-200' : 'ring-2 ring-emerald-200';
-  const shadowAvail = isRevisao ? 'shadow-lg shadow-amber-500/40' : isLicao ? 'shadow-lg shadow-red-500/40' : 'shadow-lg shadow-emerald-500/40';
+  const ring = isRevisao ? 'ring-2 ring-amber-400/40' : isLicao ? 'ring-2 ring-red-400/40' : 'ring-2 ring-emerald-400/40';
+  const shadowAvail = isRevisao ? 'shadow-md shadow-amber-500/30' : isLicao ? 'shadow-md shadow-red-500/30' : 'shadow-md shadow-emerald-500/30';
   const shadowDone = isRevisao ? 'shadow-sm shadow-amber-500/30' : isLicao ? 'shadow-sm shadow-red-500/30' : 'shadow-sm shadow-emerald-500/30';
 
   // revisão é o candle mais largo/alto da trilha (destaque de "boss" da unidade)
@@ -43,14 +43,14 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
     <button
       disabled={state === 'locked'}
       onClick={onClick}
-      className={`group relative flex flex-col items-center transition-transform hover:scale-110 active:scale-95 disabled:hover:scale-100 ${
+      className={`group relative flex flex-col items-center rounded-md transition-transform hover:scale-110 active:scale-95 disabled:hover:scale-100 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-page ${
         state === 'available' ? 'animate-pulse' : ''
       }`}
     >
       {/* badge de XP nos candles que dão ganho (gain e revisão), quando disponível */}
       {state === 'available' && isCheckpoint && xp > 0 && (
         <span
-          className={`absolute -top-2 -right-3 z-10 text-[9px] font-extrabold px-1 py-0.5 rounded-full shadow-sm ${
+          className={`absolute -top-2 -right-3 z-10 text-[9px] font-extrabold font-mono tabular-nums px-1 py-0.5 rounded-full ${
             isRevisao ? 'bg-yellow-400 text-yellow-900' : 'bg-red-500 text-white'
           }`}
         >
@@ -69,7 +69,7 @@ export const LessonCandle: React.FC<Props> = ({ state, kind = 'aula', xp, num, o
         style={{ width: w, height: h }}
       >
         {state === 'locked' ? (
-          <Lock size={13} className="text-slate-400" />
+          <Lock size={13} className="text-fg-subtle" />
         ) : isRevisao ? (
           <Trophy size={20} className="text-white" strokeWidth={2.5} />
         ) : isLicao ? (

@@ -12,6 +12,7 @@ import { LessonPlayer } from './LessonPlayer';
 import { TrackNode } from './unitNodes';
 import { InvertedScroll } from './InvertedScroll';
 import { useAuth } from '../../contexts/AuthContext';
+import { EmptyState, PageHeader, Skeleton } from '../ui';
 
 interface Props {
   onBack: () => void;
@@ -75,28 +76,20 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
 
   if (loading && tracks.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-slate-400">
+      <div className="flex items-center justify-center h-full text-fg-subtle">
         <Loader2 className="animate-spin" size={32} />
       </div>
     );
   }
 
-  // Banner "Domine o mercado" — FIXO no topo; claro, leve, acento verde.
+  // Banner "Domine o mercado" — FIXO no topo; superfície do tema, acento verde.
   const banner = (
-    <div className="relative overflow-hidden rounded-3xl p-6 mb-3 bg-gradient-to-br from-white via-emerald-50/60 to-teal-50 ring-1 ring-emerald-100 shadow-[0_10px_30px_-12px_rgba(16,185,129,0.25)]">
+    <div className="relative overflow-hidden rounded-3xl p-6 mb-3 bg-surface border border-tint/8">
+      <div className="hairline absolute inset-x-0 top-0" aria-hidden />
       {/* brilho verde difuso no canto */}
-      <div className="pointer-events-none absolute -top-16 -right-12 w-56 h-56 rounded-full bg-emerald-200/40 blur-3xl" />
-      {/* grid sutil em verde, esmaecendo */}
-      <div
-        className="absolute inset-0 opacity-[0.5]"
-        style={{
-          backgroundImage:
-            'linear-gradient(#10b981 1px, transparent 1px), linear-gradient(90deg, #10b981 1px, transparent 1px)',
-          backgroundSize: '26px 26px',
-          maskImage: 'radial-gradient(120% 100% at 100% 0%, rgba(0,0,0,0.10) 0%, transparent 65%)',
-          WebkitMaskImage: 'radial-gradient(120% 100% at 100% 0%, rgba(0,0,0,0.10) 0%, transparent 65%)',
-        }}
-      />
+      <div className="pointer-events-none absolute -top-16 -right-12 w-56 h-56 rounded-full bg-accent/15 blur-3xl" />
+      {/* grid sutil, esmaecendo */}
+      <div className="pointer-events-none absolute inset-0 bg-grid-fade" aria-hidden />
       {/* candles minimalistas e discretos na base */}
       <div className="absolute inset-x-0 bottom-0 flex items-end justify-around px-3 opacity-40">
         {[
@@ -113,13 +106,13 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
         ))}
       </div>
       <div className="relative">
-        <div className="inline-flex items-center gap-2 text-emerald-700 text-[11px] font-semibold tracking-wide mb-3">
-          <span className="w-6 h-px bg-gradient-to-r from-emerald-500 to-transparent" />
+        <div className="eyebrow inline-flex items-center gap-2 mb-3">
+          <span className="w-6 h-px bg-gradient-to-r from-accent to-transparent" />
           Do zero ao operacional
         </div>
-        <h2 className="font-display text-[26px] leading-[1.12] font-bold text-slate-900 tracking-tight">
+        <h2 className="font-display text-[26px] leading-[1.12] font-semibold text-fg tracking-tight">
           Domine o mercado,<br />
-          <span className="text-emerald-600">uma lição por vez.</span>
+          <span className="text-gradient-brand">uma lição por vez.</span>
         </h2>
       </div>
     </div>
@@ -128,23 +121,27 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto w-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2 min-w-0">
-          <BackButton onClick={onBack} />
-          <h1 className="text-lg md:text-xl font-bold text-slate-800 flex items-center gap-2 min-w-0">
+      <PageHeader
+        className="mb-5 sm:mb-5 sm:items-center"
+        leading={<BackButton onClick={onBack} />}
+        title={
+          <span className="flex items-center gap-2 min-w-0 text-xl md:text-2xl">
             <span className="shrink-0">Trilha Gain</span>
-            <span className="text-slate-300 shrink-0">—</span>
-            <span className="text-emerald-600 truncate">Jornada do Trader</span>
-          </h1>
-        </div>
-        <GamificationBar stats={stats} />
-      </div>
+            <span className="text-fg-subtle shrink-0">—</span>
+            <span className="text-accent-fg truncate">Jornada do Trader</span>
+          </span>
+        }
+        actions={<GamificationBar stats={stats} />}
+      />
 
       {/* Banner fixo no topo + rolagem reversa: barra começa no topo e desce
           normal; a trilha passa por trás do banner (aula 1 sai por baixo,
           aula 2 entra por cima). */}
       {loading && !activeTrack ? (
-        <div className="flex justify-center py-16 text-slate-400"><Loader2 className="animate-spin" size={28} /></div>
+        <div className="space-y-3">
+          <Skeleton className="h-36 w-full rounded-3xl" />
+          <Skeleton className="h-72 w-full rounded-2xl" />
+        </div>
       ) : activeTrack ? (
         <InvertedScroll banner={banner}>
           <TrackMap
@@ -160,10 +157,7 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
           />
         </InvertedScroll>
       ) : (
-        <div className="text-center text-slate-400 py-16 flex flex-col items-center gap-3">
-          <Milestone size={40} className="opacity-40" />
-          <p>Nenhuma trilha publicada ainda.</p>
-        </div>
+        <EmptyState icon={Milestone} title="Nenhuma trilha publicada ainda." />
       )}
 
       {/* Player do módulo: flui aula→aula→gain→…→revisão sem voltar ao lobby */}
