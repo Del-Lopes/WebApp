@@ -74,15 +74,15 @@ export const CoursePlayer: React.FC<CoursePlayerProps> = ({ courseId, onBack }) 
       setExpandedModules(prev => ({ ...prev, [modId]: !prev[modId] }));
   };
 
-  if (loading) return <div className="p-8 text-center">Carregando curso...</div>;
-  if (modules.length === 0) return <div className="p-8 text-center">Curso sem conteúdo disponível.</div>;
+  if (loading) return <div className="p-8 text-center text-fg-muted">Carregando curso...</div>;
+  if (modules.length === 0) return <div className="p-8 text-center text-fg-muted">Curso sem conteúdo disponível.</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-100px)] lg:flex-row bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+    <div className="flex flex-col h-[calc(100vh-100px)] lg:flex-row bg-surface border border-tint/8 rounded-2xl overflow-hidden">
         {/* Main Content (Video) */}
-        <div className="flex-1 flex flex-col bg-slate-900 relative">
+        <div className="flex-1 flex flex-col bg-black relative">
             <div className="absolute top-4 left-4 z-10 lg:hidden">
-                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 bg-slate-800 text-white rounded-lg">
+                <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-2 bg-black/60 border border-white/10 text-white rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60">
                     <Menu size={20} />
                 </button>
             </div>
@@ -95,58 +95,58 @@ export const CoursePlayer: React.FC<CoursePlayerProps> = ({ courseId, onBack }) 
                             <div className="text-center">
                                 <PlayCircle size={64} className="mx-auto mb-4 opacity-50" />
                                 <p>Player de Vídeo Simulador</p>
-                                <p className="text-sm text-slate-400 mt-2">{activeLesson.title}</p>
+                                <p className="text-sm text-white/60 mt-2">{activeLesson.title}</p>
                             </div>
                         </div>
                     ) : (
-                         <div className="text-slate-500">Selecione uma aula</div>
+                         <div className="text-white/50">Selecione uma aula</div>
                     )
                 ) : (
-                    <div className="text-slate-500">Selecione uma aula para começar</div>
+                    <div className="text-white/50">Selecione uma aula para começar</div>
                 )}
             </div>
             
-            <div className="p-6 bg-white border-t border-slate-200">
-                 <h2 className="text-xl font-bold text-slate-900">{activeLesson?.title || 'Curso'}</h2>
-                 <p className="text-slate-500 text-sm mt-1">{activeLesson?.duration || '00:00'} • Aula Prática</p>
+            <div className="p-6 bg-surface border-t border-tint/8">
+                 <h2 className="font-display text-xl font-semibold text-fg">{activeLesson?.title || 'Curso'}</h2>
+                 <p className="text-fg-muted text-sm mt-1 tabular-nums">{activeLesson?.duration || '00:00'} • Aula Prática</p>
             </div>
         </div>
 
         {/* Sidebar (Modules) */}
-        <div className={`${sidebarOpen ? 'w-full lg:w-80' : 'hidden'} lg:block border-l border-slate-200 bg-slate-50 overflow-y-auto`}>
-            <div className="p-4 border-b border-slate-200 bg-white sticky top-0 z-10">
-                <h3 className="font-bold text-slate-800">Conteúdo do Curso</h3>
-                <p className="text-xs text-slate-500">{modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)} aulas</p>
+        <div className={`${sidebarOpen ? 'w-full lg:w-80' : 'hidden'} lg:block border-t lg:border-t-0 lg:border-l border-tint/8 bg-page overflow-y-auto ds-scrollbar`}>
+            <div className="p-4 border-b border-tint/8 bg-surface sticky top-0 z-10">
+                <h3 className="font-display font-semibold text-fg">Conteúdo do Curso</h3>
+                <p className="text-xs text-fg-muted">{modules.reduce((acc, m) => acc + (m.lessons?.length || 0), 0)} aulas</p>
             </div>
             
-            <div className="divide-y divide-slate-100">
+            <div className="divide-y divide-tint/6">
                 {modules.map((module) => (
-                    <div key={module.id} className="bg-white">
+                    <div key={module.id} className="bg-surface">
                         <button 
                             onClick={() => toggleModule(module.id)}
-                            className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors text-left"
+                            className="w-full flex items-center justify-between p-4 hover:bg-tint/3 transition-colors text-left"
                         >
-                            <span className="font-semibold text-sm text-slate-700">{module.title}</span>
-                            {expandedModules[module.id] ? <ChevronDown size={16} className="text-slate-400" /> : <ChevronRight size={16} className="text-slate-400" />}
+                            <span className="font-semibold text-sm text-fg">{module.title}</span>
+                            {expandedModules[module.id] ? <ChevronDown size={16} className="text-fg-subtle" /> : <ChevronRight size={16} className="text-fg-subtle" />}
                         </button>
                         
                         {expandedModules[module.id] && (
-                            <div className="bg-slate-50">
+                            <div className="bg-page">
                                 {module.lessons?.map((lesson) => (
                                     <button
                                         key={lesson.id}
                                         onClick={() => setActiveLesson(lesson)}
                                         className={`w-full flex items-center gap-3 p-3 pl-6 text-sm transition-colors border-l-4 ${
                                             activeLesson?.id === lesson.id 
-                                            ? 'border-green-500 bg-green-50 text-green-700' 
-                                            : 'border-transparent hover:bg-slate-100 text-slate-600'
+                                            ? 'border-accent bg-accent/10 text-accent-fg' 
+                                            : 'border-transparent hover:bg-tint/5 text-fg-muted hover:text-fg'
                                         }`}
                                     >
                                         <div className="shrink-0">
-                                            {activeLesson?.id === lesson.id ? <PlayCircle size={16} /> : <div className="w-4 h-4 rounded-full border-2 border-slate-300"></div>}
+                                            {activeLesson?.id === lesson.id ? <PlayCircle size={16} /> : <div className="w-4 h-4 rounded-full border-2 border-tint/20"></div>}
                                         </div>
                                         <span className="truncate">{lesson.title}</span>
-                                        <span className="ml-auto text-xs text-slate-400">{lesson.duration}</span>
+                                        <span className="ml-auto text-xs text-fg-subtle tabular-nums">{lesson.duration}</span>
                                     </button>
                                 ))}
                             </div>

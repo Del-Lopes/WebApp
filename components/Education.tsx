@@ -7,6 +7,7 @@ import { Product, Module, Lesson, Article } from '../types';
 import { ArticleView } from './Dashboard/ArticleView';
 import { BackButton } from './BackButton';
 import { uploadToSupabase } from '../lib/storage';
+import { Badge, Button, Card, EmptyState, Input, Label, PageHeader, Skeleton, Textarea } from './ui';
 import { type } from 'os';
 
 interface EducationProps {
@@ -332,30 +333,31 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
   // --- Render Helpers ---
 
   const renderLessonModal = () => (
-      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6">
+      <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="relative bg-surface border border-tint/10 rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto ds-scrollbar">
+              <div className="absolute top-0 inset-x-0 hairline" aria-hidden></div>
               <div className="flex justify-between items-center mb-4">
-                  <h3 className="text-xl font-bold text-slate-800">{editingLesson ? 'Editar Aula' : 'Nova Aula'}</h3>
-                  <button onClick={() => setIsLessonModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+                  <h3 className="font-display text-xl font-semibold text-fg">{editingLesson ? 'Editar Aula' : 'Nova Aula'}</h3>
+                  <button onClick={() => setIsLessonModalOpen(false)} aria-label="Fechar" className="p-1 rounded-lg text-fg-subtle hover:text-fg hover:bg-tint/5 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"><X size={24} /></button>
               </div>
               <form onSubmit={handleSaveLesson} className="space-y-4">
                   <div>
-                      <label className="block text-sm font-medium mb-1">Título</label>
-                      <input type="text" required value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500" />
+                      <Label>Título</Label>
+                      <Input type="text" required value={lessonForm.title} onChange={e => setLessonForm({...lessonForm, title: e.target.value})} />
                   </div>
                   <div>
-                      <label className="block text-sm font-medium mb-1">Video URL (Youtube/Vimeo)</label>
-                      <input type="text" value={lessonForm.video_url} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500" placeholder="https://..." />
+                      <Label>Video URL (Youtube/Vimeo)</Label>
+                      <Input type="text" value={lessonForm.video_url} onChange={e => setLessonForm({...lessonForm, video_url: e.target.value})} placeholder="https://..." />
                   </div>
                   <div>
-                       <label className="block text-sm font-medium mb-1">Duração</label>
-                       <input type="text" value={lessonForm.duration} onChange={e => setLessonForm({...lessonForm, duration: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500" placeholder="05:00" />
+                       <Label>Duração</Label>
+                       <Input type="text" value={lessonForm.duration} onChange={e => setLessonForm({...lessonForm, duration: e.target.value})} className="font-mono tabular-nums" placeholder="05:00" />
                   </div>
                   <div>
-                       <label className="block text-sm font-medium mb-1">Descrição / Material de Apoio</label>
-                       <textarea rows={4} value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden focus:border-green-500" placeholder="Sobre esta aula..." />
+                       <Label>Descrição / Material de Apoio</Label>
+                       <Textarea rows={4} value={lessonForm.description} onChange={e => setLessonForm({...lessonForm, description: e.target.value})} placeholder="Sobre esta aula..." />
                   </div>
-                  <button type="submit" className="w-full bg-green-600 text-white font-bold py-2 rounded-lg hover:bg-green-500 mt-2">Salvar Aula</button>
+                  <Button type="submit" className="w-full mt-2">Salvar Aula</Button>
               </form>
           </div>
       </div>
@@ -369,15 +371,15 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
       try {
           const category = type === 'course' ? 'courses' : 'articles';
           const url = await uploadToSupabase(file, category);
-          
+
           if (type === 'course') {
               setCourseForm(prev => ({ ...prev, image_url: url }));
           } else if (type === 'article') {
               setArticleForm(prev => ({ ...prev, image_url: url }));
           } else if (type === 'gallery') {
-              setArticleForm(prev => ({ 
-                  ...prev, 
-                  gallery_urls_input: prev.gallery_urls_input ? `${prev.gallery_urls_input}\n${url}` : url 
+              setArticleForm(prev => ({
+                  ...prev,
+                  gallery_urls_input: prev.gallery_urls_input ? `${prev.gallery_urls_input}\n${url}` : url
               }));
           }
       } catch (err: any) {
@@ -389,67 +391,68 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
   };
 
   const renderCourseModal = () => (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl my-8">
-              <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 rounded-t-2xl">
-                  <h3 className="text-xl font-bold text-slate-800">{editingCourse ? 'Editar Curso' : 'Novo Curso'}</h3>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto">
+          <div className="relative bg-surface border border-tint/10 rounded-2xl w-full max-w-2xl my-8 overflow-hidden">
+              <div className="absolute top-0 inset-x-0 hairline" aria-hidden></div>
+              <div className="p-6 border-b border-tint/6 flex justify-between items-center bg-tint/3">
+                  <h3 className="font-display text-xl font-semibold text-fg">{editingCourse ? 'Editar Curso' : 'Novo Curso'}</h3>
                   <div className="flex items-center gap-2">
                       {editingCourse && (
-                          <button 
-                            type="button" 
+                          <button
+                            type="button"
                             onClick={() => handleDeleteCourse(editingCourse.id)}
-                            className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors mr-2"
+                            className="p-2 text-danger-fg hover:bg-danger/10 rounded-full transition-colors mr-2"
                             title="Excluir Curso"
                           >
                               <Trash2 size={20} />
                           </button>
                       )}
-                      <button onClick={() => setIsModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+                      <button onClick={() => setIsModalOpen(false)} aria-label="Fechar" className="p-1 rounded-lg text-fg-subtle hover:text-fg hover:bg-tint/5 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"><X size={24} /></button>
                   </div>
               </div>
               <div className="p-6 space-y-6">
                   <form id="course-form" onSubmit={handleSaveCourse} className="space-y-4">
-                      <div><label className="block text-sm font-medium mb-1">Título</label><input type="text" required value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2 outline-hidden" /></div>
-                      <div><label className="block text-sm font-medium mb-1 text-slate-700">Descrição</label><textarea rows={3} value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2 outline-hidden focus:ring-2 focus:ring-green-500/20 focus:border-green-500 transition-all" /></div>
-                      
-                      <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+                      <div><Label>Título</Label><Input type="text" required value={courseForm.title} onChange={e => setCourseForm({...courseForm, title: e.target.value})} /></div>
+                      <div><Label>Descrição</Label><Textarea rows={3} value={courseForm.description} onChange={e => setCourseForm({...courseForm, description: e.target.value})} /></div>
+
+                      <div className="bg-tint/3 border border-tint/8 rounded-xl p-4 space-y-3">
                           <label className="flex items-center gap-3 cursor-pointer select-none">
                               <input
                                   type="checkbox"
                                   checked={courseForm.is_locked}
                                   onChange={e => setCourseForm({ ...courseForm, is_locked: e.target.checked })}
-                                  className="w-4 h-4 accent-green-600"
+                                  className="w-4 h-4 accent-accent"
                               />
-                              <span className="flex items-center gap-2 font-bold text-slate-800">
-                                  <Lock size={16} className="text-slate-500" /> Trancar conteúdo
+                              <span className="flex items-center gap-2 font-semibold text-fg">
+                                  <Lock size={16} className="text-fg-muted" /> Trancar conteúdo
                               </span>
                           </label>
-                          <p className="text-xs text-slate-500 -mt-1">
+                          <p className="text-xs text-fg-muted -mt-1">
                               Quando trancado, o curso aparece na Biblioteca com cadeado e não pode ser acessado.
                           </p>
                           {courseForm.is_locked && (
                               <div>
-                                  <label className="block text-xs font-medium mb-1 text-slate-600">
+                                  <Label className="text-xs text-fg-muted">
                                       Mensagem do cadeado (opcional)
-                                  </label>
-                                  <textarea
+                                  </Label>
+                                  <Textarea
                                       rows={2}
                                       value={courseForm.lock_note}
                                       onChange={e => setCourseForm({ ...courseForm, lock_note: e.target.value })}
                                       placeholder="Ex: Em produção, lançamento em junho. Disponível só para alunos Premium."
-                                      className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm outline-hidden focus:border-green-500"
+                                      className="min-h-0"
                                   />
                               </div>
                           )}
                       </div>
 
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-slate-700">Imagem de Capa</label>
+                        <Label className="mb-0">Imagem de Capa</Label>
                         <div className="flex gap-4 items-start">
                             {courseForm.image_url ? (
-                                <div className="relative w-32 aspect-video rounded-lg overflow-hidden border border-slate-200 group">
+                                <div className="relative w-32 shrink-0 aspect-video rounded-lg overflow-hidden border border-tint/10 group">
                                     <img src={courseForm.image_url} alt="" className="w-full h-full object-cover" />
-                                    <button 
+                                    <button
                                         type="button"
                                         onClick={() => setCourseForm(prev => ({ ...prev, image_url: '' }))}
                                         className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
@@ -458,27 +461,27 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                                     </button>
                                 </div>
                             ) : (
-                                <div className="w-32 aspect-video rounded-lg bg-slate-100 border-2 border-dashed border-slate-200 flex items-center justify-center text-slate-400">
+                                <div className="w-32 shrink-0 aspect-video rounded-lg bg-tint/3 border-2 border-dashed border-tint/10 flex items-center justify-center text-fg-subtle">
                                     <ImageIcon size={24} />
                                 </div>
                             )}
-                            <div className="flex-1">
-                                <label className="flex flex-col items-center justify-center w-full h-12 px-4 transition bg-white border-2 border-slate-200 border-dashed rounded-xl cursor-copy hover:border-green-500 group">
+                            <div className="flex-1 min-w-0">
+                                <label className="flex flex-col items-center justify-center w-full h-12 px-4 transition bg-tint/3 border-2 border-tint/10 border-dashed rounded-xl cursor-copy hover:border-accent/60 group">
                                     <div className="flex items-center space-x-2">
-                                        {isUploading ? <Loader2 className="animate-spin text-green-600" size={18} /> : <Upload className="text-slate-400 group-hover:text-green-600" size={18} />}
-                                        <span className="text-xs font-bold text-slate-500 group-hover:text-green-600">
+                                        {isUploading ? <Loader2 className="animate-spin text-accent-fg" size={18} /> : <Upload className="text-fg-subtle group-hover:text-accent-fg" size={18} />}
+                                        <span className="text-xs font-semibold text-fg-muted group-hover:text-accent-fg">
                                             {isUploading ? 'Enviando...' : 'Clique para subir imagem'}
                                         </span>
                                     </div>
                                     <input type="file" className="hidden" accept="image/*" disabled={isUploading} onChange={(e) => handleFileUpload(e, 'course')} />
                                 </label>
                                 <div className="mt-2">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Ou cole a URL aqui" 
-                                        value={courseForm.image_url} 
-                                        onChange={e => setCourseForm({...courseForm, image_url: e.target.value})} 
-                                        className="w-full text-[10px] border-b border-slate-200 bg-transparent py-1 outline-hidden focus:border-green-500" 
+                                    <input
+                                        type="text"
+                                        placeholder="Ou cole a URL aqui"
+                                        value={courseForm.image_url}
+                                        onChange={e => setCourseForm({...courseForm, image_url: e.target.value})}
+                                        className="w-full text-[10px] text-fg border-b border-tint/10 bg-transparent py-1 outline-hidden placeholder:text-fg-subtle focus:border-accent/60"
                                     />
                                 </div>
                             </div>
@@ -487,51 +490,51 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                   </form>
 
                   {editingCourse && (
-                      <div className="border-t border-slate-200 pt-6">
+                      <div className="border-t border-tint/8 pt-6">
                           <div className="flex justify-between items-center mb-4">
-                              <h4 className="font-bold text-slate-700 flex items-center gap-2"><Layout size={18} /> Conteúdo</h4>
-                              <button onClick={handleAddModule} className="text-sm text-green-600 font-semibold hover:underline">+ Módulo</button>
+                              <h4 className="font-display font-semibold text-fg flex items-center gap-2"><Layout size={18} className="text-fg-muted" /> Conteúdo</h4>
+                              <button onClick={handleAddModule} className="text-sm text-accent-fg font-semibold hover:underline underline-offset-4">+ Módulo</button>
                           </div>
                           <div className="space-y-3">
                               {modules.map((mod) => (
-                                  <div key={mod.id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
-                                      <div className="flex justify-between items-center mb-2">
-                                          <div className="flex items-center gap-2">
-                                              <span className="font-semibold text-slate-800">{mod.title}</span>
-                                              <button onClick={() => handleDeleteModule(mod.id)} className="text-slate-400 hover:text-red-500 transition-colors" title="Excluir Módulo">
+                                  <div key={mod.id} className="bg-tint/3 rounded-lg p-3 border border-tint/8">
+                                      <div className="flex justify-between items-center gap-2 mb-2">
+                                          <div className="flex items-center gap-2 min-w-0">
+                                              <span className="font-semibold text-fg truncate">{mod.title}</span>
+                                              <button onClick={() => handleDeleteModule(mod.id)} className="text-fg-subtle hover:text-danger-fg transition-colors" title="Excluir Módulo">
                                                   <Trash2 size={14} />
                                               </button>
                                           </div>
-                                          <button onClick={() => openLessonModal(mod.id)} className="text-xs bg-white border border-slate-300 px-2 py-1 rounded-sm hover:bg-green-50 hover:text-green-600 font-medium">+ Aula</button>
+                                          <button onClick={() => openLessonModal(mod.id)} className="shrink-0 text-xs bg-surface border border-tint/10 text-fg-muted px-2 py-1 rounded-sm hover:bg-accent/10 hover:border-accent/20 hover:text-accent-fg font-medium transition-colors">+ Aula</button>
                                       </div>
                                       <div className="pl-4 space-y-1">
                                           {mod.lessons?.map(lesson => (
-                                              <div key={lesson.id} className="flex items-center justify-between text-sm text-slate-600 bg-white p-2 rounded-sm border border-transparent hover:border-slate-200 group">
-                                                  <div className="flex items-center gap-2">
-                                                      <Play size={12} className="text-slate-400" /> {lesson.title}
+                                              <div key={lesson.id} className="flex items-center justify-between gap-2 text-sm text-fg-muted bg-surface p-2 rounded-sm border border-transparent hover:border-tint/10 group">
+                                                  <div className="flex items-center gap-2 min-w-0">
+                                                      <Play size={12} className="text-fg-subtle shrink-0" /> <span className="truncate">{lesson.title}</span>
                                                   </div>
-                                                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                      <button onClick={() => openLessonModal(mod.id, lesson)} className="text-slate-400 hover:text-green-600" title="Editar Aula">
+                                                  <div className="flex items-center gap-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
+                                                      <button onClick={() => openLessonModal(mod.id, lesson)} className="text-fg-subtle hover:text-accent-fg" title="Editar Aula">
                                                           <Edit2 size={14} />
                                                       </button>
-                                                      <button onClick={() => handleDeleteLesson(lesson.id)} className="text-slate-400 hover:text-red-500" title="Excluir Aula">
+                                                      <button onClick={() => handleDeleteLesson(lesson.id)} className="text-fg-subtle hover:text-danger-fg" title="Excluir Aula">
                                                           <Trash2 size={14} />
                                                       </button>
                                                   </div>
                                               </div>
                                           ))}
-                                          {!mod.lessons?.length && <p className="text-xs text-slate-400 italic">Sem aulas.</p>}
+                                          {!mod.lessons?.length && <p className="text-xs text-fg-subtle italic">Sem aulas.</p>}
                                       </div>
                                   </div>
                               ))}
-                              {modules.length === 0 && <p className="text-sm text-slate-500 text-center">Nenhum módulo criado.</p>}
+                              {modules.length === 0 && <p className="text-sm text-fg-muted text-center">Nenhum módulo criado.</p>}
                           </div>
                       </div>
                   )}
               </div>
-              <div className="p-6 border-t border-slate-100 flex justify-end gap-3 bg-slate-50 rounded-b-2xl">
-                  <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg">Cancelar</button>
-                  <button type="submit" form="course-form" className="px-6 py-2 bg-green-600 text-white font-bold rounded-lg hover:bg-green-500 shadow-lg">Salvar</button>
+              <div className="p-6 border-t border-tint/6 flex justify-end gap-3 bg-tint/3">
+                  <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                  <Button type="submit" form="course-form" className="px-6">Salvar</Button>
               </div>
           </div>
       </div>
@@ -542,7 +545,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
        return (
            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
 
-              
+
                <ArticleView article={selectedArticle} onBack={() => setSelectedArticle(null)} />
               {/* Reuse Edit Modal if admin wants to edit from here - maybe later */}
            </div>
@@ -554,119 +557,118 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
       return (
           <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                {/* Navigation Header */}
-               <div className="flex items-center justify-between">
-                   <div className="flex items-center gap-4">
-                      <button 
+               <PageHeader
+                   className="mb-0 sm:mb-0"
+                   leading={
+                      <button
                           onClick={() => setSelectedCourse(null)}
-                          className="p-2 hover:bg-slate-100 rounded-full text-slate-500 hover:text-green-600 transition-colors"
+                          aria-label="Voltar"
+                          className="p-2 hover:bg-tint/5 rounded-full text-fg-muted hover:text-accent-fg transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                       >
                           <ArrowLeft size={24} />
                       </button>
-                      <div>
-                          <h2 className="text-2xl font-bold text-slate-900">{selectedCourse.title}</h2>
-                          <p className="text-sm text-slate-500 line-clamp-1">{selectedCourse.description}</p>
-                      </div>
-                   </div>
-                   {role === 'admin' && (
-                       <button 
+                   }
+                   eyebrow="Curso"
+                   title={selectedCourse.title}
+                   description={<span className="line-clamp-1">{selectedCourse.description}</span>}
+                   actions={role === 'admin' && (
+                       <Button
+                         variant="secondary"
                          onClick={() => handleEditClick(selectedCourse)}
-                         className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-medium transition-colors"
                        >
                            <Edit2 size={18} /> Editar Curso
-                       </button>
+                       </Button>
                    )}
-               </div>
+               />
 
                {/* Content Layout */}
-               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
                    {/* Main Player/Content Area */}
                    <div className="lg:col-span-2 space-y-6">
-                       <div className="aspect-video bg-black rounded-2xl overflow-hidden shadow-lg relative group">
+                       <div className="aspect-video bg-black rounded-2xl overflow-hidden border border-tint/8 relative group">
                            {selectedLesson ? (
-                               <iframe 
-                                 src={getEmbedUrl(selectedLesson.video_url)} 
-                                 className="w-full h-full" 
+                               <iframe
+                                 src={getEmbedUrl(selectedLesson.video_url)}
+                                 className="w-full h-full"
                                  title={selectedLesson.title}
                                  referrerPolicy="strict-origin-when-cross-origin"
-                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
+                                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                                  allowFullScreen
                                />
                            ) : (
                                <>
                                    <img src={selectedCourse.image_url} alt="" className="absolute inset-0 w-full h-full object-cover opacity-40" />
-                                   <div className="relative z-10 flex flex-col items-center justify-center h-full text-white">
-                                       <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mb-4 shadow-lg animate-pulse">
-                                           <Play className="ml-1 fill-white" size={32} />
+                                   <div className="relative z-10 flex flex-col items-center justify-center h-full text-white px-4 text-center">
+                                       <div className="w-16 h-16 bg-brand-green text-brand-dark rounded-full flex items-center justify-center mb-4 shadow-[0_10px_40px_-12px_rgba(34,197,94,0.55)] animate-pulse">
+                                           <Play className="ml-1 fill-current" size={32} />
                                        </div>
-                                       <p className="font-semibold text-lg">Selecione uma aula para iniciar</p>
+                                       <p className="font-display font-semibold text-lg">Selecione uma aula para iniciar</p>
                                    </div>
                                </>
                            )}
                        </div>
-                       
-                       <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-xs">
-                           <h3 className="font-bold text-lg mb-2 text-slate-900">
+
+                       <Card>
+                           <h3 className="font-display font-semibold text-lg mb-2 text-fg">
                                {selectedLesson ? `Sobre esta aula: ${selectedLesson.title}` : 'Sobre este curso'}
                            </h3>
-                           <div className="text-slate-600 leading-relaxed whitespace-pre-wrap">
+                           <div className="text-fg-muted leading-relaxed whitespace-pre-wrap break-words">
                                {selectedLesson ? (
                                    selectedLesson.description || "Sem descrição disponível para esta aula."
                                ) : (
                                    selectedCourse.description
                                )}
                            </div>
-                       </div>
+                       </Card>
                    </div>
 
                    {/* Sidebar: Modules & Lessons */}
                    <div className="space-y-4">
                        <div className="flex items-center justify-between">
-                           <h3 className="font-bold text-slate-900 text-lg">Conteúdo do Curso</h3>
-                           <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-lg">{modules.length} Módulos</span>
+                           <h3 className="font-display font-semibold text-fg text-lg">Conteúdo do Curso</h3>
+                           <Badge tone="accent" className="rounded-lg tabular-nums">{modules.length} Módulos</Badge>
                        </div>
-                       
+
                        <div className="space-y-3">
                            {modules.map((module, idx) => (
-                               <div key={module.id} className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
-                                   <button 
+                               <div key={module.id} className="border border-tint/8 rounded-xl overflow-hidden bg-surface">
+                                   <button
                                       onClick={() => toggleModule(module.id)}
-                                      className="w-full flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+                                      className="w-full flex items-center justify-between gap-2 p-4 bg-tint/3 hover:bg-tint/5 transition-colors text-left"
                                    >
-                                       <div className="flex items-center gap-3">
-                                           <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center text-xs font-bold">{idx + 1}</span>
-                                           <span className="font-semibold text-slate-800">{module.title}</span>
+                                       <div className="flex items-center gap-3 min-w-0">
+                                           <span className="w-6 h-6 shrink-0 rounded-full bg-tint/8 text-fg-muted flex items-center justify-center text-xs font-semibold font-mono tabular-nums">{idx + 1}</span>
+                                           <span className="font-semibold text-fg">{module.title}</span>
                                        </div>
-                                       {expandedModules[module.id] ? <ChevronUp size={18} className="text-slate-400" /> : <ChevronDown size={18} className="text-slate-400" />}
+                                       {expandedModules[module.id] ? <ChevronUp size={18} className="text-fg-subtle shrink-0" /> : <ChevronDown size={18} className="text-fg-subtle shrink-0" />}
                                    </button>
-                                   
+
                                    {expandedModules[module.id] && (
-                                       <div className="divide-y divide-slate-100 bg-white">
+                                       <div className="divide-y divide-tint/6 bg-surface">
                                            {module.lessons?.map((lesson, msgIdx) => (
-                                               <button 
-                                                    key={lesson.id} 
+                                               <button
+                                                    key={lesson.id}
                                                     onClick={() => setSelectedLesson(lesson)}
-                                                    className={`w-full flex items-center gap-3 p-3 pl-12 transition-colors text-left group ${selectedLesson?.id === lesson.id ? 'bg-green-50 text-green-700' : 'hover:bg-slate-50'}`}
+                                                    className={`w-full flex items-center gap-3 p-3 pl-12 transition-colors text-left group ${selectedLesson?.id === lesson.id ? 'bg-accent/10 text-accent-fg' : 'hover:bg-tint/3'}`}
                                                >
-                                                   <div className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${selectedLesson?.id === lesson.id ? 'border-green-500 bg-green-500 text-white' : 'border-slate-200 text-slate-300 group-hover:border-green-300 group-hover:text-green-500'}`}>
+                                                   <div className={`w-6 h-6 shrink-0 rounded-full border flex items-center justify-center transition-colors ${selectedLesson?.id === lesson.id ? 'border-accent bg-accent text-white' : 'border-tint/15 text-fg-subtle group-hover:border-accent/40 group-hover:text-accent-fg'}`}>
                                                        <Play size={10} className={`ml-0.5 ${selectedLesson?.id === lesson.id ? 'fill-white' : 'fill-current'}`} />
                                                    </div>
-                                                   <div className="flex-1">
-                                                       <p className={`text-sm font-medium ${selectedLesson?.id === lesson.id ? 'text-green-800' : 'text-slate-600 group-hover:text-green-700'}`}>{lesson.title}</p>
-                                                       <span className="text-xs text-slate-400 font-mono">{lesson.duration || '00:00'}</span>
+                                                   <div className="flex-1 min-w-0">
+                                                       <p className={`text-sm font-medium ${selectedLesson?.id === lesson.id ? 'text-accent-fg' : 'text-fg-muted group-hover:text-fg'}`}>{lesson.title}</p>
+                                                       <span className="text-xs text-fg-subtle font-mono tabular-nums">{lesson.duration || '00:00'}</span>
                                                    </div>
                                                </button>
                                            ))}
                                            {(!module.lessons || module.lessons.length === 0) && (
-                                               <div className="p-4 text-center text-xs text-slate-400 italic">Em breve</div>
+                                               <div className="p-4 text-center text-xs text-fg-subtle italic">Em breve</div>
                                            )}
                                        </div>
                                    )}
                                </div>
                            ))}
                            {modules.length === 0 && (
-                               <div className="text-center py-8 text-slate-500 bg-slate-50 rounded-xl border border-dashed border-slate-200">
-                                   Nenhum conteúdo disponível ainda.
-                               </div>
+                               <EmptyState className="py-8" title="Nenhum conteúdo disponível ainda." />
                            )}
                        </div>
                    </div>
@@ -684,57 +686,67 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
   if (articlesOnly) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            {onBack && <BackButton onClick={onBack} />}
-            <div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-1">Artigos e Análises</h2>
-              <p className="text-slate-500 text-sm">Conteúdo educacional e análises de mercado.</p>
-            </div>
-          </div>
-          {role === 'admin' && (
-            <button onClick={() => openArticleModal()} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+        <PageHeader
+          className="mb-0 sm:mb-0"
+          leading={onBack && <BackButton onClick={onBack} />}
+          eyebrow="Conteúdo"
+          title="Artigos e Análises"
+          description="Conteúdo educacional e análises de mercado."
+          actions={role === 'admin' && (
+            <Button size="sm" onClick={() => openArticleModal()}>
               <Plus size={18} /> Novo Artigo
-            </button>
+            </Button>
           )}
-        </div>
+        />
 
         {loading ? (
-          <div className="flex justify-center py-12"><Loader2 className="animate-spin text-green-600" size={32} /></div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5" role="status">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="glass-card overflow-hidden rounded-xl">
+                <Skeleton className="aspect-video w-full rounded-none" />
+                <div className="p-4 space-y-2">
+                  <Skeleton className="h-3 w-16" />
+                  <Skeleton className="h-4 w-4/5" />
+                  <Skeleton className="h-3 w-full" />
+                </div>
+              </div>
+            ))}
+            <span className="sr-only">Carregando...</span>
+          </div>
         ) : articles.length === 0 ? (
-          <div className="text-center py-16 bg-slate-50 rounded-xl text-slate-500">Nenhum artigo disponível.</div>
+          <EmptyState icon={FileText} title="Nenhum artigo disponível." />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {articles.map((article) => (
               <div
                 key={article.id}
                 onClick={() => setSelectedArticle(article)}
-                className="group flex flex-col bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+                className="group glass-card glass-card-hover flex flex-col rounded-xl overflow-hidden cursor-pointer"
               >
                 {/* Cover image */}
-                <div className="relative aspect-video bg-slate-100">
+                <div className="relative aspect-video bg-tint/3">
                   {article.image_url ? (
                     <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-300">
+                    <div className="w-full h-full flex items-center justify-center text-fg-subtle">
                       <FileText size={36} />
                     </div>
                   )}
                 </div>
 
                 <div className="p-4 flex-1 flex flex-col">
-                  <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider mb-1">{article.category || 'Geral'}</span>
-                  <h4 className="text-sm font-bold text-slate-900 mb-1 line-clamp-2 group-hover:text-green-600 transition-colors">{article.title}</h4>
-                  <p className="text-xs text-slate-500 line-clamp-2 flex-1">{article.excerpt}</p>
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
-                    <div className="flex items-center gap-1 text-[10px] text-slate-400">
+                  <span className="text-[10px] font-medium text-accent-fg uppercase tracking-[0.2em] mb-1">{article.category || 'Geral'}</span>
+                  <h4 className="font-display text-sm font-semibold text-fg mb-1 line-clamp-2 group-hover:text-accent-fg transition-colors">{article.title}</h4>
+                  <p className="text-xs text-fg-muted line-clamp-2 flex-1">{article.excerpt}</p>
+                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-tint/6">
+                    <div className="flex items-center gap-1 text-[10px] text-fg-subtle tabular-nums">
                       <Clock size={10} />
                       <span>{new Date(article.created_at || Date.now()).toLocaleDateString('pt-BR')}</span>
                     </div>
                     {role === 'admin' && (
                       <button
                         onClick={(e) => { e.stopPropagation(); openArticleModal(article); }}
-                        className="p-1 text-slate-400 hover:text-green-600 rounded-sm transition-colors"
+                        className="p-1 text-fg-subtle hover:text-accent-fg rounded-sm transition-colors"
                       >
                         <Edit2 size={13} />
                       </button>
@@ -747,26 +759,27 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
         )}
 
         {isArticleModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-            <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div className="relative bg-surface border border-tint/10 rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto ds-scrollbar">
+              <div className="absolute top-0 inset-x-0 hairline" aria-hidden></div>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-xl font-bold text-slate-800">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>
+                <h3 className="font-display text-xl font-semibold text-fg">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>
                 <div className="flex items-center gap-2">
                   {editingArticle && (
-                    <button type="button" onClick={() => handleDeleteArticle(editingArticle.id)} className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors mr-2"><Trash2 size={20} /></button>
+                    <button type="button" onClick={() => handleDeleteArticle(editingArticle.id)} className="p-2 text-danger-fg hover:bg-danger/10 rounded-full transition-colors mr-2"><Trash2 size={20} /></button>
                   )}
-                  <button onClick={() => setIsArticleModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+                  <button onClick={() => setIsArticleModalOpen(false)} aria-label="Fechar" className="p-1 rounded-lg text-fg-subtle hover:text-fg hover:bg-tint/5 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"><X size={24} /></button>
                 </div>
               </div>
               <form onSubmit={handleSaveArticle} className="space-y-3">
-                <input type="text" placeholder="Título" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
-                <input type="text" placeholder="Categoria" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
-                <textarea placeholder="Resumo" rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full border rounded-xl px-3 py-2" />
-                <textarea placeholder="Conteúdo" rows={5} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border rounded-xl px-3 py-2" />
-                <input type="text" placeholder="URL da Capa" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} className="w-full border rounded-lg px-3 py-2 text-sm" />
-                <button type="submit" className="w-full bg-green-600 text-white font-black py-3 rounded-xl hover:bg-green-500 mt-2">
+                <Input type="text" placeholder="Título" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} />
+                <Input type="text" placeholder="Categoria" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} />
+                <Textarea placeholder="Resumo" rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="min-h-0 rounded-xl" />
+                <Textarea placeholder="Conteúdo" rows={5} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="rounded-xl" />
+                <Input type="text" placeholder="URL da Capa" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} />
+                <Button type="submit" size="lg" className="w-full mt-2 rounded-xl">
                   {editingArticle ? 'Salvar Alterações' : 'Publicar Artigo'}
-                </button>
+                </Button>
               </form>
             </div>
           </div>
@@ -779,46 +792,58 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          {onBack && <BackButton onClick={onBack} />}
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 mb-1">Biblioteca de Conteúdo</h2>
-            <p className="text-slate-500 text-sm">Aprofunde seus conhecimentos em negociação algorítmica.</p>
-          </div>
-        </div>
-        {role === 'admin' && (
-            <button onClick={handleCreateClick} className="bg-green-600 hover:bg-green-500 text-white px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2">
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        leading={onBack && <BackButton onClick={onBack} />}
+        eyebrow="Biblioteca"
+        title="Biblioteca de Conteúdo"
+        description="Aprofunde seus conhecimentos em negociação algorítmica."
+        actions={role === 'admin' && (
+            <Button size="sm" onClick={handleCreateClick}>
                 <Plus size={18} /> Novo Curso
-            </button>
+            </Button>
         )}
-      </div>
+      />
 
       {/* Course List */}
       <section>
-        {loading ? <div className="flex justify-center py-12"><Loader2 className="animate-spin text-green-600" size={32} /></div> : 
-        courses.length === 0 ? <div className="text-center py-10 bg-slate-50 rounded-xl text-slate-500">Nenhum curso disponível.</div> : (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" role="status">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="glass-card overflow-hidden rounded-xl">
+                <Skeleton className="aspect-video w-full rounded-none" />
+                <div className="p-4 space-y-3">
+                  <Skeleton className="h-5 w-2/3" />
+                  <Skeleton className="h-4 w-full" />
+                  <Skeleton className="h-9 w-full rounded-lg" />
+                </div>
+              </div>
+            ))}
+            <span className="sr-only">Carregando...</span>
+          </div>
+        ) :
+        courses.length === 0 ? <EmptyState icon={Play} title="Nenhum curso disponível." /> : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {courses.map((course) => (
-              <div key={course.id} className={`group flex flex-col h-full bg-white border rounded-xl overflow-hidden hover:shadow-lg transition-all relative ${course.is_locked ? 'border-slate-300' : 'border-slate-200'}`}>
+              <div key={course.id} className={`group glass-card flex flex-col h-full rounded-xl overflow-hidden relative ${course.is_locked ? '' : 'glass-card-hover'}`}>
                 {role === 'admin' && (
                     <div className="absolute top-2 right-2 z-20 flex gap-2">
-                        <button onClick={(e) => { e.stopPropagation(); handleEditClick(course); }} className="p-2 bg-white/90 text-slate-600 hover:text-green-600 rounded-lg shadow-xs"><Edit2 size={16} /></button>
+                        <button onClick={(e) => { e.stopPropagation(); handleEditClick(course); }} className="p-2 bg-black/60 backdrop-blur-sm border border-white/10 text-white hover:text-brand-green-bright rounded-lg transition-colors"><Edit2 size={16} /></button>
                     </div>
                 )}
                 {course.is_locked && (
-                    <div className="absolute top-2 left-2 z-20 flex items-center gap-1 px-2 py-1 bg-slate-900/90 text-white text-[10px] font-black uppercase tracking-wider rounded-lg shadow-xs">
+                    <div className="absolute top-2 left-2 z-20 flex items-center gap-1 px-2 py-1 bg-black/75 border border-white/10 text-white text-[10px] font-semibold uppercase tracking-[0.15em] rounded-lg">
                         <Lock size={12} /> Trancado
                     </div>
                 )}
-                <div className="relative aspect-video bg-slate-100">
+                <div className="relative aspect-video bg-tint/3">
                   <img src={course.image_url || 'https://picsum.photos/400/225'} alt={course.title} className={`w-full h-full object-cover ${course.is_locked ? 'grayscale opacity-70' : ''}`} />
                   {course.is_locked ? (
                     <div
                       onClick={() => setLockedCourse(course)}
-                      className="absolute inset-0 flex items-center justify-center cursor-pointer bg-slate-900/40 backdrop-blur-[2px]"
+                      className="absolute inset-0 flex items-center justify-center cursor-pointer bg-black/40 backdrop-blur-[2px]"
                     >
-                      <div className="w-14 h-14 rounded-full bg-slate-900/90 flex items-center justify-center text-white shadow-xl transform group-hover:scale-110 transition-transform">
+                      <div className="w-14 h-14 rounded-full bg-black/80 border border-white/10 flex items-center justify-center text-white transform group-hover:scale-110 transition-transform">
                         <Lock size={22} />
                       </div>
                     </div>
@@ -827,27 +852,31 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                       onClick={() => handleAccessCourse(course)}
                       className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer bg-black/20"
                     >
-                      <div className="w-12 h-12 rounded-full bg-green-600 flex items-center justify-center text-white shadow-xl transform group-hover:scale-110 transition-transform"><Play size={20} className="ml-1 fill-white" /></div>
+                      <div className="w-12 h-12 rounded-full bg-brand-green text-brand-dark flex items-center justify-center shadow-[0_10px_40px_-12px_rgba(34,197,94,0.55)] transform group-hover:scale-110 transition-transform"><Play size={20} className="ml-1 fill-current" /></div>
                     </div>
                   )}
                 </div>
                 <div className="p-4 flex-1 flex flex-col">
-                    <h4 className="text-lg font-bold text-slate-900 mb-2">{course.title}</h4>
-                    <p className="text-sm text-slate-500 line-clamp-2 mb-4 flex-1">{course.description}</p>
+                    <h4 className="font-display text-lg font-semibold text-fg mb-2">{course.title}</h4>
+                    <p className="text-sm text-fg-muted line-clamp-2 mb-4 flex-1">{course.description}</p>
                     {course.is_locked ? (
-                        <button
+                        <Button
+                            variant="secondary"
+                            size="sm"
                             onClick={() => setLockedCourse(course)}
-                            className="w-full mt-auto py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-lg text-sm transition-colors flex items-center justify-center gap-2"
+                            className="w-full mt-auto"
                         >
                             <Lock size={14} /> Conteúdo trancado
-                        </button>
+                        </Button>
                     ) : (
-                        <button
+                        <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => handleAccessCourse(course)}
-                            className="w-full mt-auto py-2 bg-slate-50 hover:bg-green-50 text-slate-600 hover:text-green-600 font-semibold rounded-lg text-sm transition-colors"
+                            className="w-full mt-auto hover:text-accent-fg"
                         >
                             Acessar
-                        </button>
+                        </Button>
                     )}
                 </div>
               </div>
@@ -862,36 +891,37 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
 
       {/* Locked course info modal (cliente) */}
       {lockedCourse && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs" onClick={() => setLockedCourse(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="relative aspect-video bg-slate-100">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm" onClick={() => setLockedCourse(null)}>
+          <div className="relative bg-surface border border-tint/10 rounded-2xl w-full max-w-md overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="relative aspect-video bg-tint/3">
               <img src={lockedCourse.image_url || 'https://picsum.photos/400/225'} alt={lockedCourse.title} className="w-full h-full object-cover grayscale opacity-70" />
-              <div className="absolute inset-0 flex items-center justify-center bg-slate-900/50">
-                <div className="w-16 h-16 rounded-full bg-slate-900/95 flex items-center justify-center text-white shadow-2xl">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="w-16 h-16 rounded-full bg-black/85 border border-white/10 flex items-center justify-center text-white">
                   <Lock size={28} />
                 </div>
               </div>
-              <button onClick={() => setLockedCourse(null)} className="absolute top-3 right-3 w-9 h-9 bg-white/95 hover:bg-white rounded-full flex items-center justify-center text-slate-700 shadow-md">
+              <button onClick={() => setLockedCourse(null)} aria-label="Fechar" className="absolute top-3 right-3 w-9 h-9 bg-black/60 hover:bg-black/80 border border-white/10 rounded-full flex items-center justify-center text-white transition-colors">
                 <X size={18} />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <span className="inline-block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Conteúdo trancado</span>
-                <h3 className="text-xl font-black text-slate-900">{lockedCourse.title}</h3>
+                <span className="eyebrow-muted inline-block mb-2">Conteúdo trancado</span>
+                <h3 className="font-display text-xl font-semibold text-fg">{lockedCourse.title}</h3>
               </div>
-              <p className="text-sm text-slate-600 leading-relaxed">{lockedCourse.description}</p>
+              <p className="text-sm text-fg-muted leading-relaxed">{lockedCourse.description}</p>
               {lockedCourse.lock_note && (
-                <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-sm text-amber-800">
+                <div className="bg-warning/10 border border-warning/20 rounded-xl p-3 text-sm text-warning-fg">
                   {lockedCourse.lock_note}
                 </div>
               )}
-              <button
+              <Button
+                variant="secondary"
                 onClick={() => setLockedCourse(null)}
-                className="w-full py-3 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-sm transition-colors"
+                className="w-full rounded-xl"
               >
                 Entendi
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -902,73 +932,74 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
 
       {/* Article Modal */}
       {isArticleModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-              <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+              <div className="relative bg-surface border border-tint/10 rounded-2xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto ds-scrollbar">
+                  <div className="absolute top-0 inset-x-0 hairline" aria-hidden></div>
                   <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-xl font-bold text-slate-800">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>
+                      <h3 className="font-display text-xl font-semibold text-fg">{editingArticle ? 'Editar Artigo' : 'Novo Artigo'}</h3>
                       <div className="flex items-center gap-2">
                         {editingArticle && (
-                            <button 
-                              type="button" 
+                            <button
+                              type="button"
                               onClick={() => handleDeleteArticle(editingArticle.id)}
-                              className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors mr-2"
+                              className="p-2 text-danger-fg hover:bg-danger/10 rounded-full transition-colors mr-2"
                               title="Excluir Artigo"
                             >
                                 <Trash2 size={20} />
                             </button>
                         )}
-                        <button onClick={() => setIsArticleModalOpen(false)}><X size={24} className="text-slate-400" /></button>
+                        <button onClick={() => setIsArticleModalOpen(false)} aria-label="Fechar" className="p-1 rounded-lg text-fg-subtle hover:text-fg hover:bg-tint/5 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"><X size={24} /></button>
                       </div>
                   </div>
                   <form onSubmit={handleSaveArticle} className="space-y-4">
-                      <input type="text" placeholder="Título" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
-                      <input type="text" placeholder="Categoria" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} className="w-full border rounded-lg px-3 py-2" />
-                      <textarea placeholder="Resumo" rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2" />
-                      <textarea placeholder="Conteúdo Completo" rows={5} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="w-full border border-slate-200 rounded-xl px-4 py-2" />
-                      
-                      <div className="space-y-4 pt-2 border-t border-slate-100">
-                          <label className="block text-sm font-black text-slate-700 uppercase tracking-wider">Imagens e Galeria</label>
-                          
+                      <Input type="text" placeholder="Título" required value={articleForm.title} onChange={e => setArticleForm({...articleForm, title: e.target.value})} />
+                      <Input type="text" placeholder="Categoria" value={articleForm.category} onChange={e => setArticleForm({...articleForm, category: e.target.value})} />
+                      <Textarea placeholder="Resumo" rows={2} value={articleForm.excerpt} onChange={e => setArticleForm({...articleForm, excerpt: e.target.value})} className="min-h-0 rounded-xl" />
+                      <Textarea placeholder="Conteúdo Completo" rows={5} value={articleForm.content} onChange={e => setArticleForm({...articleForm, content: e.target.value})} className="rounded-xl" />
+
+                      <div className="space-y-4 pt-2 border-t border-tint/6">
+                          <label className="block eyebrow-muted">Imagens e Galeria</label>
+
                           {/* Main Image */}
                           <div className="space-y-2">
-                              <span className="text-xs font-bold text-slate-500">Imagem de Capa</span>
+                              <span className="text-xs font-semibold text-fg-muted">Imagem de Capa</span>
                               <div className="flex gap-4">
                                   {articleForm.image_url && (
-                                      <img src={articleForm.image_url} alt="" className="w-20 h-20 object-cover rounded-lg border border-slate-200" />
+                                      <img src={articleForm.image_url} alt="" className="w-20 h-20 shrink-0 object-cover rounded-lg border border-tint/10" />
                                   )}
-                                  <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-xl hover:border-green-500 cursor-pointer transition-all bg-slate-50/50">
+                                  <label className="flex-1 flex flex-col items-center justify-center min-h-12 border-2 border-dashed border-tint/10 rounded-xl hover:border-accent/60 cursor-pointer transition-all bg-tint/3">
                                       <div className="flex items-center gap-2">
-                                          {isUploading ? <Loader2 className="animate-spin text-green-600" size={16} /> : <Upload size={16} className="text-slate-400" />}
-                                          <span className="text-xs font-bold text-slate-600">Subir Capa</span>
+                                          {isUploading ? <Loader2 className="animate-spin text-accent-fg" size={16} /> : <Upload size={16} className="text-fg-subtle" />}
+                                          <span className="text-xs font-semibold text-fg-muted">Subir Capa</span>
                                       </div>
                                       <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'article')} />
                                   </label>
                               </div>
-                              <input type="text" placeholder="URL da Capa" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} className="w-full text-[10px] border-b border-slate-100 py-1" />
+                              <input type="text" placeholder="URL da Capa" value={articleForm.image_url} onChange={e => setArticleForm({...articleForm, image_url: e.target.value})} className="w-full text-[10px] text-fg bg-transparent border-b border-tint/10 py-1 outline-hidden placeholder:text-fg-subtle focus:border-accent/60" />
                           </div>
 
                           {/* Gallery */}
                           <div className="space-y-2">
-                              <div className="flex justify-between items-center">
-                                  <span className="text-xs font-bold text-slate-500">Galeria de Imagens</span>
-                                  <label className="text-[10px] font-black text-green-600 hover:text-green-700 cursor-pointer flex items-center gap-1">
+                              <div className="flex justify-between items-center gap-2">
+                                  <span className="text-xs font-semibold text-fg-muted">Galeria de Imagens</span>
+                                  <label className="text-[10px] font-semibold tracking-wider text-accent-fg hover:underline underline-offset-4 cursor-pointer flex items-center gap-1">
                                       <Plus size={12} /> ADICIONAR À GALERIA
                                       <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileUpload(e, 'gallery')} />
                                   </label>
                               </div>
-                              <textarea 
-                                placeholder="URLs da Galeria (uma por linha)" 
-                                rows={3} 
-                                value={articleForm.gallery_urls_input} 
-                                onChange={e => setArticleForm({...articleForm, gallery_urls_input: e.target.value})} 
-                                className="w-full border border-slate-200 rounded-xl px-4 py-2 text-xs font-mono" 
+                              <Textarea
+                                placeholder="URLs da Galeria (uma por linha)"
+                                rows={3}
+                                value={articleForm.gallery_urls_input}
+                                onChange={e => setArticleForm({...articleForm, gallery_urls_input: e.target.value})}
+                                className="min-h-0 rounded-xl text-xs font-mono"
                               />
                           </div>
                       </div>
 
-                      <button type="submit" disabled={isUploading} className="w-full bg-green-600 disabled:opacity-50 text-white font-black py-4 rounded-2xl hover:bg-green-500 shadow-xl shadow-green-500/20 transition-all transform hover:-translate-y-1 mt-4">
+                      <Button type="submit" size="lg" disabled={isUploading} className="w-full mt-4 rounded-xl">
                           {isUploading ? 'ENVIANDO...' : (editingArticle ? 'SALVAR ALTERAÇÕES' : 'PUBLICAR ARTIGO')}
-                      </button>
+                      </Button>
                   </form>
               </div>
           </div>

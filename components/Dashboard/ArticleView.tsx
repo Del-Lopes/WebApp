@@ -3,6 +3,7 @@ import QuickPinchZoom, { make3dTransformValue } from 'react-quick-pinch-zoom';
 import { Calendar, User, Clock, X } from 'lucide-react';
 import { Article } from '../../types';
 import { BackButton } from '../BackButton';
+import { Badge } from '../ui';
 
 interface ArticleViewProps {
   article: Article;
@@ -60,7 +61,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
       <BackButton onClick={onBack} />
 
-      <article className="bg-white rounded-3xl shadow-xs border border-slate-200 overflow-hidden">
+      <article className="glass-card rounded-3xl overflow-hidden">
         {article.image_url && (
           <div className="w-full h-64 md:h-80 relative">
             <img 
@@ -72,11 +73,11 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-0 left-0 p-6 md:p-8 text-white">
                <div className="flex items-center gap-2 mb-3">
-                 <span className="inline-block px-3 py-1 bg-green-500 text-xs font-bold rounded-full shadow-lg">
+                 <span className="inline-block px-3 py-1 bg-brand-green text-brand-dark text-xs font-semibold rounded-full">
                    {article.category || 'Geral'}
                  </span>
                </div>
-               <h1 className="text-3xl md:text-4xl font-bold leading-tight shadow-xs text-shadow-sm">
+               <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold leading-tight text-white text-shadow-sm">
                  {article.title}
                </h1>
             </div>
@@ -85,40 +86,40 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
 
         <div className="p-6 md:p-10">
           {!article.image_url && (
-             <div className="mb-8 border-b border-slate-100 pb-8">
+             <div className="mb-8 border-b border-tint/6 pb-8">
                <div className="flex items-center gap-2 mb-3">
-                 <span className="inline-block px-3 py-1 bg-green-100 text-green-700 text-xs font-bold rounded-full">
+                 <Badge tone="accent" className="font-semibold">
                    {article.category || 'Geral'}
-                 </span>
+                 </Badge>
                </div>
-               <h1 className="text-3xl md:text-4xl font-bold text-slate-900 leading-tight">
+               <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-semibold text-fg leading-tight">
                  {article.title}
                </h1>
              </div>
           )}
 
-          <div className="flex items-center gap-6 text-sm text-slate-500 mb-8 border-b border-slate-100 pb-6">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-fg-muted mb-8 border-b border-tint/6 pb-6">
             <div className="flex items-center gap-2">
-              <Calendar size={16} className="text-green-600" />
+              <Calendar size={16} className="text-accent-fg" />
               <span>{new Date(article.created_at || Date.now()).toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
             </div>
             <div className="flex items-center gap-2">
-              <User size={16} className="text-green-600" />
+              <User size={16} className="text-accent-fg" />
               <span>Equipe Trader AFK</span>
             </div>
              <div className="flex items-center gap-2">
-              <Clock size={16} className="text-green-600" />
+              <Clock size={16} className="text-accent-fg" />
               <span>5 min de leitura</span>
             </div>
           </div>
 
           <div
             ref={contentRef}
-            className="prose prose-slate prose-lg max-w-none prose-headings:text-slate-900 prose-a:text-green-600 hover:prose-a:text-green-700 prose-img:rounded-xl prose-img:shadow-md prose-img:mx-auto"
+            className="prose prose-lg max-w-none break-words text-fg-muted leading-relaxed [&_:is(h1,h2,h3,h4)]:font-display [&_:is(h1,h2,h3,h4)]:text-fg [&_strong]:text-fg [&_a]:text-accent-fg [&_a:hover]:underline [&_img]:rounded-xl [&_img]:mx-auto [&_img]:max-w-full [&_img]:h-auto"
             dangerouslySetInnerHTML={
               article.content
                 ? { __html: article.content }
-                : { __html: '<p class="text-slate-500 italic">Conteúdo indisponível.</p>' }
+                : { __html: '<p class="text-fg-muted italic">Conteúdo indisponível.</p>' }
             }
           />
         </div>
@@ -132,7 +133,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
         >
            <button 
              onClick={() => setLightboxOpen(false)}
-             className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all hover:rotate-90 duration-300 z-[110]"
+             className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 text-white rounded-full transition-all hover:rotate-90 duration-300 z-[110] focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
            >
              <X size={28} />
            </button>

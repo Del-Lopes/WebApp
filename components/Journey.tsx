@@ -1,12 +1,12 @@
 import React from 'react';
-import { 
-  ArrowLeft, 
-  LayoutDashboard, 
-  Cpu, 
-  GraduationCap, 
-  TrendingUp, 
-  Download, 
-  Users, 
+import {
+  
+  LayoutDashboard,
+  Cpu,
+  GraduationCap,
+  TrendingUp,
+  Download,
+  Users,
   ChevronRight,
   Info,
   ShieldCheck,
@@ -14,6 +14,8 @@ import {
   Target
 } from 'lucide-react';
 import { View } from '../types';
+import { Button, PageHeader } from './ui';
+import { BackButton } from './BackButton';
 
 interface JourneyProps {
   onBack: () => void;
@@ -131,87 +133,94 @@ const SESSIONS: PlatformSession[] = [
   }
 ];
 
+// Cores de cada sessão (dados acima) -> classes de token escritas por inteiro,
+// para o Tailwind compilado enxergar. Cores decorativas viram destaque da marca ou neutro.
+const SESSION_TONE: Record<string, { icon: string; subtitle: string }> = {
+  indigo: { icon: 'bg-accent/10 text-accent-fg border border-accent/20', subtitle: 'text-accent-fg' },
+  blue: { icon: 'bg-accent/10 text-accent-fg border border-accent/20', subtitle: 'text-accent-fg' },
+  purple: { icon: 'bg-accent/10 text-accent-fg border border-accent/20', subtitle: 'text-accent-fg' },
+  green: { icon: 'bg-accent/10 text-accent-fg border border-accent/20', subtitle: 'text-accent-fg' },
+  orange: { icon: 'bg-accent/10 text-accent-fg border border-accent/20', subtitle: 'text-accent-fg' },
+  slate: { icon: 'bg-tint/5 text-fg-muted border border-tint/10', subtitle: 'text-fg-muted' },
+};
+const DEFAULT_TONE = SESSION_TONE.slate;
+
 export const Journey: React.FC<JourneyProps> = ({ onBack, onNavigate }) => {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-20">
       {/* Header */}
-      <div className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={onBack}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors group"
-          >
-            <ArrowLeft className="text-slate-400 group-hover:text-slate-600 transition-colors" />
-          </button>
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              <Zap className="text-indigo-600" />
-              Manual da Plataforma
-            </h1>
-            <p className="text-slate-500">Conheça cada sessão da Trader AFK a fundo.</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        leading={
+          <BackButton onClick={onBack} />
+        }
+        eyebrow={<span className="inline-flex items-center gap-1.5"><Zap size={12} /> Guia</span>}
+        title="Manual da Plataforma"
+        description="Conheça cada sessão da Trader AFK a fundo."
+      />
 
       {/* Intro Hero */}
-      <div className="bg-slate-900 p-10 rounded-3xl text-white relative overflow-hidden shadow-2xl">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px] -mr-32 -mt-32"></div>
-        <div className="absolute bottom-0 left-0 w-64 h-64 bg-green-500/10 rounded-full blur-[80px] -ml-20 -mb-20"></div>
-        
+      <div className="glass-card p-6 sm:p-10 rounded-3xl relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid-fade pointer-events-none" aria-hidden></div>
+        <div className="absolute top-0 right-0 w-96 h-96 bg-brand-green/10 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none" aria-hidden></div>
+        <div className="absolute top-0 inset-x-0 hairline" aria-hidden></div>
+
         <div className="relative z-10 max-w-3xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full text-xs font-bold uppercase tracking-wider mb-4 backdrop-blur-xs border border-white/10">
-            <Info size={14} className="text-indigo-400" />
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-tint/5 rounded-full text-[11px] font-medium uppercase tracking-[0.2em] text-fg-muted mb-4 border border-tint/10">
+            <Info size={14} className="text-accent-fg" />
             Guia do Ecossistema
           </div>
-          <h2 className="text-4xl font-bold mb-4 tracking-tight">Onde a tecnologia encontra o lucro.</h2>
-          <p className="text-slate-400 text-lg leading-relaxed">
+          <h2 className="font-display text-3xl sm:text-4xl font-semibold mb-4 tracking-tight text-fg">Onde a tecnologia encontra o <span className="text-gradient-brand">lucro.</span></h2>
+          <p className="text-fg-muted text-base sm:text-lg leading-relaxed">
             Navegue pelos módulos abaixo para entender como cada engrenagem da nossa plataforma foi desenhada para facilitar sua vida como trader e maximizar sua performance automatizada.
           </p>
         </div>
       </div>
 
       {/* Grid of Sessions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {SESSIONS.map((session) => (
-          <div 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
+        {SESSIONS.map((session) => {
+          const tone = SESSION_TONE[session.color] ?? DEFAULT_TONE;
+          return (
+          <div
             key={session.id}
-            className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-xl hover:border-indigo-200 transition-all duration-300 group flex flex-col"
+            className="glass-card glass-card-hover rounded-3xl overflow-hidden group flex flex-col"
           >
-            <div className="p-8 flex-1">
+            <div className="p-6 sm:p-8 flex-1">
               {/* Header Card */}
               <div className="flex items-start justify-between mb-6">
-                <div className={`p-4 rounded-2xl bg-${session.color}-50 text-${session.color}-600 group-hover:scale-110 transition-transform duration-500`}>
+                <div className={`p-4 rounded-2xl ${tone.icon} group-hover:scale-110 transition-transform duration-500`}>
                   {session.icon}
                 </div>
                 <div className="flex gap-2">
-                   <div className="w-2 h-2 rounded-full bg-slate-200"></div>
-                   <div className="w-2 h-2 rounded-full bg-slate-200"></div>
-                   <div className="w-2 h-2 rounded-full bg-slate-300"></div>
+                   <div className="w-2 h-2 rounded-full bg-tint/10"></div>
+                   <div className="w-2 h-2 rounded-full bg-tint/10"></div>
+                   <div className="w-2 h-2 rounded-full bg-tint/20"></div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div>
-                  <p className={`text-sm font-bold text-${session.color}-600 uppercase tracking-widest mb-1`}>
+                  <p className={`text-xs font-medium ${tone.subtitle} uppercase tracking-[0.2em] mb-1`}>
                     {session.subtitle}
                   </p>
-                  <h3 className="text-2xl font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">
+                  <h3 className="font-display text-2xl font-semibold text-fg group-hover:text-accent-fg transition-colors">
                     {session.title}
                   </h3>
                 </div>
 
-                <p className="text-slate-500 text-sm leading-relaxed">
+                <p className="text-fg-muted text-sm leading-relaxed">
                   {session.longDescription}
                 </p>
 
                 <div className="pt-4">
-                  <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <p className="eyebrow-muted mb-3 flex items-center gap-2">
                     <Target size={12} /> O que você encontra aqui:
                   </p>
-                  <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-4">
                     {session.features.map((feature, i) => (
-                      <div key={i} className="flex items-center gap-2 text-xs font-medium text-slate-600">
-                        <ShieldCheck size={14} className="text-green-500 shrink-0" />
+                      <div key={i} className="flex items-center gap-2 text-xs font-medium text-fg-muted">
+                        <ShieldCheck size={14} className="text-accent-fg shrink-0" />
                         {feature}
                       </div>
                     ))}
@@ -221,29 +230,32 @@ export const Journey: React.FC<JourneyProps> = ({ onBack, onNavigate }) => {
             </div>
 
             {/* Footer Card */}
-            <div className="p-4 bg-slate-50 border-t border-slate-100 mt-auto">
-              <button 
+            <div className="p-4 bg-tint/3 border-t border-tint/6 mt-auto">
+              <Button
+                variant="outline"
                 onClick={() => onNavigate(session.view)}
-                className="w-full bg-white border border-slate-200 py-3 rounded-xl text-slate-700 font-bold text-sm flex items-center justify-center gap-2 hover:bg-indigo-600 hover:text-white hover:border-indigo-600 transition-all shadow-xs"
+                className="w-full rounded-xl"
               >
                 Acessar Sessão
                 <ChevronRight size={16} />
-              </button>
+              </Button>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Final Action */}
-      <div className="bg-indigo-50 border border-indigo-100 p-8 rounded-3xl text-center">
-        <h3 className="text-xl font-bold text-indigo-900 mb-2">Ainda com dúvidas?</h3>
-        <p className="text-indigo-700/70 mb-6">Nossa equipe de suporte está pronta para te ajudar a configurar tudo.</p>
-        <button 
+      <div className="glass-card relative overflow-hidden p-6 sm:p-8 rounded-3xl text-center">
+        <div className="absolute top-0 inset-x-0 hairline" aria-hidden></div>
+        <h3 className="font-display text-xl font-semibold text-fg mb-2">Ainda com dúvidas?</h3>
+        <p className="text-fg-muted mb-6">Nossa equipe de suporte está pronta para te ajudar a configurar tudo.</p>
+        <Button
           onClick={() => onNavigate('marketing')}
-          className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-600/20"
+          className="px-8"
         >
           Falar com Suporte
-        </button>
+        </Button>
       </div>
     </div>
   );

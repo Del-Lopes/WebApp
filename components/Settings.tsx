@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { User, Lock, Save, Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { BackButton } from './BackButton';
+import { Button, Card, Input, Label, PageHeader } from './ui';
 
 interface SettingsProps {
   onBack?: () => void;
@@ -81,101 +82,96 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-6 max-w-2xl mx-auto">
-      <div className="flex items-center gap-4">
-        {onBack && <BackButton onClick={onBack} />}
-        <div>
-            <h2 className="text-2xl font-bold text-slate-900">Configurações da Conta</h2>
-            <p className="text-slate-500 text-sm">Gerencie seus dados pessoais e segurança.</p>
-        </div>
-      </div>
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        leading={onBack && <BackButton onClick={onBack} />}
+        eyebrow="Conta"
+        title="Configurações da Conta"
+        description="Gerencie seus dados pessoais e segurança."
+      />
 
       {message && (
-        <div className={`p-4 rounded-xl flex items-center gap-2 border ${
+        <div className={`p-4 rounded-xl flex items-center gap-2 border text-sm ${
           message.type === 'success' 
-            ? 'bg-green-50 text-green-700 border-green-200' 
-            : 'bg-red-50 text-red-700 border-red-200'
+            ? 'bg-success/10 text-success-fg border-success/20' 
+            : 'bg-danger/10 text-danger-fg border-danger/20'
         }`}>
-          {message.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
+          {message.type === 'success' ? <CheckCircle size={20} className="shrink-0" /> : <AlertCircle size={20} className="shrink-0" />}
           {message.text}
         </div>
       )}
 
       {/* Profile Section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
+      <Card>
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-slate-100 rounded-lg text-slate-600">
-            <User size={24} />
+          <div className="p-2 bg-tint/3 border border-tint/8 rounded-lg text-accent-fg">
+            <User size={22} />
           </div>
-          <h3 className="text-lg font-bold text-slate-900">Perfil</h3>
+          <h3 className="font-display text-lg font-semibold text-fg">Perfil</h3>
         </div>
 
         <form onSubmit={handleUpdateProfile} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Nome Completo</label>
-            <input
+            <Label>Nome Completo</Label>
+            <Input
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden transition-all"
             />
           </div>
           <div className="flex justify-end">
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-70"
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Salvar Alterações
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
 
       {/* Security Section */}
-      <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-xs">
+      <Card>
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 bg-slate-100 rounded-lg text-slate-600">
-            <Lock size={24} />
+          <div className="p-2 bg-tint/3 border border-tint/8 rounded-lg text-accent-fg">
+            <Lock size={22} />
           </div>
-          <h3 className="text-lg font-bold text-slate-900">Segurança</h3>
+          <h3 className="font-display text-lg font-semibold text-fg">Segurança</h3>
         </div>
 
         <form onSubmit={handleUpdatePassword} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Nova Senha</label>
-              <input
+              <Label>Nova Senha</Label>
+              <Input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden transition-all"
                 placeholder="••••••••"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Confirmar Senha</label>
-              <input
+              <Label>Confirmar Senha</Label>
+              <Input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden transition-all"
                 placeholder="••••••••"
               />
             </div>
           </div>
           <div className="flex justify-end">
-            <button
+            <Button
               type="submit"
               disabled={loading || !newPassword}
-              className="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 disabled:opacity-70"
             >
               {loading ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
               Alterar Senha
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
     </div>
   );
 };
