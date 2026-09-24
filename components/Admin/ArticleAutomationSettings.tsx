@@ -13,6 +13,10 @@ import {
 } from 'lucide-react'
 import { supabase } from '../../lib/supabase'
 import { useAuth } from '../../contexts/AuthContext'
+import {
+  Badge, Button, Card, EmptyState, FieldMessage, Input, Label, Skeleton, Textarea,
+  Table, THead, TBody, TR, TH, TD,
+} from '../ui'
 
 interface GenerationSettings {
   writer_persona: string
@@ -230,12 +234,12 @@ export const ArticleAutomationSettings: React.FC = () => {
 
       {/* Header */}
       <div className="flex items-center gap-3">
-        <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center">
-          <Bot size={24} className="text-slate-600" />
+        <div className="w-12 h-12 bg-tint/5 border border-tint/10 rounded-2xl flex items-center justify-center shrink-0">
+          <Bot size={24} className="text-fg-muted" />
         </div>
-        <div>
-          <h3 className="text-xl font-black text-slate-900 tracking-tight">Gerar Novo Artigo</h3>
-          <p className="text-sm text-slate-500 font-medium">
+        <div className="min-w-0">
+          <h3 className="font-display text-xl font-semibold text-fg tracking-tight">Gerar Novo Artigo</h3>
+          <p className="text-sm text-fg-muted">
             Cole a URL de uma postagem e gere um artigo adaptado.
           </p>
         </div>
@@ -245,86 +249,89 @@ export const ArticleAutomationSettings: React.FC = () => {
       <form onSubmit={handleGenerate} className="space-y-5">
 
         {/* Source URL */}
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-700">
+        <div>
+          <Label htmlFor="article-source-url">
             URL da postagem de referência
-          </label>
-          <div className="flex items-center gap-2 border border-slate-200 rounded-xl px-4 py-3 bg-white focus-within:border-violet-500 transition-colors">
-            <Link size={16} className="text-slate-400 shrink-0" />
+          </Label>
+          <div className="flex items-center gap-2 rounded-lg bg-tint/3 border border-tint/10 px-3.5 py-2.5 transition-colors focus-within:border-accent/60 focus-within:ring-3 focus-within:ring-accent/20">
+            <Link size={16} className="text-fg-subtle shrink-0" />
             <input
+              id="article-source-url"
               type="url"
               required
               placeholder="https://exemplo.com/artigo-didatico"
               value={sourceUrl}
               onChange={(e) => setSourceUrl(e.target.value)}
-              className="flex-1 outline-hidden text-sm text-slate-800 placeholder:text-slate-400 bg-transparent"
+              className="flex-1 min-w-0 outline-hidden text-sm text-fg placeholder:text-fg-subtle bg-transparent"
             />
             {sourceUrl && (
               <a
                 href={sourceUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-slate-400 hover:text-violet-600 transition-colors"
+                className="text-fg-subtle hover:text-accent-fg transition-colors rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                 title="Abrir URL"
               >
                 <ExternalLink size={14} />
               </a>
             )}
           </div>
-          <p className="text-xs text-slate-400">
+          <FieldMessage>
             A IA vai ler o conteúdo desta página e criar um artigo novo em pt-BR, usando as imagens da própria URL.
-          </p>
+          </FieldMessage>
         </div>
 
         {/* Persona */}
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-700">
+        <div>
+          <Label htmlFor="article-writer-persona">
             Persona do redator IA
-          </label>
-          <textarea
+          </Label>
+          <Textarea
+            id="article-writer-persona"
             rows={2}
             value={settings.writer_persona}
             onChange={(e) => setSettings({ ...settings, writer_persona: e.target.value })}
-            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-hidden focus:border-violet-500 resize-none transition-colors bg-white"
+            className="min-h-0 resize-none"
           />
         </div>
 
         {/* Category */}
-        <div className="space-y-2">
-          <label className="block text-sm font-semibold text-slate-700">
+        <div>
+          <Label htmlFor="article-default-category">
             Categoria do artigo gerado
-          </label>
-          <input
+          </Label>
+          <Input
+            id="article-default-category"
             type="text"
             value={settings.default_category}
             onChange={(e) => setSettings({ ...settings, default_category: e.target.value })}
-            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm outline-hidden focus:border-violet-500 transition-colors bg-white"
             placeholder="Análise Geral"
           />
         </div>
 
         {/* Submit */}
-        <button
+        <Button
           type="submit"
           disabled={generating || !sourceUrl.trim()}
-          className="flex items-center gap-2 px-6 py-3 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-sm transition-colors shadow-md shadow-violet-500/20"
+          className="max-w-full"
         >
           {generating ? (
             <Loader2 size={16} className="animate-spin" />
           ) : (
             <Sparkles size={16} />
           )}
-          {generating ? statusMessage : 'Gerar artigo'}
-        </button>
+          <span className="truncate">{generating ? statusMessage : 'Gerar artigo'}</span>
+        </Button>
       </form>
 
       {/* Result feedback */}
       {result && (
         <div
+          role={result.type === 'error' ? 'alert' : 'status'}
           className={`flex items-start gap-3 px-4 py-3 rounded-xl text-sm font-medium border ${
             result.type === 'success'
-              ? 'bg-green-50 text-green-700 border-green-200'
-              : 'bg-red-50 text-red-700 border-red-200'
+              ? 'bg-success/10 text-success-fg border-success/20'
+              : 'bg-danger/10 text-danger-fg border-danger/20'
           }`}
         >
           {result.type === 'success' ? (
@@ -332,97 +339,103 @@ export const ArticleAutomationSettings: React.FC = () => {
           ) : (
             <XCircle size={16} className="mt-0.5 shrink-0" />
           )}
-          <span>{result.message}</span>
+          <span className="min-w-0 break-words">{result.message}</span>
         </div>
       )}
 
-      <div className="h-[1px] w-full bg-slate-100 my-8" />
+      <div className="h-px w-full bg-tint/6 my-8" />
 
       {/* AI Configuration Section */}
-      <div className="bg-white rounded-[32px] p-8 border border-slate-100 shadow-xs overflow-hidden relative group">
+      <Card className="relative overflow-hidden">
         <div className="flex items-center gap-4 mb-8">
-          <div className="w-12 h-12 bg-gradient-to-br from-violet-500 to-fuchsia-600 rounded-2xl flex items-center justify-center text-white shadow-lg">
+          <div className="w-12 h-12 bg-accent/10 border border-accent/20 rounded-2xl flex items-center justify-center text-accent-fg shrink-0">
             <Sparkles size={24} />
           </div>
-          <div>
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">Configurações de Automação IA</h3>
-            <p className="text-sm text-slate-500 font-medium">Gerencie chaves de API e modelos para geração de conteúdo.</p>
+          <div className="min-w-0">
+            <h3 className="font-display text-xl font-semibold text-fg tracking-tight">Configurações de Automação IA</h3>
+            <p className="text-sm text-fg-muted">Gerencie chaves de API e modelos para geração de conteúdo.</p>
           </div>
         </div>
 
         <form onSubmit={handleUpdateConfig} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Gemini Config */}
-            <div className="space-y-4 p-6 bg-slate-50 rounded-[24px] border border-slate-100">
-              <h4 className="font-bold text-slate-700 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-blue-500" />
+            <div className="space-y-4 p-4 sm:p-6 bg-tint/3 rounded-2xl border border-tint/6">
+              <h4 className="font-semibold text-fg flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-accent" />
                 Google Gemini
               </h4>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">API Key</label>
-                <input 
-                  type="password" 
-                  value={aiConfig.gemini_api_key || ''} 
+              <div>
+                <Label htmlFor="ai-gemini-key">API Key</Label>
+                <Input
+                  id="ai-gemini-key"
+                  type="password"
+                  value={aiConfig.gemini_api_key || ''}
                   onChange={e => setAiConfig({...aiConfig, gemini_api_key: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="font-mono"
                   placeholder="Sk-..."
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Modelo Principal</label>
-                <input 
-                  type="text" 
-                  value={aiConfig.gemini_model || ''} 
+              <div>
+                <Label htmlFor="ai-gemini-model">Modelo Principal</Label>
+                <Input
+                  id="ai-gemini-model"
+                  type="text"
+                  value={aiConfig.gemini_model || ''}
                   onChange={e => setAiConfig({...aiConfig, gemini_model: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="font-mono"
                   placeholder="gemini-2.0-flash-lite"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Cascata 2 (Fallback 1)</label>
-                <input 
-                  type="text" 
-                  value={aiConfig.gemini_model_2 || ''} 
+              <div>
+                <Label htmlFor="ai-gemini-model-2">Cascata 2 (Fallback 1)</Label>
+                <Input
+                  id="ai-gemini-model-2"
+                  type="text"
+                  value={aiConfig.gemini_model_2 || ''}
                   onChange={e => setAiConfig({...aiConfig, gemini_model_2: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="font-mono"
                   placeholder="gemini-2.0-flash"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Cascata 3 (Fallback 2)</label>
-                <input 
-                  type="text" 
-                  value={aiConfig.gemini_model_3 || ''} 
+              <div>
+                <Label htmlFor="ai-gemini-model-3">Cascata 3 (Fallback 2)</Label>
+                <Input
+                  id="ai-gemini-model-3"
+                  type="text"
+                  value={aiConfig.gemini_model_3 || ''}
                   onChange={e => setAiConfig({...aiConfig, gemini_model_3: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="font-mono"
                   placeholder="gemini-1.5-pro"
                 />
               </div>
             </div>
 
             {/* Groq Config */}
-            <div className="space-y-4 p-6 bg-slate-50 rounded-[24px] border border-slate-100">
-              <h4 className="font-bold text-slate-700 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-orange-500" />
+            <div className="space-y-4 p-4 sm:p-6 bg-tint/3 rounded-2xl border border-tint/6">
+              <h4 className="font-semibold text-fg flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-fg-subtle" />
                 Groq (Fallback)
               </h4>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">API Key</label>
-                <input 
-                  type="password" 
-                  value={aiConfig.groq_api_key || ''} 
+              <div>
+                <Label htmlFor="ai-groq-key">API Key</Label>
+                <Input
+                  id="ai-groq-key"
+                  type="password"
+                  value={aiConfig.groq_api_key || ''}
                   onChange={e => setAiConfig({...aiConfig, groq_api_key: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="font-mono"
                   placeholder="gsk_..."
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black uppercase text-slate-400">Modelo</label>
-                <input 
-                  type="text" 
-                  value={aiConfig.groq_model || ''} 
+              <div>
+                <Label htmlFor="ai-groq-model">Modelo</Label>
+                <Input
+                  id="ai-groq-model"
+                  type="text"
+                  value={aiConfig.groq_model || ''}
                   onChange={e => setAiConfig({...aiConfig, groq_model: e.target.value})}
-                  className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl outline-hidden text-sm font-medium focus:border-violet-500 transition-colors"
+                  className="font-mono"
                   placeholder="llama-3.3-70b-versatile"
                 />
               </div>
@@ -430,107 +443,99 @@ export const ArticleAutomationSettings: React.FC = () => {
           </div>
 
           <div className="flex justify-end pt-2">
-            <button
+            <Button
               type="submit"
               disabled={savingConfig || configLoading}
-              className="flex items-center gap-2 px-8 py-4 bg-slate-900 text-white rounded-[20px] font-black hover:bg-green-600 transition-all shadow-xl disabled:opacity-50"
+              className="w-full sm:w-auto"
             >
               {savingConfig ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
               Salvar Configurações
-            </button>
+            </Button>
           </div>
         </form>
-      </div>
+      </Card>
 
       {/* Execution Logs */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="font-bold text-slate-800 flex items-center gap-2">
-            <Clock size={18} className="text-slate-400" />
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <h4 className="font-display font-semibold text-fg flex items-center gap-2">
+            <Clock size={18} className="text-fg-subtle" />
             Histórico de gerações
           </h4>
-          <button
-            type="button"
-            onClick={fetchLogs}
-            className="flex items-center gap-1 text-xs text-slate-500 hover:text-violet-600 transition-colors"
-          >
+          <Button variant="ghost" size="sm" onClick={fetchLogs} className="h-8 px-2.5 text-xs">
             <RefreshCw size={13} /> Atualizar
-          </button>
+          </Button>
         </div>
 
         {logsLoading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 className="animate-spin text-slate-400" size={22} />
+          <div className="space-y-2" aria-busy="true">
+            {[0, 1, 2].map((k) => <Skeleton key={k} className="h-11 w-full rounded-lg" />)}
           </div>
         ) : logs.length === 0 ? (
-          <div className="text-center py-10 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-500 text-sm">
-            Nenhuma geração registrada ainda.
-          </div>
+          <EmptyState icon={Clock} title="Nenhuma geração registrada ainda." className="py-10" />
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50 text-slate-500 text-xs uppercase">
-                <tr>
-                  <th className="text-left px-4 py-3 font-semibold">Status</th>
-                  <th className="text-left px-4 py-3 font-semibold">URL de referência</th>
-                  <th className="text-left px-4 py-3 font-semibold">Modelo</th>
-                  <th className="text-left px-4 py-3 font-semibold">Data</th>
-                  <th className="text-left px-4 py-3 font-semibold">Erro</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {logs.map((log) => (
-                  <tr key={log.id} className="bg-white hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3">
-                      {log.status === 'success' ? (
-                        <span className="flex items-center gap-1 text-green-600 font-medium">
-                          <CheckCircle size={14} /> OK
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 text-red-500 font-medium">
-                          <XCircle size={14} /> Erro
-                        </span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 max-w-[220px]">
-                      <a
-                        href={log.topic}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-violet-600 hover:underline text-xs truncate block"
-                        title={log.topic}
-                      >
-                        {log.topic}
-                      </a>
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 font-mono text-xs whitespace-nowrap">
-                      {log.model_used}
-                    </td>
-                    <td className="px-4 py-3 text-slate-500 whitespace-nowrap text-xs">
-                      {new Date(log.created_at).toLocaleString('pt-BR', {
-                        day: '2-digit',
-                        month: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </td>
-                    <td
-                      className="px-4 py-3 text-red-400 text-xs max-w-[160px] truncate"
-                      title={log.error_message ?? ''}
+          <Table>
+            <THead>
+              <tr>
+                <TH>Status</TH>
+                <TH>URL de referência</TH>
+                <TH>Modelo</TH>
+                <TH>Data</TH>
+                <TH>Erro</TH>
+              </tr>
+            </THead>
+            <TBody>
+              {logs.map((log) => (
+                <TR key={log.id}>
+                  <TD>
+                    {log.status === 'success' ? (
+                      <Badge tone="success">
+                        <CheckCircle size={14} /> OK
+                      </Badge>
+                    ) : (
+                      <Badge tone="danger">
+                        <XCircle size={14} /> Erro
+                      </Badge>
+                    )}
+                  </TD>
+                  <TD className="max-w-[220px]">
+                    <a
+                      href={log.topic}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent-fg hover:underline underline-offset-4 text-xs truncate block rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
+                      title={log.topic}
                     >
-                      {log.error_message ?? '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {log.topic}
+                    </a>
+                  </TD>
+                  <TD className="font-mono text-xs whitespace-nowrap">
+                    {log.model_used}
+                  </TD>
+                  <TD className="font-mono tabular-nums whitespace-nowrap text-xs">
+                    {new Date(log.created_at).toLocaleString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </TD>
+                  <TD
+                    className="text-danger-fg text-xs max-w-[160px] truncate"
+                    title={log.error_message ?? ''}
+                  >
+                    {log.error_message ?? '—'}
+                  </TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
         )}
 
         {/* Missing settings notice */}
         {!session && (
-          <div className="flex items-center gap-2 mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-xs">
-            <AlertCircle size={14} />
+          <div className="flex items-center gap-2 mt-4 p-3 bg-warning/10 border border-warning/20 rounded-lg text-warning-fg text-xs">
+            <AlertCircle size={14} className="shrink-0" />
             Sessão não encontrada — faça login novamente.
           </div>
         )}

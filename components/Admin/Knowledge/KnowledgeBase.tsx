@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ArrowLeft, Plus, Loader2, Edit2, Trash2, AlertTriangle, Search,
+  Plus, Edit2, Trash2, AlertTriangle, Search,
   CheckCircle2, Circle, BookOpen,
 } from 'lucide-react';
 import {
@@ -11,6 +11,8 @@ import {
   type KnowledgeInput,
 } from '../../../hooks/useKnowledge';
 import { KnowledgeEditor } from './KnowledgeEditor';
+import { BackButton } from '../../BackButton';
+import { Badge, Button, Card, EmptyState, Input, PageHeader, Skeleton } from '../../ui';
 
 interface KnowledgeBaseProps {
   onBack: () => void;
@@ -56,33 +58,30 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 rounded-lg hover:bg-slate-100 transition-colors" aria-label="Voltar">
-            <ArrowLeft size={20} className="text-slate-600" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              <BookOpen className="text-green-600" size={22} />
-              Base de Conhecimento
-            </h2>
-            <p className="text-sm text-slate-500">
-              {entries.length} entradas — <span className="text-green-700 font-medium">{activeCount} ativas</span> são incluídas no contexto do assistente.
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => { setEditing(null); setCreatingNew(true); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          Nova entrada
-        </button>
-      </div>
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        leading={<BackButton onClick={onBack} />}
+        title={
+          <span className="flex items-center gap-2">
+            <BookOpen className="text-accent-fg shrink-0" size={22} />
+            Base de Conhecimento
+          </span>
+        }
+        description={
+          <>
+            <span className="font-mono tabular-nums">{entries.length}</span> entradas — <span className="text-success-fg font-medium"><span className="font-mono tabular-nums">{activeCount}</span> ativas</span> são incluídas no contexto do assistente.
+          </>
+        }
+        actions={
+          <Button onClick={() => { setEditing(null); setCreatingNew(true); }}>
+            <Plus size={16} />
+            Nova entrada
+          </Button>
+        }
+      />
 
       {error && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+        <div role="alert" className="flex items-start gap-2 p-3 rounded-lg bg-danger/10 text-danger-fg border border-danger/20 text-sm">
           <AlertTriangle size={16} className="shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
@@ -90,22 +89,22 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
+        <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-md">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle pointer-events-none" />
+          <Input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por título, conteúdo ou categoria…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="pl-9"
           />
         </div>
         <button
           onClick={() => setFilterCat('all')}
-          className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+          className={`px-3 py-1.5 rounded-lg text-sm border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
             filterCat === 'all'
-              ? 'bg-green-600 text-white'
-              : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+              ? 'bg-accent/10 border-accent/30 text-accent-fg font-medium'
+              : 'bg-tint/3 border-tint/10 text-fg-muted hover:bg-tint/6 hover:text-fg'
           }`}
         >
           Todas
@@ -114,10 +113,10 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
           <button
             key={c}
             onClick={() => setFilterCat(c)}
-            className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+            className={`px-3 py-1.5 rounded-lg text-sm border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
               filterCat === c
-                ? 'bg-green-600 text-white'
-                : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                ? 'bg-accent/10 border-accent/30 text-accent-fg font-medium'
+                : 'bg-tint/3 border-tint/10 text-fg-muted hover:bg-tint/6 hover:text-fg'
             }`}
           >
             {c}
@@ -126,47 +125,56 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
       </div>
 
       {/* Lista */}
-      <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+      <Card padding="none" className="overflow-hidden">
         {loading && entries.length === 0 ? (
-          <div className="flex items-center justify-center h-40">
-            <Loader2 className="animate-spin text-green-600" size={28} />
+          <div className="divide-y divide-tint/6" aria-busy="true">
+            {[0, 1, 2].map((k) => (
+              <div key={k} className="p-4 flex items-start gap-3">
+                <Skeleton className="h-[18px] w-[18px] rounded-full shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-3 w-full" />
+                  <Skeleton className="h-3 w-3/4" />
+                </div>
+              </div>
+            ))}
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center text-slate-500 py-12 px-4 text-sm">
-            {entries.length === 0
+          <EmptyState
+            icon={BookOpen}
+            className="border-0 rounded-none"
+            title={entries.length === 0
               ? 'Ainda não há entradas. Crie a primeira para começar a treinar o assistente.'
               : 'Nenhuma entrada corresponde aos filtros.'}
-          </div>
+          />
         ) : (
-          <div className="divide-y divide-slate-100">
+          <div className="divide-y divide-tint/6">
             {filtered.map((e) => (
-              <div key={e.id} className="p-4 hover:bg-slate-50 transition-colors">
+              <div key={e.id} className="p-4 hover:bg-tint/3 transition-colors">
                 <div className="flex items-start gap-3">
                   <button
                     onClick={() => toggleActive(e.id, !e.is_active)}
-                    className="mt-0.5 shrink-0"
+                    className="mt-0.5 shrink-0 rounded-full focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                     title={e.is_active ? 'Desativar (não será incluída no contexto)' : 'Ativar'}
                   >
                     {e.is_active ? (
-                      <CheckCircle2 className="text-green-600" size={18} />
+                      <CheckCircle2 className="text-success-fg" size={18} />
                     ) : (
-                      <Circle className="text-slate-300" size={18} />
+                      <Circle className="text-fg-subtle" size={18} />
                     )}
                   </button>
 
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-2 mb-1">
-                      <h4 className={`font-semibold ${e.is_active ? 'text-slate-900' : 'text-slate-400 line-through'}`}>
+                      <h4 className={`font-semibold break-words ${e.is_active ? 'text-fg' : 'text-fg-subtle line-through'}`}>
                         {e.title}
                       </h4>
-                      <span className="px-2 py-0.5 rounded-full bg-slate-100 text-xs text-slate-700">
-                        {e.category}
-                      </span>
+                      <Badge>{e.category}</Badge>
                     </div>
-                    <p className="text-sm text-slate-600 whitespace-pre-wrap line-clamp-3">
+                    <p className="text-sm text-fg-muted whitespace-pre-wrap break-words line-clamp-3">
                       {e.content}
                     </p>
-                    <div className="text-xs text-slate-400 mt-2">
+                    <div className="text-xs text-fg-subtle mt-2">
                       Atualizada em {formatDate(e.updated_at)}
                     </div>
                   </div>
@@ -174,7 +182,7 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
                   <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => { setEditing(e); setCreatingNew(false); }}
-                      className="p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                      className="p-2 text-fg-muted hover:text-fg hover:bg-tint/5 rounded-lg transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                       aria-label="Editar"
                       title="Editar"
                     >
@@ -182,7 +190,7 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
                     </button>
                     <button
                       onClick={() => handleDelete(e)}
-                      className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      className="p-2 text-fg-muted hover:text-danger-fg hover:bg-danger/10 rounded-lg transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                       aria-label="Apagar"
                       title="Apagar"
                     >
@@ -194,7 +202,7 @@ export function KnowledgeBase({ onBack, initialDraft }: KnowledgeBaseProps) {
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
       {(editing || creatingNew) && (
         <KnowledgeEditor

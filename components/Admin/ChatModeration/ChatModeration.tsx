@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ArrowLeft, Loader2, MessageSquare, Users, Calendar, RefreshCw, Sparkles,
+  Loader2, MessageSquare, Users, Calendar, RefreshCw, Sparkles,
   AlertTriangle, BarChart3, MessagesSquare, Tag, BookPlus,
   ThumbsUp, ThumbsDown, Trash2, Bot,
 } from 'lucide-react';
@@ -13,6 +13,11 @@ import {
 } from '../../../hooks/useChatStats';
 import { useAuth } from '../../../contexts/AuthContext';
 import { ConversationDetail } from './ConversationDetail';
+import { BackButton } from '../../BackButton';
+import {
+  Badge, Button, Card, EmptyState, PageHeader, Select, Skeleton, Tabs,
+  Table, THead, TBody, TR, TH, TD,
+} from '../../ui';
 import type { KnowledgeCategory, KnowledgeInput } from '../../../hooks/useKnowledge';
 
 interface ChatModerationProps {
@@ -138,74 +143,66 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
   const formatTimestamp = (iso: string) =>
     new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
+  const errorBox = 'flex items-start gap-2 p-3 rounded-lg bg-danger/10 text-danger-fg border border-danger/20 text-sm';
+  const linkBtn = 'flex items-center gap-1.5 text-sm text-accent-fg hover:underline underline-offset-4 font-medium rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60';
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onBack}
-            className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
-            aria-label="Voltar"
-          >
-            <ArrowLeft size={20} className="text-slate-600" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">Conversas IA</h2>
-            <p className="text-sm text-slate-500">Moderação e análise das interações com o assistente.</p>
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        leading={<BackButton onClick={onBack} />}
+        title="Conversas IA"
+        description="Moderação e análise das interações com o assistente."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <label htmlFor="chat-mod-period" className="text-sm text-fg-muted">Período:</label>
+            <Select
+              id="chat-mod-period"
+              value={periodDays}
+              onChange={(e) => setPeriodDays(Number(e.target.value))}
+              className="py-2 w-auto min-w-[7.5rem]"
+            >
+              {PERIOD_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </Select>
+            <Button variant="secondary" size="sm" onClick={refresh} disabled={loading}>
+              {loading ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
+              Atualizar
+            </Button>
           </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <label className="text-sm text-slate-600">Período:</label>
-          <select
-            value={periodDays}
-            onChange={(e) => setPeriodDays(Number(e.target.value))}
-            className="text-sm rounded-lg border border-slate-300 bg-white px-3 py-1.5 focus:outline-hidden focus:ring-2 focus:ring-green-500"
-          >
-            {PERIOD_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <button
-            onClick={refresh}
-            disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-slate-100 hover:bg-slate-200 disabled:opacity-50 transition-colors"
-          >
-            {loading ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
-            Atualizar
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {error && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+        <div role="alert" className={errorBox}>
           <AlertTriangle size={16} className="shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Tabs */}
-      <div className="border-b border-slate-200 flex gap-1">
-        <TabButton active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} icon={<BarChart3 size={16} />}>
-          Visão Geral
-        </TabButton>
-        <TabButton active={activeTab === 'conversations'} onClick={() => setActiveTab('conversations')} icon={<MessagesSquare size={16} />}>
-          Conversas ({conversations.length})
-        </TabButton>
-        <TabButton active={activeTab === 'topics'} onClick={() => setActiveTab('topics')} icon={<Tag size={16} />}>
-          Tópicos
-        </TabButton>
-        <TabButton active={activeTab === 'feedback'} onClick={() => setActiveTab('feedback')} icon={<ThumbsUp size={16} />}>
-          Feedback{feedbackOverview ? ` (${feedbackOverview.total})` : ''}
-        </TabButton>
-      </div>
+      <Tabs<Tab>
+        aria-label="Seções de Conversas IA"
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { key: 'overview', label: 'Visão Geral', icon: BarChart3 },
+          { key: 'conversations', label: <>Conversas (<span className="font-mono tabular-nums">{conversations.length}</span>)</>, icon: MessagesSquare },
+          { key: 'topics', label: 'Tópicos', icon: Tag },
+          { key: 'feedback', label: <>Feedback{feedbackOverview ? <> (<span className="font-mono tabular-nums">{feedbackOverview.total}</span>)</> : ''}</>, icon: ThumbsUp },
+        ]}
+      />
 
       {/* Overview tab */}
       {activeTab === 'overview' && (
         <div className="space-y-6">
           {loading && !overview ? (
-            <div className="flex items-center justify-center h-40">
-              <Loader2 className="animate-spin text-green-600" size={28} />
+            <div className="space-y-6" aria-busy="true">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[0, 1, 2, 3].map((k) => <Skeleton key={k} className="h-28 rounded-2xl" />)}
+              </div>
+              <Skeleton className="h-56 rounded-2xl" />
             </div>
           ) : overview ? (
             <>
@@ -236,77 +233,77 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
                 />
               </div>
 
-              <div className="bg-white border border-slate-200 rounded-xl p-5">
-                <h3 className="font-semibold text-slate-800 mb-4">Mensagens por dia — últimos {periodDays} dias</h3>
+              <Card>
+                <h3 className="font-display font-semibold text-fg mb-4">Mensagens por dia — últimos {periodDays} dias</h3>
                 <div className="flex items-end gap-1 h-40">
                   {overview.perDay.map((d) => {
                     const heightPct = maxBarCount > 0 ? (d.count / maxBarCount) * 100 : 0;
                     return (
                       <div key={d.date} className="flex-1 flex flex-col items-center gap-1 min-w-0 group">
-                        <div className="text-[10px] text-slate-500 leading-none">{d.count > 0 ? d.count : ''}</div>
+                        <div className="text-[10px] text-fg-muted font-mono tabular-nums leading-none">{d.count > 0 ? d.count : ''}</div>
                         <div
-                          className="w-full bg-green-500 hover:bg-green-600 rounded-t-sm transition-all"
+                          className="w-full bg-accent/70 hover:bg-accent rounded-t-sm transition-all"
                           style={{ height: `${heightPct}%`, minHeight: d.count > 0 ? '4px' : '0' }}
                           title={`${d.date}: ${d.count} mensagens`}
                         />
-                        <div className="text-[10px] text-slate-500 leading-tight truncate w-full text-center">
+                        <div className="text-[10px] text-fg-subtle font-mono tabular-nums leading-tight truncate w-full text-center">
                           {d.date.slice(5)}
                         </div>
                       </div>
                     );
                   })}
                 </div>
-              </div>
+              </Card>
 
               {feedbackOverview && feedbackOverview.total > 0 && (
-                <div className="bg-white border border-slate-200 rounded-xl p-5">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-slate-800">Satisfação com as respostas</h3>
+                <Card>
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <h3 className="font-display font-semibold text-fg">Satisfação com as respostas</h3>
                     <button
                       onClick={() => setActiveTab('feedback')}
-                      className="text-xs text-green-700 hover:text-green-800 font-medium"
+                      className="shrink-0 text-xs text-accent-fg hover:underline underline-offset-4 font-medium rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                     >
                       Ver todas →
                     </button>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-4">
                     <div>
-                      <div className="text-3xl font-bold text-slate-900 tabular-nums">
+                      <div className="text-3xl font-semibold text-fg font-mono tabular-nums whitespace-nowrap">
                         {Math.round(feedbackOverview.approvalRate * 100)}%
                       </div>
-                      <div className="text-xs text-slate-500">de aprovação</div>
+                      <div className="text-xs text-fg-muted">de aprovação</div>
                     </div>
-                    <div className="flex-1 h-3 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="flex-1 min-w-[8rem] h-3 bg-tint/6 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-green-500"
+                        className="h-full bg-success"
                         style={{ width: `${feedbackOverview.approvalRate * 100}%` }}
                       />
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-600">
-                      <span className="flex items-center gap-1"><ThumbsUp size={14} className="text-green-600" />{feedbackOverview.up}</span>
-                      <span className="flex items-center gap-1"><ThumbsDown size={14} className="text-red-600" />{feedbackOverview.down}</span>
+                    <div className="flex items-center gap-3 text-sm text-fg-muted">
+                      <span className="flex items-center gap-1 font-mono tabular-nums whitespace-nowrap"><ThumbsUp size={14} className="text-success-fg" />{feedbackOverview.up}</span>
+                      <span className="flex items-center gap-1 font-mono tabular-nums whitespace-nowrap"><ThumbsDown size={14} className="text-danger-fg" />{feedbackOverview.down}</span>
                     </div>
                   </div>
-                </div>
+                </Card>
               )}
 
               {topics.length > 0 && (
                 <div>
-                  <h3 className="font-semibold text-slate-800 mb-3">Top 3 tópicos</h3>
+                  <h3 className="font-display font-semibold text-fg mb-3">Top 3 tópicos</h3>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                     {topics.slice(0, 3).map((t) => (
-                      <div key={t.id} className="bg-white border border-slate-200 rounded-xl p-4">
-                        <div className="flex items-center gap-2 mb-1">
-                          <Tag size={14} className="text-green-600" />
-                          <h4 className="font-semibold text-slate-800 text-sm">{t.topic}</h4>
+                      <Card key={t.id} padding="sm">
+                        <div className="flex items-center gap-2 mb-1 min-w-0">
+                          <Tag size={14} className="text-accent-fg shrink-0" />
+                          <h4 className="font-semibold text-fg text-sm truncate">{t.topic}</h4>
                         </div>
-                        <p className="text-xs text-slate-500 line-clamp-2 mb-2">{t.description}</p>
-                        <div className="flex items-center gap-3 text-xs text-slate-600">
-                          <span className="font-medium">{t.message_count} msgs</span>
-                          <span>•</span>
-                          <span>{t.user_count} usuários</span>
+                        <p className="text-xs text-fg-muted line-clamp-2 mb-2">{t.description}</p>
+                        <div className="flex items-center gap-3 text-xs text-fg-muted">
+                          <span className="font-medium font-mono tabular-nums whitespace-nowrap">{t.message_count} msgs</span>
+                          <span aria-hidden>•</span>
+                          <span className="font-mono tabular-nums whitespace-nowrap">{t.user_count} usuários</span>
                         </div>
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 </div>
@@ -318,106 +315,108 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
 
       {/* Conversations tab */}
       {activeTab === 'conversations' && (
-        <div className="bg-white border border-slate-200 rounded-xl overflow-hidden">
-          {loading && conversations.length === 0 ? (
-            <div className="flex items-center justify-center h-40">
-              <Loader2 className="animate-spin text-green-600" size={28} />
-            </div>
-          ) : conversations.length === 0 ? (
-            <div className="text-center text-slate-500 py-10 text-sm">
-              Nenhuma conversa nos últimos {periodDays} dias.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
-                  <tr>
-                    <th className="px-4 py-3 font-medium">Usuário</th>
-                    <th className="px-4 py-3 font-medium">Email</th>
-                    <th className="px-4 py-3 font-medium">Tipo</th>
-                    <th className="px-4 py-3 font-medium text-right">Mensagens</th>
-                    <th className="px-4 py-3 font-medium">Última atividade</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {conversations.map((c) => (
-                    <tr
-                      key={c.user_id}
-                      onClick={() => setSelectedConv(c)}
-                      className="hover:bg-slate-50 cursor-pointer transition-colors"
-                    >
-                      <td className="px-4 py-3 font-medium text-slate-800">{c.full_name || '—'}</td>
-                      <td className="px-4 py-3 text-slate-600">{c.email ?? '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className="px-2 py-0.5 rounded-full bg-slate-100 text-xs capitalize text-slate-700">
-                          {c.role ?? 'client'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums text-slate-700">{c.message_count}</td>
-                      <td className="px-4 py-3 text-slate-600">{formatTimestamp(c.last_message_at)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        loading && conversations.length === 0 ? (
+          <Card padding="none" className="divide-y divide-tint/6" aria-busy="true">
+            {[0, 1, 2, 3].map((k) => (
+              <div key={k} className="flex items-center gap-4 px-4 py-3">
+                <Skeleton className="h-4 w-1/4" />
+                <Skeleton className="h-4 w-1/3" />
+                <Skeleton className="h-4 w-12 ml-auto" />
+              </div>
+            ))}
+          </Card>
+        ) : conversations.length === 0 ? (
+          <EmptyState
+            icon={MessagesSquare}
+            title={<>Nenhuma conversa nos últimos {periodDays} dias.</>}
+          />
+        ) : (
+          <Table className="text-left">
+            <THead>
+              <tr>
+                <TH>Usuário</TH>
+                <TH>Email</TH>
+                <TH>Tipo</TH>
+                <TH align="right">Mensagens</TH>
+                <TH>Última atividade</TH>
+              </tr>
+            </THead>
+            <TBody>
+              {conversations.map((c) => (
+                <TR
+                  key={c.user_id}
+                  interactive
+                  onClick={() => setSelectedConv(c)}
+                >
+                  <TD className="font-medium text-fg">{c.full_name || '—'}</TD>
+                  <TD>{c.email ?? '—'}</TD>
+                  <TD>
+                    <Badge className="capitalize">{c.role ?? 'client'}</Badge>
+                  </TD>
+                  <TD numeric>{c.message_count}</TD>
+                  <TD className="whitespace-nowrap font-mono tabular-nums">{formatTimestamp(c.last_message_at)}</TD>
+                </TR>
+              ))}
+            </TBody>
+          </Table>
+        )
       )}
 
       {/* Topics tab */}
       {activeTab === 'topics' && (
         <div className="space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200 rounded-xl p-4">
-            <div>
-              <h3 className="font-semibold text-slate-800">Categorização por IA</h3>
-              <p className="text-xs text-slate-500 mt-0.5">
+          <Card padding="sm" className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h3 className="font-display font-semibold text-fg">Categorização por IA</h3>
+              <p className="text-xs text-fg-muted mt-0.5">
                 {topics.length > 0
                   ? `Última atualização: ${formatTimestamp(topics[0].generated_at)} (período: ${topics[0].period_days}d)`
                   : 'Ainda não há tópicos calculados.'}
               </p>
             </div>
-            <button
+            <Button
+              size="sm"
               onClick={handleClassifyTopics}
               disabled={classifying}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {classifying ? <Loader2 className="animate-spin" size={16} /> : <Sparkles size={16} />}
               {classifying ? 'Analisando...' : 'Recalcular tópicos'}
-            </button>
-          </div>
+            </Button>
+          </Card>
 
           {classifyError && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+            <div role="alert" className={errorBox}>
               <AlertTriangle size={16} className="shrink-0 mt-0.5" />
               <span>{classifyError}</span>
             </div>
           )}
 
           {topics.length === 0 ? (
-            <div className="bg-white border border-slate-200 rounded-xl p-10 text-center text-sm text-slate-500">
-              Clique em "Recalcular tópicos" para gerar a categorização das mensagens.
-            </div>
+            <EmptyState
+              icon={Tag}
+              title='Clique em "Recalcular tópicos" para gerar a categorização das mensagens.'
+            />
           ) : (
             <div className="space-y-3">
               {topics.map((t) => (
-                <div key={t.id} className="bg-white border border-slate-200 rounded-xl p-5">
-                  <div className="flex items-start justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      <Tag size={16} className="text-green-600" />
-                      <h4 className="font-semibold text-slate-900">{t.topic}</h4>
+                <Card key={t.id}>
+                  <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1 mb-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <Tag size={16} className="text-accent-fg shrink-0" />
+                      <h4 className="font-semibold text-fg break-words">{t.topic}</h4>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-600 shrink-0">
-                      <span className="font-medium tabular-nums">{t.message_count} msgs</span>
-                      <span className="tabular-nums">{t.user_count} usuários</span>
+                    <div className="flex items-center gap-3 text-xs text-fg-muted shrink-0">
+                      <span className="font-medium font-mono tabular-nums whitespace-nowrap">{t.message_count} msgs</span>
+                      <span className="font-mono tabular-nums whitespace-nowrap">{t.user_count} usuários</span>
                     </div>
                   </div>
-                  {t.description && <p className="text-sm text-slate-600 mb-3">{t.description}</p>}
+                  {t.description && <p className="text-sm text-fg-muted mb-3">{t.description}</p>}
                   {t.sample_messages.length > 0 && (
                     <div className="space-y-1.5 mb-3">
-                      <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">Exemplos</p>
+                      <p className="eyebrow-muted">Exemplos</p>
                       <ul className="space-y-1">
                         {t.sample_messages.map((s, i) => (
-                          <li key={i} className="text-sm text-slate-700 bg-slate-50 rounded-lg px-3 py-2 border-l-2 border-green-300">
+                          <li key={i} className="text-sm text-fg bg-tint/3 rounded-lg px-3 py-2 border-l-2 border-accent/40 break-words">
                             "{s}"
                           </li>
                         ))}
@@ -425,10 +424,10 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
                     </div>
                   )}
                   {onCreateKnowledge && (
-                    <div className="flex justify-end pt-2 border-t border-slate-100">
+                    <div className="flex justify-end pt-2 border-t border-tint/6">
                       <button
                         onClick={() => handleCreateKnowledgeFromTopic(t)}
-                        className="flex items-center gap-1.5 text-sm text-green-700 hover:text-green-800 font-medium"
+                        className={linkBtn}
                         title="Criar uma entrada na Base de Conhecimento usando este tópico como ponto de partida"
                       >
                         <BookPlus size={14} />
@@ -436,7 +435,7 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
                       </button>
                     </div>
                   )}
-                </div>
+                </Card>
               ))}
             </div>
           )}
@@ -459,23 +458,24 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
               />
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-xl p-10 text-center text-sm text-slate-500">
-              Nenhum feedback registrado nos últimos {periodDays} dias.
-            </div>
+            <EmptyState
+              icon={ThumbsUp}
+              title={<>Nenhum feedback registrado nos últimos {periodDays} dias.</>}
+            />
           )}
 
           {feedbackOverview && feedbackOverview.total > 0 && (
             <>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm text-slate-600 mr-1">Mostrar:</span>
+                <span className="text-sm text-fg-muted mr-1">Mostrar:</span>
                 {(['down', 'up', 'all'] as const).map((opt) => (
                   <button
                     key={opt}
                     onClick={() => setFeedbackFilter(opt)}
-                    className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                    className={`px-3 py-1.5 rounded-lg text-sm border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
                       feedbackFilter === opt
-                        ? 'bg-green-600 text-white'
-                        : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-accent/10 border-accent/30 text-accent-fg font-medium'
+                        : 'bg-tint/3 border-tint/10 text-fg-muted hover:bg-tint/6 hover:text-fg'
                     }`}
                   >
                     {opt === 'down' ? '👎 Não útil' : opt === 'up' ? '👍 Útil' : 'Todas'}
@@ -487,30 +487,31 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
                 {feedbackItems
                   .filter((item) => feedbackFilter === 'all' || item.rating === feedbackFilter)
                   .map((item) => (
-                    <div key={item.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+                    <Card key={item.id} padding="sm" className="space-y-3">
                       <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-2 text-sm">
+                        <div className="flex flex-wrap items-center gap-2 text-sm min-w-0">
                           {item.rating === 'up' ? (
-                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-green-50 text-green-700 text-xs font-medium">
+                            <Badge tone="success">
                               <ThumbsUp size={12} /> Útil
-                            </span>
+                            </Badge>
                           ) : (
-                            <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-red-50 text-red-700 text-xs font-medium">
+                            <Badge tone="danger">
                               <ThumbsDown size={12} /> Não útil
-                            </span>
+                            </Badge>
                           )}
-                          <span className="text-slate-700 font-medium">
+                          <span className="text-fg font-medium break-all">
                             {item.user_full_name || item.user_email || 'Usuário'}
                           </span>
-                          <span className="text-slate-400 text-xs">
+                          <span className="text-fg-subtle text-xs font-mono tabular-nums whitespace-nowrap">
                             {formatTimestamp(item.created_at)}
                           </span>
                         </div>
                         <button
                           onClick={() => handleDeleteFeedback(item.id)}
                           disabled={deletingFeedbackId === item.id}
-                          className="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          className="shrink-0 p-1.5 rounded-lg text-fg-subtle hover:text-danger-fg hover:bg-danger/10 transition-colors disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                           title="Apagar avaliação"
+                          aria-label="Apagar avaliação"
                         >
                           {deletingFeedbackId === item.id ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />}
                         </button>
@@ -518,29 +519,29 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
 
                       {item.preceding_user_content && (
                         <div className="text-sm">
-                          <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium mb-1">Pergunta do usuário</p>
-                          <p className="text-slate-700 bg-slate-50 rounded-lg px-3 py-2 whitespace-pre-wrap">
+                          <p className="eyebrow-muted mb-1">Pergunta do usuário</p>
+                          <p className="text-fg bg-tint/5 rounded-lg px-3 py-2 whitespace-pre-wrap break-words">
                             {item.preceding_user_content}
                           </p>
                         </div>
                       )}
 
                       <div className="text-sm">
-                        <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium mb-1 flex items-center gap-1.5">
+                        <p className="eyebrow-muted mb-1 flex items-center gap-1.5">
                           <Bot size={12} /> Resposta do bot
                         </p>
-                        <p className={`text-slate-700 rounded-lg px-3 py-2 whitespace-pre-wrap ${
-                          item.rating === 'down' ? 'bg-red-50 border border-red-100' : 'bg-green-50 border border-green-100'
+                        <p className={`text-fg rounded-lg px-3 py-2 whitespace-pre-wrap break-words border ${
+                          item.rating === 'down' ? 'bg-danger/5 border-danger/20' : 'bg-success/5 border-success/20'
                         }`}>
                           {item.assistant_content}
                         </p>
                       </div>
 
                       {item.rating === 'down' && onCreateKnowledge && (
-                        <div className="flex justify-end pt-1 border-t border-slate-100">
+                        <div className="flex justify-end pt-1 border-t border-tint/6">
                           <button
                             onClick={() => handleCreateKnowledgeFromBadFeedback(item)}
-                            className="flex items-center gap-1.5 text-sm text-green-700 hover:text-green-800 font-medium"
+                            className={linkBtn}
                             title="Cadastrar a resposta correta na Base de Conhecimento"
                           >
                             <BookPlus size={14} />
@@ -548,7 +549,7 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
                           </button>
                         </div>
                       )}
-                    </div>
+                    </Card>
                   ))}
               </div>
             </>
@@ -567,35 +568,17 @@ export function ChatModeration({ onBack, onCreateKnowledge }: ChatModerationProp
   );
 }
 
-function TabButton({
-  active, onClick, icon, children,
-}: { active: boolean; onClick: () => void; icon: React.ReactNode; children: React.ReactNode }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
-        active
-          ? 'border-green-600 text-green-700'
-          : 'border-transparent text-slate-500 hover:text-slate-800'
-      }`}
-    >
-      {icon}
-      {children}
-    </button>
-  );
-}
-
 function StatCard({
   icon, label, value, hint,
 }: { icon: React.ReactNode; label: string; value: number; hint?: string }) {
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4">
-      <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">
-        <span className="text-green-600">{icon}</span>
-        <span>{label}</span>
+    <div className="glass-card p-4 min-w-0">
+      <div className="flex items-start gap-2 text-fg-muted text-xs mb-2">
+        <span className="text-accent-fg shrink-0">{icon}</span>
+        <span className="min-w-0">{label}</span>
       </div>
-      <div className="text-2xl font-bold text-slate-900 tabular-nums">{value.toLocaleString('pt-BR')}</div>
-      {hint && <div className="text-[11px] text-slate-500 mt-0.5">{hint}</div>}
+      <div className="text-2xl font-semibold text-fg font-mono tabular-nums whitespace-nowrap">{value.toLocaleString('pt-BR')}</div>
+      {hint && <div className="text-[11px] text-fg-muted mt-0.5">{hint}</div>}
     </div>
   );
 }

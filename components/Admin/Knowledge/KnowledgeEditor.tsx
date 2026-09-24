@@ -6,6 +6,7 @@ import {
   type KnowledgeEntry,
   type KnowledgeInput,
 } from '../../../hooks/useKnowledge';
+import { Button, Input, Label, Select, Textarea } from '../../ui';
 
 interface KnowledgeEditorProps {
   entry: KnowledgeEntry | null;
@@ -62,99 +63,98 @@ export function KnowledgeEditor({ entry, initial, onClose, onSave }: KnowledgeEd
   const isEditing = !!entry;
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-slate-200">
-          <h3 className="font-bold text-slate-900 text-lg">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+      <div
+        role="dialog"
+        aria-modal="true"
+        className="relative overflow-hidden bg-surface text-fg border border-tint/10 rounded-t-2xl sm:rounded-2xl w-full max-w-2xl max-h-[92dvh] sm:max-h-[90vh] flex flex-col"
+      >
+        <div className="hairline absolute inset-x-0 top-0" aria-hidden />
+        <div className="flex items-center justify-between gap-4 p-5 border-b border-tint/6">
+          <h3 className="font-display font-semibold text-fg text-lg">
             {isEditing ? 'Editar entrada' : 'Nova entrada de conhecimento'}
           </h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-lg text-fg-subtle hover:text-fg hover:bg-tint/5 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
             aria-label="Fechar"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-4">
+        <div className="flex-1 overflow-y-auto ds-scrollbar p-5 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Título</label>
-            <input
+            <Label>Título</Label>
+            <Input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               maxLength={TITLE_MAX}
               placeholder="Ex: Como ativar uma licença AFK Trader"
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent"
             />
-            <div className="text-xs text-slate-400 mt-1 text-right">{title.length} / {TITLE_MAX}</div>
+            <div className="text-xs text-fg-subtle mt-1 text-right font-mono tabular-nums">{title.length} / {TITLE_MAX}</div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Categoria</label>
-              <select
+              <Label>Categoria</Label>
+              <Select
                 value={category}
                 onChange={(e) => setCategory(e.target.value as KnowledgeCategory)}
-                className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm bg-white focus:outline-hidden focus:ring-2 focus:ring-green-500"
               >
                 {KNOWLEDGE_CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
-              </select>
+              </Select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
-              <label className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-300 cursor-pointer hover:bg-slate-50">
+              <Label>Status</Label>
+              <label className="flex items-center gap-2 px-3.5 py-2.5 rounded-lg border border-tint/10 bg-tint/3 cursor-pointer hover:bg-tint/5 transition-colors">
                 <input
                   type="checkbox"
                   checked={isActive}
                   onChange={(e) => setIsActive(e.target.checked)}
-                  className="rounded-sm text-green-600 focus:ring-green-500"
+                  className="rounded-sm accent-brand-green focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                 />
-                <span className="text-sm text-slate-700">Ativo (incluído nas respostas)</span>
+                <span className="text-sm text-fg-muted">Ativo (incluído nas respostas)</span>
               </label>
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5">Conteúdo</label>
-            <textarea
+            <Label>Conteúdo</Label>
+            <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               maxLength={CONTENT_MAX}
               rows={12}
               placeholder="Escreva em texto puro como o bot deve responder. Quanto mais detalhado e específico, melhor.&#10;&#10;Exemplo:&#10;Para ativar uma licença AFK Trader:&#10;1. Acesse a tela Licenças no menu lateral&#10;2. Clique em 'Solicitar nova licença'&#10;3. Informe o número da conta MT5&#10;4. Aguarde aprovação do admin (em até 24h)"
-              className="w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent custom-scrollbar font-mono"
+              className="ds-scrollbar font-mono"
             />
-            <div className="text-xs text-slate-400 mt-1 text-right">{content.length} / {CONTENT_MAX}</div>
+            <div className="text-xs text-fg-subtle mt-1 text-right font-mono tabular-nums">{content.length} / {CONTENT_MAX}</div>
           </div>
 
           {error && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+            <div role="alert" className="flex items-start gap-2 p-3 rounded-lg bg-danger/10 text-danger-fg border border-danger/20 text-sm">
               <AlertTriangle size={16} className="shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 p-5 border-t border-slate-200 bg-slate-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors"
-          >
+        <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-2 p-5 border-t border-tint/6">
+          <Button variant="ghost" onClick={onClose}>
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             disabled={saving || !title.trim() || !content.trim()}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving && <Loader2 className="animate-spin" size={14} />}
             {isEditing ? 'Salvar alterações' : 'Criar entrada'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

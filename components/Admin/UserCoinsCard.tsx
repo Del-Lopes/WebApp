@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Coins, Plus, Minus, Loader2, Check } from 'lucide-react';
 import { fetchUserCoins, grantUserCoins } from '../../lib/adminCoins';
+import { Button, Card, Input, Skeleton } from '../ui';
 
 interface Props {
   userId: string;
@@ -46,19 +47,19 @@ export const UserCoinsCard: React.FC<Props> = ({ userId }) => {
   const typed = Number(amount);
 
   return (
-    <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-xs space-y-4">
-      <h3 className="font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-        <Coins size={18} className="text-amber-500" /> Coins
+    <Card className="space-y-4">
+      <h3 className="font-display font-semibold text-fg border-b border-tint/6 pb-3 flex items-center gap-2">
+        <Coins size={18} className="text-warning-fg" /> Coins
       </h3>
 
       <div className="flex flex-col gap-1">
-        <span className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Saldo atual</span>
+        <span className="eyebrow-muted">Saldo atual</span>
         {loading ? (
-          <Loader2 size={20} className="animate-spin text-slate-300" />
+          <Skeleton className="h-9 w-32" />
         ) : (
-          <span className="text-3xl font-black text-slate-900 tabular-nums flex items-center gap-2">
+          <span className="text-3xl font-display font-semibold text-fg font-mono tabular-nums whitespace-nowrap flex items-center gap-2">
             {(balance ?? 0).toLocaleString('pt-BR')}
-            {justSaved && <Check size={20} className="text-green-600" />}
+            {justSaved && <Check size={20} className="text-success-fg" />}
           </span>
         )}
       </div>
@@ -70,7 +71,7 @@ export const UserCoinsCard: React.FC<Props> = ({ userId }) => {
             key={p}
             onClick={() => applyDelta(p)}
             disabled={saving}
-            className="px-2.5 py-1 rounded-lg bg-green-50 text-green-700 text-xs font-bold hover:bg-green-100 transition-colors disabled:opacity-50"
+            className="px-2.5 py-1 rounded-lg bg-accent/10 text-accent-fg border border-accent/20 text-xs font-semibold font-mono tabular-nums whitespace-nowrap hover:bg-accent/15 transition-colors disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
           >
             +{p.toLocaleString('pt-BR')}
           </button>
@@ -79,33 +80,36 @@ export const UserCoinsCard: React.FC<Props> = ({ userId }) => {
 
       {/* Valor customizado (credita ou debita) */}
       <div className="flex items-center gap-2">
-        <input
+        <Input
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           inputMode="numeric"
           placeholder="Valor"
-          className="flex-1 min-w-0 px-3 py-2 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden text-sm"
+          className="flex-1 min-w-0 font-mono tabular-nums"
         />
-        <button
+        <Button
+          size="icon"
           onClick={() => applyDelta(Math.abs(typed))}
           disabled={saving || !typed}
           title="Creditar"
-          className="p-2 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors disabled:opacity-50"
+          className="shrink-0"
         >
           {saving ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="danger"
+          size="icon"
           onClick={() => applyDelta(-Math.abs(typed))}
           disabled={saving || !typed}
           title="Debitar"
-          className="p-2 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors disabled:opacity-50"
+          className="shrink-0"
         >
           <Minus size={16} />
-        </button>
+        </Button>
       </div>
 
-      {error && <p className="text-xs text-rose-600">{error}</p>}
-      <p className="text-[11px] text-slate-400">Crédito/débito manual para testes. Registrado em auditoria.</p>
-    </div>
+      {error && <p className="text-xs text-danger-fg">{error}</p>}
+      <p className="text-[11px] text-fg-subtle">Crédito/débito manual para testes. Registrado em auditoria.</p>
+    </Card>
   );
 };
