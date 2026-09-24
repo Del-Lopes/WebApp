@@ -53,20 +53,34 @@ export async function fetchTrackTree(trackId: string): Promise<TrilhaTrack | nul
 
 // --- Progresso (por usuário) ---
 
+// Id do usuário logado a partir da sessão local (sem ida ao servidor de auth).
+async function currentUserId(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user.id ?? null;
+}
+
 // Retorna o conjunto de lesson_id já concluídos pelo usuário atual.
+// Filtra pelo próprio id: staff enxerga o progresso de todos pela RLS, e sem o
+// filtro as lições concluídas por outros apareceriam como concluídas.
 export async function fetchCompletedLessonIds(): Promise<Set<string>> {
+  const userId = await currentUserId();
+  if (!userId) return new Set();
   const { data, error } = await supabase
     .from('trilha_progress')
-    .select('lesson_id');
+    .select('lesson_id')
+    .eq('user_id', userId);
   if (error) { console.error('[trilhaGain] fetchCompletedLessonIds', error); return new Set(); }
   return new Set((data ?? []).map((r: { lesson_id: string }) => r.lesson_id));
 }
 
 // Retorna o conjunto de unit_id que o usuário já desbloqueou gastando XP.
 export async function fetchUnlockedUnitIds(): Promise<Set<string>> {
+  const userId = await currentUserId();
+  if (!userId) return new Set();
   const { data, error } = await supabase
     .from('trilha_unit_unlocks')
-    .select('unit_id');
+    .select('unit_id')
+    .eq('user_id', userId);
   if (error) { console.error('[trilhaGain] fetchUnlockedUnitIds', error); return new Set(); }
   return new Set((data ?? []).map((r: { unit_id: string }) => r.unit_id));
 }
@@ -107,8 +121,7 @@ export async function fetchStats(): Promise<TrilhaStats | null> {
   // admin/first_mate enxergam TODAS as linhas de trilha_stats (policy select_own_or_staff),
   // então sem o .eq(user_id) o .maybeSingle() traria várias linhas e falharia (PGRST116),
   // fazendo o saldo aparecer como 0 para quem é staff.
-  const { data: auth } = await supabase.auth.getUser();
-  const userId = auth.user?.id;
+  const userId = await currentUserId();
   if (!userId) return null;
 
   const { data, error } = await supabase
@@ -120,74 +133,18 @@ export async function fetchStats(): Promise<TrilhaStats | null> {
   return (data as TrilhaStats) ?? null;
 }
 
-// Marca uma lição como concluída e atualiza XP/streak.
-// Idempotente: reconcluir não duplica progresso nem soma XP de novo.
-export async function completeLesson(lessonId: string, xpReward: number, score = 100): Promise<void> {
-  const { data: auth } = await supabase.auth.getUser();
-  const userId = auth.user?.id;
-  if (!userId) throw new Error('not_authenticated');
-
-  // Já concluída? então não soma XP de novo (apenas atualiza score se melhorou).
-  const { data: existing } = await supabase
-    .from('trilha_progress')
-    .select('id, score')
-    .eq('user_id', userId)
-    .eq('lesson_id', lessonId)
-    .maybeSingle();
-
-  const isFirstTime = !existing;
-
-  await supabase
-    .from('trilha_progress')
-    .upsert(
-      { user_id: userId, lesson_id: lessonId, score },
-      { onConflict: 'user_id,lesson_id' },
-    );
-
-  if (isFirstTime) {
-    await applyXpAndStreak(userId, xpReward);
+// Marca uma lição como concluída e credita os Coins/streak.
+// Tudo acontece no servidor (RPC complete_lesson, SECURITY DEFINER): o XP vem
+// da própria lição no banco, credita uma única vez por lição mesmo com cliques
+// simultâneos, e unidade Premium só credita para quem a desbloqueou. O cliente
+// não escreve mais em trilha_stats — antes o saldo podia ser forjado pelo console.
+// `xpReward` fica na assinatura por compatibilidade; o valor usado é o do banco.
+export async function completeLesson(lessonId: string, _xpReward?: number, score = 100): Promise<void> {
+  const { error } = await supabase.rpc('complete_lesson', { p_lesson_id: lessonId, p_score: score });
+  if (error) {
+    console.error('[trilhaGain] completeLesson', error);
+    throw new Error(error.message || 'complete_lesson_failed');
   }
-}
-
-// Atualiza XP total e o streak diário. Cria a linha de stats se não existir.
-async function applyXpAndStreak(userId: string, xpReward: number): Promise<void> {
-  const { data: stats } = await supabase
-    .from('trilha_stats')
-    .select('*')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
-
-  if (!stats) {
-    await supabase.from('trilha_stats').insert({
-      user_id: userId,
-      total_xp: xpReward,
-      current_streak: 1,
-      best_streak: 1,
-      last_activity_date: today,
-    });
-    return;
-  }
-
-  const last = stats.last_activity_date as string | null;
-  let current = stats.current_streak as number;
-
-  if (last !== today) {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
-    current = last === yesterday ? current + 1 : 1;
-  }
-  const best = Math.max(stats.best_streak as number, current);
-
-  await supabase
-    .from('trilha_stats')
-    .update({
-      total_xp: (stats.total_xp as number) + xpReward,
-      current_streak: current,
-      best_streak: best,
-      last_activity_date: today,
-    })
-    .eq('user_id', userId);
 }
 
 // --- CRUD admin (usado pelo painel; escrita gated por RLS = admin) ---

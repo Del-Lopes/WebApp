@@ -163,6 +163,28 @@ async function incrementUsage(userId: string, currentCount: number): Promise<num
   return next
 }
 
+// Reserva uma mensagem do limite diário ANTES de chamar a IA, num único
+// comando no banco (RPC chat_reserve_message). Devolve o novo total ou -1 se
+// o limite já foi atingido. Sem isso, mensagens em paralelo furavam o limite.
+async function reserveUsage(userId: string): Promise<number> {
+  const { data, error } = await supabaseAdmin.rpc('chat_reserve_message', {
+    p_user_id: userId,
+    p_limit: DAILY_MESSAGE_LIMIT,
+  })
+  if (error) {
+    console.error('reserveUsage error:', error.message)
+    // RPC indisponível: cai no caminho antigo (ler + gravar depois).
+    const current = await getUsageCount(userId)
+    return current >= DAILY_MESSAGE_LIMIT ? -1 : current + 1
+  }
+  return typeof data === 'number' ? data : -1
+}
+
+async function releaseUsage(userId: string): Promise<void> {
+  const { error } = await supabaseAdmin.rpc('chat_release_message', { p_user_id: userId })
+  if (error) console.error('releaseUsage error:', error.message)
+}
+
 // ─── Histórico ────────────────────────────────────────────────────────────────
 
 async function loadHistory(userId: string): Promise<HistoryEntry[]> {
@@ -423,13 +445,13 @@ Deno.serve(async (req: Request) => {
     return jsonResponse({ error: 'Mensagem muito longa (máx. 2000 caracteres)' }, 400)
   }
 
-  // 3. Rate limit — verifica antes de chamar Gemini
-  const currentCount = await getUsageCount(user.id)
-  if (currentCount >= DAILY_MESSAGE_LIMIT) {
+  // 3. Rate limit — reserva a mensagem antes de chamar a IA (atômico)
+  const newCount = await reserveUsage(user.id)
+  if (newCount < 0) {
     return jsonResponse({
       error: 'limit_reached',
       message: `Você atingiu o limite diário de ${DAILY_MESSAGE_LIMIT} mensagens. Volte amanhã para continuar conversando.`,
-      usage: { count: currentCount, limit: DAILY_MESSAGE_LIMIT, warn_half: false },
+      usage: { count: DAILY_MESSAGE_LIMIT, limit: DAILY_MESSAGE_LIMIT, warn_half: false },
     }, 429)
   }
 
@@ -448,9 +470,8 @@ Deno.serve(async (req: Request) => {
     const systemPrompt = buildSystemPrompt(userCtx, knowledge)
     const reply = await callGemini(systemPrompt, history, message)
 
-    // 7. Salva resposta + incrementa contador
+    // 7. Salva resposta (o contador já foi reservado no passo 3)
     const assistantMessageId = await saveMessage(user.id, 'assistant', reply)
-    const newCount = await incrementUsage(user.id, currentCount)
 
     // 8. Avisa quando atingir 50% (15 mensagens)
     const warnHalf = newCount === HALF_LIMIT_THRESHOLD
@@ -464,6 +485,7 @@ Deno.serve(async (req: Request) => {
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : JSON.stringify(err)
     console.error('chat-assistant error:', msg)
+    await releaseUsage(user.id)   // falhou: a mensagem não conta no limite
     return jsonResponse({ error: 'Falha ao processar a mensagem. Tente novamente em instantes.' }, 500)
   }
 })

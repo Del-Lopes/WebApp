@@ -24,6 +24,14 @@ const COINGECKO_KEY = Deno.env.get('COINGECKO_KEY') ?? ''
 
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
+// Estorna a cobrança em Coins quando a análise não foi entregue. O builder do
+// supabase-js só é "thenable" (não tem .catch): o antigo `.rpc(...).catch()`
+// lançava TypeError antes de executar — o usuário era cobrado sem estorno.
+async function refund(fn: 'refund_crypto_report' | 'refund_signal_analysis', userId: string): Promise<void> {
+  const { error } = await supabaseAdmin.rpc(fn, { p_user_id: userId })
+  if (error) console.error(`[refund] ${fn} falhou para ${userId}:`, error.message)
+}
+
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform',
@@ -44,7 +52,7 @@ async function cg(path: string, params: Record<string, string> = {}): Promise<an
   const url = new URL(CG_BASE + path)
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
   if (COINGECKO_KEY) url.searchParams.set('x_cg_demo_api_key', COINGECKO_KEY)
-  const res = await fetch(url.toString())
+  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(12_000) })
   if (!res.ok) throw new Error(`coingecko_http_${res.status}`)
   return res.json()
 }
@@ -186,11 +194,11 @@ Deno.serve(async (req) => {
     [sectors, trending] = await Promise.all([fetchSectors(), fetchTrending()])
   } catch (e) {
     console.error('[crypto-narrative] coingecko', e)
-    await supabaseAdmin.rpc('refund_crypto_report', { p_user_id: userId }).catch(() => {})
+    await refund('refund_crypto_report', userId)
     return jsonResponse(502, { error: 'market_data_failed' })
   }
   if (!sectors.length) {
-    await supabaseAdmin.rpc('refund_crypto_report', { p_user_id: userId }).catch(() => {})
+    await refund('refund_crypto_report', userId)
     return jsonResponse(502, { error: 'insufficient_data' })
   }
 
@@ -213,7 +221,7 @@ Deno.serve(async (req) => {
 
   if (insertErr) {
     console.error('[crypto-narrative] insert', insertErr)
-    await supabaseAdmin.rpc('refund_crypto_report', { p_user_id: userId }).catch(() => {})
+    await refund('refund_crypto_report', userId)
     return jsonResponse(500, { error: 'insert_failed' })
   }
 

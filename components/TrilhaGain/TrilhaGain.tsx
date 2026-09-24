@@ -62,14 +62,25 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
   const handleRedeem = async (unitId: string) => {
     await redeemUnitUnlock(unitId); // lança em insufficient_xp / not_redeemable
     setAccessUnits((prev) => new Set(prev).add(unitId));
-    setStats(await fetchStats());
+    await refreshAfterUnlock();
   };
 
   // Pula (compra acesso a) uma unidade à frente travada. Não move a progressão.
   const handleSkip = async (unitId: string) => {
     await redeemUnitSkip(unitId); // lança em insufficient_xp
     setAccessUnits((prev) => new Set(prev).add(unitId));
-    setStats(await fetchStats());
+    await refreshAfterUnlock();
+  };
+
+  // O banco só entrega os passos de unidade Premium a quem a desbloqueou:
+  // depois do resgate a árvore precisa ser relida, senão a lição abre vazia.
+  const refreshAfterUnlock = async () => {
+    const [s, tree] = await Promise.all([
+      fetchStats(),
+      activeTrack ? fetchTrackTree(activeTrack.id) : Promise.resolve(null),
+    ]);
+    setStats(s);
+    if (tree) setActiveTrack(tree);
   };
 
   // --- Render ---

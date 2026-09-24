@@ -208,6 +208,18 @@ Deno.serve(async (req) => {
   const user = await getAuthedUser(req)
   if (!user) return jsonResponse(401, { error: 'unauthorized' })
 
+  // As estratégias são da vitrine (vistas por todos): vincular uma conta MT5 a
+  // elas é ação de staff. Sem isso, qualquer cliente conectava uma estratégia
+  // ainda sem vínculo e publicava equity/P&L inventados para todos.
+  const { data: profile } = await supabaseAdmin
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle()
+  if (!profile || !['admin', 'first_mate'].includes(profile.role)) {
+    return jsonResponse(403, { error: 'forbidden' })
+  }
+
   // Roteamento pelo último segmento da URL.
   // Em produção a function é montada em /functions/v1/mt5-link/<action>.
   const url = new URL(req.url)

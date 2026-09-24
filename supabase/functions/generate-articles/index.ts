@@ -9,6 +9,54 @@ const GEMINI_API_KEY = Deno.env.get('GEMINI_API_KEY') ?? ''
 const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? ''
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+
+// Só staff gera artigos: a function publica no blog, gasta IA e busca URLs
+// externas. A anon key passa no gateway, então o papel é conferido aqui.
+async function isStaffRequest(req: Request): Promise<boolean> {
+  const auth = req.headers.get('authorization') ?? ''
+  if (!auth.toLowerCase().startsWith('bearer ')) return false
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: auth } },
+  })
+  const { data, error } = await userClient.auth.getUser()
+  if (error || !data?.user) return false
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', data.user.id)
+    .maybeSingle()
+  return !!profile && ['admin', 'first_mate'].includes(profile.role)
+}
+
+// Evita SSRF: só https para host público (sem IP privado/loopback/link-local
+// nem nomes internos).
+function isSafePublicUrl(raw: string): boolean {
+  let u: URL
+  try { u = new URL(raw) } catch { return false }
+  if (u.protocol !== 'https:') return false
+  const h = u.hostname.toLowerCase()
+  if (h === 'localhost' || h.endsWith('.local') || h.endsWith('.internal') || !h.includes('.')) return false
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) {
+    const [a, b] = h.split('.').map(Number)
+    if (a === 10 || a === 127 || a === 0 || (a === 169 && b === 254) || (a === 172 && b >= 16 && b <= 31) || (a === 192 && b === 168) || a >= 224) return false
+  }
+  if (h.startsWith('[') || h.includes(':')) return false   // IPv6 literal
+  return true
+}
+
+// Remove o que executa código do HTML gerado (defesa em profundidade: o front
+// também sanitiza na exibição). O conteúdo vem de IA alimentada por páginas
+// de terceiros — sujeito a prompt injection.
+function stripDangerousHtml(html: string): string {
+  return html
+    // blocos com conteúdo (o conteúdo do script também sai)
+    .replace(/<\s*(script|style|iframe|object|embed|form|noscript|template)\b[\s\S]*?<\/\s*\1\s*>/gi, '')
+    // tags soltas/sem fechamento que sobrarem
+    .replace(/<\/?\s*(script|style|iframe|object|embed|form|noscript|template|link|meta|base)\b[^>]*>/gi, '')
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '')
+    .replace(/(href|src)\s*=\s*(["'])\s*(javascript|data|vbscript):[^"']*\2/gi, '$1="#"')
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,10 +85,15 @@ async function scrapePage(url: string): Promise<ScrapedPage> {
       'User-Agent': 'Mozilla/5.0 (compatible; TradexBot/1.0)',
       'Accept': 'text/html,application/xhtml+xml',
     },
+    redirect: 'manual',                 // redirect poderia levar a host interno
+    signal: AbortSignal.timeout(15_000),
   })
+  if (res.status >= 300 && res.status < 400) throw new Error('Redirects are not allowed')
   if (!res.ok) throw new Error(`Failed to fetch URL: HTTP ${res.status}`)
+  const declared = Number(res.headers.get('content-length') ?? 0)
+  if (declared > 3_000_000) throw new Error('Page too large')
 
-  const html = await res.text()
+  const html = (await res.text()).slice(0, 3_000_000)
 
   // Extract body content (strip head, nav, footer, scripts, styles — keep article body)
   const bodyMatch = html.match(/<body[\s\S]*?<\/body>/i)
@@ -140,7 +193,7 @@ async function callGemini(systemPrompt: string, userPrompt: string, apiKey: stri
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
-          generationConfig: { temperature: 0.6 },
+          generationConfig: { temperature: 0.6, maxOutputTokens: 4096 },
         }),
         signal: controller.signal,
       },
@@ -175,6 +228,7 @@ async function callGroq(systemPrompt: string, userPrompt: string, apiKey: string
         ],
         response_format: { type: 'json_object' },
         temperature: 0.6,
+        max_tokens: 4096,
       }),
       signal: controller.signal,
     })
@@ -297,6 +351,20 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  if (!(await isStaffRequest(req))) {
+    return new Response(JSON.stringify({ type: 'error', error: 'forbidden' }), {
+      status: 403,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
+  if (!isSafePublicUrl(body.source_url)) {
+    return new Response(JSON.stringify({ type: 'error', error: 'source_url deve ser https e público' }), {
+      status: 400,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    });
+  }
+
   const streamEncoder = new TextEncoder()
   
   const stream = new ReadableStream({
@@ -378,7 +446,7 @@ Deno.serve(async (req: Request) => {
           .from('articles')
           .insert({
             title: parsed.title,
-            content: parsed.content,
+            content: stripDangerousHtml(parsed.content),
             excerpt: parsed.excerpt ?? '',
             category,
             image_url: coverImageUrl,

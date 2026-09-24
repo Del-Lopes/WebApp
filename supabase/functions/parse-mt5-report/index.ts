@@ -8,7 +8,22 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
+
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
+// Usuário dono do JWT (null se ausente/inválido). A anon key sozinha passa no
+// gateway, então a identidade precisa ser conferida aqui.
+async function getAuthedUserId(req: Request): Promise<string | null> {
+  const auth = req.headers.get('authorization') ?? ''
+  if (!auth.toLowerCase().startsWith('bearer ')) return null
+  const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers: { Authorization: auth } },
+  })
+  const { data, error } = await userClient.auth.getUser()
+  if (error || !data?.user) return null
+  return data.user.id
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -322,6 +337,14 @@ Deno.serve(async (req) => {
     })
   }
 
+  const userId = await getAuthedUserId(req)
+  if (!userId) {
+    return new Response(JSON.stringify({ error: 'unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
     const body = (await req.json()) as ParseRequest
     if (!body?.report_id) {
@@ -336,10 +359,21 @@ Deno.serve(async (req) => {
       .from('mt5_reports')
       .select('id, user_id, storage_path, status')
       .eq('id', body.report_id)
+      .eq('user_id', userId)
       .single()
     if (reportErr || !report) {
       return new Response(JSON.stringify({ error: 'Relatório não encontrado' }), {
         status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // O caminho é gravado pelo cliente: só aceita arquivo dentro da pasta do
+    // próprio usuário, senão daria para apontar para o relatório de outro.
+    if (typeof report.storage_path !== 'string' || !report.storage_path.startsWith(`${userId}/`)) {
+      await markFailed(report.id, 'Caminho de arquivo inválido')
+      return new Response(JSON.stringify({ error: 'Caminho de arquivo inválido' }), {
+        status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }

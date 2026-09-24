@@ -55,6 +55,9 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
   };
 
   const fetchRequests = async () => {
+    // "Minhas licenças": filtra pelo próprio id. A RLS deixa staff ler todas,
+    // e sem o filtro o admin via (e editava) licenças de outros clientes aqui.
+    if (!user) return;
     try {
       const results = await Promise.all(
         (Object.entries(eaConfig) as [keyof typeof eaConfig, typeof eaConfig[keyof typeof eaConfig]][]).map(
@@ -62,6 +65,7 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
             supabase
               .from(table)
               .select('*')
+              .eq('user_id', user.id)
               .order('created_at', { ascending: false })
               .then(({ data }) => (data || []).map(r => ({ ...r, ea })))
         )

@@ -117,9 +117,15 @@ export async function fetchTrendPanelCost(): Promise<number> {
 // Símbolos que o usuário já abriu HOJE (não serão cobrados de novo).
 export async function fetchTodayPanelAccess(): Promise<Set<string>> {
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD (UTC)
+  // Filtra pelo próprio id: staff lê os acessos de todos pela RLS, e os painéis
+  // abertos por outros usuários apareceriam como já liberados.
+  const { data: session } = await supabase.auth.getSession();
+  const userId = session.session?.user.id;
+  if (!userId) return new Set();
   const { data, error } = await supabase
     .from('trend_panel_access')
     .select('symbol')
+    .eq('user_id', userId)
     .eq('access_day', today);
   if (error) { console.error('[signals] fetchTodayPanelAccess', error); return new Set(); }
   return new Set((data ?? []).map((r: { symbol: string }) => r.symbol));
