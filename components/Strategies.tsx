@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Activity, Server, TrendingUp, X, Trash2, AlertCircle, ArrowUpDown, ShieldCheck } from 'lucide-react';
+import { Plus, Activity, Server, TrendingUp, Trash2, AlertCircle, ArrowUpDown, ShieldCheck } from 'lucide-react';
 import { Robot, UserRole, Product } from '../types';
 import { RobotDetails } from './RobotDetails';
 import { BackButton } from './BackButton';
+import { Badge, Button, Input, Label, Modal, PageHeader, Select, Skeleton } from './ui';
 import { supabase } from '../lib/supabase';
 import { useStrategiesMt5Status } from '../hooks/useStrategiesMt5Status';
 
@@ -228,22 +229,19 @@ export const Strategies: React.FC<StrategiesProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex items-center gap-4">
-          {onBack && <BackButton onClick={onBack} />}
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900">Estratégias e Robôs</h2>
-            <p className="text-slate-500 text-sm">Expert Advisors e Provedores de estratégias.</p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        leading={onBack && <BackButton onClick={onBack} />}
+        eyebrow="Trading"
+        title="Estratégias e Robôs"
+        description="Expert Advisors e Provedores de estratégias."
+        actions={
           <button
             onClick={() => setSortOrder(current => current === 'desc' ? 'asc' : 'desc')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-              sortOrder 
-                ? 'bg-green-50 border-green-200 text-green-700' 
-                : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+              sortOrder
+                ? 'bg-accent/10 border-accent/20 text-accent-fg'
+                : 'bg-tint/3 border-tint/10 text-fg-muted hover:bg-tint/6 hover:text-fg'
             }`}
             title="Ordenar por Rentabilidade"
           >
@@ -254,44 +252,56 @@ export const Strategies: React.FC<StrategiesProps> = ({
               {sortOrder === 'desc' && '+'}
             </span>
           </button>
-        </div>
-      </div>
+        }
+      />
 
       {loading ? (
-        <div className="text-center py-10 text-slate-500">Carregando estratégias...</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" aria-busy="true" aria-label="Carregando estratégias...">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="glass-card p-5 space-y-4">
+              <div className="flex justify-between">
+                <Skeleton className="h-12 w-12 rounded-lg" />
+                <Skeleton className="h-6 w-20 rounded-full" />
+              </div>
+              <Skeleton className="h-5 w-2/3" />
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {sortedRobots.map((robot) => (
-            <div key={robot.id} className="group bg-white border border-slate-200 hover:border-green-500/50 rounded-xl p-5 transition-all duration-300 relative overflow-hidden shadow-xs hover:shadow-md cursor-pointer" onClick={() => setSelectedRobot(robot)}>
+            <div key={robot.id} className="group glass-card glass-card-hover p-5 relative overflow-hidden cursor-pointer" onClick={() => setSelectedRobot(robot)}>
               {/* Background Icon Decoration */}
-              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-slate-900 pointer-events-none">
+              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-fg pointer-events-none">
                 <Activity size={80} />
               </div>
-              
+
               <div className="flex justify-between items-start mb-4 relative z-10">
                 {robot.avatar_url ? (
-                   <div className="w-20 h-20 rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+                   <div className="w-20 h-20 rounded-xl border border-tint/10 overflow-hidden">
                      <img src={robot.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                    </div>
                 ) : (
-                  <div className="p-2.5 bg-slate-50 rounded-lg border border-slate-200 text-green-600 group-hover:text-green-500 group-hover:border-green-500/30 transition-colors">
+                  <div className="p-2.5 bg-tint/3 rounded-lg border border-tint/10 text-accent-fg group-hover:border-accent/30 transition-colors">
                     <Server size={24} />
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold border bg-green-100 text-green-700 border-green-200">
+                  <Badge tone="success" className="font-semibold">
                     {robot.status}
-                  </span>
+                  </Badge>
 
                   {/* Delete Button (Card Action) */}
                   {userRole === 'admin' && (
-                    <button 
+                    <button
                       onClick={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
                         handleDeleteClick(robot.id, robot.name);
                       }}
-                      className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors z-20"
+                      className="p-1.5 text-fg-subtle hover:text-danger-fg hover:bg-danger/10 rounded-lg transition-colors z-20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                       title="Excluir Robô"
                     >
                       <Trash2 size={18} />
@@ -300,20 +310,20 @@ export const Strategies: React.FC<StrategiesProps> = ({
                 </div>
               </div>
 
-              <h3 className="text-lg font-bold text-slate-900 mb-1 group-hover:text-green-700 transition-colors relative z-10">{robot.name}</h3>
-              <div className="text-sm text-slate-500 mb-6 flex items-center gap-2 relative z-10">
-                <span className="font-mono text-xs bg-slate-100 px-1.5 py-0.5 rounded-sm text-slate-600 border border-slate-200">{robot.version}</span>
-                <span>•</span>
-                <span className="font-semibold">{robot.pair}</span>
+              <h3 className="font-display text-lg font-semibold text-fg mb-1 group-hover:text-accent-fg transition-colors relative z-10">{robot.name}</h3>
+              <div className="text-sm text-fg-muted mb-6 flex items-center gap-2 relative z-10">
+                <span className="font-mono tabular-nums text-xs bg-tint/5 px-1.5 py-0.5 rounded-sm text-fg-muted border border-tint/10">{robot.version}</span>
+                <span className="text-fg-subtle">•</span>
+                <span className="font-mono font-semibold text-fg whitespace-nowrap">{robot.pair}</span>
               </div>
 
-              <div className="flex items-center justify-between pt-4 border-t border-slate-100 relative z-10">
-                <div className="flex flex-col">
-                  <span className="text-xs text-slate-500 uppercase tracking-wider font-medium">Performance</span>
-                  <div className="flex items-center gap-2">
-                    <div className={`flex items-center gap-1.5 font-bold ${
-                      robot.profitability.startsWith('+') ? 'text-green-600' : 
-                      robot.profitability.startsWith('-') ? 'text-red-500' : 'text-slate-400'
+              <div className="flex items-center justify-between gap-3 pt-4 border-t border-tint/6 relative z-10">
+                <div className="flex flex-col gap-1 min-w-0">
+                  <span className="eyebrow-muted">Performance</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className={`flex items-center gap-1.5 font-display font-semibold tabular-nums whitespace-nowrap ${
+                      robot.profitability.startsWith('+') ? 'text-success-fg' :
+                      robot.profitability.startsWith('-') ? 'text-danger-fg' : 'text-fg-muted'
                     }`}>
                       <TrendingUp size={14} />
                       {robot.profitability}
@@ -325,7 +335,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={(e) => e.stopPropagation()}
-                            className="flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 px-1.5 py-0.5 rounded-sm text-[10px] font-bold hover:bg-orange-100 transition-colors"
+                            className="flex items-center gap-1 bg-tint/5 border border-tint/10 text-fg-muted px-1.5 py-0.5 rounded-sm text-[10px] font-bold hover:text-fg hover:border-tint/20 transition-colors"
                             title="Verificado no MyFxBook"
                         >
                             <ShieldCheck size={10} />
@@ -335,19 +345,19 @@ export const Strategies: React.FC<StrategiesProps> = ({
                     {/* Live indicator — só quando há status MT5 recente */}
                     {isStrategyLive(robot.id) && (
                         <span
-                            className="flex items-center gap-1 bg-green-50 border border-green-200 text-green-700 px-1.5 py-0.5 rounded-sm text-[10px] font-bold"
+                            className="flex items-center gap-1 bg-success/10 border border-success/20 text-success-fg px-1.5 py-0.5 rounded-sm text-[10px] font-bold"
                             title="Dados ao vivo da conta MT5"
                         >
                             <span className="relative flex w-2 h-2">
-                                <span className="absolute inline-flex w-full h-full rounded-full bg-green-500 opacity-75 animate-ping" />
-                                <span className="relative inline-flex w-2 h-2 rounded-full bg-green-500" />
+                                <span className="absolute inline-flex w-full h-full rounded-full bg-success opacity-75 animate-ping" />
+                                <span className="relative inline-flex w-2 h-2 rounded-full bg-success" />
                             </span>
                             Live
                         </span>
                     )}
                   </div>
                 </div>
-                <span className="text-sm text-green-600 hover:text-green-700 font-medium hover:underline">
+                <span className="shrink-0 text-sm text-accent-fg font-medium group-hover:underline">
                   Acessar &rarr;
                 </span>
               </div>
@@ -356,14 +366,14 @@ export const Strategies: React.FC<StrategiesProps> = ({
 
           {/* Admin Card to Add New Strategy */}
           {userRole === 'admin' && (
-            <button 
+            <button
               onClick={() => {
                 setModalMode('add');
                 setIsModalOpen(true);
               }}
-              className="border-2 border-dashed border-slate-300 hover:border-green-500/50 bg-slate-50 hover:bg-white rounded-xl p-5 flex flex-col items-center justify-center gap-3 text-slate-400 hover:text-green-600 transition-all min-h-[220px] group"
+              className="border border-dashed border-tint/15 hover:border-accent/50 bg-tint/2 hover:bg-tint/4 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 text-fg-muted hover:text-accent-fg transition-all min-h-[220px] group focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
             >
-              <div className="w-12 h-12 rounded-full bg-slate-200 group-hover:bg-green-100 flex items-center justify-center transition-colors">
+              <div className="w-12 h-12 rounded-full bg-tint/5 border border-tint/10 group-hover:bg-accent/10 group-hover:border-accent/20 flex items-center justify-center transition-colors">
                 <Plus size={24} />
               </div>
               <span className="font-medium">Gerenciar Robôs</span>
@@ -373,32 +383,28 @@ export const Strategies: React.FC<StrategiesProps> = ({
       )}
 
       {/* Modal - Manage Strategies */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-          <div className="bg-white border border-slate-200 w-full max-w-md rounded-2xl p-6 shadow-2xl transform transition-all">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-xl font-bold text-slate-900">Gerenciar Estratégias</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-600 transition-colors">
-                <X size={24} />
-              </button>
-            </div>
-
+      <Modal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Gerenciar Estratégias"
+        closeOnOverlay={false}
+      >
             {/* Modal Tabs */}
-            <div className="flex border-b border-slate-200 mb-6">
-              <button 
+            <div className="flex border-b border-tint/8 mb-6">
+              <button
                 type="button"
                 onClick={() => setModalMode('add')}
-                className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
-                  modalMode === 'add' ? 'text-green-600 border-b-2 border-green-600' : 'text-slate-500 hover:text-slate-700'
+                className={`flex-1 pb-3 text-sm font-medium transition-colors relative -mb-px ${
+                  modalMode === 'add' ? 'text-accent-fg border-b-2 border-accent' : 'text-fg-muted hover:text-fg'
                 }`}
               >
                 Nova Estratégia
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => setModalMode('delete')}
-                className={`flex-1 pb-3 text-sm font-medium transition-colors relative ${
-                  modalMode === 'delete' ? 'text-red-600 border-b-2 border-red-600' : 'text-slate-500 hover:text-slate-700'
+                className={`flex-1 pb-3 text-sm font-medium transition-colors relative -mb-px ${
+                  modalMode === 'delete' ? 'text-danger-fg border-b-2 border-danger' : 'text-fg-muted hover:text-fg'
                 }`}
               >
                 Excluir Estratégia
@@ -408,72 +414,70 @@ export const Strategies: React.FC<StrategiesProps> = ({
             {modalMode === 'add' ? (
               <form onSubmit={handleAddSubmit} className="space-y-4 animate-in fade-in slide-in-from-left-4 duration-300">
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Nome da Estratégia</label>
-                  <input
+                  <Label>Nome da Estratégia</Label>
+                  <Input
                     type="text"
                     required
                     value={newRobot.name}
                     onChange={(e) => setNewRobot({...newRobot, name: e.target.value})}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-hidden focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
                     placeholder="Ex: Alpha Global Trader"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1.5">Performance Fee</label>
-                    <input
+                    <Label>Performance Fee</Label>
+                    <Input
                       type="text"
                       value={newRobot.version}
                       onChange={(e) => setNewRobot({...newRobot, version: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-hidden focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
                       placeholder="Ex: 20%"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-600 mb-1.5">Par (Ativo)</label>
-                    <input
+                    <Label>Par (Ativo)</Label>
+                    <Input
                       type="text"
                       required
                       value={newRobot.pair}
                       onChange={(e) => setNewRobot({...newRobot, pair: e.target.value})}
-                      className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-hidden focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400"
+                      className="font-mono"
                       placeholder="Ex: EURUSD"
                     />
                   </div>
                 </div>
 
                 <div className="pt-4 flex gap-3">
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 rounded-lg font-medium transition-colors border border-slate-200"
+                    className="flex-1"
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
-                    className="flex-1 bg-green-600 hover:bg-green-500 text-white py-2.5 rounded-lg font-medium transition-colors shadow-lg shadow-green-600/20"
+                    className="flex-1"
                   >
                     Criar Estratégia
-                  </button>
+                  </Button>
                 </div>
               </form>
             ) : (
               <form onSubmit={handleDeleteSubmit} className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="bg-red-50 border border-red-100 rounded-lg p-4 flex items-start gap-3">
-                  <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={20} />
-                  <p className="text-sm text-red-700">
+                <div className="bg-danger/10 border border-danger/20 rounded-lg p-4 flex items-start gap-3">
+                  <AlertCircle className="text-danger-fg shrink-0 mt-0.5" size={20} />
+                  <p className="text-sm text-danger-fg">
                     A exclusão removerá o Robô do banco de dados para TODOS os usuários.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-1.5">Selecionar Robô para Excluir</label>
-                  <select
+                  <Label>Selecionar Robô para Excluir</Label>
+                  <Select
                     required
                     value={robotToDeleteId}
                     onChange={(e) => setRobotToDeleteId(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-300 rounded-lg px-4 py-2.5 text-slate-900 focus:outline-hidden focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all cursor-pointer appearance-none"
+                    className="focus:border-danger/60 focus:ring-danger/20"
                     disabled={robots.length === 0}
                   >
                     <option value="" disabled>
@@ -482,30 +486,29 @@ export const Strategies: React.FC<StrategiesProps> = ({
                     {robots.map((robot) => (
                       <option key={robot.id} value={robot.id}>{robot.name} ({robot.pair})</option>
                     ))}
-                  </select>
+                  </Select>
                 </div>
 
                 <div className="pt-2 flex gap-3">
-                  <button
-                    type="button"
+                  <Button
+                    variant="secondary"
                     onClick={() => setIsModalOpen(false)}
-                    className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 py-2.5 rounded-lg font-medium transition-colors border border-slate-200"
+                    className="flex-1"
                   >
                     Cancelar
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     type="submit"
+                    variant="danger"
                     disabled={!robotToDeleteId}
-                    className="flex-1 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white py-2.5 rounded-lg font-medium transition-colors shadow-lg shadow-red-600/20"
+                    className="flex-1"
                   >
                     Excluir Definitivamente
-                  </button>
+                  </Button>
                 </div>
               </form>
             )}
-          </div>
-        </div>
-      )}
+      </Modal>
     </div>
   );
 };

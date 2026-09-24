@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, DollarSign, Trash2, Wallet, Edit2, Check, X, TrendingUp, Link2, Link2Off, Coins } from 'lucide-react';
+import { Plus, DollarSign, Trash2, Wallet, Edit2, Check, X, TrendingUp, Link2, Link2Off, Coins } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { TreasuryMt5ConnectModal } from './Treasury/TreasuryMt5ConnectModal';
 import { disconnectTreasuryAccountFromMt5 } from '../lib/treasuryMt5Link';
+import { BackButton } from './BackButton';
+import { Button, Card, PageHeader, Label, Input, Badge, Table, THead, TBody, TR, TH, TD, EmptyState, Skeleton } from './ui';
+import { cn } from '../lib/cn';
 
 interface Account {
   id: string;
@@ -27,7 +30,9 @@ interface TreasuryProps {
   onBack: () => void;
 }
 
-const COLORS = ['#10B981', '#3B82F6', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#6366F1', '#14B8A6'];
+// Fatias do gráfico: escala de verdes da marca alternada com neutros
+// (sem azul/roxo decorativo; vermelho e âmbar ficam reservados ao semântico).
+const COLORS = ['#22c55e', '#a3a3a3', '#15803d', '#5eea96', '#737373', '#16a34a', '#bbf7d0', '#525252'];
 
 export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -184,55 +189,49 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center gap-4 mb-8">
-        <button 
-          onClick={onBack}
-          className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
-        >
-          <ArrowLeft className="text-slate-600" />
-        </button>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Tesouraria</h1>
-          <p className="text-slate-500">Gestão de capital e contas</p>
-        </div>
-      </div>
+      <PageHeader
+        leading={<BackButton onClick={onBack} />}
+        title="Tesouraria"
+        description="Gestão de capital e contas"
+        className="mb-8"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
         {/* Total Capital Card - 25% width */}
-        <div className="md:col-span-1 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs h-full flex flex-col justify-center">
-          <div className="flex flex-col items-center text-center gap-4 mb-4">
-            <div className="p-4 bg-green-100 rounded-full">
-              <DollarSign className="text-green-600" size={32} />
+        <Card className="md:col-span-1 h-full flex flex-col justify-center">
+          <div className="flex flex-col items-center text-center gap-4">
+            <div className="p-4 bg-accent/10 border border-accent/20 rounded-full">
+              <DollarSign className="text-accent-fg" size={32} />
             </div>
-            <div>
-              <p className="text-sm font-medium text-slate-500 mb-1">Capital Total</p>
-              <h3 className="text-3xl font-bold text-slate-900 tracking-tight">
+            <div className="min-w-0 max-w-full">
+              <p className="eyebrow-muted mb-2">Capital Total</p>
+              <h3 className="font-mono tabular-nums whitespace-nowrap text-2xl lg:text-3xl font-semibold text-fg tracking-tight">
                 {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(totalCapital)}
               </h3>
             </div>
           </div>
-        </div>
+        </Card>
 
         {/* Pie Chart Card - Row 2 */}
-        <div className="md:col-span-3 bg-white p-8 rounded-2xl border border-slate-200 shadow-xs flex flex-col items-center">
-           <h4 className="text-xl font-bold text-slate-800 mb-8 self-start w-full border-b border-slate-100 pb-4">Distribuição do Capital</h4>
-           
-           <div className="flex flex-col lg:flex-row items-center gap-12 w-full">
-               <div className="relative w-80 h-80 shrink-0 group">
+        <Card padding="lg" className="md:col-span-3 flex flex-col items-center">
+           <h4 className="font-display text-xl font-semibold text-fg mb-8 self-start w-full border-b border-tint/6 pb-4">Distribuição do Capital</h4>
+
+           <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12 w-full">
+               <div className="relative w-64 h-64 sm:w-80 sm:h-80 shrink-0 group">
                    {/* Tooltip */}
                    {tooltip.show && tooltip.data && (
-                       <div 
-                           className="absolute z-50 bg-slate-900 text-white text-xs rounded-lg py-1.5 px-3 shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full transition-opacity duration-200"
+                       <div
+                           className="absolute z-50 bg-elevated border border-tint/10 text-fg text-xs rounded-lg py-1.5 px-3 shadow-xl pointer-events-none transform -translate-x-1/2 -translate-y-full transition-opacity duration-200"
                            style={{ left: tooltip.x, top: tooltip.y - 10 }}
                        >
-                           <p className="font-bold mb-0.5">{tooltip.data.name}</p>
+                           <p className="font-semibold mb-0.5">{tooltip.data.name}</p>
                            <div className="flex items-center gap-2">
-                               <span className="text-slate-300">{tooltip.data.location || 'N/A'}</span>
-                               <span className="font-mono text-green-400">
+                               <span className="text-fg-muted">{tooltip.data.location || 'N/A'}</span>
+                               <span className="font-mono tabular-nums whitespace-nowrap text-accent-fg">
                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(tooltip.data.balance)}
                                </span>
                            </div>
-                           <div className="text-slate-400 mt-0.5 font-mono">
+                           <div className="text-fg-muted mt-0.5 font-mono tabular-nums">
                                {((tooltip.data.balance / totalCapital) * 100).toFixed(1)}%
                            </div>
                        </div>
@@ -240,14 +239,14 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
 
                    <svg viewBox="0 0 100 100" className="w-full h-full transform -rotate-90">
                        {accounts.length === 0 && (
-                           <circle cx="50" cy="50" r="37.5" fill="transparent" stroke="#e2e8f0" strokeWidth="25" />
+                           <circle cx="50" cy="50" r="37.5" fill="transparent" className="stroke-tint/10" strokeWidth="25" />
                        )}
                        {accounts.map((acc, idx) => {
                            const percentage = acc.balance / totalCapital;
                            const strokeDasharray = `${percentage * 235.619} 235.619`;
                            // Calculate accumulated offset
                            const currentOffset = accounts.slice(0, idx).reduce((sum, a) => sum + (a.balance/totalCapital), 0) * 235.619;
-                           
+
                            return (
                                <circle
                                    key={acc.id}
@@ -261,11 +260,11 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                                    strokeDashoffset={-currentOffset}
                                    className="transition-all duration-300 hover:opacity-90 cursor-pointer"
                                    onMouseEnter={(e) => {
-                                       setTooltip({ 
-                                           show: true, 
+                                       setTooltip({
+                                           show: true,
                                            x: 0, // Initial, updated by move
-                                           y: 0, 
-                                           data: acc 
+                                           y: 0,
+                                           data: acc
                                        });
                                    }}
                                    onMouseMove={(e) => {
@@ -284,29 +283,29 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                        })}
                    </svg>
 
-                   <div className="absolute inset-0 m-auto w-40 h-40 bg-white rounded-full flex flex-col items-center justify-center border-4 border-slate-50 shadow-inner pointer-events-none">
-                       <span className="text-3xl font-bold text-slate-800">{accounts.length}</span>
-                       <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Contas</span>
+                   <div className="absolute inset-0 m-auto w-32 h-32 sm:w-40 sm:h-40 bg-surface rounded-full flex flex-col items-center justify-center border-4 border-page pointer-events-none">
+                       <span className="font-mono tabular-nums text-3xl font-semibold text-fg">{accounts.length}</span>
+                       <span className="eyebrow-muted mt-1">Contas</span>
                    </div>
                </div>
-           
-           <div className="flex-1 w-full overflow-y-auto max-h-80 custom-scrollbar pr-4">
-               <h4 className="text-xl font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">Distribuição do Capital</h4>
+
+           <div className="flex-1 w-full min-w-0 overflow-y-auto max-h-80 ds-scrollbar sm:pr-4">
+               <h4 className="font-display text-xl font-semibold text-fg mb-3 border-b border-tint/6 pb-2">Distribuição do Capital</h4>
                <div className="space-y-2">
                    {accounts.map((acc, idx) => (
-                       <div key={acc.id} className="flex items-center justify-between text-base p-2 hover:bg-slate-50 rounded-xl transition-all hover:shadow-xs border border-transparent hover:border-slate-100">
-                           <div className="flex items-center gap-4">
-                               <div className="w-4 h-4 rounded-full shrink-0 shadow-xs" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-                               <div className="flex flex-col">
-                                   <span className="font-bold text-slate-700 truncate max-w-[200px]" title={acc.name}>{acc.name}</span>
-                                   <span className="text-xs font-medium text-slate-400 uppercase tracking-wide">{acc.location || 'N/A'}</span>
+                       <div key={acc.id} className="flex items-center justify-between gap-3 text-base p-2 hover:bg-tint/3 rounded-xl transition-colors border border-transparent hover:border-tint/8">
+                           <div className="flex items-center gap-4 min-w-0">
+                               <div className="w-4 h-4 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                               <div className="flex flex-col min-w-0">
+                                   <span className="font-semibold text-fg truncate max-w-[200px]" title={acc.name}>{acc.name}</span>
+                                   <span className="text-xs font-medium text-fg-muted uppercase tracking-wide truncate">{acc.location || 'N/A'}</span>
                                </div>
                            </div>
-                           <div className="text-right">
-                               <span className="block font-mono font-bold text-slate-900 text-lg">
+                           <div className="text-right shrink-0">
+                               <span className="block font-mono tabular-nums whitespace-nowrap font-semibold text-fg text-lg">
                                    {((acc.balance / totalCapital) * 100).toFixed(1)}%
                                </span>
-                               <span className="text-sm text-slate-500 font-mono">
+                               <span className="text-sm text-fg-muted font-mono tabular-nums whitespace-nowrap">
                                    {new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(acc.balance)}
                                </span>
                            </div>
@@ -315,46 +314,42 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                </div>
            </div>
            </div>
-        </div>
+        </Card>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-        <div className="p-6 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-          <h2 className="text-lg font-semibold text-slate-900">Contas Registradas</h2>
+      <Card padding="none" className="overflow-hidden">
+        <div className="px-5 py-4 sm:p-6 border-b border-tint/8 flex justify-between items-center gap-3 bg-tint/2">
+          <h2 className="font-display text-lg font-semibold text-fg">Contas Registradas</h2>
           {isAdmin && (
-            <button
-              onClick={() => setIsAdding(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/20"
-            >
+            <Button size="sm" onClick={() => setIsAdding(true)}>
               <Plus size={18} />
               <span>Nova Conta</span>
-            </button>
+            </Button>
           )}
         </div>
 
         {isAdding && (
-          <form onSubmit={handleAddAccount} className="p-6 bg-slate-50 border-b border-slate-200 animate-in slide-in-from-top-2">
+          <form onSubmit={handleAddAccount} className="p-5 sm:p-6 bg-tint/2 border-b border-tint/8 animate-in slide-in-from-top-2">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Nome da Conta</label>
-                <input
+                <Label>Nome da Conta</Label>
+                <Input
                   type="text"
                   value={newAccount.name}
                   onChange={e => setNewAccount({ ...newAccount, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900 shadow-xs"
                   placeholder="Ex: Binance Main"
                   required
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Saldo</label>
+                <Label>Saldo</Label>
                 <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
-                    <input
+                    <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle text-sm pointer-events-none">$</span>
+                    <Input
                       type="number"
                       value={newAccount.balance}
                       onChange={e => setNewAccount({ ...newAccount, balance: e.target.value })}
-                      className="w-full pl-7 pr-3 py-2 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900 shadow-xs"
+                      className="pl-7 font-mono tabular-nums"
                       placeholder="0.00"
                       step="0.01"
                       required
@@ -362,30 +357,22 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Local</label>
-                <input
+                <Label>Local</Label>
+                <Input
                   type="text"
                   value={newAccount.location}
                   onChange={e => setNewAccount({ ...newAccount, location: e.target.value })}
-                  className="w-full px-3 py-2 border border-slate-300 rounded-lg focus:outline-hidden focus:ring-2 focus:ring-slate-900 shadow-xs"
                   placeholder="Ex: Carteira Fria / Binance"
                 />
               </div>
             </div>
             <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={() => setIsAdding(false)}
-                className="px-4 py-2 text-slate-600 hover:text-slate-900 font-medium"
-              >
+              <Button variant="ghost" onClick={() => setIsAdding(false)}>
                 Cancelar
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-bold shadow-md shadow-green-600/20"
-              >
+              </Button>
+              <Button type="submit">
                 Salvar Conta
-              </button>
+              </Button>
             </div>
           </form>
         )}
@@ -402,36 +389,40 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
           />
         )}
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
+        <Table wrapperClassName="rounded-none border-0">
+            <THead>
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Conta</th>
-                <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Local</th>
-                <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Saldo</th>
-                {isStaff && <th className="px-6 py-4 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">MT5</th>}
-                {isAdmin && <th className="px-6 py-4 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Ações</th>}
+                <TH className="px-6 py-4">Conta</TH>
+                <TH className="px-6 py-4">Local</TH>
+                <TH align="right" className="px-6 py-4">Saldo</TH>
+                {isStaff && <TH align="center" className="px-6 py-4">MT5</TH>}
+                {isAdmin && <TH align="right" className="px-6 py-4">Ações</TH>}
               </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
+            </THead>
+            <TBody>
               {loading ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-500 animate-pulse">
-                    Carregando contas...
+                  <td colSpan={5} className="px-6 py-6">
+                    <span className="sr-only">Carregando contas...</span>
+                    <div className="space-y-3">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-10 w-full" />
+                    </div>
                   </td>
                 </tr>
               ) : accounts.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
-                    Nenhuma conta cadastrada.
+                  <td colSpan={5} className="px-6 py-6">
+                    <EmptyState icon={Wallet} title="Nenhuma conta cadastrada." />
                   </td>
                 </tr>
               ) : (
                 accounts.map((account) => (
-                  <tr key={account.id} className="hover:bg-slate-50 transition-colors group">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                  <TR key={account.id} className="group">
+                    <TD className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div 
+                        <div
                           onClick={() => {
                             if (editingId === account.id) {
                               setEditValues(prev => ({
@@ -440,11 +431,13 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                               }));
                             }
                           }}
-                          className={`shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all border ${
+                          className={cn(
+                            'shrink-0 h-10 w-10 rounded-full flex items-center justify-center transition-all border',
                             (editingId === account.id ? editValues.trend : account.trend) === 'positive'
-                              ? 'bg-green-100 text-green-600 border-green-200'
-                              : 'bg-slate-100 text-slate-500 border-slate-200 group-hover:bg-white group-hover:shadow-md'
-                          } ${editingId === account.id ? 'cursor-pointer hover:scale-105 active:scale-95 ring-2 ring-offset-2 ring-transparent hover:ring-slate-100' : ''}`}
+                              ? 'bg-success/10 text-success-fg border-success/20'
+                              : 'bg-tint/5 text-fg-muted border-tint/10 group-hover:border-tint/20',
+                            editingId === account.id && 'cursor-pointer hover:scale-105 active:scale-95 ring-2 ring-offset-2 ring-offset-surface ring-transparent hover:ring-accent/40',
+                          )}
                         >
                           {(editingId === account.id ? editValues.trend : account.trend) === 'positive' ? (
                             <TrendingUp size={18} />
@@ -455,11 +448,11 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                         <div className="ml-4 flex items-center gap-2">
                           {editingId === account.id ? (
                             <>
-                              <input
+                              <Input
                                 type="text"
                                 value={editValues.name || ''}
                                 onChange={e => setEditValues({ ...editValues, name: e.target.value })}
-                                className="px-2 py-1 border border-slate-300 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-slate-900 w-full"
+                                className="px-2.5 py-1.5 min-w-[10rem]"
                                 autoFocus
                               />
                               <button
@@ -468,50 +461,49 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                                 title={editValues.is_cent
                                   ? 'Conta cent ativa — o equity recebido será dividido por 100 ao gravar o saldo. Clique para desativar.'
                                   : 'Ative se a conta MT5 é em centavos. O equity recebido será dividido por 100 ao gravar o saldo.'}
-                                className={`shrink-0 inline-flex items-center justify-center p-1.5 rounded-lg border transition-colors ${
+                                className={cn(
+                                  'shrink-0 inline-flex items-center justify-center p-1.5 rounded-lg border transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60',
                                   editValues.is_cent
-                                    ? 'bg-amber-50 text-amber-700 hover:bg-slate-50 hover:text-slate-700 border-amber-200 hover:border-slate-200'
-                                    : 'bg-slate-50 text-slate-700 hover:bg-amber-50 hover:text-amber-700 border-slate-200 hover:border-amber-200'
-                                }`}
+                                    ? 'bg-warning/10 text-warning-fg border-warning/20 hover:bg-tint/5 hover:text-fg-muted hover:border-tint/10'
+                                    : 'bg-tint/5 text-fg-muted border-tint/10 hover:bg-warning/10 hover:text-warning-fg hover:border-warning/20',
+                                )}
                               >
                                 <Coins size={14} />
                               </button>
                             </>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <div className="text-sm font-bold text-slate-900">{account.name}</div>
+                              <div className="text-sm font-semibold text-fg">{account.name}</div>
                               {account.is_cent && (
-                                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-sm text-[9px] font-black bg-gradient-to-br from-amber-300 to-yellow-500 text-amber-900 uppercase tracking-wider">
+                                <Badge tone="warning" className="gap-1 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-sm">
                                   <Coins size={10} /> Cent
-                                </span>
+                                </Badge>
                               )}
                             </div>
                           )}
                         </div>
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    </TD>
+                    <TD className="px-6 py-4 whitespace-nowrap">
                       {editingId === account.id ? (
-                        <input
+                        <Input
                           type="text"
                           value={editValues.location || ''}
                           onChange={e => setEditValues({ ...editValues, location: e.target.value })}
-                          className="px-2 py-1 border border-slate-300 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-sm w-full"
+                          className="px-2.5 py-1.5 min-w-[8rem]"
                           placeholder="Local"
                         />
                       ) : (
-                        <span className="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                          {account.location || 'N/A'}
-                        </span>
+                        <Badge>{account.location || 'N/A'}</Badge>
                       )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-slate-900 font-bold font-mono">
+                    </TD>
+                    <TD numeric className="px-6 py-4 font-semibold">
                       {editingId === account.id ? (
-                        <input
+                        <Input
                           type="number"
                           value={editValues.balance}
                           onChange={e => setEditValues({ ...editValues, balance: Number(e.target.value) })}
-                          className="px-2 py-1 border border-slate-300 rounded-sm focus:outline-hidden focus:ring-2 focus:ring-slate-900 text-right w-32"
+                          className="px-2.5 py-1.5 text-right w-32 font-mono tabular-nums"
                           step="0.01"
                         />
                       ) : (
@@ -521,19 +513,19 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                             currency: 'USD'
                           }).format(account.balance)}
                           {mt5Links[account.id] && (
-                            <div className="text-[10px] font-normal text-green-600 mt-0.5 uppercase tracking-wider">
+                            <div className="text-[10px] font-normal text-success-fg mt-0.5 uppercase tracking-wider">
                               Sincronizado · #{mt5Links[account.id].account_login}
                             </div>
                           )}
                         </>
                       )}
-                    </td>
+                    </TD>
                     {isStaff && (
-                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                      <TD align="center" className="px-6 py-4 whitespace-nowrap">
                         {mt5Links[account.id] ? (
                           <button
                             onClick={() => handleDisconnectMt5(account.id)}
-                            className="inline-flex items-center justify-center p-1.5 bg-green-50 text-green-700 hover:bg-red-50 hover:text-red-600 border border-green-200 hover:border-red-200 rounded-lg transition-colors"
+                            className="inline-flex items-center justify-center p-1.5 bg-success/10 text-success-fg border border-success/20 hover:bg-danger/10 hover:text-danger-fg hover:border-danger/20 rounded-lg transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                             title="Desconectar do MT5"
                           >
                             <Link2 size={14} />
@@ -541,58 +533,57 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                         ) : (
                           <button
                             onClick={() => setConnectingAccount(account)}
-                            className="inline-flex items-center justify-center p-1.5 bg-slate-50 text-slate-700 hover:bg-slate-900 hover:text-white border border-slate-200 hover:border-slate-900 rounded-lg transition-colors"
+                            className="inline-flex items-center justify-center p-1.5 bg-tint/5 text-fg-muted border border-tint/10 hover:bg-accent/10 hover:text-accent-fg hover:border-accent/30 rounded-lg transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                             title="Conectar ao MT5"
                           >
                             <Link2Off size={14} />
                           </button>
                         )}
-                      </td>
+                      </TD>
                     )}
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <TD align="right" className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       {editingId === account.id ? (
                         <div className="flex justify-end gap-2">
                            <button
                             onClick={() => saveEditing(account.id)}
-                            className="text-green-600 hover:text-green-800 transition-colors p-1 bg-green-50 rounded-sm"
+                            className="text-success-fg transition-colors p-1 bg-success/10 hover:bg-success/15 border border-success/20 rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                             title="Salvar"
                           >
                             <Check size={18} />
                           </button>
                           <button
                             onClick={cancelEditing}
-                            className="text-slate-400 hover:text-slate-600 transition-colors p-1 hover:bg-slate-100 rounded-sm"
+                            className="text-fg-muted hover:text-fg transition-colors p-1 hover:bg-tint/5 border border-transparent rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                             title="Cancelar"
                           >
                             <X size={18} />
                           </button>
                         </div>
                       ) : isAdmin && (
-                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
                           <button
                             onClick={() => startEditing(account)}
-                            className="text-blue-400 hover:text-blue-600 transition-colors p-1 hover:bg-blue-50 rounded-sm"
+                            className="text-fg-muted hover:text-accent-fg transition-colors p-1 hover:bg-accent/10 rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                             title="Editar"
                           >
                             <Edit2 size={18} />
                           </button>
                           <button
                             onClick={() => handleDeleteAccount(account.id)}
-                            className="text-red-400 hover:text-red-600 transition-colors p-1 hover:bg-red-50 rounded-sm"
+                            className="text-fg-muted hover:text-danger-fg transition-colors p-1 hover:bg-danger/10 rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                             title="Excluir"
                           >
                             <Trash2 size={18} />
                           </button>
                         </div>
                       )}
-                    </td>
-                  </tr>
+                    </TD>
+                  </TR>
                 ))
               )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            </TBody>
+        </Table>
+      </Card>
     </div>
   );
 };

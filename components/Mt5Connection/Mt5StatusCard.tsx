@@ -4,6 +4,7 @@ import type { StrategyMt5Link, StrategyMt5Status, UserRole } from '../../types';
 import { Mt5ConnectModal } from './Mt5ConnectModal';
 import { Mt5ManageModal } from './Mt5ManageModal';
 import { requestStrategyForceSync } from '../../lib/mt5Sync';
+import { Button, Skeleton } from '../ui';
 
 const FORCE_SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutos
 
@@ -39,10 +40,10 @@ function formatRelative(iso: string | null | undefined): string {
 }
 
 function pnlClass(value: number | null | undefined): string {
-  if (value == null) return 'text-slate-900';
-  if (value > 0) return 'text-green-600';
-  if (value < 0) return 'text-red-600';
-  return 'text-slate-900';
+  if (value == null) return 'text-fg';
+  if (value > 0) return 'text-success-fg';
+  if (value < 0) return 'text-danger-fg';
+  return 'text-fg';
 }
 
 export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
@@ -89,14 +90,17 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
   // ─── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+      <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Activity size={16} className="text-green-600" /> Conexão MT5
+          <h3 className="font-display text-sm font-semibold text-fg flex items-center gap-2">
+            <Activity size={16} className="text-accent-fg" /> Conexão MT5
           </h3>
         </div>
-        <div className="h-20 flex items-center justify-center text-slate-400 text-sm">
-          <RefreshCw size={16} className="animate-spin mr-2" /> Carregando…
+        <div className="h-20 flex flex-col justify-center gap-2.5" aria-busy="true">
+          <span className="sr-only">Carregando…</span>
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
         </div>
       </div>
     );
@@ -106,28 +110,29 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
   if (!link) {
     return (
       <>
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 mb-3">
-            <Activity size={16} className="text-green-600" /> Conexão MT5
+        <div className="glass-card p-5">
+          <h3 className="font-display text-sm font-semibold text-fg flex items-center gap-2 mb-3">
+            <Activity size={16} className="text-accent-fg" /> Conexão MT5
           </h3>
-          <div className="flex items-center gap-2 text-slate-500 text-sm mb-3">
-            <span className="w-2 h-2 rounded-full bg-slate-300" />
+          <div className="flex items-center gap-2 text-fg-muted text-sm mb-3">
+            <span className="w-2 h-2 rounded-full bg-tint/25" />
             Não conectada
           </div>
           {isAdmin ? (
             <>
-              <p className="text-xs text-slate-500 mb-4 leading-relaxed">
+              <p className="text-xs text-fg-muted mb-4 leading-relaxed">
                 Vincule esta estratégia à conta MT5 para exibir flutuante, P&amp;L do dia e posições abertas.
               </p>
-              <button
+              <Button
+                size="sm"
                 onClick={() => setConnectOpen(true)}
-                className="w-full bg-green-600 hover:bg-green-500 text-white text-sm font-semibold py-2 rounded-lg transition-colors"
+                className="w-full"
               >
                 Conectar ao MT5
-              </button>
+              </Button>
             </>
           ) : (
-            <p className="text-xs text-slate-500 leading-relaxed">
+            <p className="text-xs text-fg-muted leading-relaxed">
               Os dados ao vivo desta estratégia serão exibidos assim que a conta for vinculada.
             </p>
           )}
@@ -152,27 +157,27 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
   if (!status) {
     return (
       <>
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+        <div className="glass-card p-5">
           <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <Activity size={16} className="text-green-600" /> Conexão MT5
+            <h3 className="font-display text-sm font-semibold text-fg flex items-center gap-2">
+              <Activity size={16} className="text-accent-fg" /> Conexão MT5
             </h3>
             {isAdmin && (
               <button
                 onClick={() => setManageOpen(true)}
-                className="text-slate-400 hover:text-slate-700 transition-colors"
+                className="rounded-md p-1 -m-1 text-fg-subtle hover:text-fg transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                 title="Gerenciar"
               >
                 <Settings size={16} />
               </button>
             )}
           </div>
-          <div className="flex items-center gap-2 text-amber-700 text-sm mb-3">
+          <div className="flex items-center gap-2 text-warning-fg text-sm mb-3">
             <RefreshCw size={14} className="animate-spin" />
             Aguardando o primeiro envio do Expert Advisor
           </div>
-          <div className="text-xs text-slate-500 leading-relaxed space-y-1">
-            <div>Conta <span className="font-mono">{link.account_login}</span></div>
+          <div className="text-xs text-fg-muted leading-relaxed space-y-1">
+            <div>Conta <span className="font-mono tabular-nums text-fg">{link.account_login}</span></div>
             <div>Chave gerada {formatRelative(link.api_key_created_at)}</div>
           </div>
         </div>
@@ -199,15 +204,15 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
 
   return (
     <>
-      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-xs">
+      <div className="glass-card p-5">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <Activity size={16} className="text-green-600" /> Conexão MT5
+          <h3 className="font-display text-sm font-semibold text-fg flex items-center gap-2">
+            <Activity size={16} className="text-accent-fg" /> Conexão MT5
           </h3>
           {isAdmin && (
             <button
               onClick={() => setManageOpen(true)}
-              className="text-slate-400 hover:text-slate-700 transition-colors"
+              className="rounded-md p-1 -m-1 text-fg-subtle hover:text-fg transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
               title="Gerenciar"
             >
               <Settings size={16} />
@@ -218,59 +223,62 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
         <div className="flex items-center gap-2 text-sm mb-3">
           {isStale ? (
             <>
-              <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-amber-700">Atualização {formatRelative(status.received_at)}</span>
+              <span className="w-2 h-2 rounded-full bg-warning" />
+              <span className="text-warning-fg">Atualização {formatRelative(status.received_at)}</span>
             </>
           ) : (
             <>
-              <span className="w-2 h-2 rounded-full bg-green-500" />
-              <span className="text-slate-700">Conectado · {formatRelative(status.received_at)}</span>
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inline-flex w-full h-full rounded-full bg-success opacity-60 animate-ping" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-success" />
+              </span>
+              <span className="text-fg">Conectado · {formatRelative(status.received_at)}</span>
             </>
           )}
         </div>
 
-        <div className="text-xs text-slate-500 mb-3">
-          Conta <span className="font-mono text-slate-700">{status.account_login}</span>
+        <div className="text-xs text-fg-muted mb-3">
+          Conta <span className="font-mono tabular-nums whitespace-nowrap text-fg">{status.account_login}</span>
           {status.account_company && <span> · {status.account_company}</span>}
         </div>
 
-        <div className="border-t border-slate-100 pt-3 space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-slate-500">Flutuante</span>
-            <span className={`font-semibold ${pnlClass(status.floating_pnl)}`}>
+        <div className="border-t border-tint/6 pt-3 space-y-2 text-sm">
+          <div className="flex justify-between gap-3">
+            <span className="text-fg-muted">Flutuante</span>
+            <span className={`font-mono font-semibold tabular-nums whitespace-nowrap ${pnlClass(status.floating_pnl)}`}>
               {formatCurrency(status.floating_pnl, status.account_currency)}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">P&amp;L do dia</span>
-            <span className={`font-semibold ${pnlClass(status.daily_pnl)}`}>
+          <div className="flex justify-between gap-3">
+            <span className="text-fg-muted">P&amp;L do dia</span>
+            <span className={`font-mono font-semibold tabular-nums whitespace-nowrap ${pnlClass(status.daily_pnl)}`}>
               {formatCurrency(status.daily_pnl, status.account_currency)}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">Posições</span>
-            <span className="font-semibold text-slate-900">
+          <div className="flex justify-between gap-3">
+            <span className="text-fg-muted">Posições</span>
+            <span className="font-mono font-semibold tabular-nums whitespace-nowrap text-fg">
               {status.open_positions ?? 0} {status.open_positions === 1 ? 'aberta' : 'abertas'}
             </span>
           </div>
         </div>
 
-        <div className="border-t border-slate-100 mt-3 pt-3 space-y-1 text-xs">
-          <div className="flex justify-between">
-            <span className="text-slate-500">Equity</span>
-            <span className="font-mono text-slate-700">{formatCurrency(status.equity, status.account_currency)}</span>
+        <div className="border-t border-tint/6 mt-3 pt-3 space-y-1 text-xs">
+          <div className="flex justify-between gap-3">
+            <span className="text-fg-muted">Equity</span>
+            <span className="font-mono tabular-nums whitespace-nowrap text-fg">{formatCurrency(status.equity, status.account_currency)}</span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-slate-500">Saldo</span>
-            <span className="font-mono text-slate-700">{formatCurrency(status.balance, status.account_currency)}</span>
+          <div className="flex justify-between gap-3">
+            <span className="text-fg-muted">Saldo</span>
+            <span className="font-mono tabular-nums whitespace-nowrap text-fg">{formatCurrency(status.balance, status.account_currency)}</span>
           </div>
         </div>
 
-        <div className="border-t border-slate-100 mt-3 pt-3">
+        <div className="border-t border-tint/6 mt-3 pt-3">
           <button
             onClick={handleForceSync}
             disabled={syncing || syncOnCooldown}
-            className="w-full flex items-center justify-center gap-2 text-xs text-slate-500 hover:text-slate-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors py-1"
+            className="w-full flex items-center justify-center gap-2 rounded-md text-xs text-fg-muted hover:text-fg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors py-1"
           >
             <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
             {syncing

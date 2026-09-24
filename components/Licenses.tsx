@@ -3,6 +3,7 @@ import { Key, ShieldCheck, CheckCircle2, Clock, AlertCircle, Edit2, Calendar, XC
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { BackButton } from './BackButton';
+import { Button, EmptyState, Input, Modal, PageHeader } from './ui';
 import { LicenseRequest, LicenseTitle } from '../types';
 
 interface LicensesProps {
@@ -25,10 +26,10 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
   const [selectedEA, setSelectedEA] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO' | 'FX SQUAD'>('AFK TRADER');
 
   const eaConfig = {
-    'AFK TRADER': { table: 'license_requests',           color: 'bg-indigo-100 text-indigo-700 border-indigo-200' },
-    'SNOW BALL':  { table: 'license_requests_snowball',  color: 'bg-blue-100 text-blue-700 border-blue-200' },
-    'BOLETA PRO': { table: 'license_requests_boletapro', color: 'bg-orange-100 text-orange-700 border-orange-200' },
-    'FX SQUAD':   { table: 'license_requests_fxsquad',  color: 'bg-green-100 text-green-700 border-green-200' },
+    'AFK TRADER': { table: 'license_requests',           color: 'bg-tint/5 text-fg-muted border-tint/10' },
+    'SNOW BALL':  { table: 'license_requests_snowball',  color: 'bg-tint/5 text-fg-muted border-tint/10' },
+    'BOLETA PRO': { table: 'license_requests_boletapro', color: 'bg-tint/5 text-fg-muted border-tint/10' },
+    'FX SQUAD':   { table: 'license_requests_fxsquad',  color: 'bg-tint/5 text-fg-muted border-tint/10' },
   } as const;
 
   useEffect(() => {
@@ -152,9 +153,9 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'approved': return 'bg-green-100 text-green-700 border-green-200';
-      case 'rejected': return 'bg-red-100 text-red-700 border-red-200';
-      default: return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'approved': return 'bg-success/10 text-success-fg border-success/20';
+      case 'rejected': return 'bg-danger/10 text-danger-fg border-danger/20';
+      default: return 'bg-warning/10 text-warning-fg border-warning/20';
     }
   };
 
@@ -171,42 +172,36 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
   return (
     <div className="max-w-4xl mx-auto pt-8 px-4 pb-20">
-      <div className="text-center mb-10 relative">
-        {onBack && (
-            <div className="absolute left-0 top-0">
-                 <BackButton onClick={onBack} />
-            </div>
-        )}
-        <div className="w-16 h-16 bg-green-100 rounded-2xl flex items-center justify-center mx-auto mb-4 border border-green-200 shadow-xs">
-          <Key size={32} className="text-green-600" />
-        </div>
-        <h2 className="text-3xl font-bold text-slate-900 mb-2">Gestor de Licença</h2>
-        <p className="text-slate-500">Tudo relacionado as suas licenças MT4 e MT5.</p>
-      </div>
+      <PageHeader
+        leading={onBack && <BackButton onClick={onBack} />}
+        title="Gestor de Licença"
+        description="Tudo relacionado as suas licenças MT4 e MT5."
+      />
 
-      <div className="grid md:grid-cols-2 gap-8">
-        <div className="space-y-8">
+      <div className="grid md:grid-cols-2 gap-6 md:gap-8">
+        <div className="space-y-6 md:space-y-8 min-w-0">
           {/* Request Form */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs relative overflow-hidden h-fit animate-in fade-in slide-in-from-left-4 duration-500">
+          <div className="glass-card p-6 sm:p-8 relative overflow-hidden h-fit animate-in fade-in slide-in-from-left-4 duration-500">
+            <div className="hairline absolute inset-x-0 top-0" aria-hidden />
             {submitted && (
-              <div className="absolute inset-0 bg-white/95 z-10 flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-300">
-                <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+              <div className="absolute inset-0 bg-surface/95 z-10 flex flex-col items-center justify-center text-center p-8 animate-in fade-in duration-300">
+                <div className="w-16 h-16 bg-success/10 border border-success/20 text-success-fg rounded-full flex items-center justify-center mb-4">
                   <CheckCircle2 size={40} />
                 </div>
-                <h3 className="text-2xl font-bold text-slate-900 mb-2">Licença Solicitada!</h3>
-                <p className="text-slate-500 text-sm">Sua solicitação foi enviada para análise.</p>
+                <h3 className="font-display text-2xl font-semibold text-fg mb-2">Licença Solicitada!</h3>
+                <p className="text-fg-muted text-sm">Sua solicitação foi enviada para análise.</p>
               </div>
             )}
 
             <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2 font-display">
-                  <Plus size={20} className="text-green-600" />
+                <h3 className="text-lg font-semibold text-fg flex items-center gap-2 font-display">
+                  <Plus size={20} className="text-accent-fg" />
                   Nova Solicitação
                 </h3>
                 {(role === 'admin' || role === 'first_mate') && (
-                    <button 
+                    <button
                         onClick={() => setShowTitleManager(true)}
-                        className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors border border-transparent hover:border-green-100"
+                        className="p-1.5 text-fg-subtle hover:text-accent-fg hover:bg-accent/10 rounded-lg transition-colors border border-transparent hover:border-accent/20 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                         title="Gerenciar Títulos"
                     >
                         <Settings size={18} />
@@ -216,17 +211,17 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Selecione o Expert Advisor</label>
+                <label className="block text-sm font-medium text-fg">Selecione o Expert Advisor</label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {(Object.keys(eaConfig) as Array<keyof typeof eaConfig>).map((ea) => (
                         <button
                             key={ea}
                             type="button"
                             onClick={() => setSelectedEA(ea)}
-                            className={`py-2 px-1 text-[10px] font-bold rounded-xl border transition-all ${
-                                selectedEA === ea 
-                                ? 'bg-green-600 text-white border-green-600 shadow-md shadow-green-600/20' 
-                                : 'bg-slate-50 text-slate-500 border-slate-200 hover:border-slate-300'
+                            className={`py-2 px-1 text-[10px] font-bold tracking-wider rounded-lg border transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                                selectedEA === ea
+                                ? 'bg-accent/10 text-accent-fg border-accent/40'
+                                : 'bg-tint/3 text-fg-muted border-tint/10 hover:border-tint/20 hover:text-fg'
                             }`}
                         >
                             {ea}
@@ -236,61 +231,60 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-medium text-slate-700">Número da Conta</label>
+                <label className="block text-sm font-medium text-fg">Número da Conta</label>
                 <div className="relative group">
-                  <input
+                  <Input
                     type="number"
                     required
                     value={mt5Account}
                     onChange={(e) => setMt5Account(e.target.value)}
                     disabled={loading}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-4 pl-12 text-slate-900 focus:outline-hidden focus:border-green-500 focus:ring-1 focus:ring-green-500 transition-all placeholder:text-slate-400 font-mono text-lg disabled:opacity-50"
+                    className="rounded-xl py-4 pl-12 font-mono tabular-nums text-lg"
                     placeholder="Ex: 50123456"
                   />
-                  <ShieldCheck size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-green-600 transition-colors" />
+                  <ShieldCheck size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-fg-subtle group-focus-within:text-accent-fg transition-colors" />
                 </div>
               </div>
 
               {error && (
-                <div className="p-3 bg-red-50 text-red-600 text-sm rounded-lg flex items-center gap-2">
-                  <AlertCircle size={16} />
+                <div className="p-3 bg-danger/10 border border-danger/20 text-danger-fg text-sm rounded-lg flex items-center gap-2" role="alert">
+                  <AlertCircle size={16} className="shrink-0" />
                   {error}
                 </div>
               )}
 
-              <button
+              <Button
                 type="submit"
+                size="lg"
                 disabled={loading}
-                className="w-full bg-green-600 hover:bg-green-500 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full"
               >
                 {loading ? 'Enviando...' : 'Solicitar Acesso'}
-              </button>
+              </Button>
             </form>
           </div>
 
           {/* Request Status (formerly History) */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs h-fit">
-            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 font-display">
-              <Clock size={20} className="text-slate-400" />
+          <div className="glass-card p-6 sm:p-8 h-fit">
+            <h3 className="text-lg font-semibold text-fg mb-6 flex items-center gap-2 font-display">
+              <Clock size={20} className="text-fg-subtle" />
               Status da Solicitação
             </h3>
-            
+
             {historyRequests.length === 0 ? (
-              <div className="text-center py-10 text-slate-400 text-sm italic">
-                Nenhuma outra solicitação encontrada.
-              </div>
+              <EmptyState className="py-10" title="Nenhuma outra solicitação encontrada." />
             ) : (
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 ds-scrollbar">
                 {historyRequests.map((req) => (
-                  <div key={req.id} className="flex items-center justify-between p-4 bg-slate-50/50 rounded-2xl border border-slate-100 hover:bg-slate-50 transition-colors">
-                    <div className="flex-1 mr-4">
-                      <div className="flex items-center gap-2 mb-1">
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider border ${eaConfig[(req as any).ea as keyof typeof eaConfig]?.color || 'bg-slate-200 text-slate-600'}`}>
+                  <div key={req.id} className="flex items-center justify-between gap-3 p-4 bg-tint/3 rounded-xl border border-tint/6 hover:bg-tint/5 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wider border ${eaConfig[(req as any).ea as keyof typeof eaConfig]?.color || 'bg-tint/5 text-fg-muted border-tint/10'}`}>
                               {req.license_title || (req as any).ea || 'AFK'}
                           </span>
-                          <span className="block font-mono font-medium text-slate-700">Conta: {req.mt5_account}</span>
+                          <span className="block font-mono tabular-nums whitespace-nowrap font-medium text-fg">Conta: {req.mt5_account}</span>
                       </div>
-                      <span className="text-[10px] text-slate-400">{new Date(req.created_at).toLocaleDateString()}</span>
+                      <span className="text-[10px] text-fg-subtle tabular-nums">{new Date(req.created_at).toLocaleDateString()}</span>
                     </div>
                     <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold border uppercase tracking-wider shrink-0 ${getStatusColor(req.status)}`}>
                       {getStatusIcon(req.status)}
@@ -303,75 +297,73 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
           </div>
         </div>
 
-        <div className="space-y-8">
+        <div className="space-y-6 md:space-y-8 min-w-0">
           {/* Active Licenses */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs h-fit animate-in fade-in slide-in-from-right-4 duration-500">
-            <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2 font-display">
-              <ShieldCheck size={20} className="text-green-600" />
+          <div className="glass-card p-6 sm:p-8 h-fit animate-in fade-in slide-in-from-right-4 duration-500">
+            <h3 className="text-lg font-semibold text-fg mb-6 flex items-center gap-2 font-display">
+              <ShieldCheck size={20} className="text-accent-fg" />
               Licenças Ativas
             </h3>
 
             {activeLicenses.length === 0 ? (
-              <div className="text-center py-12 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 text-slate-400 text-sm">
-                Nenhuma licença ativa no momento.
-              </div>
+              <EmptyState className="py-12" icon={Key} title="Nenhuma licença ativa no momento." />
             ) : (
-              <div className="space-y-4 max-h-[750px] overflow-y-auto pr-2 custom-scrollbar">
+              <div className="space-y-4 max-h-[750px] overflow-y-auto pr-2 ds-scrollbar">
                 {activeLicenses.map((req) => (
-                  <div key={req.id} className="p-5 bg-green-50/30 rounded-2xl border border-green-100/50 flex flex-col gap-4 hover:bg-green-50/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="flex-1">
+                  <div key={req.id} className="p-5 bg-success/5 rounded-xl border border-success/15 flex flex-col gap-4 hover:border-success/30 transition-colors">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-4 flex-1 min-w-0">
+                        <div className="flex-1 min-w-0">
                           {editingId === req.id ? (
                             <div className="flex gap-2">
-                              <input
+                              <Input
                                 type="text"
                                 value={editValue}
                                 onChange={(e) => setEditValue(e.target.value)}
-                                className="bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-mono focus:outline-hidden focus:border-green-500 w-full"
+                                className="py-2 font-mono tabular-nums"
                                 autoFocus
                               />
                             </div>
                           ) : (
-                            <div className="flex items-center gap-3">
-                              <span className="block font-mono font-bold text-lg text-slate-900">{req.mt5_account}</span>
-                              <div className={`flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider border ${eaConfig[(req as any).ea as keyof typeof eaConfig]?.color || 'bg-green-100/60 text-green-700 border-green-200/50'}`}>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <span className="block font-mono tabular-nums whitespace-nowrap font-semibold text-lg text-fg">{req.mt5_account}</span>
+                              <div className={`flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-1 rounded-lg uppercase tracking-wider border ${eaConfig[(req as any).ea as keyof typeof eaConfig]?.color || 'bg-accent/10 text-accent-fg border-accent/20'}`}>
                                   <Key size={10} className="shrink-0" />
                                   <span className="truncate max-w-[120px]">{req.license_title || (req as any).ea || 'AFK TRADER'}</span>
                               </div>
                             </div>
                           )}
-                          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-medium uppercase tracking-wider mt-1.5">
-                            <Calendar size={10} className="text-slate-400" />
-                            Expira em: <span className="text-slate-700">{req.expires_at ? new Date(req.expires_at).toLocaleDateString() : 'Não definida'}</span>
+                          <div className="flex items-center gap-1.5 text-[10px] text-fg-muted font-medium uppercase tracking-wider mt-1.5">
+                            <Calendar size={10} className="text-fg-subtle" />
+                            Expira em: <span className="text-fg tabular-nums">{req.expires_at ? new Date(req.expires_at).toLocaleDateString() : 'Não definida'}</span>
                           </div>
                         </div>
                       </div>
-                      
+
                       {editingId === req.id ? (
-                        <div className="flex gap-2">
-                          <button 
+                        <div className="flex gap-2 shrink-0">
+                          <button
                             onClick={() => handleUpdateAccount(req.id)}
-                            className="p-2 text-green-600 hover:bg-green-100 rounded-xl transition-all shadow-xs bg-white"
+                            className="p-2 text-success-fg bg-tint/5 border border-tint/10 hover:bg-success/10 hover:border-success/30 rounded-lg transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                             title="Confirmar"
                           >
                             <CheckCircle2 size={18} />
                           </button>
-                          <button 
+                          <button
                             onClick={() => setEditingId(null)}
-                            className="p-2 text-slate-400 hover:bg-slate-100 rounded-xl transition-all shadow-xs bg-white"
+                            className="p-2 text-fg-muted bg-tint/5 border border-tint/10 hover:bg-tint/10 hover:text-fg rounded-lg transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                             title="Cancelar"
                           >
                             <XCircle size={18} />
                           </button>
                         </div>
                       ) : (
-                        <button 
+                        <button
                           onClick={() => {
                             setEditingId(req.id);
                             setEditValue(req.mt5_account);
                           }}
-                          className="p-2.5 bg-white border border-slate-100 text-slate-400 hover:text-green-600 hover:border-green-100 hover:shadow-md rounded-xl transition-all"
+                          className="shrink-0 p-2.5 bg-tint/5 border border-tint/10 text-fg-muted hover:text-accent-fg hover:border-accent/40 rounded-lg transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                           title="Editar Conta"
                         >
                           <Edit2 size={18} />
@@ -387,24 +379,24 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
       </div>
 
       {/* Admin Title Manager Modal */}
-      {showTitleManager && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs">
-              <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="flex justify-between items-center mb-6">
-                      <h3 className="text-xl font-bold text-slate-800">Gerenciar Títulos</h3>
-                      <button onClick={() => setShowTitleManager(false)}><XCircle size={24} className="text-slate-400 hover:text-slate-600 transition-colors" /></button>
-                  </div>
-
+      <Modal
+        open={showTitleManager}
+        onClose={() => setShowTitleManager(false)}
+        title="Gerenciar Títulos"
+        size="md"
+        closeOnOverlay={false}
+      >
                   <div className="space-y-4">
                       <div className="flex gap-2">
-                          <input 
-                            type="text" 
+                          <Input
+                            type="text"
                             value={newTitleName}
                             onChange={(e) => setNewTitleName(e.target.value)}
                             placeholder="Ex: MT4 Gold"
-                            className="flex-1 border border-slate-200 rounded-lg px-3 py-2 outline-hidden focus:border-green-500 transition-all"
+                            className="flex-1"
                           />
-                          <button 
+                          <Button
+                            size="icon"
                             onClick={async () => {
                                 if (!newTitleName) return;
                                 const { error } = await supabase.from('license_titles').insert({ name: newTitleName });
@@ -415,17 +407,17 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                                     fetchTitles();
                                 }
                             }}
-                            className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-500 transition-colors shadow-xs"
+                            className="h-auto w-11 shrink-0"
                           >
                               <Plus size={20} />
-                          </button>
+                          </Button>
                       </div>
 
-                      <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
+                      <div className="max-h-[300px] overflow-y-auto space-y-2 pr-1 ds-scrollbar">
                           {titles.map(t => (
-                              <div key={t.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100 hover:bg-slate-100/50 transition-colors">
-                                  <span className="font-medium text-slate-700">{t.name}</span>
-                                  <button 
+                              <div key={t.id} className="flex items-center justify-between gap-3 p-3 bg-tint/3 rounded-lg border border-tint/6 hover:bg-tint/5 transition-colors">
+                                  <span className="font-medium text-fg min-w-0 truncate">{t.name}</span>
+                                  <button
                                     onClick={async () => {
                                         if (confirm(`Excluir título "${t.name}"?`)) {
                                             const { error } = await supabase.from('license_titles').delete().eq('id', t.id);
@@ -433,20 +425,18 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
                                             fetchTitles();
                                         }
                                     }}
-                                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all"
+                                    className="shrink-0 p-1.5 text-fg-subtle hover:text-danger-fg hover:bg-danger/10 rounded-md transition-all"
                                   >
                                       <Trash2 size={16} />
                                   </button>
                               </div>
                           ))}
                           {titles.length === 0 && (
-                              <p className="text-center text-slate-400 text-xs py-10 italic">Nenhum título cadastrado.</p>
+                              <p className="text-center text-fg-subtle text-xs py-10 italic">Nenhum título cadastrado.</p>
                           )}
                       </div>
                   </div>
-              </div>
-          </div>
-      )}
+      </Modal>
     </div>
   );
 };

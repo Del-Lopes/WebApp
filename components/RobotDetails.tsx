@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Download, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2, ExternalLink, ZoomIn, Upload } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2, ExternalLink, ZoomIn, Upload } from 'lucide-react';
 import { Robot, UserRole } from '../types';
 import { uploadToSupabase } from '../lib/storage';
 import { useStrategyMt5Status } from '../hooks/useStrategyMt5Status';
 import { Mt5StatusCard } from './Mt5Connection/Mt5StatusCard';
+import { Badge, Button, EmptyState, Input, Textarea } from './ui';
 
 interface RobotDetailsProps {
   robot: Robot;
@@ -90,57 +91,48 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {/* Header & Navigation */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <button 
+        <button
           onClick={onBack}
-          className="flex items-center gap-2 text-slate-500 hover:text-green-600 transition-colors group self-start"
+          className="flex items-center gap-2 text-sm text-fg-muted hover:text-accent-fg transition-colors group self-start rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
         >
           <ArrowLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
           <span>Voltar para Estratégias</span>
         </button>
-        
-        <div className="flex items-center gap-3">
+
+        <div className="flex flex-wrap items-center gap-3">
            {isEditing ? (
              <input
                type="text"
                value={formData.status}
                onChange={(e) => handleChange('status', e.target.value)}
-               className="px-3 py-1 rounded-full text-sm font-semibold border bg-white border-green-300 text-slate-700 focus:outline-hidden focus:border-green-500 w-32"
+               className="px-3 py-1 rounded-full text-sm font-semibold border bg-tint/3 border-accent/40 text-fg placeholder:text-fg-subtle focus:outline-hidden focus:border-accent/70 focus:ring-3 focus:ring-accent/20 w-32"
                placeholder="Corretora"
              />
            ) : (
-              <span className="px-3 py-1 rounded-full text-sm font-semibold border bg-green-100 text-green-700 border-green-200">
+              <Badge tone="success" className="px-3 py-1 text-sm font-semibold">
                 {formData.status}
-              </span>
+              </Badge>
            )}
-          <span className="font-mono text-sm bg-slate-100 px-2 py-1 rounded-sm text-slate-600 border border-slate-200" title="Performance Fee">
+          <span className="font-mono tabular-nums whitespace-nowrap text-sm bg-tint/5 px-2 py-1 rounded-sm text-fg-muted border border-tint/10" title="Performance Fee">
             {formData.version}
           </span>
-          
+
           {/* Admin Edit Controls */}
           {userRole === 'admin' && (
             <div className="ml-2 flex gap-2">
               {isEditing ? (
                 <>
-                  <button 
-                    onClick={handleSave}
-                    className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-lg transition-colors shadow-xs"
-                  >
+                  <Button size="sm" onClick={handleSave}>
                     <Save size={16} /> Salvar
-                  </button>
-                  <button 
-                    onClick={handleCancel}
-                    className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 rounded-lg transition-colors"
-                  >
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={handleCancel}>
                     <X size={16} /> Cancelar
-                  </button>
+                  </Button>
                 </>
               ) : (
-                <button 
-                  onClick={() => setIsEditing(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-300 hover:border-green-500 hover:text-green-600 text-slate-600 rounded-lg transition-colors"
-                >
+                <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
                   <Edit2 size={16} /> Editar
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -151,36 +143,37 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
 
       {/* Main Info Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl p-6 md:p-8 shadow-xs">
+      <div className="glass-card relative overflow-hidden p-6 md:p-8 min-w-0">
+        <div className="hairline absolute inset-x-0 top-0" aria-hidden />
         <div className="flex flex-col lg:flex-row gap-8">
 
           {/* Left Column: Info & Description */}
-          <div className="flex-1 space-y-6">
+          <div className="flex-1 min-w-0 space-y-6">
             <div>
               <div className="flex flex-col gap-2 mb-4">
                 {isEditing ? (
                   <div className="space-y-4 w-full">
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.name}
                       onChange={(e) => handleChange('name', e.target.value)}
-                      className="text-3xl font-bold text-slate-900 border-b-2 border-green-500 focus:outline-hidden bg-transparent w-full"
+                      className="font-display text-2xl sm:text-3xl font-semibold text-fg border-b-2 border-accent focus:outline-hidden bg-transparent w-full placeholder:text-fg-subtle"
                       placeholder="Nome do Robô"
                     />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                         <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Link de Acesso (Copy/Social)</label>
-                         <input 
-                          type="text" 
+                         <label className="block eyebrow-muted mb-1.5">Link de Acesso (Copy/Social)</label>
+                         <Input
+                          type="text"
                           value={formData.external_url || ''}
                           onChange={(e) => handleChange('external_url', e.target.value)}
-                          className="w-full border border-slate-300 rounded-sm px-2 py-1.5 text-sm"
+                          className="py-1.5"
                           placeholder="https://..."
                         />
                       </div>
                       <div>
-                         <label className="block text-xs font-semibold text-slate-500 uppercase mb-1">Upload de Avatar</label>
-                         <label className={`flex items-center gap-2 px-4 py-1.5 border border-slate-300 rounded-sm text-sm cursor-pointer hover:bg-slate-50 ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                         <label className="block eyebrow-muted mb-1.5">Upload de Avatar</label>
+                         <label className={`flex items-center gap-2 px-4 py-1.5 border border-tint/10 bg-tint/3 rounded-lg text-sm text-fg-muted cursor-pointer hover:bg-tint/6 hover:text-fg transition-colors ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                             <Upload size={14} className={isUploading ? 'animate-spin' : ''} />
                             {isUploading ? 'Enviando...' : 'Selecionar Arquivo'}
                             <input type="file" accept="image/*" className="hidden" disabled={isUploading} onChange={(e) => handleUpload(e, 'avatar_url')} />
@@ -189,53 +182,53 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 min-w-0">
                      {formData.avatar_url && (
-                        <div className="w-24 h-24 rounded-xl border border-slate-200 overflow-hidden shadow-xs shrink-0">
+                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl border border-tint/10 overflow-hidden shrink-0">
                            <img src={formData.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
                         </div>
                      )}
-                     <h1 className="text-3xl font-bold text-slate-900">{formData.name}</h1>
+                     <h1 className="font-display text-2xl sm:text-3xl font-semibold text-fg break-words min-w-0">{formData.name}</h1>
                   </div>
                 )}
               </div>
 
-              <div className="flex flex-wrap items-center gap-4 text-slate-500 text-sm">
+              <div className="flex flex-wrap items-center gap-4 text-fg-muted text-sm">
                 <div className="flex items-center gap-1.5">
-                  <Activity size={16} className="text-green-600" />
-                  Par: 
+                  <Activity size={16} className="text-accent-fg" />
+                  Par:
                   {isEditing ? (
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={formData.pair}
                       onChange={(e) => handleChange('pair', e.target.value)}
-                      className="border border-slate-300 rounded-sm px-2 py-0.5 w-24 text-slate-900 font-bold"
+                      className="bg-tint/3 border border-tint/10 rounded-md px-2 py-0.5 w-24 text-fg font-mono font-semibold focus:outline-hidden focus:border-accent/60"
                     />
                   ) : (
-                    <strong className="text-slate-900">{formData.pair}</strong>
+                    <strong className="font-mono text-fg whitespace-nowrap">{formData.pair}</strong>
                   )}
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <BarChart2 size={16} className={formData.profitability.includes('+') ? 'text-green-600' : 'text-red-500'} />
-                  Performance: 
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <BarChart2 size={16} className={formData.profitability.includes('+') ? 'text-success-fg' : 'text-danger-fg'} />
+                  Performance:
                   {isEditing ? (
-                     <input 
-                      type="text" 
+                     <input
+                      type="text"
                       value={formData.profitability}
                       onChange={(e) => handleChange('profitability', e.target.value)}
-                      className="border border-slate-300 rounded-sm px-2 py-0.5 w-24 text-slate-900 font-bold"
+                      className="bg-tint/3 border border-tint/10 rounded-md px-2 py-0.5 w-24 text-fg font-mono font-semibold tabular-nums focus:outline-hidden focus:border-accent/60"
                     />
                   ) : (
-                    <strong className={formData.profitability.includes('+') ? 'text-green-600' : 'text-red-500'}>{formData.profitability}</strong>
+                    <strong className={`font-display tabular-nums whitespace-nowrap ${formData.profitability.includes('+') ? 'text-success-fg' : 'text-danger-fg'}`}>{formData.profitability}</strong>
                   )}
                   {/* Verified MyFxBook Badge */}
                   {formData.myfxbook_url && (
-                    <a 
+                    <a
                       href={formData.myfxbook_url}
-                      target="_blank" 
+                      target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-1 bg-orange-50 border border-orange-200 text-orange-700 px-2 py-0.5 rounded-full text-xs font-bold hover:bg-orange-100 transition-colors ml-1"
+                      className="flex items-center gap-1 bg-tint/5 border border-tint/10 text-fg-muted px-2 py-0.5 rounded-full text-xs font-bold hover:text-fg hover:border-tint/20 transition-colors ml-1"
                       title="Estratégia Verificada no MyFxBook"
                     >
                       <ShieldCheck size={12} />
@@ -246,33 +239,33 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
 
                 {isEditing && (
                   <div className="flex items-center gap-1.5">
-                     <span className="text-slate-500">Performance Fee:</span>
-                     <input 
-                      type="text" 
+                     <span className="text-fg-muted">Performance Fee:</span>
+                     <input
+                      type="text"
                       value={formData.version}
                       onChange={(e) => handleChange('version', e.target.value)}
-                      className="border border-slate-300 rounded-sm px-2 py-0.5 w-20 text-slate-900 font-bold"
+                      className="bg-tint/3 border border-tint/10 rounded-md px-2 py-0.5 w-20 text-fg font-mono font-semibold tabular-nums focus:outline-hidden focus:border-accent/60"
                     />
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="prose prose-slate max-w-none">
-              <h3 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-                <ShieldCheck size={20} className="text-green-600" />
+            <div className="max-w-none">
+              <h3 className="font-display text-lg font-semibold text-fg flex items-center gap-2">
+                <ShieldCheck size={20} className="text-accent-fg" />
                 Sobre a Estratégia
               </h3>
               {isEditing ? (
-                <textarea 
+                <Textarea
                   value={formData.description}
                   onChange={(e) => handleChange('description', e.target.value)}
                   rows={6}
-                  className="w-full mt-2 p-3 border border-slate-300 rounded-lg text-slate-600 leading-relaxed focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
+                  className="mt-2 leading-relaxed"
                   placeholder="Descrição da estratégia..."
                 />
               ) : (
-                <p className="text-slate-600 leading-relaxed">
+                <p className="mt-2 text-fg-muted leading-relaxed">
                   {formData.description || "Descrição detalhada indisponível para esta versão."}
                 </p>
               )}
@@ -284,7 +277,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                   href={formData.external_url ? (formData.external_url.startsWith('http') ? formData.external_url : `https://${formData.external_url}`) : '#'}
                   target="_blank"
                   rel="noreferrer"
-                  className={`w-full sm:w-auto flex items-center justify-center gap-3 bg-green-600 hover:bg-green-500 text-white font-bold py-3 px-8 rounded-xl transition-all shadow-lg shadow-green-600/20 hover:shadow-green-600/30 transform hover:-translate-y-0.5 ${!formData.external_url ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
+                  className={`w-full sm:w-auto inline-flex items-center justify-center gap-3 h-12 px-8 rounded-lg bg-gradient-to-r from-brand-green-bright to-brand-green text-brand-dark font-semibold shadow-[0_10px_40px_-12px_rgba(34,197,94,0.55)] hover:brightness-110 hover:-translate-y-0.5 transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-page ${!formData.external_url ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''}`}
                 >
                   <ExternalLink size={20} />
                   Acessar Robô
@@ -296,7 +289,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
       </div>
 
         {/* MT5 sidebar */}
-        <aside className="space-y-4">
+        <aside className="space-y-4 min-w-0">
           <Mt5StatusCard
             strategyId={robot.id}
             strategyName={robot.name}
@@ -311,12 +304,14 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
 
       {/* Operational Gallery */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between border-l-4 border-green-500 pl-2">
-            <h3 className="text-xl font-bold text-slate-900">Operacional & Backtests</h3>
+        <div className="flex items-end justify-between gap-3">
+            <div>
+              <h3 className="font-display text-xl font-semibold text-fg">Operacional & Backtests</h3>
+            </div>
             {isEditing && (
-                <button 
+                <button
                   onClick={handleAddMyFxBook}
-                  className="flex items-center gap-1 text-sm font-semibold text-orange-600 hover:underline"
+                  className="flex items-center gap-1 text-sm font-semibold text-accent-fg hover:underline"
                 >
                   <ShieldCheck size={16} /> MyFxBook
                 </button>
@@ -324,14 +319,14 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {formData.images?.map((img, idx) => (
-            <div key={idx} className="group relative overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-xs aspect-[4/3]">
-              <img 
-                src={img} 
-                alt={`Operacional ${idx + 1}`} 
+            <div key={idx} className="group relative overflow-hidden rounded-xl border border-tint/8 bg-tint/3 aspect-[4/3] transition-colors hover:border-accent/40">
+              <img
+                src={img}
+                alt={`Operacional ${idx + 1}`}
                 className="w-full h-full object-cover"
               />
               {!isEditing && (
-                <div 
+                <div
                   onClick={() => setViewingImage(img)}
                   className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4 cursor-zoom-in"
                 >
@@ -341,9 +336,9 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                 </div>
               )}
               {isEditing && (
-                 <button 
+                 <button
                     onClick={() => removeImage('images', idx)}
-                    className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg shadow-lg transition-colors"
+                    className="absolute top-2 right-2 bg-brand-red hover:brightness-110 text-white p-2 rounded-lg transition-colors"
                     title="Remover imagem"
                  >
                     <Trash2 size={16} />
@@ -352,54 +347,56 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
             </div>
           ))}
           {isEditing && (
-            <label className="border-2 border-dashed border-slate-300 hover:border-green-500 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:text-green-600 bg-slate-50 hover:bg-green-50 transition-colors aspect-[4/3] cursor-pointer">
+            <label className="border border-dashed border-tint/15 hover:border-accent/50 rounded-xl flex flex-col items-center justify-center gap-2 text-fg-muted hover:text-accent-fg bg-tint/2 hover:bg-accent/5 transition-colors aspect-[4/3] cursor-pointer">
               {isUploading ? <Activity size={32} className="animate-spin" /> : <Plus size={32} />}
               <span className="text-sm font-medium">{isUploading ? 'Subindo...' : 'Adicionar Imagem'}</span>
               <input type="file" multiple accept="image/*" className="hidden" disabled={isUploading} onChange={(e) => handleUpload(e, 'images')} />
             </label>
           )}
-          {(!formData.images?.length && !isEditing) && <p className="text-slate-500 italic p-4 col-span-full">Nenhuma imagem disponível.</p>}
+          {(!formData.images?.length && !isEditing) && <EmptyState className="col-span-full py-10" icon={BarChart2} title="Nenhuma imagem disponível." />}
         </div>
       </div>
 
       {/* Manual Section */}
-      <div className="space-y-4 pt-4 border-t border-slate-200">
-        <div className="flex items-center justify-between border-l-4 border-green-500 pl-2">
-          <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <BookOpen size={24} className="text-slate-500" />
-            Manual de Instalação e Parâmetros
-          </h3>
+      <div className="space-y-4 pt-6 border-t border-tint/8">
+        <div className="flex items-end justify-between gap-3">
+          <div>
+            <h3 className="font-display text-xl font-semibold text-fg flex items-center gap-2">
+              <BookOpen size={22} className="text-fg-subtle shrink-0" />
+              Manual de Instalação e Parâmetros
+            </h3>
+          </div>
            {isEditing && (
-              <label className={`flex items-center gap-1 text-sm font-semibold text-green-600 hover:underline cursor-pointer ${isUploading ? 'opacity-50' : ''}`}>
-                <Plus size={16} /> 
+              <label className={`shrink-0 flex items-center gap-1 text-sm font-semibold text-accent-fg hover:underline cursor-pointer ${isUploading ? 'opacity-50' : ''}`}>
+                <Plus size={16} />
                 {isUploading ? 'Carregando...' : 'Adicionar Página'}
                 <input type="file" multiple accept="image/*" className="hidden" disabled={isUploading} onChange={(e) => handleUpload(e, 'manualImages')} />
               </label>
           )}
         </div>
-        
-        {!isEditing && <p className="text-slate-500 text-sm">Siga o passo a passo visual abaixo para configurar seu robô corretamente.</p>}
-        
+
+        {!isEditing && <p className="text-fg-muted text-sm">Siga o passo a passo visual abaixo para configurar seu robô corretamente.</p>}
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {formData.manualImages?.map((img, idx) => (
             <div key={idx} className="flex flex-col gap-2">
-              <span className="text-green-600 text-xs font-bold uppercase tracking-wider">Passo {idx + 1}</span>
-              <div 
-                className={`rounded-xl border border-slate-200 overflow-hidden shadow-lg relative group ${!isEditing ? 'cursor-zoom-in' : ''}`}
+              <span className="eyebrow">Passo {idx + 1}</span>
+              <div
+                className={`rounded-xl border border-tint/8 overflow-hidden relative group transition-colors hover:border-accent/40 ${!isEditing ? 'cursor-zoom-in' : ''}`}
                 onClick={!isEditing ? () => setViewingImage(img) : undefined}
               >
-                <img 
-                  src={img} 
-                  alt={`Manual Página ${idx + 1}`} 
+                <img
+                  src={img}
+                  alt={`Manual Página ${idx + 1}`}
                   className="w-full h-auto object-cover"
                 />
                  {isEditing && (
-                    <button 
+                    <button
                       onClick={(e) => {
                           e.stopPropagation();
                           removeImage('manualImages', idx);
                       }}
-                      className="absolute top-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg shadow-lg transition-colors"
+                      className="absolute top-2 right-2 bg-brand-red hover:brightness-110 text-white p-2 rounded-lg transition-colors"
                       title="Remover página"
                     >
                         <Trash2 size={16} />
@@ -416,33 +413,33 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
             </div>
           ))}
            {isEditing && (
-            <label className="border-2 border-dashed border-slate-300 hover:border-green-500 rounded-xl flex flex-col items-center justify-center text-slate-400 hover:text-green-600 bg-slate-50 hover:bg-green-50 transition-colors min-h-[200px] cursor-pointer">
+            <label className="border border-dashed border-tint/15 hover:border-accent/50 rounded-xl flex flex-col items-center justify-center gap-2 text-fg-muted hover:text-accent-fg bg-tint/2 hover:bg-accent/5 transition-colors min-h-[200px] cursor-pointer">
               {isUploading ? <Activity size={32} className="animate-spin" /> : <Plus size={32} />}
               <span className="text-sm font-medium">{isUploading ? 'Subindo...' : 'Adicionar Página do Manual'}</span>
               <input type="file" multiple accept="image/*" className="hidden" disabled={isUploading} onChange={(e) => handleUpload(e, 'manualImages')} />
             </label>
           )}
-          {(!formData.manualImages?.length && !isEditing) && <p className="text-slate-500 italic p-4 col-span-full">Manual indisponível.</p>}
+          {(!formData.manualImages?.length && !isEditing) && <EmptyState className="col-span-full py-10" icon={BookOpen} title="Manual indisponível." />}
         </div>
       </div>
 
       {/* Image Viewer Overlay */}
       {viewingImage && (
-        <div 
+        <div
             className="fixed inset-0 z-[60] bg-black/90 backdrop-blur-xs flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
             onClick={() => setViewingImage(null)}
         >
-            <button 
+            <button
                 onClick={() => setViewingImage(null)}
-                className="absolute top-4 right-4 text-white hover:text-slate-300 transition-colors"
+                className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
             >
                 <X size={32} />
             </button>
-            <img 
-                src={viewingImage} 
-                alt="Visualização Ampliada" 
-                className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl"
-                onClick={(e) => e.stopPropagation()} 
+            <img
+                src={viewingImage}
+                alt="Visualização Ampliada"
+                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                onClick={(e) => e.stopPropagation()}
             />
         </div>
       )}

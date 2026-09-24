@@ -8,6 +8,8 @@ import {
   fetchHandbotLinks, fetchHandbotParams, saveHandbotParams,
   type HandbotLink, type HandbotParams,
 } from '../../lib/handbotLink';
+import { Button, Card, PageHeader, Label, Input, Select, EmptyState, Skeleton } from '../ui';
+import { cn } from '../../lib/cn';
 
 interface HandBotProps {
   onBack: () => void;
@@ -95,8 +97,8 @@ const Toggle: React.FC<{ checked: boolean; onChange: (v: boolean) => void; disab
     aria-checked={checked}
     disabled={disabled}
     onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-hidden focus-visible:ring-2 focus-visible:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed ${
-      checked ? 'bg-green-500' : 'bg-slate-300'
+    className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer focus:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-50 disabled:cursor-not-allowed ${
+      checked ? 'bg-accent' : 'bg-tint/15'
     }`}
   >
     <span
@@ -118,8 +120,8 @@ const NumericInput: React.FC<{
   decimal?: boolean;
 }> = ({ label, value, onChange, step = 1, min = 0, disabled, decimal }) => (
   <div className="flex items-center justify-between gap-4">
-    <label className="text-sm text-slate-600 flex-1">{label}</label>
-    <input
+    <label className="text-sm text-fg-muted flex-1 min-w-0">{label}</label>
+    <Input
       type="number"
       value={decimal ? value : value}
       step={step}
@@ -129,7 +131,7 @@ const NumericInput: React.FC<{
         const v = decimal ? parseFloat(e.target.value) : parseInt(e.target.value, 10);
         if (!isNaN(v)) onChange(v);
       }}
-      className="w-28 text-right border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden disabled:opacity-50 disabled:cursor-not-allowed bg-white"
+      className="w-28 shrink-0 text-right px-3 py-1.5 font-mono tabular-nums"
     />
   </div>
 );
@@ -139,7 +141,7 @@ const SectionHeader: React.FC<{ title: string; enabled: boolean; onToggle: (v: b
   title, enabled, onToggle, disabled,
 }) => (
   <div className="flex items-center justify-between py-1">
-    <span className="text-sm font-bold text-slate-900">{title}</span>
+    <span className="text-sm font-semibold text-fg">{title}</span>
     <Toggle checked={enabled} onChange={onToggle} disabled={disabled} />
   </div>
 );
@@ -198,16 +200,16 @@ const ConnectSection: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs">
-      <div className="px-6 py-5 border-b border-slate-200">
+    <Card padding="none">
+      <div className="px-5 sm:px-6 py-5 border-b border-tint/8">
         <div className="flex items-center gap-2 text-xs mb-4">
-          <div className={`flex items-center gap-2 ${step === 1 ? 'text-green-600 font-semibold' : 'text-slate-400'}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 1 ? 'bg-green-600 text-white' : 'bg-slate-200 text-slate-600'}`}>1</span>
+          <div className={`flex items-center gap-2 ${step === 1 ? 'text-accent-fg font-semibold' : 'text-fg-muted'}`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono tabular-nums ${step === 1 ? 'bg-accent text-fg-inverse' : 'bg-tint/8 text-fg-muted'}`}>1</span>
             Conta
           </div>
-          <div className="flex-1 h-px bg-slate-200" />
-          <div className={`flex items-center gap-2 ${step === 2 ? 'text-green-600 font-semibold' : 'text-slate-400'}`}>
-            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] ${step === 2 ? 'bg-green-600 text-white' : 'bg-slate-200 text-slate-600'}`}>2</span>
+          <div className="flex-1 h-px bg-tint/10" />
+          <div className={`flex items-center gap-2 ${step === 2 ? 'text-accent-fg font-semibold' : 'text-fg-muted'}`}>
+            <span className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-mono tabular-nums ${step === 2 ? 'bg-accent text-fg-inverse' : 'bg-tint/8 text-fg-muted'}`}>2</span>
             Instalar EA
           </div>
         </div>
@@ -215,34 +217,33 @@ const ConnectSection: React.FC<{
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">
-                Número da conta MT5 <span className="text-red-500">*</span>
-              </label>
-              <input
+              <Label>
+                <>Número da conta MT5 <span className="text-danger-fg">*</span></>
+              </Label>
+              <Input
                 type="text"
                 inputMode="numeric"
                 value={accountLogin}
                 onChange={(e) => setAccountLogin(e.target.value.replace(/\D/g, ''))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
+                className="font-mono tabular-nums"
                 placeholder="12345678"
               />
-              <p className="text-xs text-slate-500 mt-1">Disponível no MT5 em Arquivo → Login.</p>
+              <p className="text-xs text-fg-muted mt-1.5">Disponível no MT5 em Arquivo → Login.</p>
             </div>
 
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1">Corretora (opcional)</label>
-              <input
+              <Label>Corretora (opcional)</Label>
+              <Input
                 type="text"
                 value={broker}
                 onChange={(e) => setBroker(e.target.value)}
                 maxLength={60}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden"
                 placeholder="Ex: XP Investimentos"
               />
             </div>
 
             {error && (
-              <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+              <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/20 rounded-lg text-sm text-danger-fg">
                 <AlertTriangle size={16} className="shrink-0 mt-0.5" />
                 {error}
               </div>
@@ -253,111 +254,101 @@ const ConnectSection: React.FC<{
         {step === 2 && apiKey && (
           <div className="space-y-4">
             {/* Chave */}
-            <section className="border border-slate-200 rounded-xl p-4">
-              <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-green-600 text-white flex items-center justify-center text-xs">1</span>
+            <section className="bg-tint/2 border border-tint/8 rounded-xl p-4">
+              <h4 className="text-sm font-semibold text-fg mb-2 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-accent/15 text-accent-fg border border-accent/25 flex items-center justify-center text-xs font-mono tabular-nums">1</span>
                 Sua chave de API
               </h4>
-              <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-800 mb-3">
+              <div className="flex items-start gap-2 p-3 bg-warning/10 border border-warning/20 rounded-lg text-xs text-warning-fg mb-3">
                 <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                 Esta chave será exibida apenas uma vez. Copie e guarde agora.
               </div>
               <div className="flex items-center gap-2">
-                <code className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-700 break-all">
+                <code className="flex-1 min-w-0 bg-tint/3 border border-tint/10 rounded-lg px-3 py-2 text-xs font-mono text-fg break-all">
                   {apiKey}
                 </code>
-                <button
-                  onClick={() => copy(apiKey, 'key')}
-                  className="shrink-0 px-3 py-2 bg-white border border-slate-300 hover:border-green-500 hover:text-green-600 text-slate-600 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
-                >
+                <Button variant="outline" size="sm" onClick={() => copy(apiKey, 'key')} className="shrink-0 text-xs">
                   {copiedKey ? <><Check size={14} /> Copiado</> : <><Copy size={14} /> Copiar</>}
-                </button>
+                </Button>
               </div>
             </section>
 
             {/* Download */}
-            <section className="border border-slate-200 rounded-xl p-4">
-              <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-green-600 text-white flex items-center justify-center text-xs">2</span>
+            <section className="bg-tint/2 border border-tint/8 rounded-xl p-4">
+              <h4 className="text-sm font-semibold text-fg mb-2 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-accent/15 text-accent-fg border border-accent/25 flex items-center justify-center text-xs font-mono tabular-nums">2</span>
                 Baixe o Expert Advisor
               </h4>
               <a
                 href={EA_DOWNLOAD_URL}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors"
+                className="inline-flex max-w-full items-center gap-2 bg-tint/6 text-fg border border-tint/10 hover:bg-tint/10 hover:border-tint/20 text-sm font-semibold px-4 py-2 rounded-lg transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
               >
-                <Download size={16} /> Baixar HandBot.ex5
+                <Download size={16} className="shrink-0" /> Baixar HandBot.ex5
               </a>
               <button
                 onClick={() => setHowToOpen((v) => !v)}
-                className="mt-3 text-xs font-semibold text-green-700 hover:text-green-800 flex items-center gap-1"
+                className="mt-3 text-xs font-semibold text-accent-fg hover:opacity-80 flex items-center gap-1 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
               >
                 <ChevronDown size={14} className={`transition-transform ${howToOpen ? 'rotate-180' : ''}`} />
                 Como instalar no MT5
               </button>
               {howToOpen && (
-                <ol className="mt-3 list-decimal pl-5 text-xs text-slate-600 space-y-1.5 leading-relaxed">
-                  <li>Copie o arquivo para <code className="bg-slate-100 px-1 rounded-sm">MQL5/Experts</code> (Arquivo → Abrir Pasta de Dados).</li>
+                <ol className="mt-3 list-decimal pl-5 text-xs text-fg-muted space-y-1.5 leading-relaxed">
+                  <li>Copie o arquivo para <code className="bg-tint/6 text-fg font-mono px-1 rounded-sm">MQL5/Experts</code> (Arquivo → Abrir Pasta de Dados).</li>
                   <li>No Navegador do MT5 (Ctrl+N), clique direito em "Expert Advisors" → Atualizar.</li>
-                  <li>Arraste <code className="bg-slate-100 px-1 rounded-sm">HandBot</code> para o gráfico.</li>
-                  <li>Na aba "Entradas", cole a chave em <code className="bg-slate-100 px-1 rounded-sm">ApiKey</code>.</li>
+                  <li>Arraste <code className="bg-tint/6 text-fg font-mono px-1 rounded-sm">HandBot</code> para o gráfico.</li>
+                  <li>Na aba "Entradas", cole a chave em <code className="bg-tint/6 text-fg font-mono px-1 rounded-sm">ApiKey</code>.</li>
                   <li>Confirme com OK. O EA passará a sincronizar parâmetros automaticamente.</li>
                 </ol>
               )}
             </section>
 
             {/* Autorizar URL */}
-            <section className="border border-slate-200 rounded-xl p-4">
-              <h4 className="text-sm font-bold text-slate-900 mb-2 flex items-center gap-2">
-                <span className="w-5 h-5 rounded-full bg-green-600 text-white flex items-center justify-center text-xs">3</span>
+            <section className="bg-tint/2 border border-tint/8 rounded-xl p-4">
+              <h4 className="text-sm font-semibold text-fg mb-2 flex items-center gap-2">
+                <span className="w-5 h-5 rounded-full bg-accent/15 text-accent-fg border border-accent/25 flex items-center justify-center text-xs font-mono tabular-nums">3</span>
                 Autorize a comunicação
               </h4>
-              <p className="text-xs text-slate-600 mb-2 leading-relaxed">
-                No MT5: <strong>Ferramentas → Opções → Expert Advisors</strong>. Marque
+              <p className="text-xs text-fg-muted mb-2 leading-relaxed">
+                No MT5: <strong className="text-fg">Ferramentas → Opções → Expert Advisors</strong>. Marque
                 "Permitir WebRequest" e adicione o endereço abaixo.
               </p>
               <div className="flex items-center gap-2">
-                <code className="flex-1 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono text-slate-700 break-all">
+                <code className="flex-1 min-w-0 bg-tint/3 border border-tint/10 rounded-lg px-3 py-2 text-xs font-mono text-fg break-all">
                   {SUPABASE_HOST || 'https://<seu-projeto>.supabase.co'}
                 </code>
-                <button
-                  onClick={() => copy(SUPABASE_HOST, 'host')}
-                  className="shrink-0 px-3 py-2 bg-white border border-slate-300 hover:border-green-500 hover:text-green-600 text-slate-600 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
-                >
+                <Button variant="outline" size="sm" onClick={() => copy(SUPABASE_HOST, 'host')} className="shrink-0 text-xs">
                   {copiedHost ? <><Check size={14} /> Copiado</> : <><Copy size={14} /> Copiar</>}
-                </button>
+                </Button>
               </div>
             </section>
           </div>
         )}
       </div>
 
-      <div className="px-6 py-4 flex justify-between items-center">
+      <div className="px-5 sm:px-6 py-4 flex justify-between items-center">
         {step === 1 ? (
           <>
             <span />
-            <button
+            <Button
               onClick={handleConnect}
               disabled={submitting || !accountLogin}
-              className="px-5 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? 'Gerando…' : 'Conectar'}
-            </button>
+            </Button>
           </>
         ) : (
           <>
             <span />
-            <button
-              onClick={handleDone}
-              className="px-5 py-2 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-lg transition-colors"
-            >
+            <Button onClick={handleDone}>
               Concluir
-            </button>
+            </Button>
           </>
         )}
       </div>
-    </div>
+    </Card>
   );
 };
 
@@ -410,42 +401,42 @@ const ManageSection: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs p-6 space-y-4">
-      <h3 className="text-sm font-bold text-slate-900">Conexão MT5</h3>
+    <Card className="space-y-4">
+      <h3 className="font-display text-base font-semibold text-fg">Conexão MT5</h3>
 
-      <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs">
-        <dt className="text-slate-500">Conta MT5</dt>
-        <dd className="font-mono text-slate-800">{link.account_login}</dd>
+      <dl className="grid grid-cols-2 gap-y-2 gap-x-4 text-xs min-w-0">
+        <dt className="text-fg-muted">Conta MT5</dt>
+        <dd className="font-mono tabular-nums text-fg whitespace-nowrap">{link.account_login}</dd>
         {link.broker_display && (
           <>
-            <dt className="text-slate-500">Corretora</dt>
-            <dd className="text-slate-800">{link.broker_display}</dd>
+            <dt className="text-fg-muted">Corretora</dt>
+            <dd className="text-fg break-words">{link.broker_display}</dd>
           </>
         )}
-        <dt className="text-slate-500">Conectado em</dt>
-        <dd className="text-slate-800">{formatDateTime(link.created_at)}</dd>
-        <dt className="text-slate-500">Chave</dt>
-        <dd className="font-mono text-slate-600">
-          {link.api_key_prefix}<span className="text-slate-400">••••••••</span>
+        <dt className="text-fg-muted">Conectado em</dt>
+        <dd className="text-fg font-mono tabular-nums">{formatDateTime(link.created_at)}</dd>
+        <dt className="text-fg-muted">Chave</dt>
+        <dd className="font-mono text-fg-muted break-all">
+          {link.api_key_prefix}<span className="text-fg-subtle">••••••••</span>
         </dd>
       </dl>
 
-      <hr className="border-slate-100" />
+      <hr className="border-tint/6" />
 
       {/* Rotar chave */}
       {!newKey && !confirmingRotate && (
         <button
           onClick={() => setConfirmingRotate(true)}
           disabled={busy}
-          className="text-sm font-semibold text-slate-700 hover:text-green-700 transition-colors flex items-center gap-1.5"
+          className="text-sm font-semibold text-fg-muted hover:text-accent-fg transition-colors flex items-center gap-1.5 rounded-sm disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
         >
           <RefreshCw size={14} /> Revogar e gerar nova chave
         </button>
       )}
 
       {confirmingRotate && !newKey && (
-        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg space-y-3">
-          <div className="flex items-start gap-2 text-xs text-amber-800">
+        <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg space-y-3">
+          <div className="flex items-start gap-2 text-xs text-warning-fg">
             <AlertTriangle size={14} className="shrink-0 mt-0.5" />
             A chave atual deixará de funcionar. O EA vai parar de sincronizar até ser atualizado com a nova chave.
           </div>
@@ -453,30 +444,27 @@ const ManageSection: React.FC<{
             <button
               onClick={handleRotate}
               disabled={busy}
-              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold rounded-lg disabled:opacity-50"
+              className="h-9 px-3.5 bg-warning/15 text-warning-fg border border-warning/30 hover:bg-warning/25 hover:border-warning/50 text-xs font-semibold rounded-lg transition-colors cursor-pointer disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
             >
               {busy ? 'Gerando…' : 'Confirmar revogação'}
             </button>
-            <button onClick={() => setConfirmingRotate(false)} disabled={busy} className="px-3 py-1.5 text-xs font-semibold text-slate-700">
+            <Button variant="ghost" size="sm" onClick={() => setConfirmingRotate(false)} disabled={busy} className="text-xs font-semibold">
               Cancelar
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {newKey && (
-        <div className="p-3 bg-green-50 border border-green-200 rounded-lg space-y-2">
-          <div className="text-xs font-semibold text-green-800">Nova chave gerada. Copie agora.</div>
+        <div className="p-3 bg-success/10 border border-success/20 rounded-lg space-y-2">
+          <div className="text-xs font-semibold text-success-fg">Nova chave gerada. Copie agora.</div>
           <div className="flex items-center gap-2">
-            <code className="flex-1 bg-white border border-green-200 rounded-sm px-2 py-1.5 text-xs font-mono text-slate-700 break-all">
+            <code className="flex-1 min-w-0 bg-tint/3 border border-success/20 rounded-md px-2 py-1.5 text-xs font-mono text-fg break-all">
               {newKey}
             </code>
-            <button
-              onClick={copyNewKey}
-              className="shrink-0 px-3 py-1.5 bg-white border border-slate-300 hover:border-green-500 hover:text-green-700 text-slate-700 rounded-sm text-xs font-semibold flex items-center gap-1"
-            >
+            <Button variant="outline" size="sm" onClick={copyNewKey} className="shrink-0 text-xs">
               {copied ? <><Check size={12} /> Copiado</> : <><Copy size={12} /> Copiar</>}
-            </button>
+            </Button>
           </div>
           <button
             onClick={async () => {
@@ -485,49 +473,45 @@ const ManageSection: React.FC<{
               const updated = links.find((l) => l.id === link.id);
               if (updated) onRotated(updated);
             }}
-            className="text-xs font-semibold text-green-700 hover:text-green-800"
+            className="text-xs font-semibold text-success-fg hover:opacity-80 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
           >
             Pronto, fechar
           </button>
         </div>
       )}
 
-      <hr className="border-slate-100" />
+      <hr className="border-tint/6" />
 
       {/* Desconectar */}
       {!confirmingDisconnect ? (
         <button
           onClick={() => setConfirmingDisconnect(true)}
           disabled={busy}
-          className="text-sm font-semibold text-red-600 hover:text-red-700 transition-colors flex items-center gap-1.5"
+          className="text-sm font-semibold text-danger-fg hover:opacity-80 transition-colors flex items-center gap-1.5 rounded-sm disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
         >
           <Unplug size={14} /> Desconectar do MT5
         </button>
       ) : (
-        <div className="p-3 bg-red-50 border border-red-200 rounded-lg space-y-3">
-          <div className="text-xs text-red-800">Isso apaga o vínculo e os parâmetros salvos. Confirmar?</div>
+        <div className="p-3 bg-danger/10 border border-danger/20 rounded-lg space-y-3">
+          <div className="text-xs text-danger-fg">Isso apaga o vínculo e os parâmetros salvos. Confirmar?</div>
           <div className="flex gap-2">
-            <button
-              onClick={handleDisconnect}
-              disabled={busy}
-              className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-xs font-semibold rounded-lg disabled:opacity-50"
-            >
+            <Button variant="danger" size="sm" onClick={handleDisconnect} disabled={busy} className="text-xs font-semibold">
               {busy ? 'Desconectando…' : 'Confirmar'}
-            </button>
-            <button onClick={() => setConfirmingDisconnect(false)} disabled={busy} className="px-3 py-1.5 text-xs font-semibold text-slate-700">
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setConfirmingDisconnect(false)} disabled={busy} className="text-xs font-semibold">
               Cancelar
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {error && (
-        <div className="flex items-start gap-2 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+        <div className="flex items-start gap-2 p-3 bg-danger/10 border border-danger/20 rounded-lg text-sm text-danger-fg">
           <AlertTriangle size={16} className="shrink-0 mt-0.5" />
           {error}
         </div>
       )}
-    </div>
+    </Card>
   );
 };
 
@@ -566,15 +550,15 @@ const ParamsForm: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-xs">
-      <div className="px-6 py-5 border-b border-slate-200">
-        <h3 className="text-base font-bold text-slate-900">Parâmetros do Hand Bot</h3>
-        <p className="text-xs text-slate-500 mt-1">
+    <Card padding="none">
+      <div className="px-5 sm:px-6 py-5 border-b border-tint/8">
+        <h3 className="font-display text-lg font-semibold text-fg">Parâmetros do Hand Bot</h3>
+        <p className="text-xs text-fg-muted mt-1">
           As alterações são enviadas ao EA na próxima sincronização automática.
         </p>
       </div>
 
-      <div className="px-6 py-5 space-y-6 divide-y divide-slate-100">
+      <div className="px-5 sm:px-6 py-5 space-y-6 divide-y divide-tint/6">
 
         {/* Trailing Avg */}
         <div className="space-y-3">
@@ -692,7 +676,7 @@ const ParamsForm: React.FC<{
         {/* Grid à Favor */}
         <div className="pt-4 space-y-3">
           <div className="py-1">
-            <span className="text-sm font-bold text-slate-900">Grid à Favor</span>
+            <span className="text-sm font-semibold text-fg">Grid à Favor</span>
           </div>
           {/* Grid à Favor — Compra */}
           <div className="pl-2 space-y-3">
@@ -767,7 +751,7 @@ const ParamsForm: React.FC<{
         {/* Grid Contra */}
         <div className="pt-4 space-y-3">
           <div className="py-1">
-            <span className="text-sm font-bold text-slate-900">Grid Contra</span>
+            <span className="text-sm font-semibold text-fg">Grid Contra</span>
           </div>
           {/* Grid Contra — Compra */}
           <div className="pl-2 space-y-3">
@@ -851,17 +835,17 @@ const ParamsForm: React.FC<{
         {/* Negociação Automática */}
         <div className="pt-4 space-y-3">
           <div className="py-1">
-            <span className="text-sm font-bold text-slate-900">Negociação Automática</span>
+            <span className="text-sm font-semibold text-fg">Negociação Automática</span>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-600">Negociação automática Long?</span>
+            <span className="text-sm text-fg-muted">Negociação automática Long?</span>
             <Toggle
               checked={params.allow_buy}
               onChange={(v) => set('allow_buy', v)}
             />
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-600">Negociação automática Short?</span>
+            <span className="text-sm text-fg-muted">Negociação automática Short?</span>
             <Toggle
               checked={params.allow_sell}
               onChange={(v) => set('allow_sell', v)}
@@ -872,7 +856,7 @@ const ParamsForm: React.FC<{
         {/* Atualização de Stop e Entrada Barra-a-Barra */}
         <div className="pt-4 space-y-3">
           <div className="py-1">
-            <span className="text-sm font-bold text-slate-900">Atualização Barra-a-Barra</span>
+            <span className="text-sm font-semibold text-fg">Atualização Barra-a-Barra</span>
           </div>
           <NumericInput
             label="Folga de stop (pontos)"
@@ -881,18 +865,19 @@ const ParamsForm: React.FC<{
             min={0}
           />
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-600">Trailing Stop de Barra</span>
+            <span className="text-sm text-fg-muted">Trailing Stop de Barra</span>
             <Toggle
               checked={params.bar_trailing_enabled}
               onChange={(v) => set('bar_trailing_enabled', v)}
             />
           </div>
           <div className="flex items-center justify-between gap-4">
-            <label className="text-sm text-slate-600 flex-1">Timeframe da Barra</label>
-            <select
+            <label className="text-sm text-fg-muted flex-1 min-w-0">Timeframe da Barra</label>
+            <div className="w-28 shrink-0">
+            <Select
               value={params.bar_timeframe}
               onChange={(e) => set('bar_timeframe', Number(e.target.value))}
-              className="w-28 text-right border border-slate-300 rounded-lg px-2 py-1.5 text-sm font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent outline-hidden bg-white"
+              className="text-right pl-2 pr-8 py-1.5 font-mono tabular-nums"
             >
               <option value={0}>Atual</option>
               <option value={1}>M1</option>
@@ -909,10 +894,11 @@ const ParamsForm: React.FC<{
               <option value={16408}>D1</option>
               <option value={32769}>W1</option>
               <option value={49153}>MN1</option>
-            </select>
+            </Select>
+            </div>
           </div>
           <div className="flex items-center justify-between">
-            <span className="text-sm text-slate-600">Atualizar Entrada</span>
+            <span className="text-sm text-fg-muted">Atualizar Entrada</span>
             <Toggle
               checked={params.bar_refresh_entry}
               onChange={(v) => set('bar_refresh_entry', v)}
@@ -923,7 +909,7 @@ const ParamsForm: React.FC<{
         {/* Reset Global */}
         <div className="pt-4 space-y-3">
           <div className="py-1">
-            <span className="text-sm font-bold text-slate-900">Reset Global</span>
+            <span className="text-sm font-semibold text-fg">Reset Global</span>
           </div>
           <NumericInput
             label="% de saldo para liquidar tudo (Cut Gain Dinâmico)"
@@ -942,7 +928,7 @@ const ParamsForm: React.FC<{
             enabled={params.include_manual_trades}
             onToggle={(v) => set('include_manual_trades', v)}
           />
-          <p className="text-xs text-slate-500 pl-2">
+          <p className="text-xs text-fg-muted pl-2">
             Quando ligado, o trailing stop e break even também são aplicados em posições abertas manualmente (sem magic number do EA).
           </p>
         </div>
@@ -963,7 +949,7 @@ const ParamsForm: React.FC<{
               min={0}
               decimal
             />
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-fg-muted">
               Percentual do saldo inicial da sessão. Quando o prejuízo flutuante atingir esse valor, o robô trava
               <strong> toda a exposição de uma vez</strong>: cancela as ordens pendentes, remove stops e takes, e
               <strong> para completamente</strong> — não abre entradas, não faz grid, não fecha por meta do dia nem
@@ -974,34 +960,34 @@ const ParamsForm: React.FC<{
       </div>
 
       {/* Footer */}
-      <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between gap-3">
+      <div className="px-5 sm:px-6 py-4 border-t border-tint/8 flex flex-wrap items-center justify-between gap-3">
         {saveError && (
-          <div className="flex items-center gap-2 text-sm text-red-600">
-            <AlertTriangle size={15} />
+          <div className="flex items-center gap-2 text-sm text-danger-fg min-w-0">
+            <AlertTriangle size={15} className="shrink-0" />
             {saveError}
           </div>
         )}
         {saveSuccess && (
-          <div className="flex items-center gap-2 text-sm text-green-600">
-            <Check size={15} />
+          <div className="flex items-center gap-2 text-sm text-success-fg min-w-0">
+            <Check size={15} className="shrink-0" />
             Parâmetros enviados com sucesso.
           </div>
         )}
         {!saveError && !saveSuccess && <span />}
 
-        <button
+        <Button
           onClick={handleSave}
           disabled={saving || !dirty}
-          className="flex items-center gap-2 px-5 py-2.5 bg-green-600 hover:bg-green-500 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="ml-auto"
         >
           {saving ? (
             <><Loader2 size={16} className="animate-spin" /> Enviando…</>
           ) : (
             <><Save size={16} /> Enviar Alterações</>
           )}
-        </button>
+        </Button>
       </div>
-    </div>
+    </Card>
   );
 };
 
@@ -1017,20 +1003,21 @@ const AccountSelector: React.FC<{
       <button
         key={l.id}
         onClick={() => onSelect(l.id)}
-        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+        className={cn(
+          'flex max-w-full items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60',
           l.id === activeId
-            ? 'bg-green-600 text-white border-green-600'
-            : 'bg-white text-slate-700 border-slate-300 hover:border-green-500 hover:text-green-700'
-        }`}
+            ? 'bg-accent/10 text-accent-fg border-accent/40'
+            : 'bg-tint/3 text-fg-muted border-tint/10 hover:border-accent/40 hover:text-fg',
+        )}
       >
-        <span className="font-mono">{l.account_login}</span>
-        {l.broker_display && <span className="opacity-75">· {l.broker_display}</span>}
-        {l.id === activeId && <ChevronRight size={12} />}
+        <span className="font-mono tabular-nums whitespace-nowrap">{l.account_login}</span>
+        {l.broker_display && <span className="opacity-75 truncate">· {l.broker_display}</span>}
+        {l.id === activeId && <ChevronRight size={12} className="shrink-0" />}
       </button>
     ))}
     <button
       onClick={onAdd}
-      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-dashed border-slate-300 text-slate-500 hover:border-green-500 hover:text-green-700 transition-colors bg-white"
+      className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold border border-dashed border-tint/15 text-fg-muted hover:border-accent/40 hover:text-accent-fg transition-colors cursor-pointer focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
     >
       <Plus size={12} /> Adicionar conta
     </button>
@@ -1071,8 +1058,18 @@ export const HandBot: React.FC<HandBotProps> = ({ onBack }) => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="animate-spin text-green-600" size={36} />
+      <div className="space-y-6 min-h-[400px]" aria-busy="true">
+        <span className="sr-only">Carregando…</span>
+        <div className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-xl" />
+          <div className="space-y-2">
+            <Skeleton className="h-7 w-40" />
+            <Skeleton className="h-4 w-72 max-w-full" />
+          </div>
+        </div>
+        <Skeleton className="h-8 w-64 max-w-full rounded-lg" />
+        <Skeleton className="h-48 w-full rounded-2xl" />
+        <Skeleton className="h-96 w-full rounded-2xl" />
       </div>
     );
   }
@@ -1080,35 +1077,38 @@ export const HandBot: React.FC<HandBotProps> = ({ onBack }) => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center">
-          <Bot size={22} className="text-green-700" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Hand Bot</h1>
-          <p className="text-sm text-slate-500">Controle remoto de parâmetros do Expert Advisor</p>
-        </div>
-      </div>
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        leading={
+          <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 flex items-center justify-center">
+            <Bot size={22} className="text-accent-fg" />
+          </div>
+        }
+        title="Hand Bot"
+        description="Controle remoto de parâmetros do Expert Advisor"
+      />
 
       {links.length === 0 && !addingAccount ? (
         <>
-          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-6 text-center space-y-2">
-            <p className="text-sm text-slate-600 font-medium">Nenhuma conta MT5 vinculada</p>
-            <p className="text-xs text-slate-400">
-              Conecte o Hand Bot à sua conta MT5 para poder ajustar os parâmetros remotamente.
-            </p>
-          </div>
+          <EmptyState
+            icon={Bot}
+            title="Nenhuma conta MT5 vinculada"
+            description="Conecte o Hand Bot à sua conta MT5 para poder ajustar os parâmetros remotamente."
+            className="py-8"
+          />
           <ConnectSection onConnected={(l) => { loadLinks(); setActiveId(l.id); }} />
         </>
       ) : addingAccount ? (
         <>
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setAddingAccount(false)}
-              className="text-xs font-semibold text-slate-500 hover:text-slate-700 flex items-center gap-1"
+              className="text-xs font-semibold -ml-3.5"
             >
               <X size={14} /> Cancelar
-            </button>
+            </Button>
           </div>
           <ConnectSection
             onConnected={(l) => {
