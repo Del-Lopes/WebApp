@@ -1,7 +1,6 @@
 /* Global Styles - Trader AFK */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* Fontes carregadas por <link> no index.html (em paralelo com o CSS, sem a
+   cascata de @import). */
 
 /*
  * Tailwind v4 compilado (antes vinha do CDN v3 em runtime).
@@ -197,14 +196,14 @@
   --color-info: var(--ds-info);
   --color-info-fg: var(--ds-info-fg);
 
-  /* Fontes: novas só dentro de [data-theme] (ver abaixo), para o app atual
-     manter Outfit e a mono do sistema até a Fase 3. */
+  /* Fontes: definidas em [data-theme] (ver abaixo); o <html> sempre tem o
+     atributo, então o :root é só fallback. */
   --font-display: var(--ds-font-display);
   --font-mono: var(--ds-font-mono);
 }
 
 :root {
-  --ds-font-display: 'Outfit', sans-serif;
+  --ds-font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
   --ds-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
 }
 

@@ -5,6 +5,7 @@ import { Mt5ConnectModal } from './Mt5ConnectModal';
 import { Mt5ManageModal } from './Mt5ManageModal';
 import { requestStrategyForceSync } from '../../lib/mt5Sync';
 import { Button, Skeleton } from '../ui';
+import { useNow } from '../../hooks/useNow';
 
 const FORCE_SYNC_COOLDOWN_MS = 5 * 60 * 1000; // 5 minutos
 
@@ -39,6 +40,59 @@ function formatRelative(iso: string | null | undefined): string {
   return `há ${Math.floor(diff / 3600)}h`;
 }
 
+// Folhas com relógio próprio: o tick de 5s reavalia só o texto relativo e o
+// "stale", sem re-renderizar o card (e cada card da grade) inteiro.
+const RelativeTime: React.FC<{ iso: string | null | undefined }> = ({ iso }) => {
+  useNow(5000, !!iso);
+  return <>{formatRelative(iso)}</>;
+};
+
+const ConnectionIndicator: React.FC<{ receivedAt: string }> = ({ receivedAt }) => {
+  useNow(5000);
+  const lastUpdateSec = (Date.now() - new Date(receivedAt).getTime()) / 1000;
+  const isStale = lastUpdateSec > STALE_THRESHOLD_SEC;
+  return (
+    <div className="flex items-center gap-2 text-sm mb-3">
+      {isStale ? (
+        <>
+          <span className="w-2 h-2 rounded-full bg-warning" />
+          <span className="text-warning-fg">Atualização {formatRelative(receivedAt)}</span>
+        </>
+      ) : (
+        <>
+          <span className="relative flex w-2 h-2">
+            <span className="absolute inline-flex w-full h-full rounded-full bg-success opacity-60 animate-ping" />
+            <span className="relative inline-flex w-2 h-2 rounded-full bg-success" />
+          </span>
+          <span className="text-fg">Conectado · {formatRelative(receivedAt)}</span>
+        </>
+      )}
+    </div>
+  );
+};
+
+const SyncNowButton: React.FC<{ cooldownUntil: number; syncing: boolean; onClick: () => void }> = ({
+  cooldownUntil, syncing, onClick,
+}) => {
+  useNow(5000, Date.now() < cooldownUntil);
+  const syncOnCooldown = Date.now() < cooldownUntil;
+  const syncCooldownSec = syncOnCooldown ? Math.ceil((cooldownUntil - Date.now()) / 1000) : 0;
+  return (
+    <button
+      onClick={onClick}
+      disabled={syncing || syncOnCooldown}
+      className="w-full flex items-center justify-center gap-2 rounded-md text-xs text-fg-muted hover:text-fg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors py-1"
+    >
+      <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
+      {syncing
+        ? 'Solicitando…'
+        : syncOnCooldown
+        ? `Atualizar (aguarde ${syncCooldownSec > 60 ? `${Math.ceil(syncCooldownSec / 60)}min` : `${syncCooldownSec}s`})`
+        : 'Atualizar agora'}
+    </button>
+  );
+};
+
 function pnlClass(value: number | null | undefined): string {
   if (value == null) return 'text-fg';
   if (value > 0) return 'text-success-fg';
@@ -64,13 +118,6 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
     return stored ? parseInt(stored, 10) : 0;
   });
 
-  // Tick a cada 5s só pra reavaliar "stale" e o "há Xs"
-  const [, setTick] = useState(0);
-  React.useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 5000);
-    return () => clearInterval(id);
-  }, []);
-
   async function handleForceSync() {
     if (Date.now() < syncCooldownUntil || syncing) return;
     setSyncing(true);
@@ -83,9 +130,6 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
       setSyncing(false);
     }
   }
-
-  const syncOnCooldown = Date.now() < syncCooldownUntil;
-  const syncCooldownSec = syncOnCooldown ? Math.ceil((syncCooldownUntil - Date.now()) / 1000) : 0;
 
   // ─── Loading ───────────────────────────────────────────────────────────────
   if (loading) {
@@ -178,7 +222,7 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
           </div>
           <div className="text-xs text-fg-muted leading-relaxed space-y-1">
             <div>Conta <span className="font-mono tabular-nums text-fg">{link.account_login}</span></div>
-            <div>Chave gerada {formatRelative(link.api_key_created_at)}</div>
+            <div>Chave gerada <RelativeTime iso={link.api_key_created_at} /></div>
           </div>
         </div>
 
@@ -199,9 +243,6 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
   }
 
   // ─── Estado C: conectada ───────────────────────────────────────────────────
-  const lastUpdateSec = (Date.now() - new Date(status.received_at).getTime()) / 1000;
-  const isStale = lastUpdateSec > STALE_THRESHOLD_SEC;
-
   return (
     <>
       <div className="glass-card p-5">
@@ -220,22 +261,7 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
           )}
         </div>
 
-        <div className="flex items-center gap-2 text-sm mb-3">
-          {isStale ? (
-            <>
-              <span className="w-2 h-2 rounded-full bg-warning" />
-              <span className="text-warning-fg">Atualização {formatRelative(status.received_at)}</span>
-            </>
-          ) : (
-            <>
-              <span className="relative flex w-2 h-2">
-                <span className="absolute inline-flex w-full h-full rounded-full bg-success opacity-60 animate-ping" />
-                <span className="relative inline-flex w-2 h-2 rounded-full bg-success" />
-              </span>
-              <span className="text-fg">Conectado · {formatRelative(status.received_at)}</span>
-            </>
-          )}
-        </div>
+        <ConnectionIndicator receivedAt={status.received_at} />
 
         <div className="text-xs text-fg-muted mb-3">
           Conta <span className="font-mono tabular-nums whitespace-nowrap text-fg">{status.account_login}</span>
@@ -275,18 +301,7 @@ export const Mt5StatusCard: React.FC<Mt5StatusCardProps> = ({
         </div>
 
         <div className="border-t border-tint/6 mt-3 pt-3">
-          <button
-            onClick={handleForceSync}
-            disabled={syncing || syncOnCooldown}
-            className="w-full flex items-center justify-center gap-2 rounded-md text-xs text-fg-muted hover:text-fg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 disabled:opacity-40 disabled:cursor-not-allowed transition-colors py-1"
-          >
-            <RefreshCw size={12} className={syncing ? 'animate-spin' : ''} />
-            {syncing
-              ? 'Solicitando…'
-              : syncOnCooldown
-              ? `Atualizar (aguarde ${syncCooldownSec > 60 ? `${Math.ceil(syncCooldownSec / 60)}min` : `${syncCooldownSec}s`})`
-              : 'Atualizar agora'}
-          </button>
+          <SyncNowButton cooldownUntil={syncCooldownUntil} syncing={syncing} onClick={handleForceSync} />
         </div>
       </div>
 

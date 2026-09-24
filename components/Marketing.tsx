@@ -180,10 +180,12 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
   const handleDeleteAsset = async (id: string) => {
       if(!window.confirm("Excluir este material?")) return;
       try {
-          await supabase.from('marketing_assets').delete().eq('id', id);
+          const { error } = await supabase.from('marketing_assets').delete().eq('id', id);
+          if (error) throw error;
           fetchData();
-      } catch (e) {
+      } catch (e: any) {
           console.error(e);
+          alert("Erro ao excluir: " + e.message);
       }
   };
 
@@ -399,7 +401,7 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                        <FileText size={44} className="text-fg-subtle" />
                     </div>
                     <p className="eyebrow-muted">Pré-visualização não disponível</p>
-                    <a href={viewingAsset.url} target="_blank" className="mt-8 inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-accent/10 border border-accent/20 text-accent-fg font-medium text-sm uppercase tracking-widest hover:bg-accent/15 transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60">Abrir em nova aba <Share2 size={16} /></a>
+                    <a href={viewingAsset.url} target="_blank" rel="noopener noreferrer" className="mt-8 inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-accent/10 border border-accent/20 text-accent-fg font-medium text-sm uppercase tracking-widest hover:bg-accent/15 transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60">Abrir em nova aba <Share2 size={16} /></a>
                  </div>
                )}
             </div>

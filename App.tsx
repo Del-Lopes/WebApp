@@ -1,5 +1,5 @@
 
-import React, { useState, Suspense, useEffect } from 'react';
+import React, { useState, Suspense, useEffect, useRef } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Menu, Loader2 } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
@@ -39,6 +39,19 @@ const Signals = React.lazy(() => import('./components/Signals/Signals').then(mod
 const Crypto = React.lazy(() => import('./components/Crypto/Crypto').then(module => ({ default: module.Crypto })));
 const EconCalendar = React.lazy(() => import('./components/EconCalendar/EconCalendar').then(module => ({ default: module.EconCalendar })));
 
+// Telas restritas por role; as demais são livres para qualquer usuário logado.
+const VIEW_ROLES: Partial<Record<View, UserRole[]>> = {
+  admin: ['admin'],
+  knowledge: ['admin'],
+  treasury: ['admin', 'first_mate'],
+  chat_moderation: ['admin', 'first_mate'],
+};
+
+const canAccessView = (view: View, role: UserRole | null) => {
+  const allowed = VIEW_ROLES[view];
+  return !allowed || (!!role && allowed.includes(role));
+};
+
 function AppContent() {
   const { user, isLoading, role, isPasswordRecovery } = useAuth();
   const [currentView, setCurrentView] = useState<View>('dashboard');
@@ -52,6 +65,27 @@ function AppContent() {
     setKnowledgeDraft(draft);
     setCurrentView('knowledge');
   };
+
+  // Troca de conta na mesma aba (A sai, B entra): não herda a tela nem o
+  // artigo/rascunho do usuário anterior. Declarado antes do efeito de
+  // recuperação de senha para que ele prevaleça no mesmo commit.
+  const prevUserIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const prev = prevUserIdRef.current;
+    const current = user?.id ?? null;
+    prevUserIdRef.current = current;
+    if (prev !== null && prev !== current) {
+      setCurrentView('dashboard');
+      setSelectedArticle(null);
+      setKnowledgeDraft(undefined);
+    }
+  }, [user?.id]);
+
+  // Tela sem permissão: o render já mostra o dashboard; aqui só corrige o state.
+  const isViewBlocked = !canAccessView(currentView, role);
+  useEffect(() => {
+    if (isViewBlocked) setCurrentView('dashboard');
+  }, [isViewBlocked]);
 
   useEffect(() => {
     // Check for recovery hash in URL directly as fallback/primary method
@@ -156,6 +190,9 @@ function AppContent() {
         </div>
       }>
         {(() => {
+          if (isViewBlocked) {
+            return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
+          }
           switch (currentView) {
             case 'dashboard': return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} onShowTour={() => setShowTour(true)} />;
             case 'article': 
@@ -185,29 +222,15 @@ function AppContent() {
             case 'licenses': return <Licenses onBack={() => setCurrentView('dashboard')} />;
             
             case 'admin': 
-              if (role !== 'admin') {
-                  // Redirect to dashboard if unauthorized
-                  setTimeout(() => setCurrentView('dashboard'), 0);
-                  return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
-              }
               return <AdminPanel onBack={() => setCurrentView('dashboard')} onShowTour={() => setShowTour(true)} />;
             
             case 'journey': return <Journey onBack={() => setCurrentView('dashboard')} onNavigate={setCurrentView} />;
             case 'downloads': return <Downloads onBack={() => setCurrentView('dashboard')} />;
             
             case 'treasury':
-              if (!['admin', 'first_mate'].includes(role || '')) {
-                  // Redirect to dashboard if unauthorized
-                  setTimeout(() => setCurrentView('dashboard'), 0);
-                  return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
-              }
               return <Treasury onBack={() => setCurrentView('dashboard')} />;
 
             case 'chat_moderation':
-              if (!['admin', 'first_mate'].includes(role || '')) {
-                  setTimeout(() => setCurrentView('dashboard'), 0);
-                  return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
-              }
               return (
                 <ChatModeration
                   onBack={() => setCurrentView('dashboard')}
@@ -216,10 +239,6 @@ function AppContent() {
               );
 
             case 'knowledge':
-              if (role !== 'admin') {
-                  setTimeout(() => setCurrentView('dashboard'), 0);
-                  return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
-              }
               return (
                 <KnowledgeBase
                   onBack={() => { setKnowledgeDraft(undefined); setCurrentView('dashboard'); }}

@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
   // 1. Lista de protocolos com dados de unlock (arquivo pequeno, ~4 KB).
   let slugs: string[]
   try {
-    const res = await fetch(`${DATASETS}/emissionsProtocolsList`)
+    const res = await fetch(`${DATASETS}/emissionsProtocolsList`, { signal: AbortSignal.timeout(15_000) })
     if (!res.ok) throw new Error(`list_http_${res.status}`)
     const json = await res.json()
     slugs = Array.isArray(json) ? json.filter((s: unknown) => typeof s === 'string') : []
@@ -161,7 +161,7 @@ Deno.serve(async (req) => {
   for (const slug of batch) {
     processed++
     try {
-      const res = await fetch(`${DATASETS}/emissions/${encodeURIComponent(slug)}`)
+      const res = await fetch(`${DATASETS}/emissions/${encodeURIComponent(slug)}`, { signal: AbortSignal.timeout(10_000) })
       if (!res.ok) continue
       const json = await res.json()
       const row = parseProtocol(slug, json)

@@ -6,9 +6,11 @@ import { EventDetail, DirIcon } from './EventDetail';
 interface Props {
   event: EconEvent;
   profile: EconProfile | undefined;
-  now: number;
+  // Só vem para eventos ainda por acontecer (contagem regressiva). Nos já
+  // passados fica undefined, e o memo evita re-render a cada tick do relógio.
+  now?: number;
   open: boolean;
-  onToggle: () => void;
+  onToggle: (occurrenceId: string) => void;
 }
 
 export const Stars: React.FC<{ n: number }> = ({ n }) => (
@@ -33,10 +35,10 @@ const Value: React.FC<{ label: string; children: React.ReactNode }> = ({ label, 
   </div>
 );
 
-export const EventRow: React.FC<Props> = ({ event, profile, now, open, onToggle }) => {
+export const EventRow = React.memo<Props>(({ event, profile, now, open, onToggle }) => {
   const t = new Date(event.occurs_at).getTime();
   const released = event.actual != null;
-  const upcoming = t > now;
+  const upcoming = now !== undefined && t > now;
   const imminent = upcoming && t - now < 30 * 60_000;
   const outcome = evaluateOutcome(event);
   const scenario = outcome && profile?.interpretation ? profile.interpretation.cenarios[outcome.scenario] : null;
@@ -44,7 +46,7 @@ export const EventRow: React.FC<Props> = ({ event, profile, now, open, onToggle 
 
   return (
     <div className={`rounded-2xl bg-surface border overflow-hidden transition-colors ${imminent ? 'border-warning/40' : 'border-tint/8 hover:border-tint/15'}`}>
-      <button onClick={onToggle} aria-expanded={open} className="w-full text-left px-4 py-3 hover:bg-tint/2 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60">
+      <button onClick={() => onToggle(event.occurrence_id)} aria-expanded={open} className="w-full text-left px-4 py-3 hover:bg-tint/2 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60">
         <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
           {/* Hora + moeda + importância */}
           <div className="flex items-center gap-3 md:w-44 shrink-0">
@@ -72,7 +74,7 @@ export const EventRow: React.FC<Props> = ({ event, profile, now, open, onToggle 
               </p>
             ) : upcoming ? (
               <p className={`text-xs mt-0.5 tabular-nums ${imminent ? 'text-warning-fg font-semibold' : 'text-fg-muted'}`}>
-                {fmtCountdown(event.occurs_at, now)}
+                {fmtCountdown(event.occurs_at, now!)}
               </p>
             ) : !released && eventType !== 'speech' && eventType !== 'report' && (event.forecast != null || event.previous != null) ? (
               <p className="text-xs mt-0.5 text-fg-muted">Aguardando divulgação do dado…</p>
@@ -96,4 +98,5 @@ export const EventRow: React.FC<Props> = ({ event, profile, now, open, onToggle 
       )}
     </div>
   );
-};
+});
+EventRow.displayName = 'EventRow';

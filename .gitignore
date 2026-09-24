@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Gerado por `deno check` local; as edge functions não usam lockfile na raiz
+deno.lock

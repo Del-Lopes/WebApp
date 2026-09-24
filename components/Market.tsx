@@ -132,7 +132,7 @@ export const Market: React.FC<MarketProps> = ({ onBack }) => {
             >
               <div className="relative aspect-video bg-tint/3 border-b border-tint/6">
                 {product.image_url ? (
-                  <img src={product.image_url} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                  <img loading="lazy" decoding="async" src={product.image_url} alt={product.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center text-fg-subtle">
                     <ShoppingBag size={36} />

@@ -22,11 +22,17 @@ export function useStrategiesMt5Status(): UseStrategiesMt5StatusResult {
       // Resolve userId primeiro — necessário para filtrar o snapshot e a subscription
       const { data: { user } } = await supabase.auth.getUser();
       const userId = user?.id;
+      // Sem usuário não há o que mostrar — e uma assinatura realtime sem
+      // filtro receberia eventos de qualquer linha que a RLS deixasse passar.
+      if (!userId) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('strategy_mt5_status')
         .select('*')
-        .eq('user_id', userId ?? '');
+        .eq('user_id', userId);
 
       if (error) {
         console.error('useStrategiesMt5Status fetch error:', error);
@@ -51,7 +57,7 @@ export function useStrategiesMt5Status(): UseStrategiesMt5StatusResult {
             event: '*',
             schema: 'public',
             table: 'strategy_mt5_status',
-            ...(userId ? { filter: `user_id=eq.${userId}` } : {}),
+            filter: `user_id=eq.${userId}`,
           },
           (payload) => {
             setStatusByStrategy(prev => {

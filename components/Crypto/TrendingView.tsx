@@ -131,7 +131,7 @@ export const TrendingView: React.FC = () => {
           {searched.map((c, i) => (
             <div key={c.id} className="flex items-center gap-2 glass-card rounded-xl p-3">
               <span className="font-mono text-xs font-medium text-fg-subtle tabular-nums w-5 shrink-0 text-center">{i + 1}</span>
-              {c.thumb && <img src={c.thumb} alt={c.name} className="w-8 h-8 rounded-full" />}
+              {c.thumb && <img loading="lazy" decoding="async" src={c.thumb} alt={c.name} className="w-8 h-8 rounded-full" />}
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-fg text-sm truncate">{c.name} <span className="font-mono text-xs font-normal text-fg-muted">{c.symbol}</span></p>
                 {c.rank && <p className="text-[11px] text-fg-muted tabular-nums truncate">Rank #{c.rank}</p>}
@@ -149,7 +149,7 @@ export const TrendingView: React.FC = () => {
           {persistence.map((c, i) => (
             <div key={c.coin_id} className="flex items-center gap-2 glass-card rounded-xl p-3">
               <span className="font-mono text-xs font-medium text-fg-subtle tabular-nums w-5 shrink-0 text-center">{i + 1}</span>
-              {c.thumb && <img src={c.thumb} alt={c.name} className="w-8 h-8 rounded-full" />}
+              {c.thumb && <img loading="lazy" decoding="async" src={c.thumb} alt={c.name} className="w-8 h-8 rounded-full" />}
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-fg text-sm truncate">{c.name} <span className="font-mono text-xs font-normal text-fg-muted">{c.symbol}</span></p>
                 <p className="text-[11px] text-fg-muted tabular-nums truncate">
@@ -169,7 +169,7 @@ export const TrendingView: React.FC = () => {
           {movers.map((c, i) => (
             <div key={c.id} className="flex items-center gap-2 glass-card rounded-xl p-3">
               <span className="font-mono text-xs font-medium text-fg-subtle tabular-nums w-5 shrink-0 text-center">{i + 1}</span>
-              {c.image && <img src={c.image} alt={c.name} className="w-8 h-8 rounded-full" />}
+              {c.image && <img loading="lazy" decoding="async" src={c.image} alt={c.name} className="w-8 h-8 rounded-full" />}
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-fg text-sm truncate">{c.name} <span className="font-mono text-xs font-normal text-fg-muted">{c.symbol}</span></p>
                 <p className="text-[11px] text-fg-muted tabular-nums truncate">#{c.rank ?? '—'} • Cap {fmtCompact(c.marketCap)}</p>

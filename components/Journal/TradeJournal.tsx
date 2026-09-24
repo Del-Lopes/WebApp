@@ -329,6 +329,8 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete }: TradeCardPro
               <p className="eyebrow-muted mb-1.5">Screenshot</p>
               <a href={entry.screenshot_url} target="_blank" rel="noopener noreferrer">
                 <img
+                  loading="lazy"
+                  decoding="async"
                   src={entry.screenshot_url}
                   alt={`Screenshot ${entry.asset}`}
                   className="max-h-72 max-w-full rounded-lg border border-tint/10 hover:opacity-90 transition-opacity"

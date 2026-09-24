@@ -124,6 +124,17 @@ export async function fetchSyncStatus(): Promise<SyncStatus | null> {
   return (data as SyncStatus) ?? null;
 }
 
+// Coleta mais nova que isso: não vale invocar a function (cada invocação é
+// cobrada mesmo quando a trava de 60s dela recusa o trabalho).
+export const SYNC_MIN_AGE_MS = 90_000;
+
+// Decide pelo last_ok_at já lido em fetchSyncStatus. Sem leitura ou sem
+// coleta ok registrada, pede a coleta.
+export function isSyncDue(status: SyncStatus | null, now = Date.now()): boolean {
+  if (!status?.last_ok_at) return true;
+  return now - new Date(status.last_ok_at).getTime() > SYNC_MIN_AGE_MS;
+}
+
 // Pede uma coleta. A function tem trava global de 60s, então chamar a cada
 // minuto enquanto a tela está aberta não multiplica requisições à fonte.
 export async function requestSync(): Promise<void> {

@@ -109,6 +109,10 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
   const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAccount.name || !newAccount.balance) return;
+    if (!Number.isFinite(parseFloat(newAccount.balance))) {
+      alert('Informe um saldo válido.');
+      return;
+    }
 
     try {
       const { error } = await supabase.from('treasury_accounts').insert({
@@ -152,12 +156,18 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
   };
 
   const saveEditing = async (id: string) => {
+    // Campo vazio virava Number('') = 0 e zerava o saldo sem aviso.
+    const balance = editValues.balance;
+    if (balance === undefined || balance === null || !Number.isFinite(Number(balance))) {
+      alert('Informe um saldo válido.');
+      return;
+    }
     try {
       const { error } = await supabase
         .from('treasury_accounts')
         .update({
           name: editValues.name,
-          balance: Number(editValues.balance),
+          balance: Number(balance),
           location: editValues.location,
           trend: editValues.trend,
           is_cent: !!editValues.is_cent,
@@ -501,8 +511,8 @@ export const Treasury: React.FC<TreasuryProps> = ({ onBack }) => {
                       {editingId === account.id ? (
                         <Input
                           type="number"
-                          value={editValues.balance}
-                          onChange={e => setEditValues({ ...editValues, balance: Number(e.target.value) })}
+                          value={editValues.balance ?? ''}
+                          onChange={e => setEditValues({ ...editValues, balance: e.target.value === '' ? undefined : Number(e.target.value) })}
                           className="px-2.5 py-1.5 text-right w-32 font-mono tabular-nums"
                           step="0.01"
                         />

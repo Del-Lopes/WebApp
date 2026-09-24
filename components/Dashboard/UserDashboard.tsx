@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { LicenseRequest, Article, View } from '../../types';
 import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
+import { ARTICLE_LIST_COLUMNS, withArticleContent } from '../../lib/articles';
 import { Badge, Button, Card, EmptyState, Input, Label, PageHeader, Skeleton, Textarea } from '../ui';
 
 interface UserDashboardProps {
@@ -57,9 +58,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
     if (user) {
         fetchDashboardData();
         fetchContentData();
-        fetchStorageStats();
     }
   }, [user]);
+
+  // Uso do storage só interessa ao admin (quem abre o modal de artigo);
+  // get_storage_usage é uma RPC pesada para rodar em todo painel de cliente.
+  useEffect(() => {
+    if (user && role === 'admin') fetchStorageStats();
+  }, [user, role]);
 
   const fetchStorageStats = async () => {
     const stats = await getStorageStats();
@@ -116,7 +122,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
           // Fetch Articles with pagination
           const { data: articlesData } = await supabase
             .from('articles')
-            .select('*')
+            .select(ARTICLE_LIST_COLUMNS)
             .order('created_at', {ascending: false})
             .range(from, to);
 
@@ -144,8 +150,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
   };
 
   // Article Management Functions
-  const openArticleModal = (article?: Article) => {
+  const openArticleModal = async (article?: Article) => {
       if (article) {
+          try {
+              article = await withArticleContent(article);
+          } catch (e: any) {
+              alert("Erro ao carregar artigo: " + e.message);
+              return;
+          }
           setEditingArticle(article);
           const initialGallery = article.gallery_urls || [];
           const galleryWithCover = (article.image_url && !initialGallery.includes(article.image_url)) 
@@ -179,11 +191,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
               gallery_urls: articleForm.gallery_urls
           };
 
-          if (editingArticle) {
-              await supabase.from('articles').update(articleData).eq('id', editingArticle.id);
-          } else {
-              await supabase.from('articles').insert(articleData);
-          }
+          const { error } = editingArticle
+              ? await supabase.from('articles').update(articleData).eq('id', editingArticle.id)
+              : await supabase.from('articles').insert(articleData);
+          if (error) throw error;
           setIsArticleModalOpen(false);
           fetchContentData(); // Refresh list
       } catch(e: any) { alert("Erro: " + e.message); }
@@ -436,6 +447,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                           <img
                             src={article.image_url}
                             alt=""
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                           />
                         ) : (
@@ -633,7 +646,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
                             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-4">
                                 {articleForm.gallery_urls.map((url, i) => (
                                     <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-tint/10">
-                                        <img src={url} className="w-full h-full object-cover" />
+                                        <img src={url} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                                         <button type="button" onClick={() => setArticleForm(prev => ({...prev, gallery_urls: prev.gallery_urls.filter((_, idx) => idx !== i)}))} className="absolute top-0 right-0 p-1 bg-brand-red text-white rounded-bl-lg opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"><X size={10} /></button>
                                         <button type="button" onClick={() => setArticleForm({...articleForm, image_url: url})} className={`absolute bottom-0 left-0 right-0 py-0.5 text-[8px] font-semibold tracking-wider text-center ${articleForm.image_url === url ? 'bg-brand-green text-brand-dark' : 'bg-black/60 text-white opacity-100 sm:opacity-0 sm:group-hover:opacity-100'}`}>{articleForm.image_url === url ? 'CAPA' : 'USAR CAPA'}</button>
                                     </div>

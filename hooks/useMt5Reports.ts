@@ -69,6 +69,21 @@ export interface Mt5Trade {
   profit: number;
 }
 
+// Função pura (sem estado do hook): quem só precisa dos trades de um relatório
+// não deve instanciar o hook, que refaz a listagem de mt5_reports ao montar.
+export async function loadMt5Trades(reportId: string): Promise<Mt5Trade[]> {
+  const { data, error } = await supabase
+    .from('mt5_trades')
+    .select('*')
+    .eq('report_id', reportId)
+    .order('close_time', { ascending: true });
+  if (error) {
+    console.error('Erro ao carregar trades:', error.message);
+    return [];
+  }
+  return (data ?? []) as Mt5Trade[];
+}
+
 export function useMt5Reports() {
   const { user, session } = useAuth();
   const [reports, setReports] = useState<Mt5Report[]>([]);
@@ -189,28 +204,12 @@ export function useMt5Reports() {
     [user, reports],
   );
 
-  const loadTrades = useCallback(
-    async (reportId: string): Promise<Mt5Trade[]> => {
-      const { data, error } = await supabase
-        .from('mt5_trades')
-        .select('*')
-        .eq('report_id', reportId)
-        .order('close_time', { ascending: true });
-      if (error) {
-        console.error('Erro ao carregar trades:', error.message);
-        return [];
-      }
-      return (data ?? []) as Mt5Trade[];
-    },
-    [],
-  );
-
   return {
     reports,
     loading,
     uploadReport,
     deleteReport,
-    loadTrades,
+    loadTrades: loadMt5Trades,
     reloadReports: loadReports,
   };
 }

@@ -144,7 +144,7 @@ export const NarrativesView: React.FC = () => {
               <div className="flex shrink-0 items-center gap-2">
                 <div className="hidden min-[400px]:flex -space-x-2">
                   {n.topCoins.slice(0, 3).map((src, i) => (
-                    <img key={i} src={src} alt="" className="w-6 h-6 rounded-full ring-2 ring-surface" />
+                    <img loading="lazy" decoding="async" key={i} src={src} alt="" className="w-6 h-6 rounded-full ring-2 ring-surface" />
                   ))}
                 </div>
                 <span className={`font-mono text-sm font-semibold tabular-nums whitespace-nowrap w-20 shrink-0 text-right ${pctColor(n.change24h)}`}>{fmtPct(n.change24h)}</span>

@@ -1,9 +1,43 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import QuickPinchZoom, { make3dTransformValue } from 'react-quick-pinch-zoom';
+import DOMPurify from 'dompurify';
 import { Calendar, User, Clock, X } from 'lucide-react';
 import { Article } from '../../types';
 import { BackButton } from '../BackButton';
-import { Badge } from '../ui';
+import { Badge, Skeleton } from '../ui';
+import { withArticleContent } from '../../lib/articles';
+
+// O HTML dos artigos vem de IA (a partir de páginas externas) e do admin: tudo
+// passa por allowlist antes de ir para o DOM. Instância própria para o hook
+// abaixo não afetar outros usos do DOMPurify.
+const purifier = DOMPurify(window);
+
+purifier.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName !== 'A') return;
+  const href = node.getAttribute('href');
+  if (!href) return;
+  try {
+    if (new URL(href, window.location.href).origin !== window.location.origin) {
+      node.setAttribute('target', '_blank');
+      node.setAttribute('rel', 'noopener noreferrer');
+    }
+  } catch {
+    node.removeAttribute('href');
+  }
+});
+
+const SANITIZE_CONFIG = {
+  ALLOWED_TAGS: [
+    'p', 'h1', 'h2', 'h3', 'h4', 'ul', 'ol', 'li', 'strong', 'b', 'em', 'i', 'u', 's',
+    'a', 'img', 'blockquote', 'code', 'pre', 'br', 'hr', 'figure', 'figcaption',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'div', 'sub', 'sup',
+  ],
+  ALLOWED_ATTR: ['href', 'src', 'alt', 'title', 'width', 'height', 'colspan', 'rowspan'],
+  ALLOWED_URI_REGEXP: /^https?:\/\//i,
+  ALLOW_DATA_ATTR: false,
+};
+
+const sanitizeArticleHtml = (html: string) => purifier.sanitize(html, SANITIZE_CONFIG);
 
 interface ArticleViewProps {
   article: Article;
@@ -15,6 +49,28 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
   const [lightboxImage, setLightboxImage] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
+
+  // As listagens não trazem o HTML; busca aqui quando o artigo chega sem ele.
+  const [fetchedContent, setFetchedContent] = useState<{ id: string; content: string } | null>(null);
+  useEffect(() => {
+    if (article.content !== undefined) return;
+    let cancelled = false;
+    withArticleContent(article)
+      .then((full) => { if (!cancelled) setFetchedContent({ id: article.id, content: full.content ?? '' }); })
+      .catch((err) => {
+        console.error('Erro ao carregar artigo:', err);
+        if (!cancelled) setFetchedContent({ id: article.id, content: '' });
+      });
+    return () => { cancelled = true; };
+  }, [article]);
+
+  const rawContent = article.content ?? (fetchedContent?.id === article.id ? fetchedContent.content : undefined);
+  const contentLoading = rawContent === undefined;
+
+  const safeContent = useMemo(
+    () => (rawContent ? sanitizeArticleHtml(rawContent) : ''),
+    [rawContent]
+  );
 
   const onUpdate = useCallback(({ x, y, scale }: { x: number; y: number; scale: number }) => {
     if (imgRef.current) {
@@ -55,7 +111,7 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
         contentElement.removeEventListener('click', handleContentClick);
       }
     };
-  }, [article.content]);
+  }, [safeContent, contentLoading]);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in fade-in duration-300">
@@ -113,15 +169,23 @@ export const ArticleView: React.FC<ArticleViewProps> = ({ article, onBack }) => 
             </div>
           </div>
 
+          {contentLoading ? (
+            <div className="space-y-3" aria-busy="true">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-11/12" />
+              <Skeleton className="h-4 w-4/5" />
+            </div>
+          ) : (
           <div
             ref={contentRef}
             className="prose prose-lg max-w-none break-words text-fg-muted leading-relaxed [&_:is(h1,h2,h3,h4)]:font-display [&_:is(h1,h2,h3,h4)]:text-fg [&_strong]:text-fg [&_a]:text-accent-fg [&_a:hover]:underline [&_img]:rounded-xl [&_img]:mx-auto [&_img]:max-w-full [&_img]:h-auto"
             dangerouslySetInnerHTML={
-              article.content
-                ? { __html: article.content }
+              safeContent
+                ? { __html: safeContent }
                 : { __html: '<p class="text-fg-muted italic">Conteúdo indisponível.</p>' }
             }
           />
+          )}
         </div>
       </article>
 

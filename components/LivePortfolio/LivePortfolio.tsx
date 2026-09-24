@@ -11,6 +11,7 @@ import { PortfolioConnectModal } from './PortfolioConnectModal';
 import { requestPortfolioForceSync } from '../../lib/mt5Sync';
 import { Button, Input, Label, PageHeader, Skeleton, Stat } from '../ui';
 import { BackButton } from '../BackButton';
+import { useNow } from '../../hooks/useNow';
 
 const FORCE_SYNC_COOLDOWN_MS = 5 * 60 * 1000;
 
@@ -37,6 +38,28 @@ interface LivePortfolioProps {
 const currencyFmt = (n: number | null | undefined, currency = 'USD') =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency }).format(n ?? 0);
 
+// Botão com a contagem do cooldown. O tick vive aqui (e só enquanto há
+// cooldown) para não re-renderizar a página inteira a cada 5s.
+const ForceSyncButton: React.FC<{ cooldownUntil: number; syncing: boolean; onClick: () => void }> = ({
+  cooldownUntil, syncing, onClick,
+}) => {
+  useNow(5000, Date.now() < cooldownUntil);
+  const onCooldown = Date.now() < cooldownUntil;
+  const cooldownSec = onCooldown ? Math.ceil((cooldownUntil - Date.now()) / 1000) : 0;
+  return (
+    <button
+      onClick={onClick}
+      disabled={syncing || onCooldown}
+      className="flex items-center gap-1 rounded-md text-[10px] text-fg-muted hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
+    >
+      <RefreshCw size={10} className={syncing ? 'animate-spin' : ''} />
+      {onCooldown
+        ? `${cooldownSec > 60 ? `${Math.ceil(cooldownSec / 60)}min` : `${cooldownSec}s`}`
+        : 'Atualizar'}
+    </button>
+  );
+};
+
 export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
   const { user } = useAuth();
   const [accounts, setAccounts] = useState<PortfolioAccount[]>([]);
@@ -56,13 +79,6 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
     if (user) refresh();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
-
-  // Tick para atualizar countdown do cooldown
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 5000);
-    return () => clearInterval(id);
-  }, []);
 
   const refresh = async () => {
     setLoading(true);
@@ -393,24 +409,11 @@ export const LivePortfolio: React.FC<LivePortfolioProps> = ({ onBack }) => {
                       <span className="text-[10px] text-fg-subtle font-mono tabular-nums">
                         Atualizado: {new Date(status.reported_at).toLocaleTimeString('pt-BR')}
                       </span>
-                      {(() => {
-                        const cooldownUntil = syncCooldownMap[account.id] ?? 0;
-                        const onCooldown = Date.now() < cooldownUntil;
-                        const cooldownSec = onCooldown ? Math.ceil((cooldownUntil - Date.now()) / 1000) : 0;
-                        const syncing = syncingMap[account.id] ?? false;
-                        return (
-                          <button
-                            onClick={() => handleForceSync(account.id)}
-                            disabled={syncing || onCooldown}
-                            className="flex items-center gap-1 rounded-md text-[10px] text-fg-muted hover:text-fg disabled:opacity-40 disabled:cursor-not-allowed transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
-                          >
-                            <RefreshCw size={10} className={syncing ? 'animate-spin' : ''} />
-                            {onCooldown
-                              ? `${cooldownSec > 60 ? `${Math.ceil(cooldownSec / 60)}min` : `${cooldownSec}s`}`
-                              : 'Atualizar'}
-                          </button>
-                        );
-                      })()}
+                      <ForceSyncButton
+                        cooldownUntil={syncCooldownMap[account.id] ?? 0}
+                        syncing={syncingMap[account.id] ?? false}
+                        onClick={() => handleForceSync(account.id)}
+                      />
                     </div>
                   </>
                 ) : isConnected ? (

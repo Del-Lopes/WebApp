@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, FileText, Clock, ChevronRight, Loader2, Plus, Edit2, Trash2, Save, X, MoreVertical, Layout, ChevronDown, ChevronUp, ArrowLeft, Upload, Image as ImageIcon, Lock } from 'lucide-react';
 import { MOCK_ARTICLES } from '../constants';
 import { supabase } from '../lib/supabase';
+import { ARTICLE_LIST_COLUMNS, withArticleContent } from '../lib/articles';
 import { useAuth } from '../contexts/AuthContext';
 import { Product, Module, Lesson, Article } from '../types';
 import { ArticleView } from './Dashboard/ArticleView';
@@ -14,6 +15,8 @@ interface EducationProps {
   onBack?: () => void;
   articlesOnly?: boolean;
 }
+
+const ARTICLES_LIMIT = 100;
 
 export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = false }) => {
   const { role } = useAuth();
@@ -70,7 +73,8 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
 
   const fetchArticles = async () => {
       try {
-          const { data } = await supabase.from('articles').select('*').order('created_at', {ascending: false});
+          // Listagem: sem o HTML (vem ao abrir) e com teto para não crescer sem limite.
+          const { data } = await supabase.from('articles').select(ARTICLE_LIST_COLUMNS).order('created_at', {ascending: false}).limit(ARTICLES_LIMIT);
           if (data && data.length > 0) setArticles(data);
           else {
                // Map mock articles to new structure if DB empty
@@ -167,11 +171,10 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
               is_locked: courseForm.is_locked,
               lock_note: courseForm.lock_note || null,
           };
-          if (editingCourse) {
-              await supabase.from('products').update(payload).eq('id', editingCourse.id);
-          } else {
-              await supabase.from('products').insert({ type: 'course', ...payload, image_url: payload.image_url || 'https://picsum.photos/400/225' });
-          }
+          const { error } = editingCourse
+              ? await supabase.from('products').update(payload).eq('id', editingCourse.id)
+              : await supabase.from('products').insert({ type: 'course', ...payload, image_url: payload.image_url || 'https://picsum.photos/400/225' });
+          if (error) throw error;
           setIsModalOpen(false);
           fetchCourses();
       } catch (e: any) { alert("Erro: " + e.message); }
@@ -184,7 +187,8 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
       const title = prompt("Nome do novo módulo:");
       if (!title) return;
       try {
-          await supabase.from('modules').insert({ product_id: editingCourse.id, title, order_index: modules.length });
+          const { error } = await supabase.from('modules').insert({ product_id: editingCourse.id, title, order_index: modules.length });
+          if (error) throw error;
           fetchModules(editingCourse.id);
       } catch(e: any) { alert("Erro ao criar módulo: " + e.message); }
   };
@@ -288,18 +292,23 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
               gallery_urls: gallery_urls
           };
 
-          if (editingArticle) {
-              await supabase.from('articles').update(articleData).eq('id', editingArticle.id);
-          } else {
-              await supabase.from('articles').insert(articleData);
-          }
+          const { error } = editingArticle
+              ? await supabase.from('articles').update(articleData).eq('id', editingArticle.id)
+              : await supabase.from('articles').insert(articleData);
+          if (error) throw error;
           setIsArticleModalOpen(false);
           fetchArticles();
       } catch(e: any) { alert("Erro: " + e.message); }
   };
 
-  const openArticleModal = (article?: Article) => {
+  const openArticleModal = async (article?: Article) => {
       if (article) {
+          try {
+              article = await withArticleContent(article);
+          } catch (e: any) {
+              alert("Erro ao carregar artigo: " + e.message);
+              return;
+          }
           setEditingArticle(article);
           setArticleForm({ 
             title: article.title, 
@@ -726,7 +735,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                 {/* Cover image */}
                 <div className="relative aspect-video bg-tint/3">
                   {article.image_url ? (
-                    <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    <img loading="lazy" decoding="async" src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-fg-subtle">
                       <FileText size={36} />
@@ -837,7 +846,7 @@ export const Education: React.FC<EducationProps> = ({ onBack, articlesOnly = fal
                     </div>
                 )}
                 <div className="relative aspect-video bg-tint/3">
-                  <img src={course.image_url || 'https://picsum.photos/400/225'} alt={course.title} className={`w-full h-full object-cover ${course.is_locked ? 'grayscale opacity-70' : ''}`} />
+                  <img loading="lazy" decoding="async" src={course.image_url || 'https://picsum.photos/400/225'} alt={course.title} className={`w-full h-full object-cover ${course.is_locked ? 'grayscale opacity-70' : ''}`} />
                   {course.is_locked ? (
                     <div
                       onClick={() => setLockedCourse(course)}

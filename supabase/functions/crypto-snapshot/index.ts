@@ -46,7 +46,7 @@ async function cgGet(path: string, params: Record<string, string> = {}): Promise
   const url = new URL(CG_BASE + path)
   Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v))
   if (CG_KEY) url.searchParams.set('x_cg_demo_api_key', CG_KEY)
-  const res = await fetch(url.toString())
+  const res = await fetch(url.toString(), { signal: AbortSignal.timeout(12_000) })
   if (!res.ok) throw new Error(`coingecko_http_${res.status}`)
   return res.json()
 }

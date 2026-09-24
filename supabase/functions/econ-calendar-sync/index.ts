@@ -55,7 +55,10 @@ function jsonResponse(status: number, body: unknown): Response {
   })
 }
 
-const MIN_INTERVAL_SECONDS = 60
+// Maior que a duração máxima de uma execução (coleta + orçamento de IA +
+// uma cascata em andamento): com 60s, uma execução ainda rodando perdia a
+// trava e a seguinte interpretava os mesmos indicadores em duplicidade.
+const MIN_INTERVAL_SECONDS = 150
 const WINDOW_PAST_DAYS = 3
 const WINDOW_FUTURE_DAYS = 8
 // Primeira execução (tabela vazia): puxa um mês e meio para o histórico de cada
@@ -66,7 +69,9 @@ const CHUNK_DAYS = 7
 const INTERPRET_BATCH = 5
 // Orçamento de tempo para a IA — a coleta já aconteceu, o resto fica para a
 // próxima execução.
-const INTERPRET_BUDGET_MS = 90_000
+const INTERPRET_BUDGET_MS = 60_000
+// Nenhuma tentativa de IA começa depois deste prazo (a partir do início).
+const HARD_DEADLINE_MS = 110_000
 // Falhou ao interpretar? Tenta de novo depois disso, para não queimar cota em loop.
 const INTERPRET_RETRY_MS = 6 * 3600_000
 
@@ -112,6 +117,7 @@ async function fetchTradingView(start: Date, end: Date): Promise<TvEvent[]> {
     url.searchParams.set('countries', TV_COUNTRIES.join(','))
 
     const res = await fetch(url.toString(), {
+      signal: AbortSignal.timeout(15_000),
       headers: {
         // Sem Origin do TradingView a API recusa a chamada.
         'Origin': 'https://www.tradingview.com',
@@ -253,6 +259,8 @@ interface AIConfig {
 // execução. Pulados nos próximos eventos do lote, para não gastar o orçamento
 // de tempo repetindo a mesma falha.
 const deadModels = new Set<string>()
+// Início da requisição corrente (zerado no handler junto com deadModels).
+let requestStartedAt = Date.now()
 
 // Tenta cada modelo até obter um JSON válido — um modelo que devolve JSON
 // quebrado conta como falha e passa a vez ao próximo. Devolve também o motivo
@@ -275,6 +283,7 @@ async function generateInterpretation(
   const errors: string[] = []
   for (const [label, attempt] of attempts) {
     if (deadModels.has(label)) continue
+    if (Date.now() - requestStartedAt > HARD_DEADLINE_MS) { errors.push(`${label}: deadline`); break }
     try {
       const text = await attempt()
       let parsed: unknown
@@ -441,6 +450,10 @@ Deno.serve(async (req) => {
   }
 
   const startedAt = Date.now()
+  // Estado por requisição: um 429 de uma execução anterior não deve marcar o
+  // modelo como morto para sempre no isolate reaproveitado.
+  deadModels.clear()
+  requestStartedAt = startedAt
 
   const { data: claimed, error: claimErr } = await supabaseAdmin.rpc('econ_calendar_claim_sync', { p_min_seconds: MIN_INTERVAL_SECONDS })
   if (claimErr) {

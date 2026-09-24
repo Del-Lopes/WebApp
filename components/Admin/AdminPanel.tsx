@@ -88,6 +88,35 @@ interface AdminPanelProps {
   onShowTour?: () => void;
 }
 
+type LegacyItem = { id: string; title: string; type: 'Artigo' | 'Produto'; url: string };
+
+// URLs de imagem ainda apontando para os hosts antigos (antes do Storage).
+function findLegacyItems(articlesData: any[], productsData: any[]): LegacyItem[] {
+    const legacy: LegacyItem[] = [];
+    const legacyPattern = /sslip\.io|tradexperience\.com\.br\/wp-content/;
+
+    articlesData.forEach(a => {
+        if (a.image_url?.match(legacyPattern)) legacy.push({ id: a.id, title: a.title, type: 'Artigo', url: a.image_url });
+        a.gallery_urls?.forEach((url: string) => {
+            if (url.match(legacyPattern)) legacy.push({ id: a.id, title: `${a.title} (Galeria)`, type: 'Artigo', url });
+        });
+    });
+
+    productsData.forEach(p => {
+        if (p.image_url?.match(legacyPattern)) legacy.push({ id: p.id, title: p.title, type: 'Produto', url: p.image_url });
+        const meta = p.metadata as any;
+        if (meta?.avatar_url?.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Avatar)`, type: 'Produto', url: meta.avatar_url });
+        meta?.images?.forEach((url: string) => {
+            if (url.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Imagem)`, type: 'Produto', url });
+        });
+        meta?.manualImages?.forEach((url: string) => {
+            if (url.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Manual)`, type: 'Produto', url });
+        });
+    });
+
+    return legacy;
+}
+
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) => {
   const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users' | 'content' | 'market' | 'automation'>('licenses');
   const [activeLicenseSubTab, setActiveLicenseSubTab] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO' | 'FX SQUAD'>('AFK TRADER');
@@ -99,7 +128,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [articles, setArticles] = useState<Article[]>([]);
   const [robots, setRobots] = useState<Robot[]>([]);
   const [storageFiles, setStorageFiles] = useState<StorageFile[]>([]);
-  const [legacyItems, setLegacyItems] = useState<{id: string, title: string, type: 'Artigo' | 'Produto', url: string}[]>([]);
+  const [legacyItems, setLegacyItems] = useState<LegacyItem[]>([]);
   const [isRefreshingFiles, setIsRefreshingFiles] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -134,9 +163,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           setViewingProspect({ ...viewingProspect, [field]: value });
       }
       try {
-          await supabase.from('prospects').update({ [field]: value }).eq('id', id);
-      } catch (err) {
+          const { error } = await supabase.from('prospects').update({ [field]: value }).eq('id', id);
+          if (error) throw error;
+      } catch (err: any) {
           console.error(err);
+          alert('Erro ao atualizar: ' + err.message);
       }
   };
 
@@ -162,21 +193,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         }
     } catch (err: any) {
         console.error('Error updating status:', err);
+        alert('Erro ao atualizar status: ' + err.message);
     }
   };
 
+  // Uma chamada de cada por troca de aba. Os itens legados são calculados no
+  // próprio fetchData (aba content), a partir dos artigos/produtos já lidos.
   useEffect(() => {
     fetchData();
     fetchStorageStats();
-    fetchCurrentUser();
-    const init = async () => {
-        await fetchStorageStats();
-        if (activeTab === 'content') {
-            await fetchStorageFiles();
-            await findLegacyItems();
-        }
-    };
-    init();
+    if (activeTab === 'content') fetchStorageFiles();
   }, [activeTab, activeLicenseSubTab]);
 
   const getLicenseTableName = () => {
@@ -257,13 +283,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         if (articlesError) throw articlesError;
         setArticles(articlesData as Article[] || []);
 
-        const { data: robotsData, error: robotsError } = await supabase
+        // Todos os produtos numa consulta só: os EAs viram a lista de robôs e o
+        // conjunto inteiro alimenta a busca de URLs legadas.
+        const { data: productsData, error: robotsError } = await supabase
           .from('products')
           .select('*')
-          .eq('type', 'ea')
           .order('title', { ascending: true });
         
         if (robotsError) throw robotsError;
+        setLegacyItems(findLegacyItems(articlesData || [], productsData || []));
+        const robotsData = (productsData || []).filter((item: any) => item.type === 'ea');
         
         const mappedRobots: Robot[] = (robotsData || []).map((item: any) => ({
           id: item.id,
@@ -296,6 +325,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
   useEffect(() => {
     fetchTitles();
+    fetchCurrentUser();
   }, []);
 
   const handleSort = (key: string) => {
@@ -433,10 +463,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       if (expires_at) updateData.expires_at = expires_at;
       
       const tableName = getLicenseTableName();
-      await supabase.from(tableName).update(updateData).eq('id', id);
+      const { error } = await supabase.from(tableName).update(updateData).eq('id', id);
+      if (error) throw error;
       fetchData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating license:', error);
+      alert('Erro ao atualizar licença: ' + error.message);
     }
   };
 
@@ -499,6 +531,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           setLicenses(prev => prev.map(l => l.id === id ? { ...l, notes } : l));
       } catch (error: any) {
           console.error('Erro ao atualizar observação:', error);
+          alert('Erro ao atualizar observação: ' + error.message);
       }
   };
 
@@ -581,8 +614,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
     
     setLoading(true);
     try {
-        await supabase.from('license_requests').delete().eq('user_id', userId);
-        await supabase.from('partner_requests').delete().eq('user_id', userId);
+        const { error: licensesError } = await supabase.from('license_requests').delete().eq('user_id', userId);
+        if (licensesError) throw licensesError;
+        const { error: requestsError } = await supabase.from('partner_requests').delete().eq('user_id', userId);
+        if (requestsError) throw requestsError;
         const { error } = await supabase.from('profiles').delete().eq('id', userId);
 
         if (error) throw error;
@@ -692,39 +727,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         fetchStorageStats();
     } catch (err) {
         alert('Erro ao excluir arquivo');
-    }
-  };
-
-  const findLegacyItems = async () => {
-    try {
-        const { data: articlesData } = await supabase.from('articles').select('id, title, image_url, gallery_urls');
-        const { data: productsData } = await supabase.from('products').select('id, title, image_url, metadata');
-        
-        const legacy: typeof legacyItems = [];
-        const legacyPattern = /sslip\.io|tradexperience\.com\.br\/wp-content/;
-
-        articlesData?.forEach(a => {
-            if (a.image_url?.match(legacyPattern)) legacy.push({ id: a.id, title: a.title, type: 'Artigo', url: a.image_url });
-            a.gallery_urls?.forEach((url: string) => {
-                if (url.match(legacyPattern)) legacy.push({ id: a.id, title: `${a.title} (Galeria)`, type: 'Artigo', url });
-            });
-        });
-
-        productsData?.forEach(p => {
-            if (p.image_url?.match(legacyPattern)) legacy.push({ id: p.id, title: p.title, type: 'Produto', url: p.image_url });
-            const meta = p.metadata as any;
-            if (meta?.avatar_url?.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Avatar)`, type: 'Produto', url: meta.avatar_url });
-            meta?.images?.forEach((url: string) => {
-                if (url.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Imagem)`, type: 'Produto', url });
-            });
-            meta?.manualImages?.forEach((url: string) => {
-                if (url.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Manual)`, type: 'Produto', url });
-            });
-        });
-
-        setLegacyItems(legacy);
-    } catch (err) {
-        console.error('Error finding legacy items:', err);
     }
   };
 
@@ -1657,7 +1659,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                      <Phone size={14} className="shrink-0" />
                                      {editingProspect === prospect.id ? (
                                          <input className={`${INLINE_INPUT} text-xs font-mono tabular-nums`} defaultValue={prospect.phone} onChange={(e) => handleUpdateField(prospect.id, 'phone', e.target.value)} />
-                                     ) : ( <a href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} target="_blank" className="font-mono tabular-nums whitespace-nowrap hover:text-accent-fg transition-colors">{prospect.phone || 'Sem telefone'}</a> )}
+                                     ) : ( <a href={`https://wa.me/${prospect.phone.replace(/\D/g, '')}`} target="_blank" rel="noopener noreferrer" className="font-mono tabular-nums whitespace-nowrap hover:text-accent-fg transition-colors">{prospect.phone || 'Sem telefone'}</a> )}
                                   </div>
                               </div>
                           </TD>
@@ -1815,9 +1817,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                     </TD>
                                     <TD className="px-6">
                                         <div className="flex -space-x-2">
-                                            {article.image_url && <img src={article.image_url} className="w-8 h-8 rounded-full border-2 border-surface object-cover" />}
+                                            {article.image_url && <img loading="lazy" decoding="async" src={article.image_url} className="w-8 h-8 rounded-full border-2 border-surface object-cover" />}
                                             {article.gallery_urls?.slice(0, 3).map((url, i) => (
-                                                <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-surface object-cover" />
+                                                <img loading="lazy" decoding="async" key={i} src={url} className="w-8 h-8 rounded-full border-2 border-surface object-cover" />
                                             ))}
                                         </div>
                                     </TD>
@@ -1887,7 +1889,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                     <TD className="px-6">
                                         <div className="w-12 h-12 rounded-xl bg-tint/3 border border-tint/8 overflow-hidden flex items-center justify-center">
                                             {file.name.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                                                <img src={file.url} className="w-full h-full object-cover" />
+                                                <img loading="lazy" decoding="async" src={file.url} className="w-full h-full object-cover" />
                                             ) : (
                                                 <FileText size={20} className="text-fg-subtle" />
                                             )}
@@ -1968,7 +1970,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             <TD className="px-6">
                                 {robot.avatar_url ? (
                                     <div className="w-10 h-10 rounded-xl border border-tint/8 overflow-hidden">
-                                        <img src={robot.avatar_url} className="w-full h-full object-cover" />
+                                        <img loading="lazy" decoding="async" src={robot.avatar_url} className="w-full h-full object-cover" />
                                     </div>
                                 ) : (
                                     <div className="w-10 h-10 rounded-xl border border-tint/8 bg-tint/3 flex items-center justify-center text-fg-subtle">
@@ -1979,7 +1981,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             <TD className="px-6">
                                 <div className="flex -space-x-2">
                                     {robot.images?.slice(0, 3).map((url, i) => (
-                                        <img key={i} src={url} className="w-8 h-8 rounded-full border-2 border-surface object-cover" />
+                                        <img loading="lazy" decoding="async" key={i} src={url} className="w-8 h-8 rounded-full border-2 border-surface object-cover" />
                                     ))}
                                     {(robot.images?.length || 0) > 3 && (
                                         <div className="w-8 h-8 rounded-full border-2 border-surface bg-elevated text-fg text-[9px] font-semibold font-mono tabular-nums flex items-center justify-center">
@@ -2158,7 +2160,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-4">
                                   {articleForm.gallery_urls.map((url, i) => (
                                       <div key={i} className="relative group aspect-square rounded-xl overflow-hidden border border-tint/10">
-                                          <img src={url} className="w-full h-full object-cover" />
+                                          <img loading="lazy" decoding="async" src={url} className="w-full h-full object-cover" />
                                           <button type="button" onClick={() => setArticleForm(prev => ({...prev, gallery_urls: prev.gallery_urls.filter((_, idx) => idx !== i)}))} className="absolute top-1 right-1 p-1 bg-brand-red text-white rounded-full opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity" aria-label="Remover imagem"><X size={10} /></button>
                                           <button type="button" onClick={() => setArticleForm({...articleForm, image_url: url})} className={`absolute bottom-0 left-0 right-0 py-0.5 text-[8px] font-semibold tracking-widest text-center ${articleForm.image_url === url ? 'bg-brand-green text-brand-dark' : 'bg-black/50 text-white opacity-0 group-hover:opacity-100 focus-visible:opacity-100 italic'}`}>CAPA</button>
                                       </div>

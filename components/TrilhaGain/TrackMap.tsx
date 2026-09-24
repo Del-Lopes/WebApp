@@ -354,7 +354,7 @@ const UnitHeader: React.FC<{
               <Coins size={12} strokeWidth={2.5} /> Desbloqueado
             </span>
           ) : unit.image_url ? (
-            <img src={unit.image_url} alt="" className="shrink-0 w-20 h-12 rounded-lg object-cover ring-1 ring-tint/10" />
+            <img loading="lazy" decoding="async" src={unit.image_url} alt="" className="shrink-0 w-20 h-12 rounded-lg object-cover ring-1 ring-tint/10" />
           ) : null}
         </div>
       </div>

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { TrendingUp, TrendingDown, Target, Activity, Award, Percent } from 'lucide-react';
-import { useMt5Reports, type Mt5Report, type Mt5Trade } from '../../hooks/useMt5Reports';
+import { loadMt5Trades, type Mt5Report, type Mt5Trade } from '../../hooks/useMt5Reports';
 import { BackButton } from '../BackButton';
 import { PageHeader, Skeleton } from '../ui';
 
@@ -56,15 +56,21 @@ function MetricCard({ icon, label, value, hint, tone = 'default' }: MetricCardPr
 // ─── Gráfico de evolução do balance (linha) ─────────────────────────────────
 
 function BalanceChart({ trades }: { trades: Mt5Trade[] }) {
-  const points = useMemo(() => {
+  // min/max com reduce: Math.min(...array) estoura a pilha com milhares de deals.
+  const { points, minY, maxY } = useMemo(() => {
     const sorted = [...trades]
       .filter((t) => t.close_time)
       .sort((a, b) => new Date(a.close_time!).getTime() - new Date(b.close_time!).getTime());
     let acc = 0;
-    return sorted.map((t, i) => {
+    const pts = sorted.map((t, i) => {
       acc += (t.profit ?? 0) + (t.commission ?? 0) + (t.swap ?? 0);
       return { x: i, y: acc, time: t.close_time! };
     });
+    return {
+      points: pts,
+      minY: pts.reduce((m, p) => (p.y < m ? p.y : m), 0),
+      maxY: pts.reduce((m, p) => (p.y > m ? p.y : m), 0),
+    };
   }, [trades]);
 
   if (points.length < 2) {
@@ -81,8 +87,6 @@ function BalanceChart({ trades }: { trades: Mt5Trade[] }) {
   const innerW = width - padding.left - padding.right;
   const innerH = height - padding.top - padding.bottom;
 
-  const minY = Math.min(0, ...points.map((p) => p.y));
-  const maxY = Math.max(0, ...points.map((p) => p.y));
   const rangeY = maxY - minY || 1;
   const minX = points[0].x;
   const maxX = points[points.length - 1].x;
@@ -156,7 +160,7 @@ function ProfitBySymbolChart({ trades }: { trades: Mt5Trade[] }) {
     return null;
   }
 
-  const maxAbs = Math.max(...data.map((d) => Math.abs(d.profit))) || 1;
+  const maxAbs = data.reduce((m, d) => Math.max(m, Math.abs(d.profit)), 0) || 1;
 
   return (
     <div className="glass-card rounded-xl p-4 min-w-0">
@@ -203,7 +207,7 @@ function ProfitByWeekdayChart({ trades }: { trades: Mt5Trade[] }) {
     return WEEKDAY_LABELS.map((label, i) => ({ label, profit: sums[i], count: counts[i] }));
   }, [trades]);
 
-  const maxAbs = Math.max(...data.map((d) => Math.abs(d.profit))) || 1;
+  const maxAbs = data.reduce((m, d) => Math.max(m, Math.abs(d.profit)), 0) || 1;
 
   return (
     <div className="glass-card rounded-xl p-4 min-w-0">
@@ -236,14 +240,13 @@ function ProfitByWeekdayChart({ trades }: { trades: Mt5Trade[] }) {
 // ─── Componente principal ───────────────────────────────────────────────────
 
 export function ReportView({ report, onBack }: Props) {
-  const { loadTrades } = useMt5Reports();
   const [trades, setTrades] = useState<Mt5Trade[]>([]);
   const [loadingTrades, setLoadingTrades] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoadingTrades(true);
-    loadTrades(report.id).then((data) => {
+    loadMt5Trades(report.id).then((data) => {
       if (!cancelled) {
         setTrades(data);
         setLoadingTrades(false);
@@ -252,7 +255,7 @@ export function ReportView({ report, onBack }: Props) {
     return () => {
       cancelled = true;
     };
-  }, [report.id, loadTrades]);
+  }, [report.id]);
 
   const netProfitTone = report.net_profit !== null && report.net_profit >= 0 ? 'positive' : 'negative';
 

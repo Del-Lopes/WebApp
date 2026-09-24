@@ -117,7 +117,7 @@ export const WatchlistView: React.FC = () => {
               }`}
             >
               <div className="flex items-center gap-2">
-                {(q?.image || i.image) && <img src={q?.image || i.image || ''} alt={i.name} className="w-8 h-8 rounded-full" />}
+                {(q?.image || i.image) && <img loading="lazy" decoding="async" src={q?.image || i.image || ''} alt={i.name} className="w-8 h-8 rounded-full" />}
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-fg text-sm truncate">
                     {i.name} <span className="font-mono text-xs font-normal text-fg-muted">{i.symbol}</span>

@@ -1,14 +1,15 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalendarClock, AlertTriangle, Loader2, Clock, ChevronDown, CalendarX, RefreshCw } from 'lucide-react';
 import { BackButton } from '../BackButton';
 import {
   EconEvent, EconProfile, SyncStatus,
-  fetchEvents, fetchProfiles, fetchSyncStatus, requestSync,
+  fetchEvents, fetchProfiles, fetchSyncStatus, requestSync, isSyncDue,
   fmtValue, fmtCountdown, fmtTime, dayKey, displayTitle, CURRENCY_LABEL,
 } from '../../lib/econCalendar';
 import { EventRow, Stars } from './EventRow';
 import { EventDetail, DirIcon } from './EventDetail';
 import { PageHeader, Tabs, EmptyState, Skeleton } from '../ui';
+import { useNow } from '../../hooks/useNow';
 
 interface Props {
   onBack: () => void;
@@ -151,7 +152,9 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
   const [range, setRange] = useState<RangeKey>('today');
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const [openId, setOpenId] = useState<string | null>(null);
-  const [now, setNow] = useState(Date.now());
+  const now = useNow(15_000);
+  // Último status lido; o ciclo usa para decidir se pede coleta.
+  const syncRef = useRef<SyncStatus | null>(null);
 
   useEffect(() => {
     try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch { /* storage indisponível */ }
@@ -169,6 +172,7 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
       setEvents(evs);
       setProfiles(profs);
       setSync(status);
+      syncRef.current = status;
       setError(false);
     } catch (e) {
       console.error('[econ] load', e);
@@ -180,24 +184,32 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
 
   // Mostra o que já está no banco na hora, pede um sync e recarrega. Enquanto a
   // tela estiver visível repete a cada minuto — é assim que o "Atual" aparece
-  // logo depois da divulgação. A trava de 60s da function segura a fonte.
+  // logo depois da divulgação. A trava de 60s da function segura a fonte; o
+  // isSyncDue evita até a invocação quando a última coleta é recente.
   useEffect(() => {
     let alive = true;
     const cycle = async () => {
+      if (!isSyncDue(syncRef.current)) {
+        if (alive) await load();
+        return;
+      }
       await requestSync();
       if (alive) await load();
     };
-    void load().then(cycle);
+    // Na abertura a leitura acabou de ser feita: só pede coleta se estiver velha.
+    void load().then(() => {
+      if (alive && isSyncDue(syncRef.current)) void cycle();
+    });
     const id = window.setInterval(() => {
       if (document.visibilityState === 'visible') void cycle();
     }, REFRESH_MS);
     return () => { alive = false; window.clearInterval(id); };
   }, [load]);
 
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 15_000);
-    return () => window.clearInterval(id);
-  }, []);
+  const toggleOpen = useCallback(
+    (occurrenceId: string) => setOpenId((id) => (id === occurrenceId ? null : occurrenceId)),
+    [],
+  );
 
   const currencyOk = useCallback(
     (e: EconEvent) => prefs.currencies.length === 0 || prefs.currencies.includes(e.currency),
@@ -353,9 +365,9 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
                   key={e.occurrence_id}
                   event={e}
                   profile={profiles.get(e.event_key)}
-                  now={now}
+                  now={new Date(e.occurs_at).getTime() > now ? now : undefined}
                   open={openId === e.occurrence_id}
-                  onToggle={() => setOpenId((id) => (id === e.occurrence_id ? null : e.occurrence_id))}
+                  onToggle={toggleOpen}
                 />
               ))}
             </div>
