@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { X, Send, Loader2, AlertTriangle, Trash2, ThumbsUp, ThumbsDown, Home } from 'lucide-react';
+import { X, Send, Loader2, AlertTriangle, Trash2, ThumbsUp, ThumbsDown, Home, Info } from 'lucide-react';
 
-const ASSISTANT_AVATAR_SRC = '/images/logo-icon.png';
+const ASSISTANT_AVATAR_SRC = '/images/logo-icon-128.png';
 import { useChat, type FeedbackRating } from '../../hooks/useChat';
 
 interface ChatWindowProps {
@@ -137,7 +137,7 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
             <Loader2 className="animate-spin text-accent" size={28} />
           </div>
         ) : messages.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-center px-2">
+          <div className="flex flex-col items-center justify-center min-h-full text-center px-2">
             <div className="w-14 h-14 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center mb-3 overflow-hidden">
               <img src={ASSISTANT_AVATAR_SRC} alt="Assistente Trader AFK" className="w-10 h-10 object-contain" />
             </div>
@@ -158,6 +158,16 @@ export function ChatWindow({ onClose }: ChatWindowProps) {
                 </button>
               ))}
             </div>
+            {/* Aviso de IA e privacidade (LGPD) */}
+            <p className="mt-4 flex items-start gap-1.5 text-left text-[11px] leading-relaxed text-fg-subtle">
+              <Info size={12} className="mt-0.5 shrink-0" aria-hidden />
+              <span>
+                O assistente usa IA (Google Gemini) e pode errar. Conversas podem ser revisadas pela equipe para melhorar o suporte. Não compartilhe senhas.{' '}
+                <a href="/legal/privacidade.html" target="_blank" rel="noopener noreferrer" className="text-accent-fg hover:underline underline-offset-2">
+                  Política de Privacidade
+                </a>
+              </span>
+            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">

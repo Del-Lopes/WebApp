@@ -140,6 +140,11 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
           )}
         </div>
       )}
+
+      {/* Aviso curto (CVM) */}
+      <p className="relative mt-3 pt-2 border-t border-tint/6 text-[11px] text-fg-subtle">
+        Informativo · não é recomendação
+      </p>
     </div>
   );
 };

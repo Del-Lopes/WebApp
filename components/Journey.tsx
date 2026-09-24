@@ -54,7 +54,7 @@ const SESSIONS: PlatformSession[] = [
   {
     id: 'strategies',
     title: "Estratégias (Robôs)",
-    subtitle: "Automação de Alta Performance",
+    subtitle: "Automação com Gestão de Risco",
     description: "Gerencie e configure seus algoritmos de trading de forma simplificada.",
     longDescription: "Nesta sessão, você encontra o 'cérebro' das nossas operações. Você pode visualizar todos os robôs disponíveis (como o AFK Trader e Snow Ball), entender o perfil de risco de cada um e gerenciar quais estratégias estão ativas em suas contas vinculadas.",
     icon: <Cpu size={32} />,
@@ -72,7 +72,7 @@ const SESSIONS: PlatformSession[] = [
     title: "Biblioteca (Cursos)",
     subtitle: "Conhecimento é Poder",
     description: "Aprenda as metodologias por trás das estratégias e domine o mercado.",
-    longDescription: "Não acreditamos em 'caixa preta'. Na Biblioteca, você tem acesso a todo o material educativo da Trader AFK. Desde tutoriais básicos de instalação até mentorias avançadas sobre como os robôs funcionam e como otimizar seus resultados manualmente.",
+    longDescription: "Não acreditamos em 'caixa preta'. Na Biblioteca, você tem acesso a todo o material educativo da Trader AFK. Desde tutoriais básicos de instalação até mentorias avançadas sobre como os robôs funcionam, como ajustar parâmetros e como gerenciar o risco.",
     icon: <GraduationCap size={32} />,
     color: "purple",
     view: 'education',
@@ -120,7 +120,7 @@ const SESSIONS: PlatformSession[] = [
     title: "Comunidade & Afiliados",
     subtitle: "Cresça com a Trader AFK",
     description: "Explore nosso ecossistema de marketing e rede de parceiros.",
-    longDescription: "A Trader AFK é mais que uma plataforma, é uma comunidade. Nesta sessão, você entende como funciona nosso programa de afiliados, acessa materiais de divulgação e entende como escalar seus ganhos indicando a plataforma para outros traders.",
+    longDescription: "A Trader AFK é mais que uma plataforma, é uma comunidade. Nesta sessão, você entende como funciona nosso programa de afiliados, acessa materiais de divulgação e entende as regras de comissão por indicação da plataforma, conforme o regulamento do programa.",
     icon: <Users size={32} />,
     color: "orange",
     view: 'marketing',
@@ -170,7 +170,7 @@ export const Journey: React.FC<JourneyProps> = ({ onBack, onNavigate }) => {
             <Info size={14} className="text-accent-fg" />
             Guia do Ecossistema
           </div>
-          <h2 className="font-display text-3xl sm:text-4xl font-semibold mb-4 tracking-tight text-fg">Onde a tecnologia encontra o <span className="text-gradient-brand">lucro.</span></h2>
+          <h2 className="font-display text-3xl sm:text-4xl font-semibold mb-4 tracking-tight text-fg">Onde a tecnologia encontra a <span className="text-gradient-brand">disciplina.</span></h2>
           <p className="text-fg-muted text-base sm:text-lg leading-relaxed">
             Navegue pelos módulos abaixo para entender como cada engrenagem da nossa plataforma foi desenhada para facilitar sua vida como trader e maximizar sua performance automatizada.
           </p>

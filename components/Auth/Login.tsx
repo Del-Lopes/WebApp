@@ -5,6 +5,15 @@ import { Logo } from '../Logo';
 import { AlertCircle } from 'lucide-react';
 import { Button, Input, Label } from '../ui';
 
+// Versão vigente dos documentos legais aceitos no cadastro (gravada em user_metadata).
+const TERMS_VERSION = '2026-09-26';
+const LEGAL_LINKS = [
+  { href: '/legal/termos.html', label: 'Termos de Uso' },
+  { href: '/legal/privacidade.html', label: 'Política de Privacidade' },
+  { href: '/legal/risco.html', label: 'Aviso de Risco' },
+] as const;
+const LEGAL_LINK_CLASS = 'text-accent-fg font-medium hover:underline underline-offset-4 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60';
+
 export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -13,9 +22,14 @@ export const Login: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
   const [message, setMessage] = useState<string | null>(null);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === 'signup' && !acceptedTerms) {
+      setError('Para criar a conta, confirme que tem 18 anos ou mais e aceite os Termos de Uso, a Política de Privacidade e o Aviso de Risco.');
+      return;
+    }
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -29,6 +43,9 @@ export const Login: React.FC = () => {
             emailRedirectTo: window.location.origin,
             data: {
               full_name: fullName,
+              // Registro do aceite dos documentos legais (sem migration: fica no user_metadata).
+              terms_version: TERMS_VERSION,
+              terms_accepted_at: new Date().toISOString(),
             },
           },
         });
@@ -175,7 +192,32 @@ export const Login: React.FC = () => {
               </div>
             )}
 
-            <Button type="submit" size="lg" isLoading={loading} className="w-full">
+            {mode === 'signup' && (
+              <div className="flex items-start gap-2.5 rounded-xl bg-tint/3 border border-tint/8 p-3">
+                <input
+                  id="login-accept-terms"
+                  type="checkbox"
+                  required
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 cursor-pointer rounded-sm accent-accent"
+                />
+                <label htmlFor="login-accept-terms" className="text-xs text-fg-muted leading-relaxed cursor-pointer">
+                  Tenho 18 anos ou mais e li e aceito os{' '}
+                  <a href={LEGAL_LINKS[0].href} target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLASS}>{LEGAL_LINKS[0].label}</a>, a{' '}
+                  <a href={LEGAL_LINKS[1].href} target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLASS}>{LEGAL_LINKS[1].label}</a> e o{' '}
+                  <a href={LEGAL_LINKS[2].href} target="_blank" rel="noopener noreferrer" className={LEGAL_LINK_CLASS}>{LEGAL_LINKS[2].label}</a>.
+                </label>
+              </div>
+            )}
+
+            <Button
+              type="submit"
+              size="lg"
+              isLoading={loading}
+              disabled={mode === 'signup' && !acceptedTerms}
+              className="w-full"
+            >
               {loading ? null : mode === 'signin' ? (
                 'Entrar'
               ) : mode === 'signup' ? (
@@ -213,6 +255,19 @@ export const Login: React.FC = () => {
               </button>
             )}
           </div>
+
+          {mode === 'signin' && (
+            <p className="mt-6 pt-4 border-t border-tint/6 text-center text-[11px] text-fg-subtle leading-relaxed">
+              {LEGAL_LINKS.map((l, i) => (
+                <React.Fragment key={l.href}>
+                  {i > 0 && <span aria-hidden> · </span>}
+                  <a href={l.href} target="_blank" rel="noopener noreferrer" className="hover:text-accent-fg hover:underline underline-offset-4 rounded-sm focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60">
+                    {l.label}
+                  </a>
+                </React.Fragment>
+              ))}
+            </p>
+          )}
         </div>
       </div>
     </div>

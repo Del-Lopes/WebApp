@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Aviso de Risco — Trader AFK</title>
+<style>
+  :root { color-scheme: light dark; --bg:#fafafa; --surface:#ffffff; --fg:#0a0a0a; --muted:#525252; --line:#e5e5e5; --accent:#15803d; --warn-bg:#fef3c7; --warn-fg:#92400e; --warn-line:#fcd34d; --fill:#fde68a; --danger-bg:#fee2e2; --danger-fg:#991b1b; --danger-line:#fca5a5; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#181818; --surface:#1f1f1f; --fg:#f5f5f5; --muted:#a3a3a3; --line:#2e2e2e; --accent:#4ade80; --warn-bg:#3a2e12; --warn-fg:#fcd34d; --warn-line:#78591a; --fill:#5c4a14; --danger-bg:#3b1717; --danger-fg:#fca5a5; --danger-line:#7f2a2a; }
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif; }
+  .draft { position:sticky; top:0; z-index:1; background:var(--warn-bg); color:var(--warn-fg); border-bottom:1px solid var(--warn-line); padding:10px 16px; text-align:center; font-weight:700; font-size:14px; letter-spacing:.02em; }
+  main { max-width:780px; margin:0 auto; padding:32px 16px 64px; }
+  article { background:var(--surface); border:1px solid var(--line); border-radius:16px; padding:28px 24px; }
+  h1 { font-size:28px; line-height:1.25; margin:0 0 4px; }
+  h2 { font-size:19px; margin:32px 0 8px; padding-top:8px; border-top:1px solid var(--line); }
+  .meta { color:var(--muted); font-size:14px; margin:0 0 20px; }
+  .fill { background:var(--fill); padding:0 4px; border-radius:4px; font-weight:600; }
+  .alert { border:1px solid var(--danger-line); background:var(--danger-bg); color:var(--danger-fg); border-radius:12px; padding:14px 16px; margin:16px 0; font-weight:600; }
+  a { color:var(--accent); }
+  nav { font-size:14px; color:var(--muted); margin-top:24px; }
+  ul, ol { padding-left:22px; }
+</style>
+</head>
+<body>
+<div class="draft" role="note">MINUTA — revisar com advogado antes de publicar</div>
+<main>
+<article>
+<h1>Aviso de Risco</h1>
+<p class="meta">Versão 2026-09-26 · Última atualização: 26/09/2026</p>
+
+<div class="alert">Operar forex, CFDs e criptoativos com alavancagem envolve alto risco e pode resultar na perda de todo o capital investido e, em alguns casos, em perdas superiores a ele. Opere apenas com dinheiro que você pode perder sem comprometer sua vida financeira.</div>
+
+<p>Este aviso complementa os <a href="/legal/termos.html">Termos de Uso</a>. Leia com atenção antes de usar robôs, sinais, estratégias ou qualquer conteúdo da plataforma Trader AFK.</p>
+
+<h2>1. Alavancagem</h2>
+<p>A alavancagem permite abrir posições muito maiores que o valor depositado. Pequenos movimentos de preço podem gerar perdas grandes e rápidas, acionar chamadas de margem (margin call) e o encerramento automático das posições (stop out). Dependendo da corretora e do tipo de conta, <strong>as perdas podem superar o capital depositado</strong>, deixando saldo negativo a pagar.</p>
+
+<h2>2. Volatilidade dos mercados</h2>
+<p>Forex, CFDs (inclusive sobre ouro, índices e commodities) e criptoativos são mercados muito voláteis, influenciados por notícias econômicas, decisões de bancos centrais, eventos geopolíticos e liquidez. Os preços podem se mover bruscamente e sem aviso. Criptoativos, em particular, podem perder quase todo o valor, e muitos projetos fracassam.</p>
+
+<h2>3. Robôs (Expert Advisors) podem falhar</h2>
+<p>Um robô é um software que segue regras pré-definidas. Ele não prevê o futuro e pode perder dinheiro mesmo funcionando como programado. Além disso, pode haver:</p>
+<ul>
+  <li><strong>bugs</strong> ou comportamentos inesperados em novas versões ou em condições de mercado raras;</li>
+  <li><strong>desconexão</strong> do terminal MetaTrader, da internet ou do servidor da corretora;</li>
+  <li><strong>falhas de VPS</strong> ou do computador (reinicialização, falta de energia, atualização do sistema);</li>
+  <li><strong>slippage</strong> (execução a preço diferente do esperado) e <strong>requotes</strong>;</li>
+  <li><strong>gaps</strong> de preço, especialmente na abertura de mercado e em fins de semana;</li>
+  <li><strong>alargamento de spread</strong> em notícias, baixa liquidez ou rolagem diária;</li>
+  <li>configurações incorretas feitas pelo usuário (lote, risco, horário, ativo).</li>
+</ul>
+<p>Você é responsável por monitorar sua conta, mesmo quando usa automação.</p>
+
+<h2>4. Estratégias de adição de posições (grid e martingale)</h2>
+<p>Algumas estratégias abrem novas posições enquanto o preço vai contra (grid) ou aumentam o tamanho das posições após perdas (martingale ou variações). Essas estratégias costumam mostrar um histórico de ganhos pequenos e frequentes, mas acumulam risco em tendências fortes e prolongadas e <strong>podem levar à perda total da conta em um único evento</strong>. Verifique no manual de cada robô se ele usa esse tipo de lógica <span class="fill">[PREENCHER: indicar quais robôs usam grid/martingale ou adição de posições]</span>.</p>
+
+<h2>5. Rentabilidade passada não garante resultados futuros</h2>
+<p>Percentuais de rentabilidade, contas "Live", verificações do MyFxBook, backtests, contas demo e prints mostram o passado, em condições específicas (corretora, spread, alavancagem, capital, horário, VPS). Backtests e contas demo não reproduzem a execução real. <strong>Nenhum resultado passado garante resultado futuro</strong>, e resultados podem não se repetir na sua conta.</p>
+
+<h2>6. Conteúdo gerado por inteligência artificial</h2>
+<p>Análises, pareceres e respostas geradas por IA podem conter erros, interpretações equivocadas, dados desatualizados ou informações inventadas. Não use esse conteúdo como única base para decisões.</p>
+
+<h2>7. Sinais e análises são informativos</h2>
+<p>Sinais com entrada, stop e alvo, painéis de tendência e análises descrevem cenários técnicos e podem falhar. Eles <strong>não são recomendação de investimento</strong>, não consideram seu perfil nem sua situação financeira e não constituem consultoria ou análise de valores mobiliários (Res. CVM 20/2021).</p>
+
+<h2>8. Corretoras estrangeiras</h2>
+<p>As corretoras de forex/CFD usadas com os robôs costumam estar sediadas no exterior e <strong>não são autorizadas nem supervisionadas pela CVM ou pelo Banco Central do Brasil</strong>. Seus recursos nelas <strong>não contam com a proteção do FGC</strong> nem de mecanismos de ressarcimento brasileiros. Em caso de problemas (falência, bloqueio de saques, fraude, disputas de execução), a solução pode depender de leis e órgãos estrangeiros. Pesquise a regulamentação e a reputação da corretora antes de depositar.</p>
+
+<h2>9. A Trader AFK não é instituição autorizada</h2>
+<p>A Trader AFK <strong>não é autorizada pela CVM</strong> a prestar consultoria, recomendar investimentos, fazer análise de valores mobiliários ou administrar carteiras, e não exerce essas atividades. Não custodiamos recursos nem operamos em seu nome. A plataforma oferece educação, ferramentas informativas e licenças de software que você usa por sua conta e risco.</p>
+
+<h2>10. Custos e tributação</h2>
+<p>Spreads, comissões, swaps (juros de rolagem), taxas de depósito e saque, câmbio e o custo de VPS reduzem os resultados. Os ganhos podem estar sujeitos a tributação e a obrigações de declaração no Brasil, inclusive de recursos mantidos no exterior. Consulte um contador.</p>
+
+<h2>11. Recomendações de prudência</h2>
+<ul>
+  <li>Comece em conta demo e entenda como o robô se comporta antes de usar dinheiro real.</li>
+  <li>Use apenas capital que você pode perder e ajuste o risco (lote, alavancagem) ao seu capital.</li>
+  <li>Evite concentrar todo o seu patrimônio em uma única estratégia, corretora ou ativo.</li>
+  <li>Acompanhe a conta com frequência e tenha um plano para desligar o robô em situações anormais.</li>
+  <li>Se tiver dúvidas sobre a adequação desses produtos ao seu perfil, procure um profissional autorizado pela CVM.</li>
+</ul>
+
+<p class="meta" style="margin-top:32px">Versão 2026-09-26 · Minuta sujeita a revisão jurídica.</p>
+</article>
+<nav>Documentos: <a href="/legal/termos.html">Termos de Uso</a> · <a href="/legal/privacidade.html">Política de Privacidade</a> · <a href="/legal/risco.html">Aviso de Risco</a></nav>
+</main>
+</body>
+</html>

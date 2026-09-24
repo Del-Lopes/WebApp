@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2, ExternalLink, ZoomIn, Upload } from 'lucide-react';
+import { ArrowLeft, ShieldCheck, Activity, BarChart2, BookOpen, Edit2, X, Save, Plus, Trash2, ExternalLink, ZoomIn, Upload, AlertTriangle } from 'lucide-react';
 import { Robot, UserRole } from '../types';
 import { uploadToSupabase } from '../lib/storage';
 import { useStrategyMt5Status } from '../hooks/useStrategyMt5Status';
@@ -113,9 +113,7 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                 {formData.status}
               </Badge>
            )}
-          <span className="font-mono tabular-nums whitespace-nowrap text-sm bg-tint/5 px-2 py-1 rounded-sm text-fg-muted border border-tint/10" title="Performance Fee">
-            {formData.version}
-          </span>
+          {/* Performance Fee (formData.version) oculto por conformidade — dado mantido. */}
 
           {/* Admin Edit Controls */}
           {userRole === 'admin' && (
@@ -237,17 +235,19 @@ export const RobotDetails: React.FC<RobotDetailsProps> = ({ robot, onBack, userR
                   )}
                 </div>
 
-                {isEditing && (
-                  <div className="flex items-center gap-1.5">
-                     <span className="text-fg-muted">Performance Fee:</span>
-                     <input
-                      type="text"
-                      value={formData.version}
-                      onChange={(e) => handleChange('version', e.target.value)}
-                      className="bg-tint/3 border border-tint/10 rounded-md px-2 py-0.5 w-20 text-fg font-mono font-semibold tabular-nums focus:outline-hidden focus:border-accent/60"
-                    />
-                  </div>
-                )}
+              </div>
+
+              {/* Aviso obrigatório junto da rentabilidade */}
+              <div role="note" className="mt-4 rounded-xl bg-warning/10 border border-warning/20 p-3 flex items-start gap-2">
+                <AlertTriangle size={15} className="text-warning-fg mt-0.5 shrink-0" aria-hidden />
+                <p className="text-xs text-warning-fg leading-relaxed">
+                  Rentabilidade passada não garante resultados futuros. Forex/CFD alavancado pode gerar perdas superiores ao capital.
+                  Resultados exibidos (conta real, demo, backtest ou MyFxBook) podem não se repetir e não refletem necessariamente custos, slippage e diferenças entre corretoras.
+                  Conteúdo informativo, não é recomendação de investimento.{' '}
+                  <a href="/legal/risco.html" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-medium hover:opacity-80">
+                    Aviso de Risco
+                  </a>
+                </p>
               </div>
             </div>
 

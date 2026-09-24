@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Activity, Server, TrendingUp, Trash2, AlertCircle, ArrowUpDown, ShieldCheck } from 'lucide-react';
+import { Plus, Activity, Server, TrendingUp, Trash2, AlertCircle, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { Robot, UserRole, Product } from '../types';
 import { RobotDetails } from './RobotDetails';
 import { BackButton } from './BackButton';
@@ -37,8 +37,6 @@ export const Strategies: React.FC<StrategiesProps> = ({
   const [selectedRobot, setSelectedRobot] = useState<Robot | null>(null);
   const [robots, setRobots] = useState<Robot[]>([]);
   const [loading, setLoading] = useState(true);
-  // Default to 'desc' (Highest Profitability first) as requested
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>('desc');
 
   const { statusByStrategy } = useStrategiesMt5Status();
   // Tick a cada 10s pra reavaliar "live" (received_at <= 360s atrás)
@@ -55,23 +53,6 @@ export const Strategies: React.FC<StrategiesProps> = ({
     return ageSec <= LIVE_THRESHOLD_SEC;
   };
 
-  const sortedRobots = React.useMemo(() => {
-    if (!sortOrder) return robots;
-
-    return [...robots].sort((a, b) => {
-      // Parse profitability string (e.g. "+12.5%" -> 12.5)
-      const getVal = (r: Robot) => {
-        const str = r.profitability?.replace('%', '') || '0';
-        return parseFloat(str);
-      };
-
-      const valA = getVal(a);
-      const valB = getVal(b);
-
-      return sortOrder === 'asc' ? valA - valB : valB - valA;
-    });
-  }, [robots, sortOrder]);
-
   // Fetch Robots from Supabase
   useEffect(() => {
     fetchRobots();
@@ -83,7 +64,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
         .from('products')
         .select('*')
         .eq('type', 'ea')
-        // Default sort by created_at serverside, but we'll sort by profitability client-side if selected
+        // Ordem padrão: mais recentes primeiro. Sem ordenação por rentabilidade (conformidade).
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -235,25 +216,20 @@ export const Strategies: React.FC<StrategiesProps> = ({
         eyebrow="Trading"
         title="Estratégias e Robôs"
         description="Expert Advisors e Provedores de estratégias."
-        actions={
-          <button
-            onClick={() => setSortOrder(current => current === 'desc' ? 'asc' : 'desc')}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
-              sortOrder
-                ? 'bg-accent/10 border-accent/20 text-accent-fg'
-                : 'bg-tint/3 border-tint/10 text-fg-muted hover:bg-tint/6 hover:text-fg'
-            }`}
-            title="Ordenar por Rentabilidade"
-          >
-            <ArrowUpDown size={16} />
-            <span className="text-sm font-medium">
-              Rentabilidade
-              {sortOrder === 'asc' && '-'}
-              {sortOrder === 'desc' && '+'}
-            </span>
-          </button>
-        }
       />
+
+      {/* Aviso de risco — obrigatório onde há rentabilidade exibida */}
+      <div role="note" className="rounded-xl bg-warning/10 border border-warning/20 p-3 flex items-start gap-2">
+        <AlertTriangle size={15} className="text-warning-fg mt-0.5 shrink-0" aria-hidden />
+        <p className="text-xs text-warning-fg leading-relaxed">
+          <strong>Aviso de risco:</strong> rentabilidade passada não garante resultados futuros. Forex/CFD alavancado pode gerar perdas superiores ao capital.
+          Os robôs são licenças de software que você instala e controla na sua própria conta, e podem falhar (bugs, desconexão, VPS, slippage, spread em notícias).
+          Conteúdo informativo, não é recomendação de investimento.{' '}
+          <a href="/legal/risco.html" target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 font-medium hover:opacity-80">
+            Leia o Aviso de Risco
+          </a>
+        </p>
+      </div>
 
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" aria-busy="true" aria-label="Carregando estratégias...">
@@ -271,7 +247,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {sortedRobots.map((robot) => (
+          {robots.map((robot) => (
             <div key={robot.id} className="group glass-card glass-card-hover p-5 relative overflow-hidden cursor-pointer" onClick={() => setSelectedRobot(robot)}>
               {/* Background Icon Decoration */}
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity text-fg pointer-events-none">
@@ -312,8 +288,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
 
               <h3 className="font-display text-lg font-semibold text-fg mb-1 group-hover:text-accent-fg transition-colors relative z-10">{robot.name}</h3>
               <div className="text-sm text-fg-muted mb-6 flex items-center gap-2 relative z-10">
-                <span className="font-mono tabular-nums text-xs bg-tint/5 px-1.5 py-0.5 rounded-sm text-fg-muted border border-tint/10">{robot.version}</span>
-                <span className="text-fg-subtle">•</span>
+                {/* Performance Fee (robot.version) oculto por conformidade — dado mantido. */}
                 <span className="font-mono font-semibold text-fg whitespace-nowrap">{robot.pair}</span>
               </div>
 
@@ -356,6 +331,7 @@ export const Strategies: React.FC<StrategiesProps> = ({
                         </span>
                     )}
                   </div>
+                  <span className="text-[10px] leading-snug text-fg-subtle">Rentabilidade passada não garante resultados futuros.</span>
                 </div>
                 <span className="shrink-0 text-sm text-accent-fg font-medium group-hover:underline">
                   Acessar &rarr;
@@ -423,16 +399,8 @@ export const Strategies: React.FC<StrategiesProps> = ({
                     placeholder="Ex: Alpha Global Trader"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label>Performance Fee</Label>
-                    <Input
-                      type="text"
-                      value={newRobot.version}
-                      onChange={(e) => setNewRobot({...newRobot, version: e.target.value})}
-                      placeholder="Ex: 20%"
-                    />
-                  </div>
+                {/* Campo "Performance Fee" (newRobot.version) oculto por conformidade; o dado segue com default. */}
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label>Par (Ativo)</Label>
                     <Input

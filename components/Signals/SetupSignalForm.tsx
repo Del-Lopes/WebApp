@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, AlertTriangle } from 'lucide-react';
 import { createSetupSignal } from '../../lib/signals';
 import { Signal } from '../../types';
 import { Button, Label, Input } from '../ui';
@@ -115,6 +115,11 @@ export const SetupSignalForm: React.FC<Props> = ({ onCreated }) => {
           <Input value={rationale} onChange={(e) => setRationale(e.target.value)} placeholder="Motivo do sinal" />
         </div>
       </div>
+
+      <p className="flex items-start gap-1.5 text-xs text-warning-fg">
+        <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden />
+        Descreva o setup de forma técnica; não use linguagem de promessa ou garantia.
+      </p>
 
       {error && <p className="text-xs text-danger-fg" role="alert">{error}</p>}
 

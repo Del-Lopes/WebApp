@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Radio, Sparkles, UserCog, Info, Coins, Zap, Gauge } from 'lucide-react';
+import { Loader2, Radio, Sparkles, UserCog, Info, Coins, Zap, Gauge, AlertTriangle } from 'lucide-react';
 import { Signal, SignalSource, TrilhaStats } from '../../types';
 import { fetchSignals, fetchAnalysisCost, requestSignalAnalysis } from '../../lib/signals';
 import { ASSETS, AVAILABLE_TIMEFRAMES } from '../../lib/marketData';
@@ -99,6 +99,16 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
         description="Compra e venda para XAU/USD"
         className="mb-2 sm:mb-2"
       />
+
+      {/* Aviso fixo — enquadramento regulatório (CVM) */}
+      <div role="note" className="rounded-xl bg-warning/10 border border-warning/20 p-3 flex items-start gap-2">
+        <AlertTriangle size={15} className="text-warning-fg mt-0.5 shrink-0" aria-hidden />
+        <p className="text-xs text-warning-fg leading-relaxed">
+          Conteúdo informativo e educacional. <strong>Não</strong> constitui recomendação de investimento, consultoria nem análise de valores mobiliários (Res. CVM 20/2021).
+          Sinais e análises descrevem cenários técnicos e podem falhar. Operar forex/CFD alavancado envolve alto risco e pode gerar perdas superiores ao capital investido.
+          Decisões são de responsabilidade exclusiva do usuário.
+        </p>
+      </div>
 
       {/* Abas */}
       <Tabs

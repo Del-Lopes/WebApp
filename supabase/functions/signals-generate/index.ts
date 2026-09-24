@@ -30,6 +30,14 @@ const GROQ_API_KEY = Deno.env.get('GROQ_API_KEY') ?? ''
 // Client admin (service_role) para gravar o sinal ignorando RLS.
 const supabaseAdmin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 
+// Estorna a cobrança em Coins quando a análise não foi entregue. O builder do
+// supabase-js só é "thenable" (não tem .catch): o antigo `.rpc(...).catch()`
+// lançava TypeError antes de executar — o usuário era cobrado sem estorno.
+async function refund(fn: 'refund_crypto_report' | 'refund_signal_analysis', userId: string): Promise<void> {
+  const { error } = await supabaseAdmin.rpc(fn, { p_user_id: userId })
+  if (error) console.error(`[refund] ${fn} falhou para ${userId}:`, error.message)
+}
+
 // Ativos permitidos (allowlist). Chave = símbolo armazenado (SYMBOL_DB);
 // td = formato Twelve Data; digits = casas decimais p/ formatação do parecer.
 const ASSETS: Record<string, { td: string; label: string; digits: number }> = {
@@ -345,7 +353,7 @@ function buildAnalysisPrompt(
 
   const setupBlock = setup
     ? `SINAL DETECTADO: ${setup.action === 'BUY' ? 'COMPRA' : 'VENDA'} — entrada ${f(setup.entry)}, stop ${f(setup.stop)}, alvo ${f(setup.target)} (risco:retorno 1:2).`
-    : `NENHUM SETUP DE ENTRADA no momento (não houve cruzamento de médias na direção da tendência). Explique por que é hora de aguardar.`
+    : `NENHUM SETUP DE ENTRADA no momento (não houve cruzamento de médias na direção da tendência). Explique, de forma descritiva, por que não há setup técnico no momento e o que precisaria acontecer para surgir um.`
   const newsBlock = headlines.length
     ? `Manchetes recentes sobre ${label}/macro:\n${headlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}`
     : `Sem manchetes disponíveis no momento — baseie a leitura macro no comportamento de preço.`
@@ -377,13 +385,18 @@ ${newsBlock}
 Instruções:
 - Comece pela confluência multi-timeframe: diga se os TFs concordam e o que isso significa para a força do movimento.
 - Faça a leitura do ${interval}: tendência, RSI (sobrecompra/sobrevenda), MACD (momentum) e posição nas Bandas de Bollinger.
-- Cite suporte e resistência como referências concretas de alvo/invalidação.
+- Cite suporte e resistência como referências técnicas de alvo/invalidação do setup.
 - Comente a volatilidade (ATR) e o risco.
 - Leitura macro breve interpretando as manchetes (se houver).
-- Termine com orientação prática (operar o sinal / aguardar / cautela).
-- NÃO prometa resultado. Deixe claro que é análise, não recomendação de investimento.
+- Termine descrevendo CENÁRIOS: o que confirmaria o setup (ou a tendência) e o que o invalidaria, com os níveis de preço relevantes. Não diga ao leitor para operar, entrar, sair ou aguardar — descreva condições, não ações.
+- NÃO recomende compra nem venda. Não use imperativos dirigidos ao leitor ("compre", "venda", "opere", "entre").
+- NÃO prometa nem sugira resultado, ganho ou probabilidade de acerto. É análise técnica descritiva, não recomendação de investimento.
+- Não inclua aviso legal no final: ele é anexado automaticamente.
 - Texto corrido, sem markdown, sem títulos, sem bullet points.`
 }
+
+// Aviso regulatório (CVM) anexado ao final de todo parecer gerado.
+const ANALYSIS_DISCLAIMER = 'Aviso: conteúdo informativo e educacional. Não constitui recomendação de investimento, consultoria nem análise de valores mobiliários (Res. CVM 20/2021). Sinais e análises descrevem cenários técnicos e podem falhar. Operar forex/CFD alavancado envolve alto risco e pode gerar perdas superiores ao capital investido. Decisões são de responsabilidade exclusiva do usuário.'
 
 function fallbackAnalysis(
   ind: Indicators, setup: Setup | null, label: string, interval: string, digits: number, confluence: TFTrend[],
@@ -394,8 +407,8 @@ function fallbackAnalysis(
   const base = `${label}: tendência no ${interval} em ${ind.trend} (confluência — ${conf}). Preço em ${f(ind.price)}, RSI ${ind.rsi.toFixed(0)} (${rsiZone}), ATR ${f(ind.atr)}. Suporte ${f(ind.sr.support)} e resistência ${f(ind.sr.resistance)} como referências.`
   const call = setup
     ? ` Há um setup de ${setup.action === 'BUY' ? 'compra' : 'venda'} no ${interval}: entrada ${f(setup.entry)}, stop ${f(setup.stop)} e alvo ${f(setup.target)} (risco:retorno 1:2).`
-    : ` Não há setup de entrada agora no ${interval} — as médias não cruzaram na direção da tendência. Momento de aguardar confirmação.`
-  return base + call + ' Esta é uma análise técnica automatizada, não uma recomendação de investimento.'
+    : ` Não há setup de entrada agora no ${interval} — as médias não cruzaram na direção da tendência. Um novo setup dependeria de cruzamento das médias alinhado à tendência.`
+  return base + call
 }
 
 const round5 = (v: number) => Math.round(v * 1e5) / 1e5
@@ -425,7 +438,7 @@ Deno.serve(async (req) => {
   try { body = await req.json() } catch { /* corpo vazio = defaults */ }
 
   const symbolDb = (body.symbol && ASSETS[body.symbol]) ? body.symbol : DEFAULT_SYMBOL
-  const interval = (body.interval && INTERVALS.has(body.interval)) ? body.interval : DEFAULT_INTERVAL
+  const interval = (body.interval && (INTERVALS as Set<string>).has(body.interval)) ? body.interval : DEFAULT_INTERVAL
   const asset = ASSETS[symbolDb]
 
   // Cobra a análise ANTES de rodar (cobra sempre, com ou sem entrada). O débito
@@ -450,14 +463,14 @@ Deno.serve(async (req) => {
     candlesByTf = Object.fromEntries(tfs.map((tf, i) => [tf, results[i]]))
   } catch (e) {
     console.error('[signals-generate] fetchCandles', e)
-    await supabaseAdmin.rpc('refund_signal_analysis', { p_user_id: userId }).catch(() => {})
+    await refund('refund_signal_analysis', userId)
     return jsonResponse(502, { error: 'quotes_fetch_failed' })
   }
 
   const candles = candlesByTf[interval]
   const ind = computeIndicators(candles)
   if (!ind) {
-    await supabaseAdmin.rpc('refund_signal_analysis', { p_user_id: userId }).catch(() => {})
+    await refund('refund_signal_analysis', userId)
     return jsonResponse(502, { error: 'insufficient_data' })
   }
 
@@ -472,9 +485,11 @@ Deno.serve(async (req) => {
 
   // Parecer por IA (best-effort com fallback técnico local).
   const { data: aiConfig } = await supabaseAdmin.from('ai_configurations').select('*').maybeSingle()
-  const system = `Você é um analista técnico de ${asset.label} objetivo e conservador. Nunca promete lucro.`
+  const system = `Você é um analista técnico de ${asset.label} objetivo e conservador. Descreve cenários técnicos; nunca recomenda compra ou venda e nunca promete lucro.`
   const aiText = await generateText(system, buildAnalysisPrompt(ind, setup, headlines, asset.label, interval, asset.digits, confluence), aiConfig || {})
-  const analysis = (aiText?.trim()) || fallbackAnalysis(ind, setup, asset.label, interval, asset.digits, confluence)
+  const analysisBody = (aiText?.trim()) || fallbackAnalysis(ind, setup, asset.label, interval, asset.digits, confluence)
+  // Aviso anexado por código (não depende da IA) antes de gravar/retornar.
+  const analysis = `${analysisBody}\n\n${ANALYSIS_DISCLAIMER}`
 
   const { data: inserted, error: insertErr } = await supabaseAdmin
     .from('signals')
@@ -496,7 +511,7 @@ Deno.serve(async (req) => {
 
   if (insertErr) {
     console.error('[signals-generate] insert', insertErr)
-    await supabaseAdmin.rpc('refund_signal_analysis', { p_user_id: userId }).catch(() => {})
+    await refund('refund_signal_analysis', userId)
     return jsonResponse(500, { error: 'insert_failed' })
   }
 
