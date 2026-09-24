@@ -48,6 +48,7 @@ import { BackButton } from '../BackButton';
 import { ArticleAutomationSettings } from './ArticleAutomationSettings';
 import { MarketAdmin } from './MarketAdmin';
 import { LiveRoomAdmin } from './LiveRoomAdmin';
+import { PartnerApplications } from './PartnerApplications';
 import {
   Badge, Button, Card, EmptyState, Input, Label, PageHeader, Select, Skeleton, Tabs, Textarea,
   Table, THead, TBody, TR, TH, TD,
@@ -1254,6 +1255,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           </Table>
         ) : activeTab === 'partners' ? (
           <div className="space-y-6">
+            <div className="p-4 sm:p-6 pb-0 sm:pb-0">
+              <PartnerApplications search={searchTerm} />
+            </div>
 
             {partnerRequests.length > 0 && (
                 <div className="bg-warning/5 border-b border-warning/20">

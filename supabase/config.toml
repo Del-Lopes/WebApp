@@ -382,6 +382,12 @@ allow_dynamic_registration = false
   [functions.econ-calendar-sync]
     verify_jwt = false
 
+  # Formulário "Seja um Parceiro" da landing: visitante sem conta. Valida os
+  # campos, tem honeypot e limite por IP/global; só insere em
+  # partner_applications (sem leitura).
+  [functions.partner-apply]
+    verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.
