@@ -10,14 +10,14 @@ Não use `dark:` nem cores fixas de fundo e texto nas telas: se o token certo fo
 
 | Token | Uso | Escuro | Claro |
 |---|---|---|---|
-| `bg-page` | fundo da página | `#0a0a0a` | `#fafafa` |
-| `bg-surface` | card, painel, modal, sidebar | `#111111` | `#ffffff` |
-| `bg-elevated` | superfície acima de outra (menu, popover) | `#171717` | `#f5f5f5` |
-| `border-line` / `border-line-strong` | bordas sólidas | `#262626` / `#333` | `#e5e5e5` / `#d4d4d4` |
+| `bg-page` | fundo da página | `#181818` | `#fafafa` |
+| `bg-surface` | card, painel, modal, sidebar | `#1f1f1f` | `#ffffff` |
+| `bg-elevated` | superfície acima de outra (menu, popover) | `#262626` | `#f5f5f5` |
+| `border-line` / `border-line-strong` | bordas sólidas | `#2e2e2e` / `#3a3a3a` | `#e5e5e5` / `#d4d4d4` |
 | `tint` + opacidade | camadas translúcidas (`bg-tint/3`, `border-tint/8`) | branco | preto |
 | `text-fg` | texto principal | `#f5f5f5` | `#0a0a0a` |
 | `text-fg-muted` | texto secundário (mínimo AA) | `#a3a3a3` | `#525252` |
-| `text-fg-subtle` | datas e rodapés (ainda AA) | `#8a8a8a` | `#6b6b6b` |
+| `text-fg-subtle` | datas e rodapés (ainda AA) | `#949494` | `#6b6b6b` |
 | `bg-accent` / `text-accent-fg` | destaque da marca | `#22c55e` / `#4ade80` | `#16a34a` / `#15803d` |
 | `success` / `danger` / `warning` / `info` | base para fundo e borda com opacidade | | |
 | `text-success-fg` etc. | texto semântico legível no tema | 400 | 700 |

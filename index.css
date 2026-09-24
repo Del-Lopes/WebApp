@@ -215,16 +215,18 @@
 
 :root,
 [data-theme="dark"] {
-  --ds-page: #0a0a0a;
-  --ds-surface: #111111;
-  --ds-elevated: #171717;
-  --ds-line: #262626;
-  --ds-line-strong: #333333;
+  /* Escuro "ameno" (referência: fundos do Antigravity/VS Code), em vez de
+     quase preto — menos cansativo em uso prolongado. */
+  --ds-page: #181818;
+  --ds-surface: #1f1f1f;
+  --ds-elevated: #262626;
+  --ds-line: #2e2e2e;
+  --ds-line-strong: #3a3a3a;
   --ds-tint: #ffffff;
 
   --ds-fg: #f5f5f5;
-  --ds-fg-muted: #a3a3a3;   /* mínimo AA para texto secundário sobre #0a0a0a */
-  --ds-fg-subtle: #8a8a8a;  /* datas e rodapés; ainda AA (≥5.1:1 nas superfícies) */
+  --ds-fg-muted: #a3a3a3;   /* AA ≥6:1 em page/surface/elevated */
+  --ds-fg-subtle: #949494;  /* datas e rodapés; ainda AA (≥5:1 nas superfícies) */
   --ds-fg-inverse: #0a0a0a;
 
   --ds-accent: #22c55e;
@@ -239,14 +241,14 @@
   --ds-info: #0ea5e9;
   --ds-info-fg: #7dd3fc;
 
-  --ds-glass-from: rgb(23 23 23 / 0.7);
-  --ds-glass-to: rgb(17 17 17 / 0.3);
+  --ds-glass-from: rgb(38 38 38 / 0.72);
+  --ds-glass-to: rgb(31 31 31 / 0.4);
   --ds-glass-border: rgb(255 255 255 / 0.08);
   --ds-glass-shadow: none;
   --ds-eyebrow: color-mix(in oklab, #22c55e 85%, white);
   --ds-gradient-brand: linear-gradient(135deg, #5eea96 0%, #22c55e 50%, #15803d 110%);
-  --ds-scroll-thumb: #262626;
-  --ds-scroll-thumb-hover: #333333;
+  --ds-scroll-thumb: #3a3a3a;
+  --ds-scroll-thumb-hover: #4a4a4a;
 }
 
 /* color-scheme só com data-theme explícito: aplicar no :root agora faria os

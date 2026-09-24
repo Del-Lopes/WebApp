@@ -7,7 +7,7 @@ import { useTheme } from '../../contexts/ThemeContext';
 // Segue o tema do app: fundo e grade iguais à superfície dos cards.
 
 const WIDGET_COLORS = {
-  dark: { backgroundColor: 'rgba(17, 17, 17, 1)', gridColor: 'rgba(255, 255, 255, 0.04)' },
+  dark: { backgroundColor: 'rgba(31, 31, 31, 1)', gridColor: 'rgba(255, 255, 255, 0.05)' },
   light: { backgroundColor: 'rgba(255, 255, 255, 1)', gridColor: 'rgba(0, 0, 0, 0.05)' },
 } as const;
 

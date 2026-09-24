@@ -7,7 +7,7 @@ import React, { createContext, useCallback, useContext, useEffect, useState } fr
 export type Theme = 'dark' | 'light';
 
 export const THEME_STORAGE_KEY = 'trader_afk_theme';
-const THEME_COLOR: Record<Theme, string> = { dark: '#0a0a0a', light: '#fafafa' };
+const THEME_COLOR: Record<Theme, string> = { dark: '#181818', light: '#fafafa' };
 
 function readStoredTheme(): Theme {
   try {
