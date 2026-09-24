@@ -26,10 +26,10 @@
 @source inline("bg-{indigo,blue,purple,green,slate,orange}-50 text-{indigo,blue,purple,green,slate,orange}-600");
 
 /*
- * Altura de linha da escala de fonte com os valores absolutos do v3. No v4 ela
- * é proporção (text-sm = 1.4286) e é herdada proporcionalmente: um selo
+ * Altura de linha da escala de fonte com valores absolutos (como no v3). No v4
+ * ela é proporção (text-sm = 1.4286) e é herdada proporcionalmente: um selo
  * text-[10px] dentro de uma tabela text-sm ficava com 14px de linha em vez de
- * 20px, e várias listas encolhiam 1–2px. Revisto na Fase 2 (design system).
+ * 20px. Mantido de propósito: as telas foram desenhadas com essa régua.
  */
 @theme {
   --text-xs--line-height: 1rem;
@@ -48,11 +48,10 @@
 }
 
 /*
- * Compatibilidade com os padrões do v3, para a migração não mudar o visual:
- * - borda sem cor explícita era gray-200 (no v4 é currentColor);
- * - placeholder era gray-400 (no v4 é o texto com 50% de opacidade);
- * - botões tinham cursor pointer (no v4 voltam ao padrão do navegador).
- * Saem na Fase 2, quando as telas passam a usar os tokens do design system.
+ * Padrões globais:
+ * - borda sem cor explícita usa a linha do tema (no v4 seria currentColor);
+ * - placeholder no tom terciário do tema;
+ * - botões com cursor pointer (no v4 voltam ao padrão do navegador).
  */
 @layer base {
   *,
@@ -60,12 +59,12 @@
   ::before,
   ::backdrop,
   ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
+    border-color: var(--ds-line, currentColor);
   }
 
   input::placeholder,
   textarea::placeholder {
-    color: var(--color-gray-400);
+    color: var(--ds-fg-subtle);
   }
 
   button:not(:disabled),
@@ -100,6 +99,8 @@
   body {
     font-family: 'Inter', sans-serif;
     scrollbar-gutter: stable;
+    background-color: var(--ds-page);
+    color: var(--ds-fg);
   }
 
   h1, h2, h3, h4 {
@@ -223,7 +224,7 @@
 
   --ds-fg: #f5f5f5;
   --ds-fg-muted: #a3a3a3;   /* mínimo AA para texto secundário sobre #0a0a0a */
-  --ds-fg-subtle: #737373;  /* só texto não essencial (datas, rodapés) */
+  --ds-fg-subtle: #8a8a8a;  /* datas e rodapés; ainda AA (≥5.1:1 nas superfícies) */
   --ds-fg-inverse: #0a0a0a;
 
   --ds-accent: #22c55e;
@@ -265,7 +266,7 @@
 
   --ds-fg: #0a0a0a;
   --ds-fg-muted: #525252;
-  --ds-fg-subtle: #737373;
+  --ds-fg-subtle: #6b6b6b;  /* AA (≥4.9:1 nas superfícies) */
   --ds-fg-inverse: #ffffff;
 
   /* No claro o verde vivo não passa em contraste como texto: texto usa o 700. */
@@ -375,7 +376,8 @@
  * space-y-6: no v3 as margens colapsavam em 24px, no v4 sobram 8px).
  * Aqui: anula o margin-bottom do v4 (mesma especificidade zero do :where, então
  * a margem própria do filho continua valendo) e recoloca o seletor do v3.
- * Só os valores usados no código. Sai quando as telas forem refeitas.
+ * Mantido de propósito (as telas dependem dele). Valor novo de space-y usado
+ * no código precisa entrar nesta lista.
  */
 @layer utilities {
   :where(.space-y-0\.5 > :not(:last-child)) { margin-block-end: 0; }
@@ -427,31 +429,22 @@
     background: transparent;
   }
 
+  /* Legado: segue o tema (preferir ds-scrollbar em código novo) */
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #cbd5e1; /* slate-300 */
+    background: var(--ds-scroll-thumb);
     border-radius: 10px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #94a3b8; /* slate-400 */
+    background: var(--ds-scroll-thumb-hover);
   }
 
-  /* Dark mode scrollbar support if needed */
-  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #334155; /* slate-700 */
-  }
-
-  /* Glassmorphism Classes */
+  /* Legado: vidro do tema (preferir glass-card em código novo) */
   .glass-panel {
-    background: rgba(255, 255, 255, 0.7);
+    background: color-mix(in oklab, var(--ds-surface) 75%, transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
-  }
-
-  .dark .glass-panel {
-    background: rgba(15, 23, 42, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid color-mix(in oklab, var(--ds-tint) 8%, transparent);
   }
 
   .animate-fade-in {

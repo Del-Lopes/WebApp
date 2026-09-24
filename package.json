@@ -13,7 +13,6 @@
     "@tailwindcss/vite": "^4.3.3",
     "@vercel/analytics": "^2.0.1",
     "clsx": "^2.1.1",
-    "ldrs": "^1.1.9",
     "lucide-react": "^0.562.0",
     "prop-types": "^15.8.1",
     "react": "^19.2.3",

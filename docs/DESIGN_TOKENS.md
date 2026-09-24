@@ -17,7 +17,7 @@ Não use `dark:` nem cores fixas de fundo e texto nas telas: se o token certo fo
 | `tint` + opacidade | camadas translúcidas (`bg-tint/3`, `border-tint/8`) | branco | preto |
 | `text-fg` | texto principal | `#f5f5f5` | `#0a0a0a` |
 | `text-fg-muted` | texto secundário (mínimo AA) | `#a3a3a3` | `#525252` |
-| `text-fg-subtle` | datas e rodapés (não essencial) | `#737373` | `#737373` |
+| `text-fg-subtle` | datas e rodapés (ainda AA) | `#8a8a8a` | `#6b6b6b` |
 | `bg-accent` / `text-accent-fg` | destaque da marca | `#22c55e` / `#4ade80` | `#16a34a` / `#15803d` |
 | `success` / `danger` / `warning` / `info` | base para fundo e borda com opacidade | | |
 | `text-success-fg` etc. | texto semântico legível no tema | 400 | 700 |
@@ -64,3 +64,5 @@ Cores fixas da marca, as mesmas nos dois temas: `brand-green`, `brand-green-brig
 - **Nada de rolagem horizontal em 375px:** tabelas rolam dentro do próprio wrapper (o `<Table>` já faz isso).
 - **Foco visível:** os componentes já usam `ring-accent/60`. Em botão próprio, repita `focus-visible:ring-2 focus-visible:ring-accent/60`.
 - **Classes inteiras no código:** o Tailwind compilado não enxerga `bg-${cor}-50`. Use mapas com as classes escritas por completo.
+- **Cor em SVG ou `style` inline:** use `var(--ds-success)`, `var(--ds-line)` etc. As variáveis `--color-success`, `--color-fg`... **não existem no CSS gerado** (`@theme inline` só as usa dentro dos utilitários).
+- **Logo:** `<Logo>` escolhe a arte pelo tema (`logo-icon.png` branca no escuro, `icon.png` escura no claro).

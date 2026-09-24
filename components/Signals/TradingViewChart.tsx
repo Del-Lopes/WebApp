@@ -1,8 +1,15 @@
 import React, { useEffect, useRef } from 'react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // Widget de gráfico interativo do TradingView (Advanced Chart).
 // Carrega o script embed de terceiro (s3.tradingview.com) e monta o gráfico
 // do símbolo/intervalo informados. Sem custo, atualiza ao vivo.
+// Segue o tema do app: fundo e grade iguais à superfície dos cards.
+
+const WIDGET_COLORS = {
+  dark: { backgroundColor: 'rgba(17, 17, 17, 1)', gridColor: 'rgba(255, 255, 255, 0.04)' },
+  light: { backgroundColor: 'rgba(255, 255, 255, 1)', gridColor: 'rgba(0, 0, 0, 0.05)' },
+} as const;
 
 interface Props {
   symbol: string;    // formato TradingView, ex.: 'OANDA:XAUUSD'
@@ -12,6 +19,7 @@ interface Props {
 
 export const TradingViewChart: React.FC<Props> = ({ symbol, interval, height = 320 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { theme } = useTheme();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -35,7 +43,7 @@ export const TradingViewChart: React.FC<Props> = ({ symbol, interval, height = 3
       symbol,
       interval,
       timezone: 'America/Sao_Paulo',
-      theme: 'light',
+      theme,
       style: '1',                    // candles
       locale: 'br',
       // Visual limpo: só os candles, sem toolbars/legenda/barras.
@@ -48,18 +56,18 @@ export const TradingViewChart: React.FC<Props> = ({ symbol, interval, height = 3
       save_image: false,
       calendar: false,
       details: false,
-      backgroundColor: 'rgba(255, 255, 255, 1)',
+      ...WIDGET_COLORS[theme],
       support_host: 'https://www.tradingview.com',
     });
     container.appendChild(script);
 
     return () => { container.innerHTML = ''; };
-  }, [symbol, interval, height]);
+  }, [symbol, interval, height, theme]);
 
   return (
     <div
       ref={containerRef}
-      className="tradingview-widget-container rounded-xl overflow-hidden ring-1 ring-slate-100"
+      className="tradingview-widget-container rounded-xl overflow-hidden border border-tint/8 bg-surface"
       style={{ height }}
     />
   );

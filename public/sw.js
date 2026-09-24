@@ -1,4 +1,6 @@
-const CACHE_NAME = 'afk-trade-v1';
+// Versão sobe a cada mudança visual grande, para o PWA instalado não ficar
+// preso ao CSS antigo (v2: redesign com tema escuro/claro).
+const CACHE_NAME = 'afk-trade-v2';
 const urlsToCache = [
   '/',
   '/index.html',

@@ -35,6 +35,12 @@ export const Modal: React.FC<ModalProps> = ({
     if (open) setTheme(anchorRef.current?.closest('[data-theme]')?.getAttribute('data-theme') ?? undefined);
   }, [open]);
 
+  // onClose numa ref: quem usa costuma passar arrow inline, que muda a cada
+  // render do pai. Se ele fosse dependência do efeito abaixo, cada tecla
+  // digitada no modal re-rodaria o efeito e jogaria o foco no primeiro campo.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
     const previous = document.activeElement as HTMLElement | null;
@@ -42,7 +48,7 @@ export const Modal: React.FC<ModalProps> = ({
     (panel?.querySelector<HTMLElement>(FOCUSABLE) ?? panel)?.focus();
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.stopPropagation(); onClose(); return; }
+      if (e.key === 'Escape') { e.stopPropagation(); onCloseRef.current(); return; }
       if (e.key !== 'Tab' || !panel) return;
       const items = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)];
       if (items.length === 0) return;
@@ -58,7 +64,7 @@ export const Modal: React.FC<ModalProps> = ({
       document.body.style.overflow = overflow;
       previous?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return <span ref={anchorRef} hidden />;
 
