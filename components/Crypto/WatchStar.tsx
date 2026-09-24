@@ -13,8 +13,8 @@ export const WatchStar: React.FC<{ coin: WatchableCoin }> = ({ coin }) => {
       title={active ? 'Parar de acompanhar' : 'Acompanhar'}
       aria-label={active ? `Parar de acompanhar ${coin.name}` : `Acompanhar ${coin.name}`}
       aria-pressed={active}
-      className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-        active ? 'text-amber-500 hover:bg-amber-50' : 'text-slate-300 hover:text-amber-500 hover:bg-slate-50'
+      className={`p-1.5 rounded-lg transition-colors shrink-0 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+        active ? 'text-warning hover:bg-warning/10' : 'text-fg-subtle hover:text-warning hover:bg-tint/5'
       }`}
     >
       <Star size={15} fill={active ? 'currentColor' : 'none'} />

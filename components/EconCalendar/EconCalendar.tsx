@@ -8,6 +8,7 @@ import {
 } from '../../lib/econCalendar';
 import { EventRow, Stars } from './EventRow';
 import { EventDetail, DirIcon } from './EventDetail';
+import { PageHeader, Tabs, EmptyState, Skeleton } from '../ui';
 
 interface Props {
   onBack: () => void;
@@ -78,29 +79,32 @@ const NextEventCard: React.FC<{ event: EconEvent; profile: EconProfile | undefin
   const down = interp?.cenarios.abaixo;
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-950 text-white shadow-lg overflow-hidden">
-      <button onClick={() => setOpen((v) => !v)} className="w-full text-left p-5">
+    <div className="glass-card overflow-hidden">
+      {/* Brilho verde sutil no canto — destaque sem gritar */}
+      <div className="pointer-events-none absolute -top-16 -right-12 h-44 w-44 rounded-full bg-accent/10 blur-3xl" aria-hidden />
+      <div className="hairline absolute inset-x-0 top-0" aria-hidden />
+      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="relative w-full text-left p-5 rounded-2xl focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div className="min-w-0">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-300 flex items-center gap-1.5">
+            <p className="eyebrow flex items-center gap-1.5">
               <Clock size={13} /> Próximo evento de alto impacto
             </p>
-            <p className="mt-1.5 text-lg font-bold leading-snug">{displayTitle(event, profile)}</p>
-            <p className="mt-1 text-xs text-slate-400 flex items-center gap-2 flex-wrap">
-              <span className="font-bold text-white bg-white/10 px-1.5 py-0.5 rounded-sm">{event.currency}</span>
+            <p className="mt-2 font-display text-lg font-semibold leading-snug text-fg">{displayTitle(event, profile)}</p>
+            <p className="mt-1.5 text-xs text-fg-muted flex items-center gap-2 flex-wrap">
+              <span className="font-mono font-semibold text-fg bg-tint/6 border border-tint/10 px-1.5 py-0.5 rounded-sm">{event.currency}</span>
               {CURRENCY_LABEL[event.currency] && <span>{CURRENCY_LABEL[event.currency]}</span>}
               <Stars n={event.importance} />
-              <span>
+              <span className="tabular-nums">
                 {new Date(event.occurs_at).toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' })} às {fmtTime(event.occurs_at)}
               </span>
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold tabular-nums text-amber-300">{fmtCountdown(event.occurs_at, now)}</p>
+          <div className="sm:text-right">
+            <p className="font-display text-2xl font-semibold tabular-nums whitespace-nowrap text-accent-fg">{fmtCountdown(event.occurs_at, now)}</p>
             {(event.previous != null || event.forecast != null) && (
-              <p className="text-xs text-slate-400 mt-1">
-                Anterior <span className="text-slate-200 font-semibold">{fmtValue(event.previous, event.unit, event.precision)}</span>
-                {' · '}Projeção <span className="text-slate-200 font-semibold">{fmtValue(event.forecast, event.unit, event.precision)}</span>
+              <p className="text-xs text-fg-muted mt-1">
+                Anterior <span className="font-mono tabular-nums text-fg font-semibold">{fmtValue(event.previous, event.unit, event.precision)}</span>
+                {' · '}Projeção <span className="font-mono tabular-nums text-fg font-semibold">{fmtValue(event.forecast, event.unit, event.precision)}</span>
               </p>
             )}
           </div>
@@ -109,26 +113,26 @@ const NextEventCard: React.FC<{ event: EconEvent; profile: EconProfile | undefin
         {up && down && (
           <div className="mt-4 grid sm:grid-cols-2 gap-2">
             {[up, down].map((s, i) => (
-              <div key={i} className="rounded-xl bg-white/5 ring-1 ring-white/10 px-3 py-2">
-                <p className="text-[11px] uppercase tracking-wide text-slate-400">{s.rotulo}</p>
-                <p className="text-sm font-semibold flex items-center gap-1 mt-0.5">
+              <div key={i} className="rounded-xl bg-tint/3 border border-tint/8 px-3 py-2">
+                <p className="eyebrow-muted text-[10px]">{s.rotulo}</p>
+                <p className="text-sm font-semibold text-fg flex items-center gap-1 mt-1">
                   <DirIcon dir={s.moeda} size={15} />
                   {event.currency} tende a {s.moeda === 'alta' ? 'alta' : s.moeda === 'baixa' ? 'baixa' : 'ficar estável'}
-                  {s.moeda !== 'neutra' && <span className="font-normal text-slate-400">· {s.intensidade}</span>}
+                  {s.moeda !== 'neutra' && <span className="font-normal text-fg-muted">· {s.intensidade}</span>}
                 </p>
               </div>
             ))}
           </div>
         )}
 
-        <p className="mt-3 text-xs text-indigo-300 flex items-center gap-1">
+        <p className="mt-3 text-xs font-medium text-accent-fg flex items-center gap-1">
           {open ? 'Ocultar interpretação' : 'Ver interpretação completa'}
           <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
         </p>
       </button>
 
       {open && (
-        <div className="bg-white text-slate-800 pt-3">
+        <div className="relative border-t border-tint/6 bg-tint/2 pt-3">
           <EventDetail event={event} profile={profile} />
         </div>
       )}
@@ -239,23 +243,17 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
   return (
     <div className="space-y-4">
       {/* Cabeçalho */}
-      <div className="flex items-center gap-3">
-        <BackButton onClick={onBack} />
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center">
-            <CalendarClock size={18} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Calendário Econômico</h1>
-            <p className="text-xs text-slate-400">Notícias de alto impacto e como o mercado costuma reagir</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        leading={<BackButton onClick={onBack} />}
+        title={<span className="inline-flex items-center gap-2.5"><CalendarClock size={22} className="shrink-0 text-accent-fg" aria-hidden /> Calendário Econômico</span>}
+        description="Notícias de alto impacto e como o mercado costuma reagir"
+        className="mb-2 sm:mb-2"
+      />
 
       {/* Disclaimer */}
-      <div className="rounded-xl bg-amber-50 ring-1 ring-amber-100 p-3 flex items-start gap-2">
-        <AlertTriangle size={15} className="text-amber-500 mt-0.5 shrink-0" />
-        <p className="text-xs text-amber-800 leading-relaxed">
+      <div className="rounded-xl bg-warning/10 border border-warning/20 p-3 flex items-start gap-2">
+        <AlertTriangle size={15} className="text-warning-fg mt-0.5 shrink-0" />
+        <p className="text-xs text-warning-fg leading-relaxed">
           Eventos de 2 e 3 estrelas (dados via TradingView), horários no seu fuso. As interpretações são geradas por IA e descrevem a
           reação <strong>típica</strong> do mercado — não são recomendação de operação. Na divulgação o spread abre e o preço pode
           oscilar forte para os dois lados.
@@ -263,8 +261,8 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
       </div>
 
       {stale && (
-        <div className="rounded-xl bg-rose-50 ring-1 ring-rose-100 p-3 text-xs text-rose-700 flex items-center gap-2">
-          <RefreshCw size={14} /> A coleta do calendário está com falha
+        <div className="rounded-xl bg-danger/10 border border-danger/20 p-3 text-xs text-danger-fg flex items-start gap-2">
+          <RefreshCw size={14} className="mt-0.5 shrink-0" /> A coleta do calendário está com falha
           {sync?.last_ok_at ? ` desde ${new Date(sync.last_ok_at).toLocaleString('pt-BR')}` : ''} — os dados podem estar desatualizados.
         </div>
       )}
@@ -274,26 +272,20 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
       {/* Filtros */}
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex gap-1 p-1 rounded-2xl bg-slate-100 overflow-x-auto max-w-full">
-            {RANGES.map(({ key, label }) => (
-              <button
-                key={key}
-                onClick={() => setRange(key)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all whitespace-nowrap ${
-                  range === key ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-1 p-1 rounded-2xl bg-slate-100">
+          <Tabs
+            aria-label="Período"
+            items={RANGES}
+            value={range}
+            onChange={setRange}
+          />
+          <div className="flex gap-1 p-1 rounded-xl border border-tint/6 bg-tint/3">
             {[false, true].map((high) => (
               <button
                 key={String(high)}
                 onClick={() => setPrefs((p) => ({ ...p, onlyHigh: high }))}
-                className={`flex items-center gap-1 px-3 py-2 rounded-xl text-sm font-semibold transition-all ${
-                  prefs.onlyHigh === high ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+                aria-pressed={prefs.onlyHigh === high}
+                className={`flex items-center gap-1 px-3 py-2 rounded-lg border text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                  prefs.onlyHigh === high ? 'bg-surface text-fg border-tint/10 shadow-xs' : 'border-transparent text-fg-muted hover:text-fg'
                 }`}
               >
                 <Stars n={high ? 3 : 2} /> {high ? 'Só 3' : '2 e 3'}
@@ -301,7 +293,7 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
             ))}
           </div>
           {sync?.last_ok_at && (
-            <span className="text-[11px] text-slate-400 ml-auto">Atualizado {fmtAgo(sync.last_ok_at, now)}</span>
+            <span className="text-[11px] text-fg-subtle ml-auto">Atualizado {fmtAgo(sync.last_ok_at, now)}</span>
           )}
         </div>
 
@@ -309,8 +301,9 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setPrefs((p) => ({ ...p, currencies: [] }))}
-              className={`px-2.5 py-1 rounded-lg text-xs font-semibold ring-1 transition-colors ${
-                prefs.currencies.length === 0 ? 'bg-slate-900 text-white ring-slate-900' : 'bg-white text-slate-500 ring-slate-200 hover:text-slate-800'
+              aria-pressed={prefs.currencies.length === 0}
+              className={`px-2.5 py-1 rounded-full border text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                prefs.currencies.length === 0 ? 'bg-accent/10 text-accent-fg border-accent/30' : 'bg-tint/3 text-fg-muted border-tint/10 hover:text-fg'
               }`}
             >
               Todas
@@ -320,8 +313,9 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
                 key={c}
                 onClick={() => toggleCurrency(c)}
                 title={CURRENCY_LABEL[c]}
-                className={`px-2.5 py-1 rounded-lg text-xs font-semibold ring-1 transition-colors ${
-                  prefs.currencies.includes(c) ? 'bg-indigo-600 text-white ring-indigo-600' : 'bg-white text-slate-500 ring-slate-200 hover:text-slate-800'
+                aria-pressed={prefs.currencies.includes(c)}
+                className={`px-2.5 py-1 rounded-full border font-mono text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                  prefs.currencies.includes(c) ? 'bg-accent/10 text-accent-fg border-accent/30' : 'bg-tint/3 text-fg-muted border-tint/10 hover:text-fg'
                 }`}
               >
                 {c}
@@ -333,27 +327,27 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
 
       {/* Lista */}
       {loading ? (
-        <div className="flex justify-center py-16 text-slate-300"><Loader2 className="animate-spin" size={32} /></div>
+        <div className="space-y-2" aria-busy="true">
+          <Skeleton className="h-3 w-40" />
+          {[0, 1, 2, 3, 4].map((k) => <Skeleton key={k} className="h-[62px] rounded-2xl" />)}
+        </div>
       ) : error ? (
-        <div className="rounded-2xl border border-dashed border-rose-200 py-12 text-center text-rose-500 text-sm">
+        <div className="rounded-2xl border border-dashed border-danger/30 bg-danger/5 py-12 px-4 text-center text-danger-fg text-sm">
           Não foi possível carregar o calendário. Tente novamente em instantes.
         </div>
       ) : events.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 py-16 text-center text-slate-400">
-          <Loader2 size={26} className="mx-auto mb-2 animate-spin opacity-50" />
-          <p className="text-sm">Coletando o calendário econômico…</p>
-          <p className="text-xs text-slate-300 mt-1">Na primeira carga isso leva alguns instantes.</p>
+        <div className="flex flex-col items-center rounded-2xl border border-dashed border-tint/10 px-6 py-14 text-center">
+          <Loader2 size={26} className="mb-3 animate-spin text-fg-subtle" />
+          <p className="font-display text-base font-semibold text-fg">Coletando o calendário econômico…</p>
+          <p className="mt-1 text-sm text-fg-muted">Na primeira carga isso leva alguns instantes.</p>
         </div>
       ) : grouped.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 py-16 text-center text-slate-400">
-          <CalendarX size={28} className="mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Nenhum evento com esses filtros neste período.</p>
-        </div>
+        <EmptyState icon={CalendarX} title="Nenhum evento com esses filtros neste período." />
       ) : (
         <div className="space-y-5">
           {grouped.map(([day, list]) => (
             <div key={day} className="space-y-2">
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-400 px-1">{fmtDayHeader(day)}</p>
+              <p className="eyebrow-muted px-1">{fmtDayHeader(day)}</p>
               {list.map((e) => (
                 <EventRow
                   key={e.occurrence_id}

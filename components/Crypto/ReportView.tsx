@@ -4,6 +4,7 @@ import { TrilhaStats } from '../../types';
 import { fetchReportCost, fetchMyReports, requestNarrativeReport, CryptoReport } from '../../lib/cryptoData';
 import { fetchStats } from '../../lib/trilhaGain';
 import { fmtPct, pctColor } from './format';
+import { Button, Skeleton, EmptyState } from '../ui';
 
 // Relatório de Narrativa por IA — panorama do que está aquecendo, pago em Coins.
 export const ReportView: React.FC = () => {
@@ -47,58 +48,54 @@ export const ReportView: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Painel de geração */}
-      <div className="rounded-2xl bg-gradient-to-br from-white via-violet-50/60 to-indigo-50 ring-1 ring-violet-100 p-5 shadow-[0_10px_30px_-16px_rgba(99,102,241,0.35)]">
+      <div className="glass-card relative overflow-hidden p-5">
+        <div className="hairline absolute inset-x-0 top-0" aria-hidden />
         <div className="flex items-center justify-between gap-4 flex-wrap">
           <div>
-            <p className="text-sm font-semibold text-slate-800 flex items-center gap-2"><Brain size={16} className="text-violet-600" /> Panorama de narrativas por IA</p>
-            <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-              <Coins size={13} className="text-amber-500" />
-              Saldo: <span className="font-semibold text-slate-700">{balance.toLocaleString('pt-BR')}</span>
-              <span className="text-slate-300">•</span>
-              Custo: <span className="font-semibold text-slate-700">{cost.toLocaleString('pt-BR')} Coins</span>
+            <p className="font-display text-sm font-semibold text-fg flex items-center gap-2"><Brain size={16} className="text-accent-fg" /> Panorama de narrativas por IA</p>
+            <p className="text-xs text-fg-muted mt-0.5 flex items-center gap-1 flex-wrap">
+              <Coins size={13} className="text-warning" />
+              Saldo: <span className="font-mono tabular-nums whitespace-nowrap font-semibold text-fg">{balance.toLocaleString('pt-BR')}</span>
+              <span className="text-fg-subtle">•</span>
+              Custo: <span className="font-mono tabular-nums whitespace-nowrap font-semibold text-fg">{cost.toLocaleString('pt-BR')} Coins</span>
             </p>
           </div>
-          <button
+          <Button
             onClick={handleGenerate}
             disabled={generating || !canAfford}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-violet-600 text-white font-semibold hover:bg-violet-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-violet-900/10"
           >
             {generating ? <><Loader2 size={18} className="animate-spin" /> Gerando…</> : <><Zap size={18} /> Gerar relatório ({cost} Coins)</>}
-          </button>
+          </Button>
         </div>
         {!canAfford && !generating && (
-          <p className="text-xs text-amber-600 mt-2">Faltam {(cost - balance).toLocaleString('pt-BR')} Coins. Ganhe na Trilha Gain.</p>
+          <p className="text-xs text-warning-fg mt-2">Faltam {(cost - balance).toLocaleString('pt-BR')} Coins. Ganhe na Trilha Gain.</p>
         )}
-        {error && <p className="text-xs text-rose-600 mt-2">{error}</p>}
+        {error && <p className="text-xs text-danger-fg mt-2">{error}</p>}
       </div>
 
       {/* Histórico */}
       {loading ? (
-        <div className="flex justify-center py-16 text-slate-300"><Loader2 className="animate-spin" size={32} /></div>
+        <div className="space-y-3" aria-busy="true">{[0, 1].map((k) => <Skeleton key={k} className="h-40 rounded-2xl" />)}</div>
       ) : reports.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-200 py-16 text-center text-slate-400">
-          <Brain size={28} className="mx-auto mb-2 opacity-50" />
-          <p className="text-sm">Nenhum relatório ainda.</p>
-          <p className="text-xs text-slate-300 mt-1">Gere seu primeiro panorama de narrativas do momento.</p>
-        </div>
+        <EmptyState icon={Brain} title="Nenhum relatório ainda." description="Gere seu primeiro panorama de narrativas do momento." />
       ) : (
         <div className="space-y-3">
           {reports.map((r) => (
-            <div key={r.id} className="rounded-2xl bg-white ring-1 ring-slate-100 p-5 shadow-xs">
-              <p className="text-sm font-bold text-slate-800">{r.title}</p>
-              <p className="text-[11px] text-slate-400 mb-2">{new Date(r.created_at).toLocaleString('pt-BR')}</p>
+            <div key={r.id} className="glass-card p-5">
+              <p className="font-display text-base font-semibold text-fg">{r.title}</p>
+              <p className="text-[11px] text-fg-subtle tabular-nums mb-3">{new Date(r.created_at).toLocaleString('pt-BR')}</p>
               {/* chips dos setores em destaque */}
               {r.meta?.top_sectors && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
                   {r.meta.top_sectors.slice(0, 6).map((s, i) => (
-                    <span key={i} className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-slate-50 ring-1 ring-slate-100">
-                      {s.change24h >= 0 ? <TrendingUp size={11} className="text-emerald-600" /> : <TrendingDown size={11} className="text-rose-600" />}
-                      {s.name} <span className={pctColor(s.change24h)}>{fmtPct(s.change24h)}</span>
+                    <span key={i} className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full bg-tint/3 border border-tint/8 text-fg-muted">
+                      {s.change24h >= 0 ? <TrendingUp size={11} className="text-success-fg" /> : <TrendingDown size={11} className="text-danger-fg" />}
+                      {s.name} <span className={`font-mono tabular-nums ${pctColor(s.change24h)}`}>{fmtPct(s.change24h)}</span>
                     </span>
                   ))}
                 </div>
               )}
-              <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line">{r.content}</p>
+              <p className="text-sm text-fg-muted leading-relaxed whitespace-pre-line">{r.content}</p>
             </div>
           ))}
         </div>

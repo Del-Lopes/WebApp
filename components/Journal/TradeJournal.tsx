@@ -1,11 +1,13 @@
 import React, { useMemo, useState } from 'react';
 import {
-  ArrowLeft, Plus, Loader2, Edit2, Trash2, AlertTriangle, Search,
+  Plus, Edit2, Trash2, AlertTriangle, Search,
   TrendingUp, TrendingDown, Star, BookOpen, Clock, ImageIcon,
   Target, BarChart3, ListChecks,
 } from 'lucide-react';
 import { useTradeJournal, type TradeEntry } from '../../hooks/useTradeJournal';
 import { TradeEditor } from './TradeEditor';
+import { BackButton } from '../BackButton';
+import { Button, EmptyState, Input, PageHeader, Select, Skeleton } from '../ui';
 
 interface TradeJournalProps {
   onBack: () => void;
@@ -82,40 +84,33 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="p-2 rounded-lg hover:bg-slate-100 transition-colors" aria-label="Voltar">
-            <ArrowLeft size={20} className="text-slate-600" />
-          </button>
-          <div>
-            <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-2">
-              <BookOpen className="text-green-600" size={22} />
-              Diário de Operações
-            </h2>
-            <p className="text-sm text-slate-500">
-              Registre suas operações com motivo, emocional e aprendizados.
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={() => { setEditing(null); setCreatingNew(true); }}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium transition-colors"
-        >
-          <Plus size={16} />
-          Nova operação
-        </button>
-      </div>
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        leading={<BackButton onClick={onBack} />}
+        title={
+          <span className="flex items-center gap-2">
+            <BookOpen className="text-accent-fg shrink-0" size={22} />
+            Diário de Operações
+          </span>
+        }
+        description="Registre suas operações com motivo, emocional e aprendizados."
+        actions={
+          <Button onClick={() => { setEditing(null); setCreatingNew(true); }}>
+            <Plus size={16} />
+            Nova operação
+          </Button>
+        }
+      />
 
       {error && (
-        <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+        <div className="flex items-start gap-2 p-3 rounded-lg border bg-danger/10 border-danger/20 text-danger-fg text-sm">
           <AlertTriangle size={16} className="shrink-0 mt-0.5" />
           <span>{error}</span>
         </div>
       )}
 
       {/* Stats cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
           icon={<ListChecks size={20} />}
           label="Operações"
@@ -144,32 +139,34 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
 
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input
+        <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[200px] max-w-md">
+          <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle z-10" />
+          <Input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar por ativo, motivo, análise…"
-            className="w-full pl-9 pr-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            className="pl-9 py-2"
           />
         </div>
 
-        <select
-          value={periodDays}
-          onChange={(e) => setPeriodDays(Number(e.target.value))}
-          className="text-sm rounded-lg border border-slate-300 bg-white px-3 py-2 focus:outline-hidden focus:ring-2 focus:ring-green-500"
-        >
-          {PERIOD_OPTIONS.map((opt) => (
-            <option key={opt.value} value={opt.value}>{opt.label}</option>
-          ))}
-        </select>
+        <div className="w-auto">
+          <Select
+            value={periodDays}
+            onChange={(e) => setPeriodDays(Number(e.target.value))}
+            className="py-2"
+          >
+            {PERIOD_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </Select>
+        </div>
 
         <FilterPill active={sideFilter === 'all'} onClick={() => setSideFilter('all')}>Todos</FilterPill>
         <FilterPill active={sideFilter === 'buy'} onClick={() => setSideFilter('buy')}>Compras</FilterPill>
         <FilterPill active={sideFilter === 'sell'} onClick={() => setSideFilter('sell')}>Vendas</FilterPill>
 
-        <span className="w-px h-6 bg-slate-200 mx-1" />
+        <span className="w-px h-6 bg-tint/10 mx-1" aria-hidden />
 
         <FilterPill active={resultFilter === 'all'} onClick={() => setResultFilter('all')}>Todas</FilterPill>
         <FilterPill active={resultFilter === 'win'} onClick={() => setResultFilter('win')}>Ganho</FilterPill>
@@ -179,18 +176,22 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
 
       {/* Lista */}
       {loading && entries.length === 0 ? (
-        <div className="flex items-center justify-center h-40">
-          <Loader2 className="animate-spin text-green-600" size={28} />
+        <div className="space-y-3">
+          {[0, 1, 2].map((i) => (
+            <Skeleton key={i} className="h-[72px] w-full rounded-xl" />
+          ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-12 text-center">
-          <BookOpen size={36} className="mx-auto text-slate-300 mb-3" />
-          <p className="text-slate-500 text-sm">
-            {entries.length === 0
-              ? 'Você ainda não registrou nenhuma operação. Clique em "Nova operação" para começar.'
-              : 'Nenhuma operação corresponde aos filtros.'}
-          </p>
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title={
+            <span className="block font-sans text-sm font-normal text-fg-muted">
+              {entries.length === 0
+                ? 'Você ainda não registrou nenhuma operação. Clique em "Nova operação" para começar.'
+                : 'Nenhuma operação corresponde aos filtros.'}
+            </span>
+          }
+        />
       ) : (
         <div className="space-y-3">
           {filtered.map((entry) => (
@@ -234,47 +235,47 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete }: TradeCardPro
   const isLoss = result < 0;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl overflow-hidden hover:shadow-xs transition-shadow">
+    <div className="glass-card glass-card-hover rounded-xl overflow-hidden">
       {/* Header (clicável pra expandir) */}
       <button
         onClick={onToggle}
-        className="w-full flex flex-wrap items-center gap-3 p-4 text-left hover:bg-slate-50 transition-colors"
+        className="w-full flex flex-wrap items-center gap-3 p-4 text-left hover:bg-tint/2 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60"
       >
-        <span className={`px-2.5 py-1 rounded-md text-xs font-bold ${
-          entry.side === 'buy' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+        <span className={`px-2.5 py-1 rounded-md border text-xs font-bold whitespace-nowrap ${
+          entry.side === 'buy' ? 'bg-success/10 border-success/20 text-success-fg' : 'bg-danger/10 border-danger/20 text-danger-fg'
         }`}>
           {entry.side === 'buy' ? '↑ COMPRA' : '↓ VENDA'}
         </span>
 
         <div className="flex flex-col min-w-0">
-          <span className="font-bold text-slate-900">{entry.asset}</span>
-          <span className="text-xs text-slate-500 flex items-center gap-1">
+          <span className="font-mono font-semibold text-fg">{entry.asset}</span>
+          <span className="text-xs text-fg-subtle flex items-center gap-1">
             <Clock size={11} />
             {formatDateTime(entry.opened_at)}
           </span>
         </div>
 
-        <span className="text-sm text-slate-600 tabular-nums ml-auto">
+        <span className="text-sm text-fg-muted font-mono tabular-nums whitespace-nowrap ml-auto">
           {entry.volume} lote{entry.volume !== 1 ? 's' : ''}
         </span>
 
         {entry.rating !== null && (
-          <span className="flex items-center gap-0.5 text-amber-500">
+          <span className="flex items-center gap-0.5 text-warning-fg">
             {Array.from({ length: entry.rating }).map((_, i) => (
-              <Star key={i} size={12} className="fill-amber-400 text-amber-400" />
+              <Star key={i} size={12} className="fill-warning text-warning" />
             ))}
           </span>
         )}
 
         {entry.screenshot_url && (
-          <ImageIcon size={14} className="text-slate-400" />
+          <ImageIcon size={14} className="text-fg-subtle" />
         )}
 
-        <span className={`px-3 py-1 rounded-lg text-sm font-semibold tabular-nums ${
-          isOpen ? 'bg-amber-50 text-amber-700' :
-          isWin ? 'bg-green-50 text-green-700' :
-          isLoss ? 'bg-red-50 text-red-700' :
-          'bg-slate-50 text-slate-700'
+        <span className={`px-3 py-1 rounded-lg border text-sm font-semibold font-mono tabular-nums whitespace-nowrap ${
+          isOpen ? 'bg-warning/10 border-warning/20 text-warning-fg' :
+          isWin ? 'bg-success/10 border-success/20 text-success-fg' :
+          isLoss ? 'bg-danger/10 border-danger/20 text-danger-fg' :
+          'bg-tint/5 border-tint/10 text-fg-muted'
         }`}>
           {isOpen ? 'Em aberto' : formatMoney(result)}
         </span>
@@ -282,7 +283,7 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete }: TradeCardPro
 
       {/* Conteúdo expandido */}
       {expanded && (
-        <div className="px-4 pb-4 pt-1 border-t border-slate-100 space-y-3">
+        <div className="px-4 pb-4 pt-3 border-t border-tint/6 space-y-3">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
             {entry.entry_price != null && (
               <KeyValue label="Entrada" value={String(entry.entry_price)} />
@@ -309,14 +310,14 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete }: TradeCardPro
           )}
           {entry.emotional_tags.length > 0 && (
             <div>
-              <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium mb-1.5">Emocional</p>
+              <p className="eyebrow-muted mb-1.5">Emocional</p>
               <div className="flex flex-wrap gap-1.5">
                 {entry.emotional_tags.map((tag) => (
-                  <span key={tag} className="px-2 py-0.5 rounded-full bg-slate-100 text-xs text-slate-700">{tag}</span>
+                  <span key={tag} className="px-2 py-0.5 rounded-full border border-tint/10 bg-tint/5 text-xs text-fg-muted">{tag}</span>
                 ))}
               </div>
               {entry.emotional_note && (
-                <p className="text-sm text-slate-600 mt-1.5 whitespace-pre-wrap">{entry.emotional_note}</p>
+                <p className="text-sm text-fg-muted mt-1.5 whitespace-pre-wrap">{entry.emotional_note}</p>
               )}
             </div>
           )}
@@ -325,32 +326,26 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete }: TradeCardPro
           )}
           {entry.screenshot_url && (
             <div>
-              <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium mb-1.5">Screenshot</p>
+              <p className="eyebrow-muted mb-1.5">Screenshot</p>
               <a href={entry.screenshot_url} target="_blank" rel="noopener noreferrer">
                 <img
                   src={entry.screenshot_url}
                   alt={`Screenshot ${entry.asset}`}
-                  className="max-h-72 rounded-lg border border-slate-200 hover:opacity-90 transition-opacity"
+                  className="max-h-72 max-w-full rounded-lg border border-tint/10 hover:opacity-90 transition-opacity"
                 />
               </a>
             </div>
           )}
 
-          <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
-            <button
-              onClick={onEdit}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-700 hover:bg-slate-100 transition-colors"
-            >
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-tint/6">
+            <Button variant="ghost" size="sm" onClick={onEdit}>
               <Edit2 size={14} />
               Editar
-            </button>
-            <button
-              onClick={onDelete}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors"
-            >
+            </Button>
+            <Button variant="danger" size="sm" onClick={onDelete}>
               <Trash2 size={14} />
               Apagar
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -365,18 +360,18 @@ function StatCard({
   accent?: 'positive' | 'negative' | 'neutral';
 }) {
   const accentClass = accent === 'positive'
-    ? 'text-green-600'
+    ? 'text-success-fg'
     : accent === 'negative'
-      ? 'text-red-600'
-      : 'text-slate-900';
+      ? 'text-danger-fg'
+      : 'text-fg';
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4">
-      <div className="flex items-center gap-2 text-slate-500 text-xs mb-2">
-        <span className="text-green-600">{icon}</span>
-        <span>{label}</span>
+    <div className="glass-card rounded-xl p-4 min-w-0">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <span className="eyebrow-muted truncate">{label}</span>
+        <span className="text-fg-subtle shrink-0 [&>svg]:h-4 [&>svg]:w-4">{icon}</span>
       </div>
-      <div className={`text-2xl font-bold tabular-nums ${accentClass}`}>{value}</div>
-      {hint && <div className="text-[11px] text-slate-500 mt-0.5">{hint}</div>}
+      <div className={`font-display text-xl sm:text-2xl font-semibold tabular-nums whitespace-nowrap truncate ${accentClass}`}>{value}</div>
+      {hint && <div className="text-[11px] text-fg-subtle mt-0.5">{hint}</div>}
     </div>
   );
 }
@@ -385,10 +380,10 @@ function FilterPill({ active, onClick, children }: { active: boolean; onClick: (
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+      className={`px-3 py-1.5 rounded-lg border text-sm transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
         active
-          ? 'bg-green-600 text-white'
-          : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+          ? 'bg-accent/10 border-accent/40 text-accent-fg font-medium'
+          : 'bg-tint/3 border-tint/10 text-fg-muted hover:bg-tint/6 hover:text-fg'
       }`}
     >
       {children}
@@ -399,8 +394,8 @@ function FilterPill({ active, onClick, children }: { active: boolean; onClick: (
 function KeyValue({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium">{label}</p>
-      <p className="text-slate-700 tabular-nums">{value}</p>
+      <p className="eyebrow-muted">{label}</p>
+      <p className="mt-0.5 text-fg font-mono tabular-nums break-words">{value}</p>
     </div>
   );
 }
@@ -408,8 +403,8 @@ function KeyValue({ label, value }: { label: string; value: string }) {
 function ReflectionField({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[11px] uppercase tracking-wide text-slate-400 font-medium mb-1">{label}</p>
-      <p className="text-sm text-slate-700 whitespace-pre-wrap bg-slate-50 rounded-lg px-3 py-2 border-l-2 border-slate-300">{value}</p>
+      <p className="eyebrow-muted mb-1">{label}</p>
+      <p className="text-sm text-fg whitespace-pre-wrap bg-tint/3 rounded-lg px-3 py-2 border-l-2 border-accent/40">{value}</p>
     </div>
   );
 }

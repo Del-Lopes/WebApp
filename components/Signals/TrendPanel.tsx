@@ -9,6 +9,7 @@ import {
 import { fetchTrendPanelCost, fetchTodayPanelAccess, openTrendPanel } from '../../lib/signals';
 import { fetchStats } from '../../lib/trilhaGain';
 import { TFGauge } from './TFGauge';
+import { Button, Label, Select, Skeleton } from '../ui';
 
 // Auto-refresh a cada 90s: com 5 TFs = 5 req por rodada, fica bem abaixo do
 // limite do plano free do Twelve Data (8 req/min).
@@ -140,19 +141,19 @@ export const TrendPanel: React.FC = () => {
 
   const biasMeta = analysis
     ? analysis.superTrend === 'up' || analysis.bias === 1
-      ? { Icon: TrendingUp, text: 'text-emerald-700', bg: 'bg-emerald-50 ring-emerald-200' }
+      ? { Icon: TrendingUp, text: 'text-success-fg', bg: 'bg-success/10 border-success/20' }
       : analysis.superTrend === 'down' || analysis.bias === -1
-      ? { Icon: TrendingDown, text: 'text-rose-700', bg: 'bg-rose-50 ring-rose-200' }
-      : { Icon: Minus, text: 'text-amber-700', bg: 'bg-amber-50 ring-amber-200' }
+      ? { Icon: TrendingDown, text: 'text-danger-fg', bg: 'bg-danger/10 border-danger/20' }
+      : { Icon: Minus, text: 'text-warning-fg', bg: 'bg-warning/10 border-warning/20' }
     : null;
 
   if (!HAS_MARKET_KEY) {
     return (
-      <div className="rounded-2xl bg-amber-50 ring-1 ring-amber-200 p-5 text-sm text-amber-800 flex items-start gap-2">
-        <AlertTriangle size={18} className="mt-0.5 shrink-0" />
-        <div>
+      <div className="rounded-2xl bg-warning/10 border border-warning/20 p-5 text-sm text-warning-fg flex items-start gap-2">
+        <AlertTriangle size={18} className="mt-0.5 shrink-0 text-warning-fg" />
+        <div className="min-w-0">
           <p className="font-semibold">Fonte de cotações não configurada.</p>
-          <p className="text-amber-700 mt-1">Defina <code className="bg-amber-100 px-1 rounded-sm">VITE_TWELVEDATA_KEY</code> no ambiente do front para ativar o painel de tendência.</p>
+          <p className="text-warning-fg mt-1 break-words">Defina <code className="font-mono bg-warning/15 px-1 rounded-sm">VITE_TWELVEDATA_KEY</code> no ambiente do front para ativar o painel de tendência.</p>
         </div>
       </div>
     );
@@ -161,81 +162,80 @@ export const TrendPanel: React.FC = () => {
   return (
     <div className="space-y-4">
       {/* Controles */}
-      <div className="rounded-2xl bg-white ring-1 ring-slate-100 p-4 shadow-xs">
-        <div className="flex items-end gap-3 flex-wrap">
+      <div className="glass-card p-4">
+        <div className="flex items-end gap-2 sm:gap-3 flex-wrap">
           <div className="flex-1 min-w-[180px]">
-            <label className="text-xs font-semibold text-slate-500">Ativo</label>
-            <select
+            <Label className="text-xs text-fg-muted">Ativo</Label>
+            <Select
               value={asset}
               onChange={(e) => setAsset(e.target.value)}
-              className="mt-1 w-full px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden text-sm bg-white"
             >
               {ASSETS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
-            </select>
+            </Select>
           </div>
 
-          <button
+          <Button
+            variant="secondary"
             onClick={() => setShowSettings((v) => !v)}
-            className="px-3 py-2.5 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors flex items-center gap-2 text-sm font-medium"
+            aria-expanded={showSettings}
           >
             <Settings2 size={16} /> Parâmetros
-          </button>
+          </Button>
 
           {isOpen ? (
-            <button
+            <Button
               onClick={() => runAnalysis(true)}
               disabled={loading}
-              className="px-4 py-2.5 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-60"
             >
               {loading ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               Atualizar
-            </button>
+            </Button>
           ) : (
-            <button
+            <Button
               onClick={handleOpen}
               disabled={opening || !canAfford}
-              className="px-4 py-2.5 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {opening ? <Loader2 size={16} className="animate-spin" /> : <Zap size={16} />}
               Abrir ({cost} Coins)
-            </button>
+            </Button>
           )}
         </div>
 
-        <p className="text-xs text-slate-500 mt-2 flex items-center gap-1">
-          <Coins size={13} className="text-amber-500" />
-          Saldo: <span className="font-semibold text-slate-700">{balance.toLocaleString('pt-BR')}</span>
-          <span className="text-slate-300">•</span>
+        <p className="text-xs text-fg-muted mt-3 flex items-center gap-1 flex-wrap">
+          <Coins size={13} className="text-warning" />
+          Saldo: <span className="font-mono tabular-nums font-semibold text-fg">{balance.toLocaleString('pt-BR')}</span>
+          <span className="text-fg-subtle">•</span>
           {isOpen
-            ? <span className="text-emerald-600 font-medium">Ativo aberto hoje — atualização livre</span>
-            : <>Abrir custa <span className="font-semibold text-slate-700">{cost}</span> Coins (1×/ativo/dia)</>}
+            ? <span className="text-success-fg font-medium">Ativo aberto hoje — atualização livre</span>
+            : <>Abrir custa <span className="font-mono tabular-nums font-semibold text-fg">{cost}</span> Coins (1×/ativo/dia)</>}
         </p>
         {!canAfford && !isOpen && (
-          <p className="text-xs text-amber-600 mt-1">Faltam {(cost - balance).toLocaleString('pt-BR')} Coins. Ganhe na Trilha Gain.</p>
+          <p className="text-xs text-warning-fg mt-1">Faltam {(cost - balance).toLocaleString('pt-BR')} Coins. Ganhe na Trilha Gain.</p>
         )}
-        {error && <p className="text-xs text-rose-600 mt-1">{error}</p>}
+        {error && <p className="text-xs text-danger-fg mt-1">{error}</p>}
 
         {/* Parâmetros ajustáveis */}
         {showSettings && (
-          <div className="mt-3 pt-3 border-t border-slate-100 space-y-3">
+          <div className="mt-3 pt-3 border-t border-tint/6 space-y-3">
             <div>
-              <label className="text-xs font-semibold text-slate-500">Período da média móvel: <span className="text-slate-700">{maPeriod}</span></label>
+              <Label className="text-xs text-fg-muted">Período da média móvel: <span className="font-mono tabular-nums text-fg">{maPeriod}</span></Label>
               <input
                 type="range" min={MA_MIN} max={MA_MAX} value={maPeriod}
                 onChange={(e) => setMaPeriod(Number(e.target.value))}
-                className="w-full accent-green-600 mt-1"
+                className="w-full accent-accent"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-slate-500">Timeframes (até 5, curto → longo)</label>
-              <div className="flex flex-wrap gap-1.5 mt-1">
+              <Label className="text-xs text-fg-muted">Timeframes (até 5, curto → longo)</Label>
+              <div className="flex flex-wrap gap-1.5">
                 {AVAILABLE_TIMEFRAMES.map((tf) => {
                   const active = timeframes.some((t) => t.td === tf.td);
                   return (
                     <button
                       key={tf.td}
                       onClick={() => toggleTF(tf)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors ${active ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}
+                      aria-pressed={active}
+                      className={`px-2.5 py-1 rounded-lg border font-mono text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${active ? 'bg-accent/10 text-accent-fg border-accent/30' : 'bg-tint/3 text-fg-muted border-tint/10 hover:text-fg'}`}
                     >
                       {tf.label}
                     </button>
@@ -250,9 +250,14 @@ export const TrendPanel: React.FC = () => {
       {/* Resultado */}
       {isOpen && (
         loading && !analysis ? (
-          <div className="flex items-center justify-center py-16 text-slate-300"><Loader2 className="animate-spin" size={32} /></div>
+          <div className="glass-card p-5 space-y-4" aria-busy="true">
+            <div className="flex flex-wrap justify-center gap-4">
+              {timeframes.map((t) => <Skeleton key={t.td} className="h-28 w-32 rounded-xl" />)}
+            </div>
+            <Skeleton className="h-16 w-full rounded-xl" />
+          </div>
         ) : analysis ? (
-          <div className="rounded-2xl bg-white ring-1 ring-slate-100 p-5 shadow-xs space-y-4">
+          <div className="glass-card p-4 sm:p-5 space-y-4">
             {/* Gauges */}
             <div className="flex flex-wrap justify-center gap-2">
               {analysis.perByTF.map((r) => <TFGauge key={r.label} result={r} />)}
@@ -260,19 +265,19 @@ export const TrendPanel: React.FC = () => {
 
             {/* Parecer */}
             {biasMeta && (
-              <div className={`rounded-xl ring-1 ${biasMeta.bg} p-4`}>
+              <div className={`rounded-xl border ${biasMeta.bg} p-4`}>
                 <div className="flex items-start gap-2">
                   <biasMeta.Icon size={20} className={`${biasMeta.text} mt-0.5 shrink-0`} />
                   <div>
                     <p className={`text-sm font-semibold ${biasMeta.text}`}>{analysis.line1}</p>
-                    {analysis.line2 && <p className="text-sm text-slate-600 mt-0.5">{analysis.line2}</p>}
+                    {analysis.line2 && <p className="text-sm text-fg-muted mt-0.5">{analysis.line2}</p>}
                   </div>
                 </div>
               </div>
             )}
 
             {lastUpdate && (
-              <p className="text-[11px] text-slate-400 text-right">
+              <p className="text-[11px] text-fg-subtle text-right tabular-nums">
                 Atualizado {lastUpdate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })} • auto a cada 90s
               </p>
             )}

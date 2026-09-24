@@ -5,10 +5,10 @@ import { tvSymbol, tvInterval } from '../../lib/marketData';
 import { TradingViewChart } from './TradingViewChart';
 
 const STATUS_META: Record<Signal['status'], { label: string; className: string; Icon: React.ElementType }> = {
-  open:      { label: 'Ativo',       className: 'bg-emerald-50 text-emerald-700 ring-emerald-200', Icon: Clock },
-  hit_tp:    { label: 'Alvo atingido', className: 'bg-green-50 text-green-700 ring-green-200', Icon: CheckCircle2 },
-  hit_sl:    { label: 'Stopado',     className: 'bg-rose-50 text-rose-700 ring-rose-200', Icon: XCircle },
-  cancelled: { label: 'Cancelado',   className: 'bg-slate-100 text-slate-500 ring-slate-200', Icon: Ban },
+  open:      { label: 'Ativo',       className: 'bg-accent/10 text-accent-fg border-accent/20', Icon: Clock },
+  hit_tp:    { label: 'Alvo atingido', className: 'bg-success/10 text-success-fg border-success/20', Icon: CheckCircle2 },
+  hit_sl:    { label: 'Stopado',     className: 'bg-danger/10 text-danger-fg border-danger/20', Icon: XCircle },
+  cancelled: { label: 'Cancelado',   className: 'bg-tint/5 text-fg-muted border-tint/10', Icon: Ban },
 };
 
 function fmtPrice(v: number | null): string {
@@ -45,37 +45,37 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
   const canShowChart = signal.source === 'auto';
   const isLong = (analysis?.length ?? 0) > 220;
 
-  // Verde para compra, vermelho para venda, neutro (slate) para "sem entrada".
+  // Verde para compra, vermelho para venda, neutro para "sem entrada".
   const accent = isBuy
-    ? { ring: 'ring-emerald-100', chip: 'bg-emerald-600', glow: 'bg-emerald-200/40', text: 'text-emerald-700', label: 'COMPRA', Icon: ArrowUpRight }
+    ? { ring: 'hover:border-success/30!', chip: 'bg-success/10 text-success-fg border-success/20', glow: 'bg-success/10', text: 'text-success-fg', label: 'COMPRA', Icon: ArrowUpRight }
     : isSell
-    ? { ring: 'ring-rose-100', chip: 'bg-rose-600', glow: 'bg-rose-200/40', text: 'text-rose-700', label: 'VENDA', Icon: ArrowDownRight }
-    : { ring: 'ring-slate-100', chip: 'bg-slate-400', glow: 'bg-slate-200/40', text: 'text-slate-600', label: 'SEM ENTRADA', Icon: MinusCircle };
+    ? { ring: 'hover:border-danger/30!', chip: 'bg-danger/10 text-danger-fg border-danger/20', glow: 'bg-danger/10', text: 'text-danger-fg', label: 'VENDA', Icon: ArrowDownRight }
+    : { ring: 'hover:border-tint/15!', chip: 'bg-tint/5 text-fg-muted border-tint/10', glow: 'bg-tint/5', text: 'text-fg-muted', label: 'SEM ENTRADA', Icon: MinusCircle };
 
   const AccentIcon = accent.Icon;
 
   return (
-    <div className={`relative overflow-hidden rounded-2xl bg-white p-5 ring-1 ${accent.ring} shadow-[0_8px_24px_-14px_rgba(15,23,42,0.25)]`}>
+    <div className={`glass-card relative overflow-hidden p-5 transition-colors ${accent.ring}`}>
       <div className={`pointer-events-none absolute -top-12 -right-10 w-40 h-40 rounded-full ${accent.glow} blur-3xl`} />
 
       <div className="relative flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <div className={`w-11 h-11 rounded-xl ${accent.chip} text-white flex items-center justify-center shadow-lg`}>
+        <div className="flex min-w-0 items-center gap-3">
+          <div className={`w-11 h-11 shrink-0 rounded-xl border ${accent.chip} flex items-center justify-center`}>
             <AccentIcon size={22} />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className={`text-lg font-bold ${accent.text}`}>{accent.label}</span>
-              <span className="text-sm font-semibold text-slate-500">{signal.symbol}</span>
+            <div className="flex flex-wrap items-center gap-x-2">
+              <span className={`font-display text-lg font-semibold tracking-wide ${accent.text}`}>{accent.label}</span>
+              <span className="font-mono text-sm font-medium text-fg-muted whitespace-nowrap">{signal.symbol}</span>
             </div>
-            <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5">
+            <p className="text-xs text-fg-subtle flex items-center gap-1 mt-0.5 tabular-nums">
               <Clock size={12} /> {fmtWhen(signal.created_at)}
-              {signal.timeframe && <span className="ml-1 text-slate-300">• {signal.timeframe}</span>}
+              {signal.timeframe && <span className="ml-1 font-mono text-fg-subtle">• {signal.timeframe}</span>}
             </p>
           </div>
         </div>
         {!isNone && (
-          <span className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-full ring-1 ${status.className}`}>
+          <span className={`inline-flex shrink-0 items-center gap-1 whitespace-nowrap text-xs font-medium px-2.5 py-1 rounded-full border ${status.className}`}>
             <StatusIcon size={13} /> {status.label}
           </span>
         )}
@@ -84,17 +84,17 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
       {/* Entrada/Stop/Alvo só quando há setup */}
       {!isNone && (
         <div className="relative grid grid-cols-3 gap-2 mt-4">
-          <div className="rounded-xl bg-slate-50 px-3 py-2.5">
-            <p className="text-[11px] font-medium text-slate-400 uppercase tracking-wide">Entrada</p>
-            <p className="text-base font-bold text-slate-900 tabular-nums">{fmtPrice(signal.entry_price)}</p>
+          <div className="min-w-0 rounded-xl bg-tint/3 border border-tint/6 px-2.5 py-2.5 sm:px-3">
+            <p className="eyebrow-muted text-[10px]">Entrada</p>
+            <p className="mt-0.5 font-mono text-sm sm:text-base font-semibold text-fg tabular-nums whitespace-nowrap truncate">{fmtPrice(signal.entry_price)}</p>
           </div>
-          <div className="rounded-xl bg-rose-50 px-3 py-2.5">
-            <p className="text-[11px] font-medium text-rose-400 uppercase tracking-wide flex items-center gap-1"><ShieldAlert size={11} /> Stop</p>
-            <p className="text-base font-bold text-rose-700 tabular-nums">{fmtPrice(signal.stop_loss)}</p>
+          <div className="min-w-0 rounded-xl bg-danger/10 border border-danger/20 px-2.5 py-2.5 sm:px-3">
+            <p className="text-[10px] font-medium text-danger-fg uppercase tracking-[0.15em] flex items-center gap-1"><ShieldAlert size={11} /> Stop</p>
+            <p className="mt-0.5 font-mono text-sm sm:text-base font-semibold text-danger-fg tabular-nums whitespace-nowrap truncate">{fmtPrice(signal.stop_loss)}</p>
           </div>
-          <div className="rounded-xl bg-emerald-50 px-3 py-2.5">
-            <p className="text-[11px] font-medium text-emerald-500 uppercase tracking-wide flex items-center gap-1"><Target size={11} /> Alvo</p>
-            <p className="text-base font-bold text-emerald-700 tabular-nums">{fmtPrice(signal.take_profit)}</p>
+          <div className="min-w-0 rounded-xl bg-success/10 border border-success/20 px-2.5 py-2.5 sm:px-3">
+            <p className="text-[10px] font-medium text-success-fg uppercase tracking-[0.15em] flex items-center gap-1"><Target size={11} /> Alvo</p>
+            <p className="mt-0.5 font-mono text-sm sm:text-base font-semibold text-success-fg tabular-nums whitespace-nowrap truncate">{fmtPrice(signal.take_profit)}</p>
           </div>
         </div>
       )}
@@ -104,14 +104,14 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
         <div className="relative mt-3">
           <button
             onClick={() => setShowChart((v) => !v)}
-            className="text-xs font-medium text-slate-600 hover:text-green-700 inline-flex items-center gap-1"
+            className="text-xs font-medium text-fg-muted hover:text-accent-fg inline-flex items-center gap-1 rounded focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
           >
             <CandlestickChart size={14} />
             {showChart ? 'Ocultar gráfico' : 'Ver gráfico'}
             <ChevronDown size={13} className={`transition-transform ${showChart ? 'rotate-180' : ''}`} />
           </button>
           {showChart && (
-            <div className="mt-2">
+            <div className="mt-2 overflow-hidden rounded-xl border border-tint/8">
               <TradingViewChart
                 symbol={tvSymbol(signal.symbol)}
                 interval={tvInterval(signal.timeframe)}
@@ -125,14 +125,14 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
       {/* Parecer — sempre presente na análise on-demand */}
       {analysis && (
         <div className="relative mt-3">
-          <p className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-1">Parecer</p>
-          <p className={`text-sm text-slate-600 leading-relaxed whitespace-pre-line ${!expanded && isLong ? 'line-clamp-4' : ''}`}>
+          <p className="eyebrow-muted mb-1">Parecer</p>
+          <p className={`text-sm text-fg-muted leading-relaxed whitespace-pre-line ${!expanded && isLong ? 'line-clamp-4' : ''}`}>
             {analysis}
           </p>
           {isLong && (
             <button
               onClick={() => setExpanded((v) => !v)}
-              className="mt-1 text-xs font-medium text-green-600 hover:text-green-700 inline-flex items-center gap-1"
+              className="mt-1 text-xs font-medium text-accent-fg hover:opacity-80 inline-flex items-center gap-1 rounded focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
             >
               {expanded ? 'Ver menos' : 'Ver mais'}
               <ChevronDown size={13} className={`transition-transform ${expanded ? 'rotate-180' : ''}`} />

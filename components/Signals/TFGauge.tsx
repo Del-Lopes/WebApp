@@ -31,10 +31,11 @@ function arcPath(cx: number, cy: number, r: number, startDeg: number, endDeg: nu
   return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
 }
 
+// Cores via tokens semânticos (CSS vars) → legíveis nos temas escuro e claro.
 const SIGNAL_META: Record<number, { label: string; color: string }> = {
-  1:  { label: 'BUY',     color: '#16a34a' },
-  [-1]: { label: 'SELL',  color: '#e11d48' },
-  0:  { label: 'NEUTRAL', color: '#eab308' },
+  1:  { label: 'BUY',     color: 'var(--ds-success-fg)' },
+  [-1]: { label: 'SELL',  color: 'var(--ds-danger-fg)' },
+  0:  { label: 'NEUTRAL', color: 'var(--ds-warning-fg)' },
 };
 
 export const TFGauge: React.FC<Props> = ({ result }) => {
@@ -45,9 +46,9 @@ export const TFGauge: React.FC<Props> = ({ result }) => {
 
   const third = ARC_TOTAL / 3;
   const zones = [
-    { from: ARC_START, to: ARC_START + third, color: '#dc2626' },              // vermelho
-    { from: ARC_START + third, to: ARC_START + 2 * third, color: '#e0b400' },  // amarelo
-    { from: ARC_START + 2 * third, to: ARC_START + ARC_TOTAL, color: '#16a34a' }, // verde
+    { from: ARC_START, to: ARC_START + third, color: 'var(--ds-danger)' },              // vermelho
+    { from: ARC_START + third, to: ARC_START + 2 * third, color: 'var(--ds-warning)' },  // amarelo
+    { from: ARC_START + 2 * third, to: ARC_START + ARC_TOTAL, color: 'var(--ds-success)' }, // verde
   ];
 
   const sig = SIGNAL_META[result.signal] ?? SIGNAL_META[0];
@@ -58,17 +59,17 @@ export const TFGauge: React.FC<Props> = ({ result }) => {
     <div className="flex flex-col items-center">
       <svg width={size} height={size * 0.82} viewBox={`0 0 ${size} ${size * 0.82}`}>
         {zones.map((z, i) => (
-          <path key={i} d={arcPath(cx, cy, r, z.from, z.to)} fill="none" stroke={z.color} strokeWidth={9} strokeLinecap="butt" opacity={0.85} />
+          <path key={i} d={arcPath(cx, cy, r, z.from, z.to)} fill="none" style={{ stroke: z.color }} strokeWidth={9} strokeLinecap="butt" opacity={0.85} />
         ))}
         {/* Ponteiro */}
-        <line x1={cx} y1={cy} x2={nx} y2={ny} stroke={sig.color} strokeWidth={3.5} strokeLinecap="round" />
-        <circle cx={cx} cy={cy} r={6} fill={sig.color} />
+        <line x1={cx} y1={cy} x2={nx} y2={ny} style={{ stroke: sig.color }} strokeWidth={3.5} strokeLinecap="round" />
+        <circle cx={cx} cy={cy} r={6} style={{ fill: sig.color }} />
         {/* Rótulo do sinal */}
-        <text x={cx} y={cy + 22} textAnchor="middle" fontSize={12} fontWeight="700" fill={sig.color}>{sig.label}</text>
+        <text x={cx} y={cy + 22} textAnchor="middle" fontSize={12} fontWeight="700" letterSpacing="0.08em" className="font-mono" style={{ fill: sig.color }}>{sig.label}</text>
       </svg>
       <div className="text-center -mt-1">
-        <p className="text-sm font-bold text-slate-700">{result.label}</p>
-        <p className="text-[11px] text-slate-400 leading-tight">{richStateName(result.state)}</p>
+        <p className="font-mono text-sm font-semibold text-fg">{result.label}</p>
+        <p className="text-[11px] text-fg-muted leading-tight">{richStateName(result.state)}</p>
       </div>
     </div>
   );

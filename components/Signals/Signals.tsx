@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { SignalCard } from './SignalCard';
 import { SetupSignalForm } from './SetupSignalForm';
 import { TrendPanel } from './TrendPanel';
+import { Button, PageHeader, Tabs, Label, Select, EmptyState, Skeleton } from '../ui';
 
 // Abas da sessão. 'trend' é o painel multi-TF; 'auto'/'setup' são sinais.
 type TabKey = 'trend' | 'auto' | 'setup';
@@ -92,36 +93,23 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
   return (
     <div className="space-y-4">
       {/* Cabeçalho */}
-      <div className="flex items-center gap-3">
-        <BackButton onClick={onBack} />
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-green-600 text-white flex items-center justify-center">
-            <Radio size={18} />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-slate-900">Sinais</h1>
-            <p className="text-xs text-slate-400">Compra e venda para XAU/USD</p>
-          </div>
-        </div>
-      </div>
+      <PageHeader
+        leading={<BackButton onClick={onBack} />}
+        title={<span className="inline-flex items-center gap-2.5"><Radio size={22} className="text-accent-fg" aria-hidden /> Sinais</span>}
+        description="Compra e venda para XAU/USD"
+        className="mb-2 sm:mb-2"
+      />
 
       {/* Abas */}
-      <div className="flex gap-2 p-1 rounded-2xl bg-slate-100 w-fit">
-        {TABS.map(({ key, label, Icon }) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-              tab === key ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
-            }`}
-          >
-            <Icon size={16} /> {label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        aria-label="Abas de sinais"
+        items={TABS.map(({ key, label, Icon }) => ({ key, label, icon: Icon }))}
+        value={tab}
+        onChange={setTab}
+      />
 
-      <p className="flex items-center gap-2 text-xs text-slate-400">
-        <Info size={13} /> {active.hint}
+      <p className="flex items-start gap-2 text-xs text-fg-muted">
+        <Info size={13} className="mt-0.5 shrink-0" /> {active.hint}
       </p>
 
       {/* Aba Tendência — painel multi-TF (cálculo no browser) */}
@@ -129,53 +117,51 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
 
       {/* Painel de análise paga (aba auto) */}
       {tab === 'auto' && (
-        <div className="rounded-2xl bg-gradient-to-br from-white via-emerald-50/60 to-teal-50 ring-1 ring-emerald-100 p-5 shadow-[0_10px_30px_-16px_rgba(16,185,129,0.35)]">
+        <div className="glass-card relative overflow-hidden p-5">
+          <div className="hairline absolute inset-x-0 top-0" aria-hidden />
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-sm font-semibold text-slate-800">Analisar o mercado agora</p>
-              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                <Coins size={13} className="text-amber-500" />
-                Seu saldo: <span className="font-semibold text-slate-700">{balance.toLocaleString('pt-BR')} Coins</span>
-                <span className="text-slate-300">•</span>
-                Custo: <span className="font-semibold text-slate-700">{cost.toLocaleString('pt-BR')} Coins</span>
+              <p className="font-display text-sm font-semibold text-fg">Analisar o mercado agora</p>
+              <p className="text-xs text-fg-muted mt-0.5 flex items-center gap-1 flex-wrap">
+                <Coins size={13} className="text-warning" />
+                Seu saldo: <span className="font-mono tabular-nums whitespace-nowrap font-semibold text-fg">{balance.toLocaleString('pt-BR')} Coins</span>
+                <span className="text-fg-subtle">•</span>
+                Custo: <span className="font-mono tabular-nums whitespace-nowrap font-semibold text-fg">{cost.toLocaleString('pt-BR')} Coins</span>
               </p>
             </div>
             <div className="flex items-end gap-2 flex-wrap">
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Ativo</label>
-                <select
+                <Label className="eyebrow-muted">Ativo</Label>
+                <Select
                   value={analysisAsset}
                   onChange={(e) => setAnalysisAsset(e.target.value)}
                   disabled={analyzing}
-                  className="mt-1 block px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden text-sm bg-white disabled:opacity-60"
                 >
                   {ASSETS.map((a) => <option key={a.value} value={a.value}>{a.label}</option>)}
-                </select>
+                </Select>
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Timeframe</label>
-                <select
+                <Label className="eyebrow-muted">Timeframe</Label>
+                <Select
                   value={analysisTf}
                   onChange={(e) => setAnalysisTf(e.target.value)}
                   disabled={analyzing}
-                  className="mt-1 block px-3 py-2.5 rounded-lg border border-slate-200 focus:border-green-500 focus:ring-2 focus:ring-green-500/20 outline-hidden text-sm bg-white disabled:opacity-60"
                 >
                   {AVAILABLE_TIMEFRAMES.map((tf) => <option key={tf.td} value={tf.td}>{tf.label}</option>)}
-                </select>
+                </Select>
               </div>
-              <button
+              <Button
                 onClick={handleAnalyze}
                 disabled={analyzing || !canAfford}
-                className="flex items-center gap-2 px-5 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-900/10"
               >
                 {analyzing ? <><Loader2 size={18} className="animate-spin" /> Analisando…</> : <><Zap size={18} /> Analisar ({cost} Coins)</>}
-              </button>
+              </Button>
             </div>
           </div>
           {!canAfford && !analyzing && (
-            <p className="text-xs text-amber-600 mt-2">Você precisa de {(cost - balance).toLocaleString('pt-BR')} Coins a mais. Ganhe Coins na Trilha Gain.</p>
+            <p className="text-xs text-warning-fg mt-2">Você precisa de {(cost - balance).toLocaleString('pt-BR')} Coins a mais. Ganhe Coins na Trilha Gain.</p>
           )}
-          {error && <p className="text-xs text-rose-600 mt-2">{error}</p>}
+          {error && <p className="text-xs text-danger-fg mt-2">{error}</p>}
         </div>
       )}
 
@@ -187,17 +173,15 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
       {/* Lista de sinais (abas auto/setup) */}
       {tab !== 'trend' && (
         loading ? (
-          <div className="flex items-center justify-center py-16 text-slate-300">
-            <Loader2 className="animate-spin" size={32} />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[0, 1].map((i) => <Skeleton key={i} className="h-56 rounded-2xl" />)}
           </div>
         ) : signals.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 py-16 text-center text-slate-400">
-            <Radio size={28} className="mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Nenhum sinal por aqui ainda.</p>
-            <p className="text-xs text-slate-300 mt-1">
-              {tab === 'auto' ? 'Clique em "Analisar" para gerar sua primeira análise.' : 'Os sinais do setup aparecerão aqui quando publicados.'}
-            </p>
-          </div>
+          <EmptyState
+            icon={Radio}
+            title="Nenhum sinal por aqui ainda."
+            description={tab === 'auto' ? 'Clique em "Analisar" para gerar sua primeira análise.' : 'Os sinais do setup aparecerão aqui quando publicados.'}
+          />
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
             {signals.map((s) => <SignalCard key={s.id} signal={s} />)}

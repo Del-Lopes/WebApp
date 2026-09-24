@@ -1,6 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, Loader2, TrendingUp, TrendingDown, Target, Activity, Award, Percent } from 'lucide-react';
+import { TrendingUp, TrendingDown, Target, Activity, Award, Percent } from 'lucide-react';
 import { useMt5Reports, type Mt5Report, type Mt5Trade } from '../../hooks/useMt5Reports';
+import { BackButton } from '../BackButton';
+import { PageHeader, Skeleton } from '../ui';
 
 interface Props {
   report: Mt5Report;
@@ -38,15 +40,15 @@ interface MetricCardProps {
 
 function MetricCard({ icon, label, value, hint, tone = 'default' }: MetricCardProps) {
   const valueClass =
-    tone === 'positive' ? 'text-green-700' : tone === 'negative' ? 'text-red-700' : 'text-slate-900';
+    tone === 'positive' ? 'text-success-fg' : tone === 'negative' ? 'text-danger-fg' : 'text-fg';
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4">
-      <div className="flex items-center gap-2 text-slate-500 text-xs font-medium uppercase tracking-wide mb-2">
+    <div className="glass-card rounded-xl p-4 min-w-0">
+      <div className="eyebrow-muted flex items-center gap-2 mb-2 min-w-0">
         {icon}
-        <span>{label}</span>
+        <span className="truncate">{label}</span>
       </div>
-      <div className={`text-2xl font-bold ${valueClass}`}>{value}</div>
-      {hint && <div className="text-xs text-slate-500 mt-1">{hint}</div>}
+      <div className={`font-display text-xl sm:text-2xl font-semibold tabular-nums whitespace-nowrap truncate ${valueClass}`}>{value}</div>
+      {hint && <div className="text-xs text-fg-muted mt-1 tabular-nums">{hint}</div>}
     </div>
   );
 }
@@ -67,7 +69,7 @@ function BalanceChart({ trades }: { trades: Mt5Trade[] }) {
 
   if (points.length < 2) {
     return (
-      <div className="bg-white border border-slate-200 rounded-xl p-6 text-center text-sm text-slate-500">
+      <div className="glass-card rounded-xl p-6 text-center text-sm text-fg-muted">
         Sem dados suficientes para o gráfico de evolução.
       </div>
     );
@@ -94,8 +96,8 @@ function BalanceChart({ trades }: { trades: Mt5Trade[] }) {
   const zeroY = sy(0);
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4">
-      <h3 className="font-semibold text-slate-900 mb-3">Evolução do resultado</h3>
+    <div className="glass-card rounded-xl p-4">
+      <h3 className="font-display font-semibold text-fg mb-3">Evolução do resultado</h3>
       <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
         {/* Eixo Y zero */}
         <line
@@ -103,28 +105,28 @@ function BalanceChart({ trades }: { trades: Mt5Trade[] }) {
           y1={zeroY}
           x2={width - padding.right}
           y2={zeroY}
-          stroke="#cbd5e1"
+          stroke="var(--ds-line-strong)"
           strokeDasharray="2 4"
         />
         {/* Labels eixo Y */}
-        <text x={padding.left - 8} y={padding.top + 4} textAnchor="end" fontSize="10" fill="#64748b">
+        <text x={padding.left - 8} y={padding.top + 4} textAnchor="end" fontSize="10" fill="var(--ds-fg-muted)">
           {maxY.toFixed(2)}
         </text>
-        <text x={padding.left - 8} y={zeroY + 4} textAnchor="end" fontSize="10" fill="#64748b">
+        <text x={padding.left - 8} y={zeroY + 4} textAnchor="end" fontSize="10" fill="var(--ds-fg-muted)">
           0
         </text>
-        <text x={padding.left - 8} y={padding.top + innerH + 4} textAnchor="end" fontSize="10" fill="#64748b">
+        <text x={padding.left - 8} y={padding.top + innerH + 4} textAnchor="end" fontSize="10" fill="var(--ds-fg-muted)">
           {minY.toFixed(2)}
         </text>
         {/* Área */}
-        <path d={areaD} fill="rgba(34,197,94,0.12)" />
+        <path d={areaD} fill="var(--ds-accent)" fillOpacity={0.12} />
         {/* Linha */}
-        <path d={pathD} fill="none" stroke="#16a34a" strokeWidth="2" />
+        <path d={pathD} fill="none" stroke="var(--ds-accent)" strokeWidth="2" />
         {/* Labels eixo X */}
-        <text x={padding.left} y={height - 8} fontSize="10" fill="#64748b">
+        <text x={padding.left} y={height - 8} fontSize="10" fill="var(--ds-fg-muted)">
           {new Date(points[0].time).toLocaleDateString('pt-BR')}
         </text>
-        <text x={width - padding.right} y={height - 8} textAnchor="end" fontSize="10" fill="#64748b">
+        <text x={width - padding.right} y={height - 8} textAnchor="end" fontSize="10" fill="var(--ds-fg-muted)">
           {new Date(points[points.length - 1].time).toLocaleDateString('pt-BR')}
         </text>
       </svg>
@@ -157,26 +159,26 @@ function ProfitBySymbolChart({ trades }: { trades: Mt5Trade[] }) {
   const maxAbs = Math.max(...data.map((d) => Math.abs(d.profit))) || 1;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4">
-      <h3 className="font-semibold text-slate-900 mb-3">Resultado por par</h3>
+    <div className="glass-card rounded-xl p-4 min-w-0">
+      <h3 className="font-display font-semibold text-fg mb-3">Resultado por par</h3>
       <div className="space-y-2">
         {data.map((d) => {
           const widthPct = (Math.abs(d.profit) / maxAbs) * 100;
           const positive = d.profit >= 0;
           return (
             <div key={d.symbol} className="flex items-center gap-3 text-sm">
-              <div className="w-20 font-medium text-slate-700 truncate">{d.symbol}</div>
-              <div className="flex-1 relative bg-slate-100 rounded-md h-6 overflow-hidden">
+              <div className="w-16 sm:w-20 shrink-0 font-mono font-medium text-fg truncate">{d.symbol}</div>
+              <div className="flex-1 min-w-0 relative bg-tint/5 rounded-md h-6 overflow-hidden">
                 <div
-                  className={`absolute top-0 left-0 h-full rounded-md ${positive ? 'bg-green-500' : 'bg-red-500'}`}
+                  className={`absolute top-0 left-0 h-full rounded-md ${positive ? 'bg-success' : 'bg-danger'}`}
                   style={{ width: `${widthPct}%` }}
                 />
               </div>
-              <div className={`w-24 text-right tabular-nums font-semibold ${positive ? 'text-green-700' : 'text-red-700'}`}>
+              <div className={`w-20 sm:w-24 shrink-0 text-right font-mono tabular-nums whitespace-nowrap font-semibold ${positive ? 'text-success-fg' : 'text-danger-fg'}`}>
                 {d.profit >= 0 ? '+' : ''}
                 {d.profit.toFixed(2)}
               </div>
-              <div className="w-12 text-right text-xs text-slate-500">{d.count}x</div>
+              <div className="w-10 sm:w-12 shrink-0 text-right text-xs font-mono tabular-nums text-fg-muted">{d.count}x</div>
             </div>
           );
         })}
@@ -204,25 +206,25 @@ function ProfitByWeekdayChart({ trades }: { trades: Mt5Trade[] }) {
   const maxAbs = Math.max(...data.map((d) => Math.abs(d.profit))) || 1;
 
   return (
-    <div className="bg-white border border-slate-200 rounded-xl p-4">
-      <h3 className="font-semibold text-slate-900 mb-3">Resultado por dia da semana</h3>
-      <div className="flex items-end justify-between gap-2 h-40">
+    <div className="glass-card rounded-xl p-4 min-w-0">
+      <h3 className="font-display font-semibold text-fg mb-3">Resultado por dia da semana</h3>
+      <div className="flex items-end justify-between gap-1 sm:gap-2 h-40">
         {data.map((d) => {
           const heightPct = (Math.abs(d.profit) / maxAbs) * 100;
           const positive = d.profit >= 0;
           return (
-            <div key={d.label} className="flex-1 flex flex-col items-center gap-1">
-              <div className={`text-xs font-semibold tabular-nums ${positive ? 'text-green-700' : 'text-red-700'}`}>
+            <div key={d.label} className="flex-1 min-w-0 flex flex-col items-center gap-1">
+              <div className={`text-[10px] sm:text-xs font-mono font-semibold tabular-nums whitespace-nowrap ${positive ? 'text-success-fg' : 'text-danger-fg'}`}>
                 {d.count > 0 ? (d.profit >= 0 ? '+' : '') + d.profit.toFixed(0) : ''}
               </div>
               <div className="w-full flex-1 flex items-end">
                 <div
-                  className={`w-full rounded-t-md ${positive ? 'bg-green-500' : 'bg-red-500'}`}
+                  className={`w-full rounded-t-md ${positive ? 'bg-success' : 'bg-danger'}`}
                   style={{ height: `${heightPct}%`, minHeight: d.count > 0 ? '4px' : '0' }}
                 />
               </div>
-              <div className="text-xs text-slate-600 font-medium">{d.label}</div>
-              <div className="text-[10px] text-slate-400">{d.count}x</div>
+              <div className="text-xs text-fg-muted font-medium">{d.label}</div>
+              <div className="text-[10px] font-mono tabular-nums text-fg-subtle">{d.count}x</div>
             </div>
           );
         })}
@@ -257,26 +259,19 @@ export function ReportView({ report, onBack }: Props) {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-3 flex-wrap">
-        <button
-          onClick={onBack}
-          className="p-2 rounded-lg hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors"
-          aria-label="Voltar"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex-1 min-w-0">
-          <h2 className="text-2xl font-bold text-slate-900 truncate">
-            {report.account_name ?? report.file_name}
-          </h2>
-          <p className="text-sm text-slate-500">
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        leading={<BackButton onClick={onBack} />}
+        title={<span className="block truncate">{report.account_name ?? report.file_name}</span>}
+        description={
+          <>
             {report.account_number && <>Conta {report.account_number} · </>}
             {report.broker && <>{report.broker} · </>}
             {report.currency}
             {report.account_type && <> · {report.account_type === 'real' ? 'Real' : 'Demo'}</>}
-          </p>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Cards de métricas principais */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -344,11 +339,15 @@ export function ReportView({ report, onBack }: Props) {
 
       {/* Gráficos */}
       {loadingTrades ? (
-        <div className="flex items-center justify-center py-16 bg-white border border-slate-200 rounded-xl">
-          <Loader2 className="animate-spin text-green-600" size={28} />
+        <div className="space-y-4">
+          <Skeleton className="h-64 w-full rounded-xl" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Skeleton className="h-56 w-full rounded-xl" />
+            <Skeleton className="h-56 w-full rounded-xl" />
+          </div>
         </div>
       ) : trades.length === 0 ? (
-        <div className="bg-white border border-slate-200 rounded-xl p-6 text-center text-sm text-slate-500">
+        <div className="glass-card rounded-xl p-6 text-center text-sm text-fg-muted">
           Este relatório não tem trades detalhados para gerar gráficos.
         </div>
       ) : (
@@ -362,40 +361,40 @@ export function ReportView({ report, onBack }: Props) {
       )}
 
       {/* Detalhes adicionais */}
-      <div className="bg-white border border-slate-200 rounded-xl p-4">
-        <h3 className="font-semibold text-slate-900 mb-3">Detalhes adicionais</h3>
+      <div className="glass-card rounded-xl p-4">
+        <h3 className="font-display font-semibold text-fg mb-3">Detalhes adicionais</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 text-sm">
-          <div className="flex justify-between border-b border-slate-100 py-1">
-            <span className="text-slate-600">Maior lucro</span>
-            <span className="font-medium text-green-700">{formatMoney(report.largest_profit, report.currency)}</span>
+          <div className="flex justify-between gap-3 border-b border-tint/6 py-1">
+            <span className="text-fg-muted">Maior lucro</span>
+            <span className="font-mono tabular-nums whitespace-nowrap font-medium text-success-fg">{formatMoney(report.largest_profit, report.currency)}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-100 py-1">
-            <span className="text-slate-600">Maior perda</span>
-            <span className="font-medium text-red-700">{formatMoney(report.largest_loss, report.currency)}</span>
+          <div className="flex justify-between gap-3 border-b border-tint/6 py-1">
+            <span className="text-fg-muted">Maior perda</span>
+            <span className="font-mono tabular-nums whitespace-nowrap font-medium text-danger-fg">{formatMoney(report.largest_loss, report.currency)}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-100 py-1">
-            <span className="text-slate-600">Média de lucro</span>
-            <span className="font-medium">{formatMoney(report.average_profit, report.currency)}</span>
+          <div className="flex justify-between gap-3 border-b border-tint/6 py-1">
+            <span className="text-fg-muted">Média de lucro</span>
+            <span className="font-mono tabular-nums whitespace-nowrap font-medium text-fg">{formatMoney(report.average_profit, report.currency)}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-100 py-1">
-            <span className="text-slate-600">Média de perda</span>
-            <span className="font-medium">{formatMoney(report.average_loss, report.currency)}</span>
+          <div className="flex justify-between gap-3 border-b border-tint/6 py-1">
+            <span className="text-fg-muted">Média de perda</span>
+            <span className="font-mono tabular-nums whitespace-nowrap font-medium text-fg">{formatMoney(report.average_loss, report.currency)}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-100 py-1">
-            <span className="text-slate-600">Acertos em compras</span>
-            <span className="font-medium">{formatPercent(report.long_trades_won_percent)}</span>
+          <div className="flex justify-between gap-3 border-b border-tint/6 py-1">
+            <span className="text-fg-muted">Acertos em compras</span>
+            <span className="font-mono tabular-nums whitespace-nowrap font-medium text-fg">{formatPercent(report.long_trades_won_percent)}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-100 py-1">
-            <span className="text-slate-600">Acertos em vendas</span>
-            <span className="font-medium">{formatPercent(report.short_trades_won_percent)}</span>
+          <div className="flex justify-between gap-3 border-b border-tint/6 py-1">
+            <span className="text-fg-muted">Acertos em vendas</span>
+            <span className="font-mono tabular-nums whitespace-nowrap font-medium text-fg">{formatPercent(report.short_trades_won_percent)}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-100 py-1">
-            <span className="text-slate-600">Drawdown absoluto</span>
-            <span className="font-medium">{formatMoney(report.absolute_drawdown, report.currency)}</span>
+          <div className="flex justify-between gap-3 border-b border-tint/6 py-1">
+            <span className="text-fg-muted">Drawdown absoluto</span>
+            <span className="font-mono tabular-nums whitespace-nowrap font-medium text-fg">{formatMoney(report.absolute_drawdown, report.currency)}</span>
           </div>
-          <div className="flex justify-between border-b border-slate-100 py-1">
-            <span className="text-slate-600">Drawdown relativo</span>
-            <span className="font-medium">{formatPercent(report.relative_drawdown_percent)}</span>
+          <div className="flex justify-between gap-3 border-b border-tint/6 py-1">
+            <span className="text-fg-muted">Drawdown relativo</span>
+            <span className="font-mono tabular-nums whitespace-nowrap font-medium text-fg">{formatPercent(report.relative_drawdown_percent)}</span>
           </div>
         </div>
       </div>

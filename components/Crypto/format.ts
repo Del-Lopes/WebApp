@@ -25,6 +25,6 @@ export function fmtPct(v: number | null): string {
 
 // Classe de cor conforme sinal (verde alta, vermelho baixa).
 export function pctColor(v: number | null): string {
-  if (v == null) return 'text-slate-400';
-  return v >= 0 ? 'text-emerald-600' : 'text-rose-600';
+  if (v == null) return 'text-fg-subtle';
+  return v >= 0 ? 'text-success-fg' : 'text-danger-fg';
 }

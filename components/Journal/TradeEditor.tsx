@@ -8,6 +8,7 @@ import {
   type TradeInput,
   type TradeSide,
 } from '../../hooks/useTradeJournal';
+import { Button, Input, Textarea } from '../ui';
 
 interface TradeEditorProps {
   entry: TradeEntry | null;
@@ -147,33 +148,33 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[92vh] flex flex-col">
-        <div className="flex items-center justify-between p-5 border-b border-slate-200">
-          <h3 className="font-bold text-slate-900 text-lg">
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
+      <div className="relative overflow-hidden bg-surface text-fg border border-tint/10 rounded-t-2xl sm:rounded-2xl w-full max-w-3xl max-h-[92dvh] flex flex-col">
+        <div className="hairline absolute inset-x-0 top-0" aria-hidden />
+        <div className="flex items-center justify-between p-5 border-b border-tint/6">
+          <h3 className="font-display font-semibold text-fg text-lg">
             {isEditing ? 'Editar operação' : 'Nova operação'}
           </h3>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+            className="p-1.5 rounded-lg text-fg-subtle hover:text-fg hover:bg-tint/5 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
             aria-label="Fechar"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-5 space-y-6">
+        <div className="flex-1 overflow-y-auto ds-scrollbar p-5 space-y-6">
           {/* Operação */}
           <Section title="Operação">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <Field label="Ativo">
-                <input
+                <Input
                   type="text"
                   value={asset}
                   onChange={(e) => setAsset(e.target.value.toUpperCase())}
                   placeholder="EURUSD, WIN, BTC…"
                   maxLength={30}
-                  className={inputClass}
                 />
               </Field>
               <Field label="Tipo">
@@ -181,10 +182,10 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
                   <button
                     type="button"
                     onClick={() => setSide('buy')}
-                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
                       side === 'buy'
-                        ? 'bg-green-600 text-white'
-                        : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-success/15 border-success/40 text-success-fg'
+                        : 'bg-tint/3 border-tint/10 text-fg-muted hover:bg-tint/6 hover:text-fg'
                     }`}
                   >
                     Compra
@@ -192,10 +193,10 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
                   <button
                     type="button"
                     onClick={() => setSide('sell')}
-                    className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`flex-1 px-3 py-2.5 rounded-lg border text-sm font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
                       side === 'sell'
-                        ? 'bg-red-600 text-white'
-                        : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+                        ? 'bg-danger/15 border-danger/40 text-danger-fg'
+                        : 'bg-tint/3 border-tint/10 text-fg-muted hover:bg-tint/6 hover:text-fg'
                     }`}
                   >
                     Venda
@@ -203,56 +204,51 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
                 </div>
               </Field>
               <Field label="Volume / Lote">
-                <input
+                <Input
                   type="number"
                   step="0.01"
                   min="0"
                   value={volume}
                   onChange={(e) => setVolume(e.target.value)}
                   placeholder="0.10"
-                  className={inputClass}
                 />
               </Field>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
               <Field label="Preço de entrada (opcional)">
-                <input
+                <Input
                   type="number"
                   step="any"
                   value={entryPrice}
                   onChange={(e) => setEntryPrice(e.target.value)}
                   placeholder="1.08234"
-                  className={inputClass}
                 />
               </Field>
               <Field label="Preço de saída (opcional)">
-                <input
+                <Input
                   type="number"
                   step="any"
                   value={exitPrice}
                   onChange={(e) => setExitPrice(e.target.value)}
                   placeholder="1.08512"
-                  className={inputClass}
                 />
               </Field>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
               <Field label="Abertura">
-                <input
+                <Input
                   type="datetime-local"
                   value={openedAt}
                   onChange={(e) => setOpenedAt(e.target.value)}
-                  className={inputClass}
                 />
               </Field>
               <Field label="Fechamento (opcional)">
-                <input
+                <Input
                   type="datetime-local"
                   value={closedAt}
                   onChange={(e) => setClosedAt(e.target.value)}
-                  className={inputClass}
                 />
               </Field>
             </div>
@@ -262,28 +258,26 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
           <Section title="Resultado">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Field label="Resultado em moeda (R$/$)">
-                <input
+                <Input
                   type="number"
                   step="0.01"
                   value={resultAmount}
                   onChange={(e) => setResultAmount(e.target.value)}
                   placeholder="Use sinal negativo para prejuízo"
-                  className={inputClass}
                 />
               </Field>
               <Field label={computedPips !== null ? 'Pips/pontos (calculado)' : 'Pips/pontos (opcional)'}>
                 {computedPips !== null ? (
-                  <div className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50 text-sm tabular-nums text-slate-700">
+                  <div className="px-3.5 py-2.5 rounded-lg border border-tint/8 bg-tint/5 text-sm font-mono tabular-nums text-fg">
                     {computedPips.toFixed(4)}
                   </div>
                 ) : (
-                  <input
+                  <Input
                     type="number"
                     step="any"
                     value={resultPipsManual}
                     onChange={(e) => setResultPipsManual(e.target.value)}
                     placeholder="Preencha se quiser"
-                    className={inputClass}
                   />
                 )}
               </Field>
@@ -294,35 +288,32 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
           <Section title="Reflexão">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Field label="Motivo da entrada">
-                <textarea
+                <Textarea
                   value={entryReason}
                   onChange={(e) => setEntryReason(e.target.value)}
                   rows={3}
                   maxLength={2000}
                   placeholder="Por que entrou? Setup, sinal, contexto…"
-                  className={inputClass}
                 />
               </Field>
               <Field label="Motivo da saída">
-                <textarea
+                <Textarea
                   value={exitReason}
                   onChange={(e) => setExitReason(e.target.value)}
                   rows={3}
                   maxLength={2000}
                   placeholder="Por que saiu? Stop, alvo, decisão manual…"
-                  className={inputClass}
                 />
               </Field>
             </div>
 
             <Field label="Análise">
-              <textarea
+              <Textarea
                 value={analysis}
                 onChange={(e) => setAnalysis(e.target.value)}
                 rows={3}
                 maxLength={4000}
                 placeholder="Como você lê esse trade tecnicamente? O que estava acontecendo no mercado?"
-                className={inputClass}
               />
             </Field>
 
@@ -333,23 +324,22 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
                     key={tag}
                     type="button"
                     onClick={() => toggleTag(tag)}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    className={`px-3 py-1 rounded-full border text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
                       emotionalTags.includes(tag)
-                        ? 'bg-green-600 text-white'
-                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                        ? 'bg-accent/10 border-accent/40 text-accent-fg'
+                        : 'bg-tint/3 border-tint/10 text-fg-muted hover:bg-tint/6 hover:text-fg'
                     }`}
                   >
                     {tag}
                   </button>
                 ))}
               </div>
-              <textarea
+              <Textarea
                 value={emotionalNote}
                 onChange={(e) => setEmotionalNote(e.target.value)}
                 rows={2}
                 maxLength={1000}
                 placeholder="Comentário sobre o emocional (opcional)"
-                className={inputClass}
               />
             </Field>
 
@@ -360,15 +350,15 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
                     key={n}
                     type="button"
                     onClick={() => setRating(rating === n ? null : n)}
-                    className="p-1"
+                    className="p-1 rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                     aria-label={`${n} estrela${n > 1 ? 's' : ''}`}
                   >
                     <Star
                       size={24}
                       className={
                         rating !== null && n <= rating
-                          ? 'text-amber-400 fill-amber-400'
-                          : 'text-slate-300'
+                          ? 'text-warning fill-warning'
+                          : 'text-fg-subtle/50'
                       }
                     />
                   </button>
@@ -377,7 +367,7 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
                   <button
                     type="button"
                     onClick={() => setRating(null)}
-                    className="ml-2 text-xs text-slate-500 hover:text-slate-700"
+                    className="ml-2 text-xs text-fg-muted hover:text-fg"
                   >
                     limpar
                   </button>
@@ -386,13 +376,12 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
             </Field>
 
             <Field label="Conclusão / aprendizado">
-              <textarea
+              <Textarea
                 value={conclusion}
                 onChange={(e) => setConclusion(e.target.value)}
                 rows={3}
                 maxLength={2000}
                 placeholder="O que esse trade te ensinou? O que faria diferente?"
-                className={inputClass}
               />
             </Field>
           </Section>
@@ -404,12 +393,12 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
                 <img
                   src={screenshotUrl}
                   alt="Screenshot da operação"
-                  className="max-h-64 rounded-lg border border-slate-200"
+                  className="max-h-64 max-w-full rounded-lg border border-tint/10"
                 />
                 <button
                   type="button"
                   onClick={() => setScreenshotUrl(null)}
-                  className="absolute -top-2 -right-2 p-1.5 rounded-full bg-red-600 text-white shadow-lg hover:bg-red-700"
+                  className="absolute -top-2 -right-2 p-1.5 rounded-full bg-brand-red text-white hover:brightness-110 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                   aria-label="Remover screenshot"
                 >
                   <Trash2 size={14} />
@@ -428,13 +417,13 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingFile}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-slate-300 text-sm text-slate-600 hover:border-green-500 hover:text-green-700 hover:bg-green-50 transition-colors disabled:opacity-50"
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-tint/15 text-sm text-fg-muted hover:border-accent/60 hover:text-accent-fg hover:bg-accent/5 transition-colors disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                 >
                   {uploadingFile ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
                   {uploadingFile ? 'Enviando...' : 'Enviar imagem (até 5MB)'}
                 </button>
                 {uploadError && (
-                  <div className="flex items-start gap-2 mt-2 p-2 rounded-lg bg-red-50 text-red-700 text-xs">
+                  <div className="flex items-start gap-2 mt-2 p-2 rounded-lg border bg-danger/10 border-danger/20 text-danger-fg text-xs">
                     <AlertTriangle size={14} className="shrink-0 mt-0.5" />
                     <span>{uploadError}</span>
                   </div>
@@ -444,40 +433,34 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
           </Section>
 
           {error && (
-            <div className="flex items-start gap-2 p-3 rounded-lg bg-red-50 text-red-700 text-sm">
+            <div className="flex items-start gap-2 p-3 rounded-lg border bg-danger/10 border-danger/20 text-danger-fg text-sm">
               <AlertTriangle size={16} className="shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-end gap-2 p-5 border-t border-slate-200 bg-slate-50">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-200 transition-colors"
-          >
+        <div className="flex items-center justify-end gap-2 p-4 sm:p-5 border-t border-tint/6 bg-tint/2">
+          <Button variant="ghost" onClick={onClose}>
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             disabled={saving || uploadingFile}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {saving && <Loader2 className="animate-spin" size={14} />}
             {isEditing ? 'Salvar alterações' : 'Registrar operação'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
   );
 }
 
-const inputClass = 'w-full px-3 py-2 rounded-lg border border-slate-300 text-sm focus:outline-hidden focus:ring-2 focus:ring-green-500 focus:border-transparent';
-
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div>
-      <h4 className="text-xs uppercase tracking-wide text-slate-500 font-semibold mb-3">{title}</h4>
+      <h4 className="eyebrow-muted mb-3">{title}</h4>
       {children}
     </div>
   );
@@ -486,7 +469,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-slate-700 mb-1.5">{label}</span>
+      <span className="block text-sm font-medium text-fg mb-1.5">{label}</span>
       {children}
     </label>
   );

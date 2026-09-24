@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, LockOpen, Info } from 'lucide-react';
+import { LockOpen, Info } from 'lucide-react';
 import {
   fetchUpcomingUnlocks, fetchUnlockCoverage, daysUntil,
   UpcomingUnlock, UnlockCoverage,
 } from '../../lib/cryptoData';
+import { Skeleton, EmptyState } from '../ui';
 
 // Calendário de desbloqueio de vesting. É o raro dado de cripto que se conhece
 // com antecedência: a data em que um lote de tokens sai do cofre e a oferta
@@ -47,16 +48,16 @@ export const UnlocksPanel: React.FC = () => {
   return (
     <div className="space-y-3 pt-2">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <p className="text-sm text-slate-500 flex items-center gap-2">
-          <LockOpen size={16} className="text-rose-500" /> Próximos desbloqueios de tokens.
+        <p className="text-sm text-fg-muted flex items-center gap-2">
+          <LockOpen size={16} className="text-accent-fg" /> Próximos desbloqueios de tokens.
         </p>
-        <div className="flex gap-1 p-1 rounded-xl bg-slate-100">
+        <div className="flex gap-1 p-1 rounded-xl border border-tint/6 bg-tint/3">
           {WINDOWS.map((d) => (
             <button
               key={d}
               onClick={() => setDays(d)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                days === d ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-700'
+              className={`px-3 py-1 rounded-lg border font-mono text-xs font-medium transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                days === d ? 'bg-accent/10 text-accent-fg border-accent/30' : 'border-transparent text-fg-muted hover:text-fg'
               }`}
             >
               {d}d
@@ -66,13 +67,15 @@ export const UnlocksPanel: React.FC = () => {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-10 text-slate-300"><Loader2 className="animate-spin" size={24} /></div>
+        <div className="space-y-1.5" aria-busy="true">{[0, 1, 2].map((k) => <Skeleton key={k} className="h-[62px] rounded-xl" />)}</div>
       ) : items.length === 0 ? (
-        <p className="text-sm text-slate-400 py-8 text-center">
-          {coverage && coverage.protocols === 0
+        <EmptyState
+          className="py-10"
+          icon={LockOpen}
+          title={coverage && coverage.protocols === 0
             ? 'O calendário ainda está sendo montado. Volte em algumas horas.'
             : `Nenhum desbloqueio nos próximos ${days} dias entre os protocolos já mapeados.`}
-        </p>
+        />
       ) : (
         <div className="space-y-1.5">
           {items.map((u) => {
@@ -81,26 +84,26 @@ export const UnlocksPanel: React.FC = () => {
             return (
               <div
                 key={u.protocol_slug}
-                className={`flex items-center gap-3 rounded-xl bg-white p-3 shadow-xs ring-1 ${
-                  heavy ? 'ring-rose-200' : 'ring-slate-100'
+                className={`glass-card flex items-center gap-3 rounded-xl p-3 ${
+                  heavy ? 'border-danger/30!' : ''
                 }`}
               >
                 <div className="w-12 shrink-0 text-center">
-                  <p className="text-sm font-bold text-slate-700 leading-tight tabular-nums">{d}</p>
-                  <p className="text-[10px] text-slate-400">{d === 1 ? 'dia' : 'dias'}</p>
+                  <p className="font-display text-base font-semibold text-fg leading-tight tabular-nums">{d}</p>
+                  <p className="text-[10px] text-fg-muted">{d === 1 ? 'dia' : 'dias'}</p>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800 text-sm truncate">{u.name}</p>
-                  <p className="text-[11px] text-slate-400 truncate">
+                  <p className="font-medium text-fg text-sm truncate">{u.name}</p>
+                  <p className="text-[11px] text-fg-muted truncate tabular-nums">
                     {fmtDate(u.next_unlock_at)}
                     {u.next_unlock_category && ` • ${u.next_unlock_category}`}
                     {u.next_unlock_type === 'cliff' && ' • lote único'}
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-sm font-semibold text-slate-700 tabular-nums">{fmtTokens(u.next_unlock_tokens)}</p>
+                  <p className="font-mono text-sm font-medium text-fg tabular-nums whitespace-nowrap">{fmtTokens(u.next_unlock_tokens)}</p>
                   {u.dilution_pct != null && (
-                    <p className={`text-[11px] font-medium tabular-nums ${heavy ? 'text-rose-600' : 'text-slate-400'}`}>
+                    <p className={`font-mono text-[11px] font-medium tabular-nums whitespace-nowrap ${heavy ? 'text-danger-fg' : 'text-fg-muted'}`}>
                       {u.dilution_pct.toFixed(2)}% do supply
                     </p>
                   )}
@@ -111,7 +114,7 @@ export const UnlocksPanel: React.FC = () => {
         </div>
       )}
 
-      <p className="flex items-start gap-2 text-[11px] text-slate-400 leading-relaxed">
+      <p className="flex items-start gap-2 text-[11px] text-fg-muted leading-relaxed">
         <Info size={13} className="mt-0.5 shrink-0" />
         Cronograma de vesting via DefiLlama
         {coverage && coverage.protocols > 0 && ` — ${coverage.protocols} protocolos mapeados até agora`}.
