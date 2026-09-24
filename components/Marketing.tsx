@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { MarketingAsset } from '../types';
 import { BackButton } from './BackButton';
+import { Button, Card, Input, Label, Select, Textarea, Tabs, Table, THead, TBody, TR, TH, TD, PageHeader, EmptyState, Skeleton } from './ui';
 
 interface MarketingProps {
   onBack?: () => void;
@@ -231,110 +232,138 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
 
 
-  if (loading) return <div className="p-10 text-center text-slate-500 font-bold uppercase tracking-widest animate-pulse">Carregando...</div>;
+  // Classes por status do prospecto (escritas por inteiro para o Tailwind compilado).
+  // Mesmo mapa do Painel Admin (PROSPECT_TONE): novo = destaque, contatado =
+  // neutro, negociando = em andamento, convertido = sucesso, perdido = perda.
+  const PROSPECT_STATUS_BADGE: Record<string, string> = {
+    new: 'bg-accent/10 text-accent-fg border-accent/20',
+    contacted: 'bg-tint/5 text-fg-muted border-tint/10',
+    negotiating: 'bg-warning/10 text-warning-fg border-warning/20',
+    converted: 'bg-success/10 text-success-fg border-success/20',
+    lost: 'bg-danger/10 text-danger-fg border-danger/20',
+  };
+  const PROSPECT_STATUS_SELECT: Record<string, string> = {
+    new: 'bg-accent/10 text-accent-fg border-accent/20 hover:border-accent/40',
+    contacted: 'bg-tint/5 text-fg-muted border-tint/10 hover:border-tint/20',
+    negotiating: 'bg-warning/10 text-warning-fg border-warning/20 hover:border-warning/40',
+    converted: 'bg-success/10 text-success-fg border-success/20 hover:border-success/40',
+    lost: 'bg-danger/10 text-danger-fg border-danger/20 hover:border-danger/40',
+  };
+  const statusBadgeClass = (status: string) => PROSPECT_STATUS_BADGE[status] ?? 'bg-tint/5 text-fg-muted border-tint/10';
+  const statusSelectClass = (status: string) => PROSPECT_STATUS_SELECT[status] ?? 'bg-tint/5 text-fg-muted border-tint/10 hover:border-tint/20';
+
+  // Link com aparência de botão (âncoras não usam <Button>).
+  const linkPrimaryClass = 'inline-flex items-center justify-center gap-2 rounded-lg h-11 px-5 text-sm font-semibold whitespace-nowrap bg-gradient-to-r from-brand-green-bright to-brand-green text-brand-dark hover:brightness-110 transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60';
+  const linkSecondaryClass = 'inline-flex items-center justify-center gap-2 rounded-lg font-medium whitespace-nowrap bg-tint/6 text-fg border border-tint/10 hover:bg-tint/10 hover:border-tint/20 transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60';
+
+  if (loading) return (
+    <div className="space-y-6 pb-20" role="status" aria-live="polite">
+      <span className="sr-only">Carregando...</span>
+      <div className="space-y-2">
+        <Skeleton className="h-8 w-56" />
+        <Skeleton className="h-4 w-80 max-w-full" />
+      </div>
+      <Skeleton className="h-11 w-72 max-w-full rounded-xl" />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+        <Skeleton className="h-60 rounded-2xl" />
+        <Skeleton className="h-60 rounded-2xl" />
+        <Skeleton className="h-60 rounded-2xl" />
+      </div>
+    </div>
+  );
 
   if (viewingProspect) {
     return (
-        <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300 pb-20">
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                    <button 
-                        onClick={() => setViewingProspect(null)}
-                        className="p-3 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-indigo-600 hover:border-indigo-200 transition-all shadow-xs"
-                    >
-                        <ArrowLeft size={20} />
-                    </button>
-                    <div>
-                        <h2 className="text-2xl font-bold text-slate-900 mb-1">{viewingProspect.full_name}</h2>
-                        <div className="flex items-center gap-2">
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest ${
-                                viewingProspect.status === 'new' ? 'bg-blue-100 text-blue-700' :
-                                viewingProspect.status === 'converted' ? 'bg-green-100 text-green-700' :
-                                'bg-slate-100 text-slate-600'
-                            }`}>
-                                {viewingProspect.status}
-                            </span>
-                            <span className="text-slate-400 text-[10px] font-bold uppercase tracking-tight">
-                                Cadastrado em: {new Date(viewingProspect.created_at).toLocaleDateString('pt-BR')}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                <div className="flex gap-3">
-                    <button 
-                        onClick={() => handleDeleteProspect(viewingProspect.id)}
-                        className="p-3 bg-red-50 text-red-600 rounded-2xl hover:bg-red-100 transition-all shadow-xs flex items-center gap-2 text-xs font-bold"
-                    >
-                        <Trash2 size={18} /> Excluir
-                    </button>
-                </div>
-            </div>
+        <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300 pb-20">
+            <PageHeader
+                className="mb-0 sm:mb-0"
+                leading={
+                    <Button variant="secondary" size="icon" onClick={() => setViewingProspect(null)} aria-label="Voltar">
+                        <ArrowLeft size={18} />
+                    </Button>
+                }
+                title={<span className="break-words">{viewingProspect.full_name}</span>}
+                description={
+                    <span className="flex flex-wrap items-center gap-2">
+                        <span className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-widest ${statusBadgeClass(viewingProspect.status)}`}>
+                            {viewingProspect.status}
+                        </span>
+                        <span className="text-fg-subtle text-xs">
+                            Cadastrado em: <span className="font-mono tabular-nums">{new Date(viewingProspect.created_at).toLocaleDateString('pt-BR')}</span>
+                        </span>
+                    </span>
+                }
+                actions={
+                    <Button variant="danger" size="sm" onClick={() => handleDeleteProspect(viewingProspect.id)}>
+                        <Trash2 size={16} /> Excluir
+                    </Button>
+                }
+            />
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Info Cards */}
                 <div className="lg:col-span-1 space-y-6">
-                    <div className="bg-white p-8 rounded-[32px] border border-slate-100 shadow-xs space-y-6">
-                        <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Informações de Contato</h4>
-                        
-                        <div className="space-y-4">
-                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">E-mail</label>
-                                <div className="flex items-center gap-3 text-slate-800">
-                                    <Mail size={18} className="text-indigo-500" />
-                                    <span className="font-bold">{viewingProspect.email || 'Não informado'}</span>
+                    <Card className="space-y-6">
+                        <h4 className="eyebrow-muted">Informações de Contato</h4>
+
+                        <div className="space-y-3">
+                            <div className="p-4 bg-tint/3 rounded-xl border border-tint/6">
+                                <label className="eyebrow-muted mb-1.5 block">E-mail</label>
+                                <div className="flex items-center gap-3 text-fg min-w-0">
+                                    <Mail size={18} className="text-accent-fg shrink-0" />
+                                    <span className="font-medium break-all">{viewingProspect.email || 'Não informado'}</span>
                                 </div>
                             </div>
 
-                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                <label className="text-[10px] font-black text-slate-400 uppercase mb-1 block">Telefone / WhatsApp</label>
-                                <div className="flex items-center gap-3 text-slate-800">
-                                    <Phone size={18} className="text-green-500" />
-                                    <span className="font-bold">{viewingProspect.phone || 'Não informado'}</span>
+                            <div className="p-4 bg-tint/3 rounded-xl border border-tint/6">
+                                <label className="eyebrow-muted mb-1.5 block">Telefone / WhatsApp</label>
+                                <div className="flex items-center gap-3 text-fg">
+                                    <Phone size={18} className="text-accent-fg shrink-0" />
+                                    <span className="font-mono tabular-nums">{viewingProspect.phone || 'Não informado'}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="pt-4 border-t border-slate-100">
-                            <label className="text-[10px] font-black text-slate-400 uppercase mb-3 block">Alterar Status</label>
-                            <select 
+                        <div className="pt-4 border-t border-tint/6">
+                            <Label>Alterar Status</Label>
+                            <Select
                                 value={viewingProspect.status}
                                 onChange={(e) => {
                                     handleUpdateProspectField(viewingProspect.id, 'status', e.target.value);
                                     setViewingProspect({...viewingProspect, status: e.target.value});
                                 }}
-                                className="w-full p-4 bg-slate-100 border-none rounded-2xl font-black text-sm uppercase tracking-widest focus:ring-2 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
                             >
                                 <option value="new">Novo Lead</option>
                                 <option value="contacted">Contatado</option>
                                 <option value="negotiating">Negociando</option>
                                 <option value="converted">Convertido</option>
                                 <option value="lost">Perdido</option>
-                            </select>
+                            </Select>
                         </div>
-                    </div>
+                    </Card>
                 </div>
 
                 {/* Notes/Detailed Area */}
                 <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-white p-10 rounded-[40px] border border-slate-100 shadow-xs h-full flex flex-col">
-                        <div className="flex items-center justify-between mb-8">
-                            <h4 className="text-sm font-black text-slate-400 uppercase tracking-widest">Anotações e Histórico</h4>
-                            <div className="flex items-center gap-2 text-slate-400 text-[10px] font-bold">
+                    <Card className="h-full flex flex-col">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+                            <h4 className="eyebrow-muted">Anotações e Histórico</h4>
+                            <div className="flex items-center gap-2 text-fg-subtle text-xs">
                                 <Calendar size={14} /> Atualizado automaticamente
                             </div>
                         </div>
-                        
-                        <textarea 
-                            className="flex-1 w-full p-8 bg-slate-50 border-2 border-slate-100 rounded-[32px] outline-hidden font-medium text-slate-700 leading-relaxed focus:bg-white focus:border-indigo-500 transition-all resize-none min-h-[400px]"
+
+                        <Textarea
+                            className="flex-1 p-5 leading-relaxed resize-none min-h-[320px] sm:min-h-[400px]"
                             placeholder="Escreva aqui detalhes sobre o atendimento, preferências do cliente ou próximos passos..."
                             defaultValue={viewingProspect.notes}
                             onBlur={(e) => handleUpdateProspectField(viewingProspect.id, 'notes', e.target.value)}
                         />
-                        
-                        <div className="mt-6 flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl text-indigo-700 text-xs font-bold">
-                            <Save size={16} /> As anotações são salvas assim que você clica fora da caixa de texto.
+
+                        <div className="mt-5 flex items-start gap-3 p-4 bg-accent/5 border border-accent/15 rounded-xl text-accent-fg text-xs font-medium">
+                            <Save size={16} className="shrink-0" /> As anotações são salvas assim que você clica fora da caixa de texto.
                         </div>
-                    </div>
+                    </Card>
                 </div>
             </div>
         </div>
@@ -343,34 +372,34 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
   if (viewingAsset) {
       return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white animate-in slide-in-from-right duration-500">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
-            <button onClick={() => setViewingAsset(null)} className="flex items-center gap-2 text-slate-600 hover:text-slate-900 font-black px-5 py-2.5 rounded-2xl border border-slate-200 transition-all hover:bg-slate-50">
-              <ArrowLeft size={20} /> VOLTAR
-            </button>
-            <h3 className="text-xl font-black text-slate-900 tracking-tight">{viewingAsset.title}</h3>
-            <div className="flex items-center gap-2">
-               <a href={viewingAsset.url} download className="px-8 py-3 bg-slate-900 text-white rounded-2xl font-black text-sm hover:bg-green-600 transition-all flex items-center gap-2 shadow-xl shadow-slate-200 uppercase tracking-widest">
-                  <Download size={18} /> Baixar
+        <div className="fixed inset-0 z-50 flex flex-col bg-page text-fg animate-in slide-in-from-right duration-500">
+          <div className="relative px-4 py-3 sm:px-6 sm:py-4 border-b border-tint/8 flex items-center gap-3 bg-surface">
+            <Button variant="secondary" size="sm" onClick={() => setViewingAsset(null)} className="shrink-0">
+              <ArrowLeft size={18} /> <span className="hidden sm:inline">VOLTAR</span>
+            </Button>
+            <h3 className="flex-1 min-w-0 truncate text-center font-display text-base sm:text-xl font-semibold text-fg">{viewingAsset.title}</h3>
+            <div className="flex items-center gap-2 shrink-0">
+               <a href={viewingAsset.url} download className={linkPrimaryClass}>
+                  <Download size={18} /> <span className="hidden sm:inline">Baixar</span>
                </a>
             </div>
           </div>
-          <div className="flex-1 overflow-auto bg-slate-50/50 p-8 flex justify-center">
-            <div className="max-w-5xl w-full bg-white rounded-[48px] p-16 shadow-2xl shadow-slate-200 border border-slate-100 mb-20">
+          <div className="ds-scrollbar flex-1 overflow-auto p-4 sm:p-8 flex justify-center">
+            <div className="max-w-5xl w-full h-fit bg-surface rounded-2xl p-6 sm:p-10 lg:p-16 border border-tint/8 mb-20">
                {viewingAsset.type === 'Text' ? (
-                 <div className="prose prose-slate lg:prose-xl max-w-none">
-                    {viewingAsset.image_url && <img src={viewingAsset.image_url} alt="" className="w-full h-[450px] object-cover rounded-[40px] mb-12 shadow-2xl" />}
-                    <div className="whitespace-pre-wrap font-medium leading-relaxed text-slate-600 text-lg">
+                 <div className="max-w-none">
+                    {viewingAsset.image_url && <img src={viewingAsset.image_url} alt="" className="w-full h-56 sm:h-[450px] object-cover rounded-2xl mb-8 sm:mb-12 border border-tint/8" />}
+                    <div className="whitespace-pre-wrap font-medium leading-relaxed text-fg-muted text-base sm:text-lg">
                         {viewingAsset.content}
                     </div>
                  </div>
                ) : (
-                 <div className="flex flex-col items-center justify-center py-20">
-                    <div className="w-32 h-32 bg-slate-50 rounded-full flex items-center justify-center mb-6">
-                       <FileText size={64} className="text-slate-200" />
+                 <div className="flex flex-col items-center justify-center py-12 sm:py-20 text-center">
+                    <div className="w-24 h-24 bg-tint/3 border border-tint/8 rounded-full flex items-center justify-center mb-6">
+                       <FileText size={44} className="text-fg-subtle" />
                     </div>
-                    <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">Pré-visualização não disponível</p>
-                    <a href={viewingAsset.url} target="_blank" className="mt-8 px-8 py-4 bg-green-50 text-green-700 font-black rounded-2xl hover:bg-green-100 transition-all flex items-center gap-2 uppercase tracking-widest text-xs">Abrir em nova aba <Share2 size={16} /></a>
+                    <p className="eyebrow-muted">Pré-visualização não disponível</p>
+                    <a href={viewingAsset.url} target="_blank" className="mt-8 inline-flex items-center gap-2 h-11 px-5 rounded-lg bg-accent/10 border border-accent/20 text-accent-fg font-medium text-sm uppercase tracking-widest hover:bg-accent/15 transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60">Abrir em nova aba <Share2 size={16} /></a>
                  </div>
                )}
             </div>
@@ -381,152 +410,129 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
   if (!canViewContent) {
       return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-10 animate-in fade-in zoom-in duration-700">
+        <div className="relative flex flex-col items-center justify-center min-h-[60vh] text-center space-y-10 px-4 animate-in fade-in zoom-in duration-700">
+            <div className="pointer-events-none absolute inset-0 bg-grid-fade opacity-60" aria-hidden />
             <div className="relative">
-                <div className="absolute inset-0 bg-green-500 blur-3xl opacity-20 animate-pulse" />
-                <div className="relative w-32 h-32 bg-white rounded-[40px] flex items-center justify-center text-green-600 shadow-2xl shadow-green-200/50 -rotate-6">
-                    <Share2 size={56} className="animate-bounce-slow" />
+                <div className="absolute inset-0 bg-brand-green blur-3xl opacity-15 animate-pulse" aria-hidden />
+                <div className="relative w-28 h-28 glass-card rounded-3xl flex items-center justify-center text-accent-fg -rotate-6">
+                    <Share2 size={48} className="animate-bounce-slow" />
                 </div>
             </div>
-            <div className="space-y-4">
-                <h2 className="text-5xl font-black text-slate-900 tracking-tighter">Seja um Parceiro</h2>
-                <p className="max-w-md mx-auto text-slate-500 font-medium text-lg leading-relaxed">
+            <div className="relative space-y-4">
+                <h2 className="font-display text-4xl sm:text-5xl font-semibold text-fg tracking-tight">Seja um <span className="text-gradient-brand">Parceiro</span></h2>
+                <p className="max-w-md mx-auto text-fg-muted text-base sm:text-lg leading-relaxed">
                     Desbloqueie ferramentas exclusivas de CRM, materiais de marketing premium e comece a escalar suas conversões hoje mesmo.
                 </p>
             </div>
             {partnerRequest && partnerRequest.status === 'pending' ? (
-                 <div className="bg-slate-900 text-white px-10 py-6 rounded-[32px] flex flex-col items-center gap-2 shadow-2xl shadow-slate-200">
-                     <div className="flex items-center gap-3">
-                        <span className="w-3 h-3 bg-yellow-400 rounded-full animate-ping" />
-                        <span className="font-black uppercase tracking-widest text-sm">Em Análise</span>
+                 <div className="relative bg-warning/10 border border-warning/20 px-8 py-5 rounded-2xl flex flex-col items-center gap-2">
+                     <div className="flex items-center gap-3 text-warning-fg">
+                        <span className="relative flex h-2.5 w-2.5" aria-hidden>
+                          <span className="absolute inline-flex h-full w-full rounded-full bg-warning opacity-60 animate-ping" />
+                          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-warning" />
+                        </span>
+                        <span className="font-semibold uppercase tracking-widest text-sm">Em Análise</span>
                      </div>
-                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Nossa equipe está avaliando seu perfil</p>
+                     <p className="text-xs text-fg-muted uppercase tracking-widest">Nossa equipe está avaliando seu perfil</p>
                  </div>
             ) : (
-                <button 
+                <Button
+                  size="lg"
                   onClick={handleRequestPartner}
-                  className="group bg-[#16a34a] hover:bg-green-700 text-white px-12 py-6 rounded-[32px] font-black text-xl shadow-2xl shadow-green-200 hover:shadow-green-400 transition-all transform hover:-translate-y-2 uppercase tracking-widest flex items-center gap-4"
+                  className="group relative uppercase tracking-widest"
                 >
-                    Solicitar Parceria 
-                    <ArrowLeft size={24} className="rotate-180 group-hover:translate-x-2 transition-transform" />
-                </button>
+                    Solicitar Parceria
+                    <ArrowLeft size={20} className="rotate-180 group-hover:translate-x-1 transition-transform" />
+                </Button>
             )}
         </div>
       );
   }
 
   return (
-    <div className="space-y-8 pb-20">
-      <div className="flex items-center gap-4">
-        <BackButton onClick={onBack} />
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900 mb-1">Painel do Parceiro</h2>
-          <p className="text-slate-500 text-sm">Gerencie seus prospectos e materiais de marketing em um só lugar.</p>
-        </div>
-      </div>
+    <div className="space-y-6 sm:space-y-8 pb-20">
+      <PageHeader
+        className="mb-0 sm:mb-0"
+        leading={<BackButton onClick={onBack} />}
+        title={<>Painel do <span className="text-gradient-brand">Parceiro</span></>}
+        description="Gerencie seus prospectos e materiais de marketing em um só lugar."
+      />
 
       {/* Primary Navigation Pills */}
-      <div className="flex gap-2 p-1.5 bg-slate-100/50 rounded-2xl w-fit border border-slate-200 shadow-inner">
-        <button
-          onClick={() => setActiveTab('materials')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-            activeTab === 'materials'
-              ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200 translate-y-[1px]'
-              : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
-          }`}
-        >
-          <ImageIcon size={18} />
-          Materiais
-        </button>
-        <button
-          onClick={() => setActiveTab('prospects')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-            activeTab === 'prospects'
-              ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200 translate-y-[1px]'
-              : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
-          }`}
-        >
-          <Share2 size={18} />
-          Prospectos
-        </button>
-        <button
-          onClick={() => setActiveTab('links')}
-          className={`px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
-            activeTab === 'links'
-              ? 'bg-white text-indigo-600 shadow-md ring-1 ring-slate-200 translate-y-[1px]'
-              : 'text-slate-500 hover:text-slate-800 hover:bg-white/50'
-          }`}
-        >
-          <LinkIcon size={18} />
-          Links Úteis
-        </button>
-      </div>
+      <Tabs
+        aria-label="Seções do painel do parceiro"
+        value={activeTab}
+        onChange={setActiveTab}
+        items={[
+          { key: 'materials', label: 'Materiais', icon: ImageIcon },
+          { key: 'prospects', label: 'Prospectos', icon: Share2 },
+          { key: 'links', label: 'Links Úteis', icon: LinkIcon },
+        ]}
+      />
 
       {activeTab === 'materials' && (
-        <div className="space-y-8 animate-in fade-in duration-500">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="space-y-6 animate-in fade-in duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {assets.map((asset) => (
-              <div key={asset.id} className="group bg-white rounded-[40px] border border-slate-100 p-8 hover:shadow-2xl hover:shadow-slate-200 transition-all duration-500 flex flex-col relative overflow-hidden">
-                 <div className="flex items-center justify-between mb-8">
-                    <div className={`p-4 rounded-3xl shadow-xs ${
-                      asset.type === 'PDF' ? 'bg-red-50 text-red-600' :
-                      asset.type === 'Slide' ? 'bg-orange-50 text-orange-600' :
-                      asset.type === 'Image' ? 'bg-blue-50 text-blue-600' :
-                      'bg-green-50 text-green-600'
-                    }`}>
-                      {asset.type === 'PDF' && <FileText size={24} />}
-                      {asset.type === 'Slide' && <Share2 size={24} />}
-                      {asset.type === 'Image' && <ImageIcon size={24} />}
-                      {asset.type === 'Text' && <FileText size={24} />}
+              <Card key={asset.id} className="glass-card-hover group flex flex-col relative overflow-hidden">
+                 <div className="flex items-center justify-between mb-6">
+                    <div className="p-3 rounded-xl bg-accent/10 border border-accent/20 text-accent-fg">
+                      {asset.type === 'PDF' && <FileText size={22} />}
+                      {asset.type === 'Slide' && <Share2 size={22} />}
+                      {asset.type === 'Image' && <ImageIcon size={22} />}
+                      {asset.type === 'Text' && <FileText size={22} />}
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 bg-slate-50 px-4 py-2 rounded-full">
+                    <span className="font-mono tabular-nums whitespace-nowrap text-[11px] text-fg-muted bg-tint/5 border border-tint/8 px-3 py-1 rounded-full mr-10">
                        {asset.size}
                     </span>
                  </div>
-                 
-                 <h3 className="text-xl font-black text-slate-900 mb-3 truncate group-hover:text-green-600 transition-colors">{asset.title}</h3>
-                 <p className="text-slate-500 text-sm font-medium mb-8 line-clamp-2 leading-relaxed">
+
+                 <h3 className="font-display text-lg font-semibold text-fg mb-2 truncate group-hover:text-accent-fg transition-colors">{asset.title}</h3>
+                 <p className="text-fg-muted text-sm mb-6 line-clamp-2 leading-relaxed">
                    Material oficial para divulgação e suporte ao ecossistema Trader AFK.
                  </p>
 
-                 <div className="mt-auto flex items-center gap-4">
-                   <button 
+                 <div className="mt-auto flex items-center gap-3">
+                   <Button
+                     variant="secondary"
                      onClick={() => setViewingAsset(asset)}
-                     className="flex-1 bg-slate-50 text-slate-900 font-black py-4 rounded-2xl text-xs hover:bg-slate-100 transition-all flex items-center justify-center gap-2 uppercase tracking-widest"
+                     className="flex-1 uppercase tracking-widest text-xs"
                    >
                      <Eye size={16} /> Visualizar
-                   </button>
-                   <a 
-                     href={asset.url} 
-                     download 
-                     className="p-4 bg-slate-900 text-white rounded-2xl hover:bg-green-600 transition-all shadow-lg shadow-slate-200"
+                   </Button>
+                   <a
+                     href={asset.url}
+                     download
+                     aria-label="Baixar"
+                     className={`${linkSecondaryClass} h-11 w-11 shrink-0 hover:text-accent-fg`}
                    >
-                     <Download size={20} />
+                     <Download size={18} />
                    </a>
                  </div>
-                 
+
                  {(role === 'admin' || role === 'first_mate') && (
-                    <button 
+                    <button
                        onClick={() => handleDeleteAsset(asset.id)}
-                       className="absolute top-6 right-6 p-2 text-slate-200 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
+                       aria-label="Excluir material"
+                       className="absolute top-5 right-5 p-2 rounded-lg text-fg-subtle hover:text-danger-fg hover:bg-danger/10 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus-visible:opacity-100 transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                     >
                        <Trash2 size={18} />
                     </button>
                  )}
-              </div>
+              </Card>
             ))}
           </div>
 
           {(role === 'admin' || role === 'first_mate') && (
-            <div 
-              className="p-12 border-4 border-dashed border-slate-100 rounded-[48px] flex flex-col items-center justify-center text-center hover:border-green-500 hover:bg-green-50/20 transition-all cursor-pointer group" 
+            <div
+              className="p-8 sm:p-12 border-2 border-dashed border-tint/10 rounded-2xl flex flex-col items-center justify-center text-center hover:border-accent/50 hover:bg-accent/5 transition-all cursor-pointer group"
               onClick={() => setShowAddModal(true)}
             >
-              <div className="w-20 h-20 bg-white rounded-full shadow-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Plus size={40} className="text-green-600" />
+              <div className="w-14 h-14 bg-accent/10 border border-accent/20 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <Plus size={28} className="text-accent-fg" />
               </div>
-              <h4 className="text-xl font-black text-slate-900">Novo Material</h4>
-              <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-2">Adicionar PDF, Imagem ou Artigo</p>
+              <h4 className="font-display text-lg font-semibold text-fg">Novo Material</h4>
+              <p className="eyebrow-muted mt-2">Adicionar PDF, Imagem ou Artigo</p>
             </div>
           )}
         </div>
@@ -534,116 +540,109 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
       {activeTab === 'prospects' && (
         /* PROSPECTS VIEW - Match AdminPanel Inline Table Style */
-        <div className="bg-white rounded-[40px] shadow-2xl shadow-slate-100 border border-slate-100 overflow-hidden animate-in slide-in-from-bottom duration-500">
-          <div className="p-8 border-b border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6 bg-[#f8fafc]/30">
-            <h3 className="text-lg font-black text-slate-900 shrink-0">Lista de Prospectos</h3>
-            <div className="relative flex-1 w-full max-w-xl">
-              <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-              <input 
+        <Card padding="none" className="overflow-hidden animate-in slide-in-from-bottom duration-500">
+          <div className="p-4 sm:p-6 border-b border-tint/6 flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <h3 className="font-display text-lg font-semibold text-fg shrink-0">Lista de Prospectos</h3>
+            <div className="relative flex-1 w-full md:max-w-xl">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-fg-subtle pointer-events-none" size={16} />
+              <Input
                 type="text"
                 placeholder="Buscar por nome, email ou telefone..."
-                className="w-full pl-14 pr-6 py-3.5 bg-white border border-slate-200 rounded-2xl outline-hidden focus:border-green-500 font-medium text-sm transition-all shadow-xs"
+                className="pl-10"
                 value={prospectSearchTerm}
                 onChange={(e) => setProspectSearchTerm(e.target.value)}
               />
             </div>
-            <button 
+            <Button
               onClick={handleAddNewProspect}
-              className="flex items-center gap-2 px-6 py-3.5 bg-[#16a34a] text-white rounded-2xl hover:bg-green-700 text-sm font-black transition-all shadow-lg shadow-green-100 uppercase tracking-widest"
+              className="uppercase tracking-widest shrink-0"
             >
               <Plus size={18} /> Novo
-            </button>
+            </Button>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-[#f8fafc] text-slate-400 border-b border-slate-100 uppercase text-[10px] font-black tracking-[0.2em]">
+          <Table className="min-w-[960px]" wrapperClassName="rounded-none border-0">
+              <THead>
                 <tr>
-                  <th className="px-8 py-5 w-[25%] font-black">Prospecto</th>
-                  <th className="px-8 py-5 w-[20%] font-black">Contato</th>
-                  <th className="px-8 py-5 w-[15%] font-black">Responsável</th>
-                  <th className="px-8 py-5 w-[12%] font-black">Status</th>
-                  <th className="px-8 py-5 w-[20%] font-black">Anotações</th>
-                  <th className="px-8 py-5 text-right w-[8%] font-black pr-12">Ações</th>
+                  <TH className="px-6 w-[25%]">Prospecto</TH>
+                  <TH className="px-6 w-[20%]">Contato</TH>
+                  <TH className="px-6 w-[15%]">Responsável</TH>
+                  <TH className="px-6 w-[12%]">Status</TH>
+                  <TH className="px-6 w-[20%]">Anotações</TH>
+                  <TH align="right" className="px-6 w-[8%]">Ações</TH>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
+              </THead>
+              <TBody>
                 {prospects.filter(p => {
                   const term = prospectSearchTerm.toLowerCase();
                   return (p.full_name?.toLowerCase().includes(term) || p.email?.toLowerCase().includes(term) || p.phone?.includes(term));
                 }).map(prospect => (
-                  <tr key={prospect.id} className="hover:bg-slate-50/50 transition-colors group">
-                    <td className="px-8 py-6 align-top">
+                  <TR key={prospect.id} className="group">
+                    <TD className="px-6 py-5 align-top">
                       {editingProspectId === prospect.id ? (
-                        <input 
-                          autoFocus 
-                          className="w-full border-2 border-green-200 rounded-xl px-4 py-2 outline-hidden font-bold bg-white shadow-inner" 
-                          defaultValue={prospect.full_name} 
+                        <Input
+                          autoFocus
+                          className="font-semibold"
+                          defaultValue={prospect.full_name}
                           onBlur={(e) => {
                             handleUpdateProspectField(prospect.id, 'full_name', e.target.value);
                           }}
                         />
                       ) : (
-                        <button 
+                        <button
                             onClick={() => setViewingProspect(prospect)}
-                            className="text-left group/name"
+                            className="text-left group/name rounded-md focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                         >
-                          <div className="font-black text-slate-900 text-base group-hover/name:text-indigo-600 transition-colors">{prospect.full_name}</div>
-                          <div className="text-[10px] text-slate-400 mt-1 uppercase font-black tracking-widest">ID: {prospect.id.slice(0, 8)}</div>
+                          <div className="font-semibold text-fg text-base group-hover/name:text-accent-fg transition-colors">{prospect.full_name}</div>
+                          <div className="text-[11px] text-fg-subtle mt-1 font-mono tabular-nums">ID: {prospect.id.slice(0, 8)}</div>
                         </button>
                       )}
-                    </td>
-                    <td className="px-8 py-6 align-top">
+                    </TD>
+                    <TD className="px-6 py-5 align-top">
                       <div className="flex flex-col gap-3">
-                        <div className="flex items-center gap-3 text-slate-600">
-                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
+                        <div className="flex items-center gap-3 text-fg-muted min-w-0">
+                          <div className="w-8 h-8 bg-tint/5 border border-tint/8 rounded-lg flex items-center justify-center text-fg-subtle shrink-0">
                             <Mail size={14} />
                           </div>
                           {editingProspectId === prospect.id ? (
-                            <input 
-                              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-hidden focus:border-green-500" 
-                              defaultValue={prospect.email} 
-                              onBlur={(e) => handleUpdateProspectField(prospect.id, 'email', e.target.value)} 
+                            <Input
+                              className="px-3 py-1.5 text-xs"
+                              defaultValue={prospect.email}
+                              onBlur={(e) => handleUpdateProspectField(prospect.id, 'email', e.target.value)}
                             />
                           ) : (
-                            <span className="truncate font-bold text-slate-700">{prospect.email || '—'}</span>
+                            <span className="truncate font-medium text-fg">{prospect.email || '—'}</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-3 text-slate-600">
-                          <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center text-slate-400 shrink-0">
+                        <div className="flex items-center gap-3 text-fg-muted">
+                          <div className="w-8 h-8 bg-tint/5 border border-tint/8 rounded-lg flex items-center justify-center text-fg-subtle shrink-0">
                             <Phone size={14} />
                           </div>
                           {editingProspectId === prospect.id ? (
-                            <input 
-                              className="w-full border border-slate-200 rounded-lg px-3 py-1.5 text-xs outline-hidden focus:border-green-500" 
-                              defaultValue={prospect.phone} 
-                              onBlur={(e) => handleUpdateProspectField(prospect.id, 'phone', e.target.value)} 
+                            <Input
+                              className="px-3 py-1.5 text-xs"
+                              defaultValue={prospect.phone}
+                              onBlur={(e) => handleUpdateProspectField(prospect.id, 'phone', e.target.value)}
                             />
                           ) : (
-                            <span className="font-bold text-slate-700">{prospect.phone || '—'}</span>
+                            <span className="font-mono tabular-nums whitespace-nowrap text-fg">{prospect.phone || '—'}</span>
                           )}
                         </div>
                       </div>
-                    </td>
-                    <td className="px-8 py-6 align-top">
+                    </TD>
+                    <TD className="px-6 py-5 align-top">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 bg-green-50 rounded-full flex items-center justify-center text-green-600">
-                           <div className="w-1.5 h-1.5 bg-green-600 rounded-full" />
+                        <div className="w-6 h-6 bg-accent/10 border border-accent/20 rounded-full flex items-center justify-center">
+                           <div className="w-1.5 h-1.5 bg-accent rounded-full" />
                         </div>
-                        <span className="font-black text-[10px] text-slate-700 uppercase tracking-tighter">Eu (Parceiro)</span>
+                        <span className="font-medium text-[11px] text-fg-muted uppercase tracking-wider whitespace-nowrap">Eu (Parceiro)</span>
                       </div>
-                    </td>
-                    <td className="px-8 py-6 align-top">
-                      <select 
+                    </TD>
+                    <TD className="px-6 py-5 align-top">
+                      <select
                         value={prospect.status}
                         onChange={(e) => handleUpdateProspectField(prospect.id, 'status', e.target.value)}
-                        className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border-2 transition-all outline-hidden cursor-pointer appearance-none text-center min-w-[130px] ${
-                          prospect.status === 'new' ? 'bg-blue-50 text-blue-700 border-blue-100 hover:border-blue-300' :
-                          prospect.status === 'contacted' ? 'bg-orange-50 text-orange-700 border-orange-100 hover:border-orange-300' :
-                          prospect.status === 'negotiating' ? 'bg-purple-50 text-purple-700 border-purple-100 hover:border-purple-300' :
-                          prospect.status === 'converted' ? 'bg-green-50 text-green-700 border-green-100 hover:border-green-300' :
-                          'bg-slate-50 text-slate-600 border-slate-200 hover:border-slate-300'
-                        }`}
+                        className={`px-3 py-2 rounded-lg text-[10px] font-semibold uppercase tracking-widest border transition-all outline-hidden cursor-pointer appearance-none text-center min-w-[130px] focus-visible:ring-2 focus-visible:ring-accent/60 ${statusSelectClass(prospect.status)}`}
                       >
                         <option value="new">Novo Lead</option>
                         <option value="contacted">Contatado</option>
@@ -651,83 +650,86 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                         <option value="converted">Convertido</option>
                         <option value="lost">Perdido</option>
                       </select>
-                    </td>
-                    <td className="px-8 py-6 align-top">
+                    </TD>
+                    <TD className="px-6 py-5 align-top">
                       {editingProspectId === prospect.id ? (
-                        <textarea 
-                          className="w-full border-2 border-slate-100 rounded-xl px-4 py-3 text-xs outline-hidden focus:border-green-500 bg-white min-h-[100px] font-medium leading-relaxed" 
-                          defaultValue={prospect.notes} 
+                        <Textarea
+                          className="text-xs min-h-[100px] leading-relaxed"
+                          defaultValue={prospect.notes}
                           onBlur={(e) => handleUpdateProspectField(prospect.id, 'notes', e.target.value)}
                         />
                       ) : (
-                        <div className="text-slate-500 text-xs line-clamp-4 leading-relaxed font-medium italic bg-slate-50/50 p-4 rounded-2xl border border-slate-100/50">
+                        <div className="text-fg-muted text-xs line-clamp-4 leading-relaxed italic bg-tint/3 p-3 rounded-xl border border-tint/6">
                           {prospect.notes || 'Clique no lápis para adicionar anotações...'}
                         </div>
                       )}
-                    </td>
-                    <td className="px-8 py-6 text-right align-top pr-12">
-                      <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0">
-                        <button 
+                    </TD>
+                    <TD align="right" className="px-6 py-5 align-top">
+                      <div className="flex justify-end gap-1.5 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100 transition-all">
+                        <Button
+                          variant={editingProspectId === prospect.id ? 'outline' : 'ghost'}
+                          size="icon"
+                          aria-label="Editar"
                           onClick={() => setEditingProspectId(editingProspectId === prospect.id ? null : prospect.id)}
-                          className={`p-3 rounded-2xl transition-all shadow-xs ${
-                            editingProspectId === prospect.id ? 'bg-blue-600 text-white shadow-blue-200' : 'bg-white text-slate-400 hover:text-blue-600 hover:shadow-lg'
-                          }`}
+                          className={editingProspectId === prospect.id ? 'border-accent/60 bg-accent/10 text-accent-fg' : undefined}
                         >
-                          <Edit2 size={18} />
-                        </button>
-                        <button 
+                          <Edit2 size={16} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label="Excluir"
                           onClick={() => handleDeleteProspect(prospect.id)}
-                          className="p-3 bg-white text-slate-400 hover:text-red-600 rounded-2xl transition-all hover:shadow-lg shadow-xs"
+                          className="hover:text-danger-fg hover:bg-danger/10"
                         >
-                          <Trash2 size={18} />
-                        </button>
+                          <Trash2 size={16} />
+                        </Button>
                       </div>
-                    </td>
-                  </tr>
+                    </TD>
+                  </TR>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          
+              </TBody>
+          </Table>
+
           {prospects.length === 0 && (
-            <div className="p-20 text-center flex flex-col items-center justify-center">
-               <div className="w-24 h-24 bg-slate-50 rounded-[40px] flex items-center justify-center text-slate-200 mb-6">
-                 <Search size={48} />
-               </div>
-               <h4 className="text-2xl font-black text-slate-900 tracking-tight">Vazio por aqui</h4>
-               <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px] mt-2">Comece a cadastrar seus leads de marketing agora</p>
+            <div className="p-4 sm:p-6">
+              <EmptyState
+                icon={Search}
+                title="Vazio por aqui"
+                description="Comece a cadastrar seus leads de marketing agora"
+                className="border-0"
+              />
             </div>
           )}
-        </div>
+        </Card>
       )}
 
       {/* Add Asset Modal */}
       {showAddModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto animate-in fade-in">
-              <div className="bg-white rounded-[48px] p-12 max-w-2xl w-full shadow-3xl relative animate-in zoom-in-95 duration-300">
-                  <button onClick={() => setShowAddModal(false)} className="absolute top-10 right-10 p-3 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-2xl transition-all">
-                      <X size={28} />
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto animate-in fade-in">
+              <div className="relative bg-surface border border-tint/10 rounded-2xl p-6 sm:p-8 max-w-2xl w-full my-auto overflow-hidden animate-in zoom-in-95 duration-300">
+                  <div className="hairline absolute inset-x-0 top-0" aria-hidden />
+                  <button onClick={() => setShowAddModal(false)} aria-label="Fechar" className="absolute top-5 right-5 p-2 rounded-lg text-fg-subtle hover:text-fg hover:bg-tint/5 transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60">
+                      <X size={20} />
                   </button>
-                  <div className="mb-10">
-                      <h3 className="text-3xl font-black text-slate-900 tracking-tighter">Novo Material</h3>
-                      <p className="text-slate-500 font-bold uppercase tracking-widest text-xs mt-2">Área Administrativa</p>
+                  <div className="mb-6 pr-10">
+                      <p className="eyebrow mb-2">Área Administrativa</p>
+                      <h3 className="font-display text-2xl font-semibold text-fg">Novo Material</h3>
                   </div>
-                  <form onSubmit={handleAddAsset} className="space-y-8">
-                      <div className="space-y-3">
-                          <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">Título do Material</label>
-                          <input 
-                            type="text" 
-                            required 
-                            className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-hidden font-bold focus:border-green-500 focus:bg-white transition-all text-lg"
+                  <form onSubmit={handleAddAsset} className="space-y-5">
+                      <div>
+                          <Label>Título do Material</Label>
+                          <Input
+                            type="text"
+                            required
                             value={newAsset.title}
                             onChange={e => setNewAsset({...newAsset, title: e.target.value})}
                           />
                       </div>
-                      <div className="grid grid-cols-2 gap-6">
-                        <div className="space-y-3">
-                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">Tipo de Mídia</label>
-                            <select 
-                              className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-hidden font-black appearance-none focus:border-green-500 focus:bg-white transition-all text-sm uppercase tracking-widest"
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <div>
+                            <Label>Tipo de Mídia</Label>
+                            <Select
                               value={newAsset.type}
                               onChange={e => setNewAsset({...newAsset, type: e.target.value as any})}
                             >
@@ -735,14 +737,14 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                                 <option value="Image">Imagem</option>
                                 <option value="Slide">Slide/Marketing</option>
                                 <option value="Text">Texto/Artigo</option>
-                            </select>
+                            </Select>
                         </div>
-                        <div className="space-y-3">
-                            <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">Tamanho / Info</label>
-                            <input 
-                              type="text" 
+                        <div>
+                            <Label>Tamanho / Info</Label>
+                            <Input
+                              type="text"
                               placeholder="Ex: 5 MB"
-                               className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-hidden font-bold focus:border-green-500 focus:bg-white transition-all text-lg"
+                              className="font-mono tabular-nums"
                               value={newAsset.size}
                               onChange={e => setNewAsset({...newAsset, size: e.target.value})}
                             />
@@ -751,22 +753,21 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
                       {newAsset.type === 'Text' ? (
                           <>
-                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">URL da Capa (Opcional)</label>
-                                <input 
-                                  type="text" 
+                             <div>
+                                <Label>URL da Capa (Opcional)</Label>
+                                <Input
+                                  type="text"
                                   placeholder="https://..."
-                                  className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-hidden font-bold focus:border-green-500 focus:bg-white transition-all"
                                   value={newAsset.image_url}
                                   onChange={e => setNewAsset({...newAsset, image_url: e.target.value})}
                                 />
                              </div>
-                             <div className="space-y-3">
-                                <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">Conteúdo Completo</label>
-                                <textarea 
-                                  required 
+                             <div>
+                                <Label>Conteúdo Completo</Label>
+                                <Textarea
+                                  required
                                   rows={6}
-                                  className="w-full px-8 py-8 bg-slate-50 border-2 border-slate-100 rounded-[40px] outline-hidden font-bold resize-none focus:border-green-500 focus:bg-white transition-all leading-relaxed"
+                                  className="resize-none leading-relaxed"
                                   placeholder="Escreva seu artigo aqui..."
                                   value={newAsset.content}
                                   onChange={e => setNewAsset({...newAsset, content: e.target.value})}
@@ -774,22 +775,21 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                              </div>
                           </>
                       ) : (
-                          <div className="space-y-3">
-                              <label className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] ml-2">Link Direto do Arquivo</label>
-                              <input 
-                                type="text" 
-                                required 
+                          <div>
+                              <Label>Link Direto do Arquivo</Label>
+                              <Input
+                                type="text"
+                                required
                                 placeholder="https://..."
-                                className="w-full px-8 py-5 bg-slate-50 border-2 border-slate-100 rounded-[28px] outline-hidden font-bold focus:border-green-500 focus:bg-white transition-all"
                                 value={newAsset.url}
                                 onChange={e => setNewAsset({...newAsset, url: e.target.value})}
                               />
                           </div>
                       )}
 
-                      <button type="submit" className="w-full bg-slate-900 text-white font-black py-8 rounded-[36px] hover:bg-green-600 transition-all shadow-2xl shadow-slate-200 uppercase tracking-[0.3em] text-sm mt-4">
+                      <Button type="submit" size="lg" className="w-full uppercase tracking-widest mt-2">
                           ADICIONAR MATERIAL
-                      </button>
+                      </Button>
                   </form>
               </div>
           </div>
@@ -797,74 +797,65 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
 
       {activeTab === 'links' && (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex justify-between items-center">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div>
-              <h3 className="text-xl font-bold text-slate-800">Seus Links Úteis</h3>
-              <p className="text-slate-500 text-sm">Gerencie seu repositório pessoal de links rápidos.</p>
+              <h3 className="font-display text-xl font-semibold text-fg">Seus Links Úteis</h3>
+              <p className="text-fg-muted text-sm">Gerencie seu repositório pessoal de links rápidos.</p>
             </div>
-            <button
-                onClick={() => setShowAddLink(true)}
-                className="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-lg shadow-indigo-200 active:scale-95"
-            >
+            <Button onClick={() => setShowAddLink(true)} className="self-start sm:self-auto">
               <Plus size={18} /> Novo Link
-            </button>
+            </Button>
           </div>
 
           {showAddLink && (
-            <div className="bg-white p-6 rounded-2xl border border-indigo-100 shadow-xl shadow-indigo-50/50 animate-in zoom-in-95 duration-200">
+            <Card className="relative overflow-hidden animate-in zoom-in-95 duration-200">
+              <div className="hairline absolute inset-x-0 top-0" aria-hidden />
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <input
+                <Input
                   type="text"
                   placeholder="Título (ex: Grupo VIP WhatsApp)"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all outline-hidden"
                   value={newLink.title}
                   onChange={(e) => setNewLink({ ...newLink, title: e.target.value })}
                 />
-                <input
+                <Input
                   type="text"
                   placeholder="URL Completa (https://...)"
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 transition-all outline-hidden"
                   value={newLink.url}
                   onChange={(e) => setNewLink({ ...newLink, url: e.target.value })}
                 />
               </div>
-              <div className="flex gap-3 mt-4 justify-end">
-                <button
-                  onClick={() => setShowAddLink(false)}
-                  className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg transition-all"
-                >
+              <div className="flex gap-2 mt-4 justify-end">
+                <Button variant="ghost" size="sm" onClick={() => setShowAddLink(false)}>
                   Cancelar
-                </button>
-                <button
-                  onClick={handleAddLink}
-                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-500 transition-all shadow-md active:scale-95"
-                >
+                </Button>
+                <Button size="sm" onClick={handleAddLink}>
                   Salvar Link
-                </button>
+                </Button>
               </div>
-            </div>
+            </Card>
           )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {links.length === 0 ? (
-                <div className="col-span-full py-12 text-center bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200">
-                    <LinkIcon className="mx-auto text-slate-300 mb-4" size={48} />
-                    <p className="text-slate-500 font-medium">Você ainda não salvou nenhum link.</p>
-                </div>
+                <EmptyState
+                    icon={LinkIcon}
+                    title="Você ainda não salvou nenhum link."
+                    className="col-span-full"
+                />
             ) : (
                 links.map((link) => (
-                    <div key={link.id} className="group bg-white p-5 rounded-2xl border border-slate-200 hover:border-indigo-200 transition-all hover:shadow-xl hover:shadow-indigo-50/30">
+                    <Card key={link.id} padding="sm" className="glass-card-hover group p-5">
                         <div className="flex justify-between items-start mb-3">
-                            <div className="p-2 bg-indigo-50 rounded-lg">
-                                <LinkIcon className="text-indigo-600" size={20} />
+                            <div className="p-2 bg-accent/10 border border-accent/20 rounded-lg">
+                                <LinkIcon className="text-accent-fg" size={18} />
                             </div>
                             <div className="flex gap-1 items-center">
                                 <button
                                     onClick={() => handleCopyLink(link.url, link.id)}
-                                    className={`p-2 rounded-lg transition-all ${
-                                        copyingId === link.id 
-                                            ? 'bg-green-50 text-green-600' 
-                                            : 'hover:bg-slate-100 text-slate-400 group-hover:text-indigo-600'
+                                    className={`p-2 rounded-lg transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+                                        copyingId === link.id
+                                            ? 'bg-success/10 text-success-fg'
+                                            : 'hover:bg-tint/5 text-fg-subtle hover:text-fg group-hover:text-accent-fg'
                                     }`}
                                     title="Copiar Link"
                                 >
@@ -872,24 +863,24 @@ export const Marketing: React.FC<MarketingProps> = ({ onBack }) => {
                                 </button>
                                 <button
                                     onClick={() => handleDeleteLink(link.id)}
-                                    className="p-2 hover:bg-red-50 text-slate-400 hover:text-red-500 rounded-lg transition-all"
+                                    className="p-2 hover:bg-danger/10 text-fg-subtle hover:text-danger-fg rounded-lg transition-all focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                                     title="Remover"
                                 >
                                     <Trash2 size={18} />
                                 </button>
                             </div>
                         </div>
-                        <h4 className="font-bold text-slate-800 mb-1 truncate">{link.title}</h4>
-                        <p className="text-xs text-slate-400 mb-4 truncate italic">{link.url}</p>
-                        <a 
-                            href={link.url} 
-                            target="_blank" 
+                        <h4 className="font-semibold text-fg mb-1 truncate">{link.title}</h4>
+                        <p className="text-xs text-fg-subtle mb-4 truncate font-mono">{link.url}</p>
+                        <a
+                            href={link.url}
+                            target="_blank"
                             rel="noopener noreferrer"
-                            className="w-full py-2 bg-slate-50 border border-slate-100 text-slate-600 hover:bg-slate-100 hover:text-indigo-600 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2"
+                            className={`${linkSecondaryClass} w-full h-9 text-xs hover:text-accent-fg`}
                         >
                             Abrir Link <ExternalLink size={14} />
                         </a>
-                    </div>
+                    </Card>
                 ))
             )}
           </div>
