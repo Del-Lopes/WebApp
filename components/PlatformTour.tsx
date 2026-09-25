@@ -1,54 +1,63 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Map, LayoutDashboard, Cpu, GraduationCap, Key, Users, Download } from 'lucide-react';
+import { X, ChevronRight, Sparkles, LayoutDashboard, Milestone, Radio, CalendarClock, Bot, BarChart3, Key } from 'lucide-react';
+import { TourArt, TourArtKind } from './TourArt';
 
 interface PlatformTourProps {
   onClose: () => void;
   onComplete: () => void;
 }
 
-const TOUR_STEPS = [
+const ICON = 'text-accent-fg';
+
+const TOUR_STEPS: { title: string; description: string; icon: React.ReactNode; art: TourArtKind }[] = [
   {
     title: "Bem-vindo à Trader AFK",
-    description: "Sua central de inteligência para trading algorítmico. Preparamos este tour para você dominar todas as ferramentas disponíveis.",
-    icon: <LayoutDashboard size={48} className="text-accent-fg" />,
-    image: "https://images.unsplash.com/photo-1611974765270-ca12586343bb?q=80&w=800&auto=format&fit=crop"
+    description: "Sua central para aprender, acompanhar o mercado e operar com método. Em poucos passos, mostramos onde fica cada ferramenta da plataforma.",
+    icon: <Sparkles size={28} className={ICON} />,
+    art: 'welcome',
   },
   {
-    title: "Painel de Controle",
-    description: "No Dashboard, você tem uma visão rápida das suas contas ativas e os últimos artigos e análises do mercado para guiar seu dia.",
-    icon: <LayoutDashboard size={48} className="text-accent-fg" />,
-    image: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?q=80&w=800&auto=format&fit=crop"
+    title: "Início",
+    description: "Seu ponto de partida: status das licenças e contas MT5, suas Coins, os artigos mais recentes e atalhos para as sessões que você mais usa.",
+    icon: <LayoutDashboard size={28} className={ICON} />,
+    art: 'dashboard',
   },
   {
-    title: "Estratégias (Robôs)",
-    description: "Conheça nossa vitrine de robôs. Aqui você escolhe a estratégia que melhor se adapta ao seu perfil e a conecta à sua conta.",
-    icon: <Cpu size={48} className="text-accent-fg" />,
-    image: "https://images.unsplash.com/photo-1642790106117-e829e14a795f?q=80&w=800&auto=format&fit=crop"
+    title: "Trilha Gain",
+    description: "Aprenda o mercado do zero com lições curtas e interativas. Cada lição concluída rende Coins e mantém sua sequência de dias.",
+    icon: <Milestone size={28} className={ICON} />,
+    art: 'trilha',
   },
   {
-    title: "Biblioteca de Conteúdo",
-    description: "Acesse cursos exclusivos, tutoriais técnicos e análises aprofundadas. O conhecimento é a chave para o sucesso no trading.",
-    icon: <GraduationCap size={48} className="text-accent-fg" />,
-    image: "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?q=80&w=800&auto=format&fit=crop"
+    title: "Sinais e Crypto",
+    description: "Painel de tendência em vários timeframes, análises por IA e o termômetro do mercado cripto. Conteúdo informativo, não é recomendação de investimento.",
+    icon: <Radio size={28} className={ICON} />,
+    art: 'signals',
   },
   {
-    title: "Gestão de Licenças",
-    description: "Acompanhe o status de cada licença, gerencie seus números de conta MT5 e garanta que tudo esteja operando perfeitamente.",
-    icon: <Key size={48} className="text-accent-fg" />,
-    image: "https://images.unsplash.com/photo-1563986768609-322da13575f3?q=80&w=800&auto=format&fit=crop"
+    title: "Calendário e Sala ao Vivo",
+    description: "Os eventos que movem o mercado, com a interpretação de cada cenário e por ativo. Assinantes acompanham a leitura ao vivo com a equipe.",
+    icon: <CalendarClock size={28} className={ICON} />,
+    art: 'calendar',
   },
   {
-    title: "Central de Downloads",
-    description: "Baixe o MetaTrader 5, indicadores exclusivos, templates e manuais de instalação para configurar seu ambiente.",
-    icon: <Download size={48} className="text-accent-fg" />,
-    image: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?q=80&w=800&auto=format&fit=crop"
+    title: "Robôs e Hand Bot",
+    description: "Conheça os robôs e o perfil de risco de cada um, e ajuste os parâmetros do Hand Bot pela plataforma, sem abrir o MetaTrader.",
+    icon: <Bot size={28} className={ICON} />,
+    art: 'bots',
   },
   {
-    title: "Marketing e Comunidade",
-    description: "Acesse materiais de apoio, participe da nossa comunidade e fique por dentro das novidades da Trader AFK.",
-    icon: <Users size={48} className="text-accent-fg" />,
-    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?q=80&w=800&auto=format&fit=crop"
-  }
+    title: "Diário e Resultados",
+    description: "Registre suas operações com motivo e emocional, e envie o relatório do MT5 para ver taxa de acerto, drawdown e curva de capital.",
+    icon: <BarChart3 size={28} className={ICON} />,
+    art: 'journal',
+  },
+  {
+    title: "Licenças e Downloads",
+    description: "Vincule suas contas MT5, acompanhe a validade das licenças e baixe o MetaTrader, os indicadores e os setups. Dúvidas? O “Comece Aqui” explica cada sessão.",
+    icon: <Key size={28} className={ICON} />,
+    art: 'licenses',
+  },
 ];
 
 export const PlatformTour: React.FC<PlatformTourProps> = ({ onClose, onComplete }) => {
@@ -83,35 +92,28 @@ export const PlatformTour: React.FC<PlatformTourProps> = ({ onClose, onComplete 
         <button
           onClick={onClose}
           aria-label="Fechar tour"
-          className="absolute top-4 right-4 z-20 p-2 bg-black/30 md:bg-tint/5 hover:bg-black/50 md:hover:bg-tint/10 backdrop-blur-sm rounded-full text-white md:text-fg-muted md:hover:text-fg transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
+          className="absolute top-4 right-4 z-20 p-2 bg-surface/80 hover:bg-tint/10 backdrop-blur-sm rounded-full text-fg-muted hover:text-fg border border-tint/10 transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
         >
-          <X size={24} />
+          <X size={20} />
         </button>
 
-        {/* Image Section (Left/Top) */}
-        <div className="w-full md:w-1/2 h-48 md:h-auto shrink-0 relative bg-brand-dark">
-          <img
-            src={step.image}
-            alt={step.title}
-            className="w-full h-full object-cover opacity-80"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-brand-dark via-transparent to-transparent md:bg-gradient-to-r" />
-
-          <div className="absolute bottom-4 left-4 text-white z-10 md:hidden">
-            <h2 className="font-display text-2xl font-semibold">{step.title}</h2>
+        {/* Ilustração (esquerda/topo) */}
+        <div className="w-full md:w-1/2 h-64 sm:h-72 md:h-auto md:min-h-[480px] shrink-0 relative border-b md:border-b-0 md:border-r border-tint/8">
+          <div key={step.art} className="absolute inset-0 animate-fade-in">
+            <TourArt kind={step.art} />
           </div>
         </div>
 
         {/* Content Section (Right/Bottom) */}
         <div className="w-full md:w-1/2 p-6 sm:p-8 flex flex-col justify-between relative bg-surface">
           <div className="space-y-6 pt-4">
-            <div className="hidden md:flex items-center gap-4">
+            <div className="flex items-center gap-4">
                <div className="p-3 bg-tint/3 border border-tint/8 rounded-2xl">
                  {step.icon}
                </div>
                <div>
                   <span className="eyebrow">Passo {currentStep + 1} de {TOUR_STEPS.length}</span>
-                  <h2 className="font-display text-3xl font-semibold text-fg mt-1">{step.title}</h2>
+                  <h2 className="font-display text-2xl sm:text-3xl font-semibold text-fg mt-1">{step.title}</h2>
                </div>
             </div>
 
