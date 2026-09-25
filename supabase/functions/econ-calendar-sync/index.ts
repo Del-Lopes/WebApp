@@ -451,13 +451,34 @@ interface AssetReading {
   abaixo: Dir
   leitura: string
 }
-interface AssetInterpretation { ativos: AssetReading[] }
+interface AssetInterpretation { v: number; ativos: AssetReading[] }
+
+// Sobe quando o formato ou as regras mudam: leituras de versão anterior são
+// refeitas automaticamente.
+const ASSET_VERSION = 2
+// Falha na leitura por ativo (instabilidade da IA) tenta de novo mais cedo que
+// a interpretação principal: é uma chamada menor.
+const ASSET_RETRY_MS = 3600_000
+
+type ScenarioDirs = Record<'acima' | 'em_linha' | 'abaixo', Dir>
+const invertDir = (d: Dir): Dir => (d === 'alta' ? 'baixa' : d === 'baixa' ? 'alta' : 'neutra')
+
+// WDO é o USD/BRL: em evento de BRL ele anda no sentido oposto ao real; em
+// evento de USD, acompanha o dólar. Nos dois casos a direção é definida pelos
+// cenários da moeda, não pela IA.
+function wdoDirs(currency: string, interp: Interpretation): ScenarioDirs | null {
+  const c = interp.cenarios
+  const base: ScenarioDirs = { acima: c.acima.moeda, em_linha: c.em_linha.moeda, abaixo: c.abaixo.moeda }
+  if (currency === 'BRL') return { acima: invertDir(base.acima), em_linha: invertDir(base.em_linha), abaixo: invertDir(base.abaixo) }
+  if (currency === 'USD') return base
+  return null
+}
 
 const asRel = (v: unknown): Relevancia =>
   v === 'alta' ? 'alta' : v === 'baixa' ? 'baixa' : 'media'
 
 // Exige os 6 ativos: sem um deles a leitura fica incompleta e é refeita.
-function normalizeAssets(raw: any): AssetInterpretation | null {
+function normalizeAssets(raw: any, forcedWdo: ScenarioDirs | null): AssetInterpretation | null {
   if (!raw || typeof raw !== 'object') return null
   const list: any[] = Array.isArray(raw.ativos) ? raw.ativos : Array.isArray(raw) ? raw : []
   const byId = new Map<string, any>()
@@ -471,21 +492,24 @@ function normalizeAssets(raw: any): AssetInterpretation | null {
     const leitura = asStr(a?.leitura)
     if (!a || !leitura) return null
     const c = a.cenarios ?? a
-    ativos.push({
-      ativo: id,
-      relevancia: asRel(a.relevancia),
-      acima: asDir(c.acima),
-      em_linha: asDir(c.em_linha ?? c.emLinha),
-      abaixo: asDir(c.abaixo),
-      leitura: leitura.slice(0, 400),
-    })
+    const dirs: ScenarioDirs = id === 'WDO' && forcedWdo
+      ? forcedWdo
+      : { acima: asDir(c.acima), em_linha: asDir(c.em_linha ?? c.emLinha), abaixo: asDir(c.abaixo) }
+    ativos.push({ ativo: id, relevancia: asRel(a.relevancia), ...dirs, leitura: leitura.slice(0, 400) })
   }
-  return { ativos }
+  return { v: ASSET_VERSION, ativos }
 }
 
 function buildAssetPrompt(p: ProfileRow, interp: Interpretation): string {
   const c = interp.cenarios
   const qualitative = interp.tipo === 'qualitativo'
+  const wdo = wdoDirs(p.currency, interp)
+  const wdoRule = wdo
+    ? `- WDO (dólar contra o real) é FIXO neste indicador: acima → ${wdo.acima}, em_linha → ${wdo.em_linha}, abaixo → ${wdo.abaixo}. ${p.currency === 'BRL' ? 'Real mais forte = WDO em baixa; real mais fraco = WDO em alta.' : 'Dólar mais forte no mundo costuma levar o USD/BRL junto.'} Escreva a leitura do WDO coerente com isso.`
+    : '- WDO (dólar contra o real) sobe quando o real se desvaloriza e cai quando o real se valoriza.'
+  const goldRule = p.currency === 'USD'
+    ? '- Ouro costuma andar no sentido oposto ao dólar e aos juros americanos.'
+    : ''
   return `Indicador do calendário econômico:
 - Nome: ${interp.titulo} (original: ${p.title})
 - País: ${COUNTRY_PT[p.country] ?? p.country} · Moeda: ${p.currency}
@@ -502,14 +526,17 @@ Explique como cada um destes ativos costuma reagir a este indicador: ${FOCUS_ASS
 Devolva SOMENTE um JSON neste formato, com os 6 ativos nesta ordem:
 {
   "ativos": [
-    { "ativo": "XAUUSD", "relevancia": "alta|media|baixa", "acima": "alta|baixa|neutra", "em_linha": "alta|baixa|neutra", "abaixo": "alta|baixa|neutra", "leitura": "por que o ativo reage assim: o canal de transmissão (dólar, juros/Treasuries, apetite a risco, fluxo para emergentes) em 1-2 frases" },
+    { "ativo": "XAUUSD", "relevancia": "alta|media|baixa", "leitura": "por que o ativo reage assim no cenário 'acima' e no 'abaixo': o canal de transmissão (dólar, juros/Treasuries, apetite a risco, fluxo para emergentes) em 1-2 frases", "acima": "alta|baixa|neutra", "em_linha": "alta|baixa|neutra", "abaixo": "alta|baixa|neutra" },
     ...
   ]
 }
 
 Regras:
 - As direções precisam ser coerentes com os cenários de ${p.currency} acima${qualitative ? ' (acima = tom mais duro/hawkish, abaixo = tom mais brando/dovish)' : ''}. Ex.: USD em alta com juros mais altos → Ouro tende a baixa, NAS100 tende a baixa, WDO tende a alta.
-- WIN e WDO são contratos da B3: pense no efeito via dólar/real, juros e apetite a risco global. WDO acompanha o USD/BRL.
+- Escreva a "leitura" primeiro e só então as direções: "acima", "em_linha" e "abaixo" precisam dizer EXATAMENTE o que a leitura diz (se a leitura diz que o ativo é favorecido no cenário, a direção é "alta").
+${wdoRule}
+${goldRule}
+- WIN é o Mini Índice da B3: reage a juros no Brasil, fluxo estrangeiro e apetite a risco global.
 - "relevancia" = quanto o ativo costuma se mexer com este indicador. Indicador de país/moeda sem ligação direta com o ativo → "baixa" e direções "neutra" quando não houver efeito típico.
 - Linguagem de probabilidade ("tende a", "costuma"), nunca certeza. Não recomende compra ou venda.
 - Português do Brasil, sem markdown.`
@@ -718,25 +745,31 @@ Deno.serve(async (req) => {
     // principal (as direções por ativo derivam dos cenários da moeda). Sem a
     // migration 20260929 a consulta falha e a etapa é pulada.
     if (Date.now() - startedAt < INTERPRET_BUDGET_MS) {
-      const { data: pendingAssets, error: paErr } = await supabaseAdmin
+      const { data: assetRows, error: paErr } = await supabaseAdmin
         .from('econ_event_profile')
-        .select('event_key, interpretation')
+        .select('event_key, interpretation, asset_ver:asset_interpretation->>v, assets_interpreted_at, assets_error')
         .not('interpretation', 'is', null)
-        .is('asset_interpretation', null)
-        .or(`assets_interpreted_at.is.null,assets_interpreted_at.lt.${retryCutoff}`)
       if (paErr) {
         console.warn('[econ-calendar-sync] assets skip', paErr.message)
       } else {
-        const interpByKey = new Map<string, Interpretation>(
-          (pendingAssets ?? []).map((p: { event_key: string; interpretation: Interpretation }) => [p.event_key, p.interpretation]),
-        )
+        // Pendente: nunca gerada ou de versão anterior. Se a última tentativa
+        // falhou, espera ASSET_RETRY_MS antes de tentar de novo.
+        const assetRetryCutoff = now - ASSET_RETRY_MS
+        const interpByKey = new Map<string, Interpretation>()
+        for (const r of (assetRows ?? []) as any[]) {
+          if (r.asset_ver === String(ASSET_VERSION)) continue
+          if (r.assets_error && r.assets_interpreted_at && new Date(r.assets_interpreted_at).getTime() > assetRetryCutoff) continue
+          interpByKey.set(r.event_key, r.interpretation)
+        }
         const assetBatch = priority.filter((k) => interpByKey.has(k)).slice(0, INTERPRET_BATCH)
         const config = assetBatch.length > 0 ? await getAiConfig() : {}
         for (const key of assetBatch) {
           if (Date.now() - startedAt > INTERPRET_BUDGET_MS) break
           const profile = profiles.get(key)!
+          const interp = interpByKey.get(key)!
+          const forcedWdo = wdoDirs(profile.currency, interp)
           const { result, errors } = await generateInterpretation<AssetInterpretation>(
-            system, buildAssetPrompt(profile, interpByKey.get(key)!), config, profile.title, normalizeAssets,
+            system, buildAssetPrompt(profile, interp), config, profile.title, (raw) => normalizeAssets(raw, forcedWdo),
           )
           await supabaseAdmin.from('econ_event_profile')
             .update(result
