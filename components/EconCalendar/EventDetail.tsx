@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowUpRight, ArrowDownRight, Minus, AlertTriangle, Loader2, ExternalLink, Sparkles, History, Target } from 'lucide-react';
+import { ArrowUpRight, ArrowDownRight, Minus, AlertTriangle, Loader2, ExternalLink, Sparkles, History, Target, ChevronDown, Layers } from 'lucide-react';
 import {
-  EconEvent, EconProfile, Scenario, ScenarioKey, Dir,
-  evaluateOutcome, fetchHistory, fmtValue, fmtDiff,
+  EconEvent, EconProfile, Scenario, ScenarioKey, Dir, AssetReading, Outcome,
+  evaluateOutcome, fetchHistory, fmtValue, fmtDiff, FOCUS_ASSET_LABEL,
 } from '../../lib/econCalendar';
 import { Table, THead, TBody, TR, TH, TD } from '../ui';
 
@@ -52,6 +52,92 @@ const ScenarioCard: React.FC<{ s: Scenario; currency: string; state: 'hit' | 'mi
     )}
   </div>
 );
+
+const RELEVANCE: Record<AssetReading['relevancia'], { label: string; cls: string }> = {
+  alta: { label: 'Sensibilidade alta', cls: 'bg-accent/10 text-accent-fg border-accent/30' },
+  media: { label: 'Sensibilidade média', cls: 'bg-tint/3 text-fg-muted border-tint/10' },
+  baixa: { label: 'Sensibilidade baixa', cls: 'bg-tint/2 text-fg-subtle border-tint/8' },
+};
+
+const AssetCard: React.FC<{ a: AssetReading; labels: Record<ScenarioKey, string>; hit: ScenarioKey | null }> = ({ a, labels, hit }) => (
+  <div className="rounded-xl border border-tint/8 bg-surface p-3.5">
+    <div className="flex items-start justify-between gap-2">
+      <p className="text-sm font-semibold text-fg">
+        <span className="font-mono">{a.ativo}</span>
+        <span className="ml-1.5 font-normal text-fg-muted">{FOCUS_ASSET_LABEL[a.ativo] ?? ''}</span>
+      </p>
+      <span className={`shrink-0 rounded-sm border px-1.5 py-0.5 text-[10px] font-medium ${RELEVANCE[a.relevancia].cls}`}>
+        {RELEVANCE[a.relevancia].label}
+      </span>
+    </div>
+    <div className="mt-2.5 grid grid-cols-3 gap-1.5">
+      {SCENARIO_ORDER.map((k) => (
+        <div
+          key={k}
+          className={`rounded-lg border px-2 py-1.5 transition-opacity ${
+            hit === k ? 'border-accent/50 bg-accent/5 ring-1 ring-accent/30'
+            : hit ? 'border-tint/6 bg-tint/2 opacity-55'
+            : 'border-tint/8 bg-tint/2'
+          }`}
+        >
+          <p className="truncate text-[10px] uppercase tracking-wider text-fg-subtle">{labels[k]}</p>
+          <p className={`mt-0.5 flex items-center gap-0.5 text-xs font-semibold ${dirColor(a[k])}`}>
+            <DirIcon dir={a[k]} size={13} /> {dirText(a[k])}
+          </p>
+        </div>
+      ))}
+    </div>
+    <p className="mt-2.5 text-xs leading-relaxed text-fg-muted">{a.leitura}</p>
+  </div>
+);
+
+const AssetInterpretation: React.FC<{ profile: EconProfile; tipo: 'dado' | 'qualitativo'; outcome: Outcome | null }> = ({ profile, tipo, outcome }) => {
+  const [open, setOpen] = useState(false);
+  const ativos = profile.asset_interpretation?.ativos ?? [];
+  const labels: Record<ScenarioKey, string> = tipo === 'qualitativo'
+    ? { acima: 'Hawkish', em_linha: 'Neutro', abaixo: 'Dovish' }
+    : { acima: 'Acima', em_linha: 'Em linha', abaixo: 'Abaixo' };
+
+  return (
+    <div className="rounded-xl border border-tint/8 bg-tint/2">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between gap-3 rounded-xl px-3.5 py-3 text-left transition-colors hover:bg-tint/3 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60"
+      >
+        <span className="flex items-center gap-2 text-sm font-semibold text-fg">
+          <Layers size={15} className="text-accent-fg" aria-hidden /> Interpretação por ativo
+        </span>
+        <span className="flex items-center gap-2 text-xs font-medium text-accent-fg">
+          <span className="hidden font-mono text-fg-subtle sm:inline">XAUUSD · NAS100 · US30 · WIN · WDO · BTC</span>
+          {open ? 'Ocultar' : 'Ver'}
+          <ChevronDown size={14} className={`transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+        </span>
+      </button>
+
+      {open && (
+        <div className="border-t border-tint/6 p-3">
+          {ativos.length > 0 ? (
+            <>
+              <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+                {ativos.map((a) => <AssetCard key={a.ativo} a={a} labels={labels} hit={outcome?.scenario ?? null} />)}
+              </div>
+              <p className="mt-2.5 text-[11px] text-fg-subtle">
+                Reações típicas para cada cenário do indicador, geradas por IA. Não são recomendação de compra ou venda.
+              </p>
+            </>
+          ) : (
+            <p className="flex items-start gap-2 text-sm text-fg-muted">
+              <Loader2 size={15} className="mt-0.5 shrink-0 animate-spin text-fg-subtle" aria-hidden />
+              A leitura por ativo deste indicador está sendo preparada e aparece aqui em alguns minutos.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export const EventDetail: React.FC<Props> = ({ event, profile }) => {
   const [history, setHistory] = useState<EconEvent[] | null>(null);
@@ -137,6 +223,8 @@ export const EventDetail: React.FC<Props> = ({ event, profile }) => {
               <p className="text-xs text-warning-fg leading-relaxed">{interp.atencao}</p>
             </div>
           )}
+
+          {profile && <AssetInterpretation profile={profile} tipo={interp.tipo} outcome={outcome} />}
         </>
       ) : (
         <div className="rounded-xl border border-dashed border-tint/10 p-3.5 text-sm text-fg-muted flex items-start gap-2">

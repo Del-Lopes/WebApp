@@ -30,6 +30,28 @@ export interface Interpretation {
   atencao: string;
 }
 
+// Interpretação por ativo (coluna asset_interpretation, gerada pela edge
+// depois da interpretação principal).
+export type FocusAssetId = 'XAUUSD' | 'NAS100' | 'US30' | 'WIN' | 'WDO' | 'BTC';
+
+export interface AssetReading {
+  ativo: FocusAssetId;
+  relevancia: 'alta' | 'media' | 'baixa';
+  acima: Dir;
+  em_linha: Dir;
+  abaixo: Dir;
+  leitura: string;
+}
+
+export const FOCUS_ASSET_LABEL: Record<FocusAssetId, string> = {
+  XAUUSD: 'Ouro',
+  NAS100: 'Nasdaq 100',
+  US30: 'Dow Jones',
+  WIN: 'Mini Índice',
+  WDO: 'Mini Dólar',
+  BTC: 'Bitcoin',
+};
+
 export interface EconEvent {
   occurrence_id: string;
   event_key: string;
@@ -60,6 +82,7 @@ export interface EconProfile {
   source: string | null;
   source_url: string | null;
   interpretation: Interpretation | null;
+  asset_interpretation?: { ativos: AssetReading[] } | null;
 }
 
 export interface SyncStatus {
@@ -67,6 +90,7 @@ export interface SyncStatus {
   last_error: string | null;
 }
 
+const PROFILE_COLS = 'event_key, country, title, title_pt, currency, category, event_type, importance, description, source, source_url, interpretation';
 const EVENT_COLS = 'occurrence_id, event_key, occurs_at, country, currency, title, variant, importance, unit, precision, reference_period, actual, forecast, previous';
 
 // numeric do Postgres chega como string pelo PostgREST quando tem casas decimais.
@@ -95,12 +119,12 @@ export async function fetchEvents(from: Date, to: Date): Promise<EconEvent[]> {
 export async function fetchProfiles(keys: string[]): Promise<Map<string, EconProfile>> {
   const map = new Map<string, EconProfile>();
   if (keys.length === 0) return map;
-  const { data, error } = await supabase
-    .from('econ_event_profile')
-    .select('event_key, country, title, title_pt, currency, category, event_type, importance, description, source, source_url, interpretation')
-    .in('event_key', keys);
+  const query = (cols: string) => supabase.from('econ_event_profile').select(cols).in('event_key', keys);
+  let { data, error } = await query(`${PROFILE_COLS}, asset_interpretation`);
+  // Banco ainda sem a coluna (migration 20260929 pendente): segue sem ela.
+  if (error?.code === '42703') ({ data, error } = await query(PROFILE_COLS));
   if (error) throw error;
-  for (const p of data ?? []) map.set(p.event_key, p as EconProfile);
+  for (const p of (data ?? []) as unknown as EconProfile[]) map.set(p.event_key, p);
   return map;
 }
 

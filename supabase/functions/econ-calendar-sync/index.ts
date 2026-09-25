@@ -210,8 +210,9 @@ async function callGemini(system: string, user: string, apiKey: string, model: s
   const controller = new AbortController()
   const t = setTimeout(() => controller.abort(), 30000)
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+    // Chave no header, não na URL: erro de rede do Deno inclui a URL na mensagem.
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
       body: JSON.stringify({
         systemInstruction: { parts: [{ text: system }] },
         contents: [{ role: 'user', parts: [{ text: user }] }],
@@ -266,9 +267,10 @@ let requestStartedAt = Date.now()
 // quebrado conta como falha e passa a vez ao próximo. Devolve também o motivo
 // de cada falha, gravado em interpret_error para diagnóstico sem precisar dos
 // logs da function.
-async function generateInterpretation(
+async function generateInterpretation<T = Interpretation>(
   system: string, user: string, config: AIConfig, fallbackTitle: string,
-): Promise<{ result: Interpretation | null; errors: string[] }> {
+  normalize: (raw: any, fallbackTitle: string) => T | null = normalizeInterpretation as any,
+): Promise<{ result: T | null; errors: string[] }> {
   const attempts: Array<[string, () => Promise<string>]> = []
   const geminiKey = config.gemini_api_key || GEMINI_API_KEY
   if (geminiKey) {
@@ -289,7 +291,7 @@ async function generateInterpretation(
       let parsed: unknown
       try { parsed = JSON.parse(extractJson(text)) }
       catch { errors.push(`${label}: json_parse (${text.slice(0, 80)})`); continue }
-      const result = normalizeInterpretation(Array.isArray(parsed) ? parsed[0] : parsed, fallbackTitle)
+      const result = normalize(Array.isArray(parsed) ? parsed[0] : parsed, fallbackTitle)
       if (result) return { result, errors }
       errors.push(`${label}: invalid_shape (${Object.keys((parsed as object) ?? {}).join(',').slice(0, 80)})`)
     } catch (e) {
@@ -424,6 +426,91 @@ Regras:
 - Atenção à polaridade: em indicadores onde número MAIOR é notícia RUIM para a economia (desemprego, pedidos de seguro-desemprego, estoques, déficit), "acima" tende a ser NEGATIVO para a moeda. Em inflação, número maior costuma ser positivo para a moeda (expectativa de juros mais altos).
 - "intensidade" reflete o peso do indicador (3 estrelas com surpresa grande tende a "forte"; 2 estrelas tende a "moderada"; em linha tende a "fraca").
 - Em "ativos", 3 a 5 itens da lista de ativos relevantes, com a direção coerente com a moeda (ex.: USD em alta → EUR/USD em baixa, WDO em alta).
+- Linguagem de probabilidade ("tende a", "costuma"), nunca certeza. Não recomende compra ou venda.
+- Português do Brasil, sem markdown.`
+}
+
+// ─── Interpretação por ativo ────────────────────────────────────────────────
+// Lista fixa que o público acompanha. A ordem aqui é a ordem na tela.
+
+const FOCUS_ASSETS = [
+  { id: 'XAUUSD', nome: 'Ouro (XAU/USD)' },
+  { id: 'NAS100', nome: 'Nasdaq 100 (NAS100)' },
+  { id: 'US30', nome: 'Dow Jones (US30)' },
+  { id: 'WIN', nome: 'Mini Índice (WIN, B3)' },
+  { id: 'WDO', nome: 'Mini Dólar (WDO, B3)' },
+  { id: 'BTC', nome: 'Bitcoin (BTC/USD)' },
+] as const
+
+type Relevancia = 'alta' | 'media' | 'baixa'
+interface AssetReading {
+  ativo: string
+  relevancia: Relevancia
+  acima: Dir
+  em_linha: Dir
+  abaixo: Dir
+  leitura: string
+}
+interface AssetInterpretation { ativos: AssetReading[] }
+
+const asRel = (v: unknown): Relevancia =>
+  v === 'alta' ? 'alta' : v === 'baixa' ? 'baixa' : 'media'
+
+// Exige os 6 ativos: sem um deles a leitura fica incompleta e é refeita.
+function normalizeAssets(raw: any): AssetInterpretation | null {
+  if (!raw || typeof raw !== 'object') return null
+  const list: any[] = Array.isArray(raw.ativos) ? raw.ativos : Array.isArray(raw) ? raw : []
+  const byId = new Map<string, any>()
+  for (const a of list) {
+    const id = asStr(a?.ativo).toUpperCase().replace(/[^A-Z0-9]/g, '')
+    if (id) byId.set(id, a)
+  }
+  const ativos: AssetReading[] = []
+  for (const { id } of FOCUS_ASSETS) {
+    const a = byId.get(id)
+    const leitura = asStr(a?.leitura)
+    if (!a || !leitura) return null
+    const c = a.cenarios ?? a
+    ativos.push({
+      ativo: id,
+      relevancia: asRel(a.relevancia),
+      acima: asDir(c.acima),
+      em_linha: asDir(c.em_linha ?? c.emLinha),
+      abaixo: asDir(c.abaixo),
+      leitura: leitura.slice(0, 400),
+    })
+  }
+  return { ativos }
+}
+
+function buildAssetPrompt(p: ProfileRow, interp: Interpretation): string {
+  const c = interp.cenarios
+  const qualitative = interp.tipo === 'qualitativo'
+  return `Indicador do calendário econômico:
+- Nome: ${interp.titulo} (original: ${p.title})
+- País: ${COUNTRY_PT[p.country] ?? p.country} · Moeda: ${p.currency}
+- Importância: ${p.importance} estrelas (de 3)
+- O que mede: ${interp.resumo}
+- Contexto: ${interp.contexto}
+- Cenários já definidos para ${p.currency}:
+  - "acima" (${c.acima.rotulo}): ${p.currency} tende a ${c.acima.moeda} — ${c.acima.leitura}
+  - "em_linha" (${c.em_linha.rotulo}): ${p.currency} tende a ${c.em_linha.moeda} — ${c.em_linha.leitura}
+  - "abaixo" (${c.abaixo.rotulo}): ${p.currency} tende a ${c.abaixo.moeda} — ${c.abaixo.leitura}
+
+Explique como cada um destes ativos costuma reagir a este indicador: ${FOCUS_ASSETS.map((a) => `${a.id} = ${a.nome}`).join('; ')}.
+
+Devolva SOMENTE um JSON neste formato, com os 6 ativos nesta ordem:
+{
+  "ativos": [
+    { "ativo": "XAUUSD", "relevancia": "alta|media|baixa", "acima": "alta|baixa|neutra", "em_linha": "alta|baixa|neutra", "abaixo": "alta|baixa|neutra", "leitura": "por que o ativo reage assim: o canal de transmissão (dólar, juros/Treasuries, apetite a risco, fluxo para emergentes) em 1-2 frases" },
+    ...
+  ]
+}
+
+Regras:
+- As direções precisam ser coerentes com os cenários de ${p.currency} acima${qualitative ? ' (acima = tom mais duro/hawkish, abaixo = tom mais brando/dovish)' : ''}. Ex.: USD em alta com juros mais altos → Ouro tende a baixa, NAS100 tende a baixa, WDO tende a alta.
+- WIN e WDO são contratos da B3: pense no efeito via dólar/real, juros e apetite a risco global. WDO acompanha o USD/BRL.
+- "relevancia" = quanto o ativo costuma se mexer com este indicador. Indicador de país/moeda sem ligação direta com o ativo → "baixa" e direções "neutra" quando não houver efeito típico.
 - Linguagem de probabilidade ("tende a", "costuma"), nunca certeza. Não recomende compra ou venda.
 - Português do Brasil, sem markdown.`
 }
@@ -582,9 +669,20 @@ Deno.serve(async (req) => {
   for (const s of ordered) if (!sampleByKey.has(s.key)) sampleByKey.set(s.key, s.e)
 
   let interpreted = 0
+  let assetsInterpreted = 0
   let firstAiError: string | null = null
+  const retryCutoff = new Date(now - INTERPRET_RETRY_MS).toISOString()
+  const system = 'Você é um economista e analista de mercado que explica o calendário econômico para traders de forma didática e objetiva. Responde sempre em JSON válido, em português do Brasil. Nunca recomenda compra ou venda nem promete resultado.'
+  let aiConfig: AIConfig | null | undefined
+  const getAiConfig = async (): Promise<AIConfig> => {
+    if (aiConfig === undefined) {
+      const { data } = await supabaseAdmin.from('ai_configurations').select('*').maybeSingle()
+      aiConfig = data
+    }
+    return aiConfig || {}
+  }
+
   if (priority.length > 0) {
-    const retryCutoff = new Date(now - INTERPRET_RETRY_MS).toISOString()
     const { data: pending } = await supabaseAdmin
       .from('econ_event_profile')
       .select('event_key')
@@ -595,13 +693,11 @@ Deno.serve(async (req) => {
     const batch = priority.filter((k) => pendingKeys.has(k)).slice(0, INTERPRET_BATCH)
 
     if (batch.length > 0) {
-      const { data: aiConfig } = await supabaseAdmin.from('ai_configurations').select('*').maybeSingle()
-      const system = 'Você é um economista e analista de mercado que explica o calendário econômico para traders de forma didática e objetiva. Responde sempre em JSON válido, em português do Brasil. Nunca recomenda compra ou venda nem promete resultado.'
-
+      const config = await getAiConfig()
       for (const key of batch) {
         if (Date.now() - startedAt > INTERPRET_BUDGET_MS) break
         const profile = profiles.get(key)!
-        const { result, errors } = await generateInterpretation(system, buildPrompt(profile, sampleByKey.get(key)), aiConfig || {}, profile.title)
+        const { result, errors } = await generateInterpretation(system, buildPrompt(profile, sampleByKey.get(key)), config, profile.title)
         if (result) {
           // Título em PT só quando a IA deu um (o fallback é o próprio título em inglês).
           const titlePt = result.titulo !== profile.title ? result.titulo : null
@@ -617,6 +713,41 @@ Deno.serve(async (req) => {
         }
       }
     }
+
+    // Interpretação por ativo: só para indicadores que já têm a interpretação
+    // principal (as direções por ativo derivam dos cenários da moeda). Sem a
+    // migration 20260929 a consulta falha e a etapa é pulada.
+    if (Date.now() - startedAt < INTERPRET_BUDGET_MS) {
+      const { data: pendingAssets, error: paErr } = await supabaseAdmin
+        .from('econ_event_profile')
+        .select('event_key, interpretation')
+        .not('interpretation', 'is', null)
+        .is('asset_interpretation', null)
+        .or(`assets_interpreted_at.is.null,assets_interpreted_at.lt.${retryCutoff}`)
+      if (paErr) {
+        console.warn('[econ-calendar-sync] assets skip', paErr.message)
+      } else {
+        const interpByKey = new Map<string, Interpretation>(
+          (pendingAssets ?? []).map((p: { event_key: string; interpretation: Interpretation }) => [p.event_key, p.interpretation]),
+        )
+        const assetBatch = priority.filter((k) => interpByKey.has(k)).slice(0, INTERPRET_BATCH)
+        const config = assetBatch.length > 0 ? await getAiConfig() : {}
+        for (const key of assetBatch) {
+          if (Date.now() - startedAt > INTERPRET_BUDGET_MS) break
+          const profile = profiles.get(key)!
+          const { result, errors } = await generateInterpretation<AssetInterpretation>(
+            system, buildAssetPrompt(profile, interpByKey.get(key)!), config, profile.title, normalizeAssets,
+          )
+          await supabaseAdmin.from('econ_event_profile')
+            .update(result
+              ? { asset_interpretation: result, assets_interpreted_at: new Date().toISOString(), assets_error: null }
+              : { assets_interpreted_at: new Date().toISOString(), assets_error: errors.join(' | ').slice(0, 500) })
+            .eq('event_key', key)
+          if (result) assetsInterpreted++
+          else if (!firstAiError) firstAiError = errors[0] ?? null
+        }
+      }
+    }
   }
 
   return jsonResponse(200, {
@@ -625,6 +756,7 @@ Deno.serve(async (req) => {
     events: occurrenceRows.length,
     profiles: profileRows.length,
     interpreted,
+    assets_interpreted: assetsInterpreted,
     // Só o motivo (ex.: "gemini-2.0-flash-lite: Gemini HTTP 429"), nunca chave.
     ...(firstAiError ? { ai_error: firstAiError } : {}),
   })
