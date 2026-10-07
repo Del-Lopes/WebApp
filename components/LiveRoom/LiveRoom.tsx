@@ -50,7 +50,9 @@ export const LiveRoom: React.FC<Props> = ({ onBack }) => {
       <PageHeader
         className="mb-0 sm:mb-0"
         leading={<BackButton onClick={onBack} />}
-        eyebrow={<span className="inline-flex items-center gap-1.5"><Video size={12} /> Ao vivo</span>}
+        eyebrow={state?.is_live ? (
+          <span className="inline-flex items-center gap-1.5 text-danger-fg"><Video size={12} /> Estamos ao vivo</span>
+        ) : <span className="inline-flex items-center gap-1.5"><Video size={12} /> Sala exclusiva</span>}
         title="Sala ao Vivo"
         description="Sessões ao vivo com a equipe Trader AFK para acompanhar o mercado e aprender na prática."
       />
@@ -66,11 +68,15 @@ export const LiveRoom: React.FC<Props> = ({ onBack }) => {
         <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-2xl space-y-3">
             <div className="flex items-center gap-2">
-              <span className="relative flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger opacity-60" />
-                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-danger" />
+              {state?.is_live && (
+                <span className="relative flex h-2.5 w-2.5" aria-hidden>
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger opacity-60" />
+                  <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-danger" />
+                </span>
+              )}
+              <span className={state?.is_live ? 'eyebrow-muted text-danger-fg' : 'eyebrow-muted'}>
+                {state?.is_live ? 'Estamos ao vivo agora' : 'Sala exclusiva para assinantes'}
               </span>
-              <span className="eyebrow-muted">Sala exclusiva para assinantes</span>
             </div>
             <h2 className="font-display text-2xl font-semibold text-fg sm:text-3xl">
               Opere acompanhado, <span className="text-gradient-brand">ao vivo</span>.

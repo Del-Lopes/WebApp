@@ -4,7 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   fetchLiveRoomConfig, saveLiveRoomConfig, isValidRoomUrl,
-  fetchLiveRoomAccessIds, grantLiveRoomAccess, revokeLiveRoomAccess,
+  fetchLiveRoomAccessIds, grantLiveRoomAccess, revokeLiveRoomAccess, setLiveRoomStatus,
 } from '../../lib/liveRoom';
 import { Button, Card, CardHeader, Input, Label, FieldMessage, Badge, Tabs, Skeleton, EmptyState } from '../ui';
 
@@ -24,6 +24,8 @@ export const LiveRoomAdmin: React.FC = () => {
   const { user } = useAuth();
   const [url, setUrl] = useState('');
   const [schedule, setSchedule] = useState('');
+  const [isLive, setIsLive] = useState(false);
+  const [updatingLiveStatus, setUpdatingLiveStatus] = useState(false);
   const [savedAt, setSavedAt] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
@@ -47,6 +49,7 @@ export const LiveRoomAdmin: React.FC = () => {
         if (error) throw error;
         setUrl(cfg.url ?? '');
         setSchedule(cfg.schedule ?? '');
+        setIsLive(cfg.is_live);
         setSavedAt(cfg.updated_at);
         setGranted(ids);
         setProfiles((data ?? []) as ProfileRow[]);
@@ -74,6 +77,24 @@ export const LiveRoomAdmin: React.FC = () => {
       setConfigError('Não foi possível salvar. Tente novamente.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleLiveStatusChange = async () => {
+    if (!user || updatingLiveStatus) return;
+    const nextStatus = !isLive;
+    setUpdatingLiveStatus(true);
+    setConfigError(null);
+    try {
+      await setLiveRoomStatus(nextStatus, user.id);
+      setIsLive(nextStatus);
+      setSavedAt(new Date().toISOString());
+      window.dispatchEvent(new CustomEvent<boolean>('live-room-status-change', { detail: nextStatus }));
+    } catch (e) {
+      console.error('[LiveRoomAdmin] live status', e);
+      setConfigError('Não foi possível atualizar o status ao vivo. Tente novamente.');
+    } finally {
+      setUpdatingLiveStatus(false);
     }
   };
 
@@ -130,6 +151,25 @@ export const LiveRoomAdmin: React.FC = () => {
           title="Link e horário"
           action={<Video size={18} className="text-fg-subtle" aria-hidden />}
         />
+        <div className="mb-5 flex items-center justify-between gap-4 rounded-xl border border-tint/8 bg-tint/[0.025] px-4 py-3">
+          <div>
+            <p className="text-sm font-medium text-fg">Estamos ao vivo</p>
+            <p className="text-xs text-fg-muted">Exibe o indicador de transmissão no menu e na Sala ao Vivo.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={isLive}
+            aria-label={isLive ? 'Desligar status ao vivo' : 'Ligar status ao vivo'}
+            disabled={loading || updatingLiveStatus}
+            onClick={handleLiveStatusChange}
+            className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:cursor-not-allowed disabled:opacity-50 ${
+              isLive ? 'bg-danger' : 'bg-tint/15'
+            }`}
+          >
+            <span className={`inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${isLive ? 'translate-x-6' : 'translate-x-1'}`} />
+          </button>
+        </div>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label htmlFor="live-room-url" hint="Zoom, Meet, YouTube, Discord…">Link da sala</Label>
