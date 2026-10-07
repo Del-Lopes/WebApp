@@ -10,6 +10,7 @@ import { supabase } from './supabase';
 export interface LiveRoomState {
   has_access: boolean;
   configured: boolean;
+  is_live: boolean;
   schedule: string | null;
   url: string | null;
 }
@@ -25,17 +26,18 @@ export async function fetchLiveRoom(): Promise<LiveRoomState> {
 export interface LiveRoomConfig {
   url: string | null;
   schedule: string | null;
+  is_live: boolean;
   updated_at: string | null;
 }
 
 export async function fetchLiveRoomConfig(): Promise<LiveRoomConfig> {
   const { data, error } = await supabase
     .from('live_room_config')
-    .select('url, schedule, updated_at')
+    .select('url, schedule, is_live, updated_at')
     .eq('id', 1)
     .maybeSingle();
   if (error) throw error;
-  return (data as LiveRoomConfig) ?? { url: null, schedule: null, updated_at: null };
+  return (data as LiveRoomConfig) ?? { url: null, schedule: null, is_live: false, updated_at: null };
 }
 
 export async function saveLiveRoomConfig(url: string, schedule: string, adminId: string): Promise<void> {
@@ -45,6 +47,18 @@ export async function saveLiveRoomConfig(url: string, schedule: string, adminId:
       id: 1,
       url: url.trim() || null,
       schedule: schedule.trim() || null,
+      updated_at: new Date().toISOString(),
+      updated_by: adminId,
+    });
+  if (error) throw error;
+}
+
+export async function setLiveRoomStatus(isLive: boolean, adminId: string): Promise<void> {
+  const { error } = await supabase
+    .from('live_room_config')
+    .upsert({
+      id: 1,
+      is_live: isLive,
       updated_at: new Date().toISOString(),
       updated_by: adminId,
     });

@@ -1,11 +1,12 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Map, Download, DollarSign, FileText, MessagesSquare, BookOpen, Notebook, BarChart3, Activity, ShoppingBag, Bot, Milestone, Radio, Bitcoin, CalendarClock, Sun, Moon, Video } from 'lucide-react';
 import { View, UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Logo } from './Logo';
 import { cn } from '../lib/cn';
+import { fetchLiveRoom } from '../lib/liveRoom';
 
 interface SidebarProps {
   currentView: View;
@@ -55,6 +56,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { role, signOut, user } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [isLiveRoomLive, setIsLiveRoomLive] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const loadStatus = () => {
+      fetchLiveRoom()
+        .then((state) => { if (active) setIsLiveRoomLive(state.is_live); })
+        .catch((error) => console.error('[Sidebar] live room status', error));
+    };
+    loadStatus();
+    const handleStatusChange = (event: Event) => {
+      setIsLiveRoomLive((event as CustomEvent<boolean>).detail);
+    };
+    window.addEventListener('live-room-status-change', handleStatusChange);
+    const interval = window.setInterval(loadStatus, 30_000);
+    return () => {
+      active = false;
+      window.removeEventListener('live-room-status-change', handleStatusChange);
+      window.clearInterval(interval);
+    };
+  }, []);
 
   const handleViewChange = (view: View) => {
     setCurrentView(view);
@@ -62,7 +84,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   const item = (view: View, label: string, icon: React.ElementType) => (
-    <NavItem view={view} label={label} icon={icon} currentView={currentView} onSelect={handleViewChange} />
+    <div className="relative">
+      <NavItem view={view} label={label} icon={icon} currentView={currentView} onSelect={handleViewChange} />
+      {view === 'live_room' && isLiveRoomLive && (
+        <span className="pointer-events-none absolute left-[132px] top-1/2 flex h-2.5 w-2.5 -translate-y-1/2" aria-label="Estamos ao vivo">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-danger opacity-60" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-danger" />
+        </span>
+      )}
+    </div>
   );
 
   return (
