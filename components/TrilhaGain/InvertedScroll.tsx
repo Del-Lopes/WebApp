@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 
 interface Props {
-  banner: React.ReactNode;   // fica FIXO no topo (não rola)
+  banner?: React.ReactNode;  // opcional; fica FIXO no topo (não rola)
   children: React.ReactNode; // conteúdo rolável (em ordem natural)
 }
 
@@ -30,7 +30,7 @@ export const InvertedScroll: React.FC<Props> = ({ banner, children }) => {
   return (
     <div ref={rootRef} className="flex flex-col" style={{ height }}>
       {/* Banner fixo no topo */}
-      <div className="shrink-0 z-20">{banner}</div>
+      {banner && <div className="shrink-0 z-20">{banner}</div>}
 
       {/* Área de rolagem reversa (barra normal, eixo invertido) */}
       <div className="ds-scrollbar flex-1 overflow-y-auto min-h-0" style={{ transform: 'scaleY(-1)' }}>

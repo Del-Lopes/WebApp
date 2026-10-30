@@ -93,42 +93,6 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
     );
   }
 
-  // Banner "Domine o mercado" — FIXO no topo; superfície do tema, acento verde.
-  const banner = (
-    <div className="relative overflow-hidden rounded-3xl p-6 mb-3 bg-surface border border-tint/8">
-      <div className="hairline absolute inset-x-0 top-0" aria-hidden />
-      {/* brilho verde difuso no canto */}
-      <div className="pointer-events-none absolute -top-16 -right-12 w-56 h-56 rounded-full bg-accent/15 blur-3xl" />
-      {/* grid sutil, esmaecendo */}
-      <div className="pointer-events-none absolute inset-0 bg-grid-fade" aria-hidden />
-      {/* candles minimalistas e discretos na base */}
-      <div className="absolute inset-x-0 bottom-0 flex items-end justify-around px-3 opacity-40">
-        {[
-          { h: 34, b: 20, up: true }, { h: 52, b: 30, up: true }, { h: 40, b: 18, up: false },
-          { h: 64, b: 36, up: true }, { h: 48, b: 22, up: false }, { h: 72, b: 44, up: true },
-          { h: 58, b: 28, up: false }, { h: 80, b: 50, up: true }, { h: 66, b: 32, up: true },
-          { h: 90, b: 40, up: false }, { h: 76, b: 46, up: true }, { h: 100, b: 58, up: true },
-        ].map((c, i) => (
-          <div key={i} className="flex flex-col items-center justify-end" style={{ height: 100 }}>
-            <div className={`w-px ${c.up ? 'bg-emerald-400' : 'bg-rose-300'}`} style={{ height: (c.h - c.b) / 2 }} />
-            <div className={`w-1.5 rounded-[2px] ${c.up ? 'bg-emerald-400' : 'bg-rose-300'}`} style={{ height: c.b }} />
-            <div className={`w-px ${c.up ? 'bg-emerald-400' : 'bg-rose-300'}`} style={{ height: (c.h - c.b) / 2 }} />
-          </div>
-        ))}
-      </div>
-      <div className="relative">
-        <div className="eyebrow inline-flex items-center gap-2 mb-3">
-          <span className="w-6 h-px bg-gradient-to-r from-accent to-transparent" />
-          Do zero ao operacional
-        </div>
-        <h2 className="font-display text-[26px] leading-[1.12] font-semibold text-fg tracking-tight">
-          Domine o mercado,<br />
-          <span className="text-gradient-brand">uma lição por vez.</span>
-        </h2>
-      </div>
-    </div>
-  );
-
   return (
     <div className="p-4 md:p-6 max-w-3xl mx-auto w-full">
       {/* Header */}
@@ -145,16 +109,14 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
         actions={<GamificationBar stats={stats} />}
       />
 
-      {/* Banner fixo no topo + rolagem reversa: barra começa no topo e desce
-          normal; a trilha passa por trás do banner (aula 1 sai por baixo,
-          aula 2 entra por cima). */}
+      {/* Rolagem reversa: barra começa no topo e desce normal; a trilha
+          sobe (aula 1 sai por baixo, aula 2 entra por cima). */}
       {loading && !activeTrack ? (
         <div className="space-y-3">
-          <Skeleton className="h-36 w-full rounded-3xl" />
           <Skeleton className="h-72 w-full rounded-2xl" />
         </div>
       ) : activeTrack ? (
-        <InvertedScroll banner={banner}>
+        <InvertedScroll>
           <TrackMap
             track={activeTrack}
             completed={completed}
