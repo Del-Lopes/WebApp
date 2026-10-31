@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Map, Download, DollarSign, FileText, MessagesSquare, BookOpen, Notebook, BarChart3, Activity, ShoppingBag, Bot, Milestone, Radio, Bitcoin, CalendarClock, Sun, Moon, Video } from 'lucide-react';
+import { LayoutDashboard, TrendingUp, GraduationCap, Users, Key, LogOut, Settings, X, Map, Download, DollarSign, FileText, MessagesSquare, BookOpen, Notebook, BarChart3, Activity, ShoppingBag, Bot, Milestone, Radio, Bitcoin, CalendarClock, Sun, Moon, Video, MessageSquareText, Building2 } from 'lucide-react';
 import { View, UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -135,6 +135,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           {item('crypto', 'Crypto', Bitcoin)}
           {item('econ_calendar', 'Calendário Econômico', CalendarClock)}
           {item('live_room', 'Sala ao Vivo', Video)}
+          {item('forum', 'Fórum', MessageSquareText)}
+          {item('prop_firms', 'Mesas Proprietárias', Building2)}
           {item('articles', 'Artigos e Análises', FileText)}
           {item('hand_bot', 'Hand Bot', Bot)}
           {item('downloads', 'Downloads', Download)}
