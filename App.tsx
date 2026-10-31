@@ -39,6 +39,8 @@ const Signals = React.lazy(() => import('./components/Signals/Signals').then(mod
 const Crypto = React.lazy(() => import('./components/Crypto/Crypto').then(module => ({ default: module.Crypto })));
 const LiveRoom = React.lazy(() => import('./components/LiveRoom/LiveRoom').then(module => ({ default: module.LiveRoom })));
 const EconCalendar = React.lazy(() => import('./components/EconCalendar/EconCalendar').then(module => ({ default: module.EconCalendar })));
+const Forum = React.lazy(() => import('./components/Forum/Forum').then(module => ({ default: module.Forum })));
+const PropFirms = React.lazy(() => import('./components/PropFirms/PropFirms').then(module => ({ default: module.PropFirms })));
 
 // Telas restritas por role; as demais são livres para qualquer usuário logado.
 const VIEW_ROLES: Partial<Record<View, UserRole[]>> = {
@@ -165,6 +167,8 @@ function AppContent() {
       case 'crypto': return 'Crypto - Trader AFK';
       case 'econ_calendar': return 'Calendário Econômico - Trader AFK';
       case 'live_room': return 'Sala ao Vivo - Trader AFK';
+      case 'forum': return 'Fórum - Trader AFK';
+      case 'prop_firms': return 'Mesas Proprietárias - Trader AFK';
       case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
       default: return 'Trader AFK';
     }
@@ -277,6 +281,12 @@ function AppContent() {
 
             case 'live_room':
               return <LiveRoom onBack={() => setCurrentView('dashboard')} />;
+
+            case 'forum':
+              return <Forum onBack={() => setCurrentView('dashboard')} />;
+
+            case 'prop_firms':
+              return <PropFirms onBack={() => setCurrentView('dashboard')} />;
 
             case 'settings': return <Settings onBack={() => setCurrentView('dashboard')} />;
             default: return <UserDashboard onNavigate={setCurrentView} onReadArticle={handleReadArticle} />;
