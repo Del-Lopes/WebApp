@@ -2,13 +2,16 @@ import React, { useEffect, useId, useRef, useState } from 'react';
 
 interface Props {
   title: string;
-  /** Um valor por dia (índice = dia). */
   values: number[];
+  /** Rótulo de cada ponto (eixo X e tooltip). Padrão: "Dia N". */
+  labels?: string[];
   kind: 'area' | 'bar';
   format: (v: number) => string;
-  /** Dia em destaque (posição atual do simulador). */
-  current: number;
-  onSelectDay?: (day: number) => void;
+  /** Ponto em destaque (ex.: dia atual do simulador). Sem ele, o resumo mostra o último. */
+  current?: number;
+  onSelectDay?: (index: number) => void;
+  /** Texto à direita do título quando não há hover. Padrão: valor do ponto em destaque. */
+  summary?: React.ReactNode;
 }
 
 const H = 180;
@@ -16,7 +19,7 @@ const PAD = { top: 12, right: 12, bottom: 24, left: 52 };
 
 // Gráfico de uma série (sem legenda — o título nomeia). Linha 2px / barras
 // com topo arredondado, grade discreta, crosshair + tooltip no hover.
-export const SimChart: React.FC<Props> = ({ title, values, kind, format, current, onSelectDay }) => {
+export const SeriesChart: React.FC<Props> = ({ title, values, labels, kind, format, current, onSelectDay, summary }) => {
   const wrapRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(600);
   const [hover, setHover] = useState<number | null>(null);
@@ -31,6 +34,8 @@ export const SimChart: React.FC<Props> = ({ title, values, kind, format, current
   }, []);
 
   const n = values.length;
+  const label = (i: number) => labels?.[i] ?? `Dia ${i}`;
+  const last = Math.max(0, n - 1);
   const max = Math.max(1, ...values);
   const innerW = width - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
@@ -52,7 +57,7 @@ export const SimChart: React.FC<Props> = ({ title, values, kind, format, current
     return Math.min(n - 1, Math.max(0, i));
   };
 
-  const shown = hover ?? current;
+  const shown = hover ?? current ?? last;
   const tipLeft = Math.min(Math.max(x(shown), PAD.left + 50), width - 60);
 
   return (
@@ -60,17 +65,17 @@ export const SimChart: React.FC<Props> = ({ title, values, kind, format, current
       <figcaption className="mb-2 flex items-baseline justify-between gap-2">
         <span className="eyebrow-muted">{title}</span>
         <span className="text-sm font-medium tabular-nums text-fg">
-          Dia {shown}: {format(values[shown] ?? 0)}
+          {hover == null && summary != null ? summary : `${label(shown)}: ${format(values[shown] ?? 0)}`}
         </span>
       </figcaption>
       <div
         ref={wrapRef}
-        className="relative cursor-crosshair touch-none select-none"
+        className={`relative cursor-crosshair select-none ${onSelectDay ? 'touch-none' : ''}`}
         onPointerMove={(e) => setHover(indexAt(e.clientX))}
         onPointerLeave={() => setHover(null)}
         onClick={(e) => onSelectDay?.(indexAt(e.clientX))}
       >
-        <svg width={width} height={H} role="img" aria-label={`${title}: de ${format(values[0] ?? 0)} no dia 0 a ${format(values[n - 1] ?? 0)} no dia ${n - 1}`}>
+        <svg width={width} height={H} role="img" aria-label={`${title}: de ${format(values[0] ?? 0)} em ${label(0)} a ${format(values[last] ?? 0)} em ${label(last)}`}>
           {ticks.map((t) => (
             <g key={t}>
               <line x1={PAD.left} x2={width - PAD.right} y1={y(t)} y2={y(t)} stroke="var(--color-tint)" strokeOpacity={0.08} />
@@ -78,7 +83,7 @@ export const SimChart: React.FC<Props> = ({ title, values, kind, format, current
             </g>
           ))}
           {xTicks.map((i) => (
-            <text key={i} x={x(i)} y={H - 6} textAnchor="middle" className="fill-fg-subtle text-[10px] tabular-nums">Dia {i}</text>
+            <text key={i} x={x(i)} y={H - 6} textAnchor="middle" className="fill-fg-subtle text-[10px] tabular-nums">{label(i)}</text>
           ))}
 
           {kind === 'area' ? (
@@ -100,14 +105,16 @@ export const SimChart: React.FC<Props> = ({ title, values, kind, format, current
                   key={i}
                   d={roundedTop(x(i) - barW / 2, y(v), barW, h, Math.min(4, barW / 2))}
                   fill="var(--color-brand-green)"
-                  fillOpacity={i <= current ? 1 : 0.25}
+                  fillOpacity={current == null || i <= current ? 1 : 0.25}
                 />
               );
             })
           )}
 
-          {/* Dia atual do simulador */}
-          <line x1={x(current)} x2={x(current)} y1={PAD.top} y2={y(0)} stroke="var(--color-fg-subtle)" strokeDasharray="3 3" />
+          {/* Ponto em destaque (dia atual do simulador) */}
+          {current != null && (
+            <line x1={x(current)} x2={x(current)} y1={PAD.top} y2={y(0)} stroke="var(--color-fg-subtle)" strokeDasharray="3 3" />
+          )}
           {/* Crosshair */}
           {hover != null && (
             <>
@@ -123,7 +130,7 @@ export const SimChart: React.FC<Props> = ({ title, values, kind, format, current
             className="pointer-events-none absolute top-0 -translate-x-1/2 rounded-lg border border-tint/10 bg-surface px-2.5 py-1.5 text-xs shadow-lg"
             style={{ left: tipLeft }}
           >
-            <span className="text-fg-subtle">Dia {hover}</span>{' '}
+            <span className="text-fg-subtle">{label(hover)}</span>{' '}
             <span className="font-medium tabular-nums text-fg">{format(values[hover])}</span>
           </div>
         )}
