@@ -6,6 +6,8 @@
 import { supabase } from './supabase';
 
 export type GrowthBucket = 'day' | 'week' | 'month';
+/** 'auto' = o banco escolhe pelo tamanho do intervalo. */
+export type GrowthBucketChoice = GrowthBucket | 'auto';
 
 export interface GrowthPoint {
   bucket: string; // YYYY-MM-DD (início do período)
@@ -25,9 +27,15 @@ export interface GrowthMetrics {
     never_signed_in: number;
     new_today: number;
   };
+  /** Agrupamento efetivamente usado (resolve o 'auto'). */
+  bucket: GrowthBucket;
+  from: string;
+  to: string;
+  first_signup: string | null;
 }
 
-export async function fetchGrowthMetrics(from: string, to: string, bucket: GrowthBucket): Promise<GrowthMetrics> {
+// from nulo = desde o primeiro cadastro (histórico completo).
+export async function fetchGrowthMetrics(from: string | null, to: string, bucket: GrowthBucketChoice): Promise<GrowthMetrics> {
   const { data, error } = await supabase.rpc('admin_growth_metrics', { p_from: from, p_to: to, p_bucket: bucket });
   if (error) throw error;
   return data as GrowthMetrics;

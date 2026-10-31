@@ -88,6 +88,15 @@ export async function grantLiveRoomAccess(userId: string, adminId: string): Prom
   if (error) throw error;
 }
 
+// Libera vários de uma vez (um único upsert; quem já tinha acesso é ignorado).
+export async function grantLiveRoomAccessBulk(userIds: string[], adminId: string): Promise<void> {
+  if (userIds.length === 0) return;
+  const { error } = await supabase
+    .from('live_room_access')
+    .upsert(userIds.map((user_id) => ({ user_id, granted_by: adminId })), { onConflict: 'user_id', ignoreDuplicates: true });
+  if (error) throw error;
+}
+
 export async function revokeLiveRoomAccess(userId: string): Promise<void> {
   const { error } = await supabase.from('live_room_access').delete().eq('user_id', userId);
   if (error) throw error;
