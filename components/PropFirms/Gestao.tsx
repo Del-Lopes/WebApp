@@ -3,7 +3,7 @@ import { Plus, Play, Pause, RotateCcw, ChevronLeft, ChevronRight, X, Layers, Wal
 import { Button, Card, CardHeader, Label, Input, Select, Stat, Badge } from '../ui';
 import { cn } from '../../lib/cn';
 import { PropFirm, SimAccount, SimParams, simulate, formatMoney, formatSize } from '../../lib/propFirms';
-import { SimChart } from './SimChart';
+import { SeriesChart } from '../charts/SeriesChart';
 
 interface Props {
   firms: PropFirm[];
@@ -300,7 +300,7 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
           </Card>
 
           <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-            <SimChart
+            <SeriesChart
               title="Contas ativas"
               kind="bar"
               values={sim.timeline.map((t) => t.accounts)}
@@ -308,7 +308,7 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
               current={day}
               onSelectDay={(d) => { setPlaying(false); setDay(d); }}
             />
-            <SimChart
+            <SeriesChart
               title="Lucro acumulado (USD)"
               kind="area"
               values={sim.timeline.map((t) => t.totalProfit)}
