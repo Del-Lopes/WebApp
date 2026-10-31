@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Video, Save, Search, Lock, Unlock, Users } from 'lucide-react';
+import { Video, Save, Search, Lock, Unlock, Users, UserCheck } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   fetchLiveRoomConfig, saveLiveRoomConfig, isValidRoomUrl,
-  fetchLiveRoomAccessIds, grantLiveRoomAccess, revokeLiveRoomAccess, setLiveRoomStatus,
+  fetchLiveRoomAccessIds, grantLiveRoomAccess, grantLiveRoomAccessBulk, revokeLiveRoomAccess, setLiveRoomStatus,
 } from '../../lib/liveRoom';
 import { Button, Card, CardHeader, Input, Label, FieldMessage, Badge, Tabs, Skeleton, EmptyState } from '../ui';
 
@@ -35,6 +35,7 @@ export const LiveRoomAdmin: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [grantingAll, setGrantingAll] = useState(false);
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
 
@@ -126,6 +127,28 @@ export const LiveRoomAdmin: React.FC = () => {
       return (p.full_name ?? '').toLowerCase().includes(q) || (p.email ?? '').toLowerCase().includes(q);
     });
   }, [profiles, granted, search, filter]);
+
+  // "Liberar todos" age sobre a lista visível: sem busca/filtro = todos.
+  const pendingIds = useMemo(
+    () => visible.filter((p) => !STAFF_ROLES.includes(p.role ?? '') && !granted.has(p.id)).map((p) => p.id),
+    [visible, granted],
+  );
+
+  const grantAll = async () => {
+    if (!user || pendingIds.length === 0) return;
+    const scope = search.trim() ? ' da busca atual' : '';
+    if (!window.confirm(`Liberar a Sala ao Vivo para ${pendingIds.length} usuário${pendingIds.length === 1 ? '' : 's'}${scope}?`)) return;
+    setGrantingAll(true);
+    try {
+      await grantLiveRoomAccessBulk(pendingIds, user.id);
+      setGranted((prev) => new Set([...prev, ...pendingIds]));
+    } catch (e) {
+      console.error('[LiveRoomAdmin] grant all', e);
+      alert('Não foi possível liberar todos. Tente novamente.');
+    } finally {
+      setGrantingAll(false);
+    }
+  };
 
   const grantedCount = useMemo(
     () => profiles.filter((p) => granted.has(p.id) && !STAFF_ROLES.includes(p.role ?? '')).length,
@@ -235,6 +258,15 @@ export const LiveRoomAdmin: React.FC = () => {
             onChange={setFilter}
             items={[{ key: 'all', label: 'Todos' }, { key: 'granted', label: 'Com acesso' }]}
           />
+          <Button
+            onClick={grantAll}
+            isLoading={grantingAll}
+            disabled={loading || pendingIds.length === 0}
+            title={pendingIds.length === 0 ? 'Todos da lista já têm acesso' : undefined}
+          >
+            {!grantingAll && <UserCheck size={16} />}
+            Liberar todos{pendingIds.length > 0 && ` (${pendingIds.length})`}
+          </Button>
         </div>
 
         {loading ? (
