@@ -4,13 +4,14 @@ import { Button, Card, CardHeader, Stat, Skeleton, EmptyState, Tabs, Input, Labe
 import { cn } from '../../lib/cn';
 import { SeriesChart } from '../charts/SeriesChart';
 import {
-  GrowthBucket, GrowthMetrics as Metrics, ROLE_LABELS,
+  GrowthBucket, GrowthBucketChoice, GrowthMetrics as Metrics, ROLE_LABELS,
   fetchGrowthMetrics, isoDate, bucketLabel, toCsv,
 } from '../../lib/growthMetrics';
 
-type Preset = '7d' | '30d' | '90d' | '12m' | 'custom';
+type Preset = 'all' | '7d' | '30d' | '90d' | '12m' | 'custom';
 
-const PRESETS: { key: Preset; label: string; days?: number; bucket?: GrowthBucket }[] = [
+const PRESETS: { key: Preset; label: string; days?: number; bucket?: GrowthBucketChoice }[] = [
+  { key: 'all', label: 'Todo o histórico', bucket: 'auto' },
   { key: '7d', label: '7 dias', days: 7, bucket: 'day' },
   { key: '30d', label: '30 dias', days: 30, bucket: 'day' },
   { key: '90d', label: '90 dias', days: 90, bucket: 'week' },
@@ -20,41 +21,71 @@ const PRESETS: { key: Preset; label: string; days?: number; bucket?: GrowthBucke
 
 const BUCKET_NAMES: Record<GrowthBucket, string> = { day: 'dia', week: 'semana', month: 'mês' };
 
+// Novos cadastros aparecem sozinhos: recarrega em silêncio enquanto a aba está aberta.
+const REFRESH_MS = 60_000;
+
 const daysAgo = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - (n - 1));
   return isoDate(d);
 };
 
+const bucketLabelLong = (iso: string) => {
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+};
+
 const int = (v: number) => new Intl.NumberFormat('pt-BR').format(Math.round(v));
 const pctOf = (part: number, whole: number) => (whole > 0 ? `${Math.round((part / whole) * 100)}%` : '—');
 
 export const GrowthMetrics: React.FC = () => {
-  const [preset, setPreset] = useState<Preset>('30d');
+  const [preset, setPreset] = useState<Preset>('all');
   const [from, setFrom] = useState(daysAgo(30));
   const [to, setTo] = useState(isoDate(new Date()));
-  const [bucket, setBucket] = useState<GrowthBucket>('day');
+  const [bucketChoice, setBucketChoice] = useState<GrowthBucketChoice>('auto');
   const [data, setData] = useState<Metrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
   const [showTable, setShowTable] = useState(false);
+  const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
 
-  const load = useCallback(async () => {
-    if (!from || !to || from > to) { setError('Escolha um intervalo de datas válido.'); return; }
-    setLoading(true);
-    setError(null);
+  const load = useCallback(async (silent = false) => {
+    const isAll = preset === 'all';
+    const end = isAll ? isoDate(new Date()) : to;
+    if (!isAll && (!from || !to || from > to)) { setError('Escolha um intervalo de datas válido.'); return; }
+    if (!silent) { setLoading(true); setError(null); setErrorDetail(null); }
     try {
-      setData(await fetchGrowthMetrics(from, to, bucket));
+      setData(await fetchGrowthMetrics(isAll ? null : from, end, bucketChoice));
+      setUpdatedAt(new Date());
+      if (silent) { setError(null); setErrorDetail(null); }
     } catch (e) {
       console.error('[GrowthMetrics]', e);
+      if (silent) return; // falha no refresh automático: mantém o que já está na tela
       const msg = (e as { message?: string })?.message ?? '';
-      setError(msg.includes('range_too_large') ? 'Intervalo máximo de 3 anos.' : 'Não foi possível carregar as métricas.');
+      setError(msg.includes('range_too_large')
+        ? 'Agrupando por dia, o intervalo máximo é de 3 anos. Use semana ou mês.'
+        : 'Não foi possível carregar as métricas.');
+      setErrorDetail(msg || null);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
-  }, [from, to, bucket]);
+  }, [preset, from, to, bucketChoice]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === 'visible') load(true); };
+    const id = window.setInterval(refresh, REFRESH_MS);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [load]);
+
+  // Agrupamento que o banco de fato usou (resolve o "Auto").
+  const bucket: GrowthBucket = data?.bucket ?? (bucketChoice === 'auto' ? 'day' : bucketChoice);
 
   const choosePreset = (p: Preset) => {
     setPreset(p);
@@ -62,8 +93,8 @@ export const GrowthMetrics: React.FC = () => {
     if (def?.days) {
       setFrom(daysAgo(def.days));
       setTo(isoDate(new Date()));
-      if (def.bucket) setBucket(def.bucket);
     }
+    if (def?.bucket) setBucketChoice(def.bucket);
   };
 
   const labels = useMemo(() => data?.series.map((p) => bucketLabel(p.bucket, bucket)) ?? [], [data, bucket]);
@@ -104,20 +135,25 @@ export const GrowthMetrics: React.FC = () => {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Tabs<GrowthBucket>
+          <Tabs<GrowthBucketChoice>
             aria-label="Agrupar por"
-            value={bucket}
-            onChange={setBucket}
-            items={[{ key: 'day', label: 'Dia' }, { key: 'week', label: 'Semana' }, { key: 'month', label: 'Mês' }]}
+            value={bucketChoice}
+            onChange={setBucketChoice}
+            items={[{ key: 'auto', label: 'Auto' }, { key: 'day', label: 'Dia' }, { key: 'week', label: 'Semana' }, { key: 'month', label: 'Mês' }]}
           />
-          <Button size="icon" variant="secondary" onClick={load} aria-label="Atualizar" title="Atualizar">
+          <Button size="icon" variant="secondary" onClick={() => load()} aria-label="Atualizar" title="Atualizar">
             <RefreshCw size={16} className={cn(loading && 'animate-spin')} />
           </Button>
         </div>
       </div>
 
       {error ? (
-        <EmptyState icon={BarChart3} title={error} action={<Button variant="secondary" onClick={load}>Tentar novamente</Button>} />
+        <EmptyState
+          icon={BarChart3}
+          title={error}
+          description={errorDetail && <span className="font-mono text-xs">{errorDetail}</span>}
+          action={<Button variant="secondary" onClick={() => load()}>Tentar novamente</Button>}
+        />
       ) : !data ? (
         <div className="space-y-4">
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -127,6 +163,21 @@ export const GrowthMetrics: React.FC = () => {
         </div>
       ) : (
         <div className={cn('space-y-6 transition-opacity', loading && 'opacity-60')}>
+          <p className="flex flex-wrap items-center gap-x-2 text-xs text-fg-subtle">
+            <span>
+              {bucketLabelLong(data.from)} a {bucketLabelLong(data.to)}
+              {preset === 'all' && data.first_signup && ' · desde o primeiro cadastro'}
+            </span>
+            {updatedAt && (
+              <>
+                <span aria-hidden>·</span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-brand-green" aria-hidden />
+                  atualizado às {updatedAt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}, atualiza sozinho a cada minuto
+                </span>
+              </>
+            )}
+          </p>
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Total de usuários" value={int(t!.total_users)} icon={Users} hint={`+${int(t!.new_today)} hoje`} />
             <Stat
