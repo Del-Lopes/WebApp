@@ -256,6 +256,15 @@
   color-scheme: dark;
 }
 
+/* Lista suspensa nativa dos <select>: o Chrome/Windows monta o popup a partir
+   do fundo do select, que é translúcido (bg-tint/3) — no escuro virava texto
+   claro sobre fundo branco. Cor sólida do tema nas opções, em todas as telas. */
+select option,
+select optgroup {
+  background-color: var(--ds-elevated);
+  color: var(--ds-fg);
+}
+
 [data-theme="light"] {
   color-scheme: light;
   --ds-page: #fafafa;
