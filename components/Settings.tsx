@@ -5,6 +5,7 @@ import { User, Lock, Save, Loader2, AlertCircle, CheckCircle, ShieldCheck, FileT
 import { useAuth } from '../contexts/AuthContext';
 import { BackButton } from './BackButton';
 import { Button, Card, Input, Label, PageHeader } from './ui';
+import { isValidPhone } from '../lib/whatsapp';
 
 interface SettingsProps {
   onBack?: () => void;
@@ -23,7 +24,9 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
 
   // Profile State
   const [fullName, setFullName] = useState('');
-  
+  const [phone, setPhone] = useState('');
+  const [savedPhone, setSavedPhone] = useState('');
+
   // Password State
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -34,8 +37,33 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
     }
   }, [user]);
 
+  // Depende só do id: o objeto user muda ao renovar o token e apagaria o que está sendo digitado.
+  const userId = user?.id;
+  useEffect(() => {
+    if (!userId) return;
+    supabase
+      .from('profiles')
+      .select('phone')
+      .eq('id', userId)
+      .maybeSingle()
+      .then(({ data, error }) => {
+        if (error) {
+          console.error('Error loading phone:', error);
+          return;
+        }
+        setPhone(data?.phone ?? '');
+        setSavedPhone(data?.phone ?? '');
+      });
+  }, [userId]);
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newPhone = phone.trim();
+    // Quem já tem telefone só pode trocá-lo; a remoção é um pedido LGPD ao suporte.
+    if ((newPhone || savedPhone) && !isValidPhone(newPhone)) {
+      setMessage({ type: 'error', text: 'Informe um telefone válido, com DDD.' });
+      return;
+    }
     setLoading(true);
     setMessage(null);
 
@@ -45,6 +73,16 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
       });
 
       if (error) throw error;
+
+      if (newPhone !== savedPhone) {
+        const { error: phoneError } = await supabase
+          .from('profiles')
+          .update({ phone: newPhone })
+          .eq('id', userId);
+
+        if (phoneError) throw phoneError;
+        setSavedPhone(newPhone);
+      }
       setMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' });
     } catch (error: any) {
       setMessage({ type: 'error', text: error.message });
@@ -124,6 +162,19 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
             />
+          </div>
+          <div>
+            <Label htmlFor="settings-phone">Telefone (com DDD)</Label>
+            <Input
+              id="settings-phone"
+              type="tel"
+              maxLength={30}
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="(11) 99999-9999"
+              autoComplete="tel"
+            />
+            <p className="mt-1.5 text-xs text-fg-subtle">Usado para suporte e avisos da plataforma, inclusive por WhatsApp.</p>
           </div>
           <div className="flex justify-end">
             <Button
