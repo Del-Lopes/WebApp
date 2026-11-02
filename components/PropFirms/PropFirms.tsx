@@ -1,18 +1,19 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Building2, Scale, Layers, Plus, ExternalLink, Pencil, Star, Check, AlertTriangle } from 'lucide-react';
+import { Building2, Scale, Layers, LineChart, Plus, ExternalLink, Pencil, Star, Check, AlertTriangle } from 'lucide-react';
 import { BackButton } from '../BackButton';
 import { Button, Card, PageHeader, Skeleton, EmptyState, Badge, Tabs, Table, THead, TBody, TR, TH, TD } from '../ui';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/cn';
 import { PropFirm, fetchPropFirms, formatMoney, formatSize, isSafeUrl } from '../../lib/propFirms';
 import { PropFirmEditor } from './PropFirmEditor';
+import { Projecao } from './Projecao';
 import { Gestao } from './Gestao';
 
 interface Props {
   onBack: () => void;
 }
 
-type Tab = 'firms' | 'compare' | 'gestao';
+type Tab = 'firms' | 'compare' | 'projecao' | 'gestao';
 
 const MAX_COMPARE = 4;
 
@@ -52,8 +53,8 @@ export const PropFirms: React.FC<Props> = ({ onBack }) => {
         leading={<BackButton onClick={onBack} />}
         eyebrow={<span className="inline-flex items-center gap-1.5"><Building2 size={12} /> Prop firms</span>}
         title="Mesas Proprietárias"
-        description="Conheça as principais mesas, compare regras e custos e planeje a escala das suas contas."
-        actions={isAdmin && tab !== 'gestao' && <Button variant="secondary" onClick={() => setEditing('new')}><Plus size={16} /> Nova mesa</Button>}
+        description="Conheça as principais mesas, compare regras e custos e planeje a escala das suas contas e acompanhe a execução."
+        actions={isAdmin && (tab === 'firms' || tab === 'compare') && <Button variant="secondary" onClick={() => setEditing('new')}><Plus size={16} /> Nova mesa</Button>}
       />
 
       <Tabs<Tab>
@@ -63,11 +64,14 @@ export const PropFirms: React.FC<Props> = ({ onBack }) => {
         items={[
           { key: 'firms', label: 'Mesas', icon: Building2 },
           { key: 'compare', label: `Comparar${selected.length ? ` (${selected.length})` : ''}`, icon: Scale },
+          { key: 'projecao', label: 'Projeção', icon: LineChart },
           { key: 'gestao', label: 'Gestão', icon: Layers },
         ]}
       />
 
-      {tab === 'gestao' ? (
+      {tab === 'projecao' ? (
+        <Projecao firms={firms} />
+      ) : tab === 'gestao' ? (
         <Gestao firms={firms} />
       ) : error ? (
         <EmptyState

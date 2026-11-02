@@ -196,7 +196,7 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
             ))}
           </div>
 
-          {error && <FieldMessage tone="danger">{error}</FieldMessage>}
+          {error && <FieldMessage error>{error}</FieldMessage>}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="flex items-center gap-1.5 text-xs text-fg-subtle">
