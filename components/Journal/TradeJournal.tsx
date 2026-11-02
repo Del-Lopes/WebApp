@@ -38,7 +38,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
   const [editing, setEditing] = useState<TradeEntry | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [view, setView] = useState<'list' | 'calendar'>('list');
+  const [view, setView] = useState<'list' | 'calendar'>('calendar');
   // O calendário busca o próprio período: este número o faz recarregar após salvar/apagar.
   const [calendarVersion, setCalendarVersion] = useState(0);
   const [newTradeDate, setNewTradeDate] = useState<Date | null>(null);
@@ -136,8 +136,8 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
 
       <div className="flex rounded-lg border border-tint/10 bg-tint/3 p-0.5 w-fit" role="group" aria-label="Modo de visualização">
         {([
-          { value: 'list', label: 'Lista', icon: <List size={15} /> },
           { value: 'calendar', label: 'Calendário', icon: <CalendarDays size={15} /> },
+          { value: 'list', label: 'Lista', icon: <List size={15} /> },
         ] as const).map((opt) => (
           <button
             key={opt.value}
