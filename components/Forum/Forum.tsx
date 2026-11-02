@@ -1,14 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { MessagesSquare, Plus, Search, Pin, Lock, MessageCircle } from 'lucide-react';
 import { BackButton } from '../BackButton';
-import { Button, Card, PageHeader, Skeleton, EmptyState, Badge, Input, Modal, Label, Textarea, Select, FieldMessage } from '../ui';
+import { Button, Card, PageHeader, Skeleton, EmptyState, Badge, Input, Modal, Label, Select, FieldMessage } from '../ui';
 import { cn } from '../../lib/cn';
+import { joinBody } from '../../lib/forumImages';
 import {
   ForumCategory, ForumTopic, PAGE_SIZE,
   fetchCategories, fetchTopics, createTopic, timeAgo, roleLabel,
 } from '../../lib/forum';
 import { ForumTopicView } from './ForumTopicView';
 import { Avatar } from './Avatar';
+import { ForumEditor } from './ForumEditor';
 
 interface Props {
   onBack: () => void;
@@ -210,6 +212,8 @@ const NewTopicModal: React.FC<{
   const [categoryId, setCategoryId] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
+  const [images, setImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -218,10 +222,11 @@ const NewTopicModal: React.FC<{
     setCategoryId(defaultCategoryId ?? categories[0]?.id ?? '');
     setTitle('');
     setBody('');
+    setImages([]);
     setError(null);
   }, [open, defaultCategoryId, categories]);
 
-  const valid = categoryId && title.trim().length >= 3 && body.trim().length > 0;
+  const valid = categoryId && title.trim().length >= 3 && (body.trim().length > 0 || images.length > 0) && !uploading;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -229,7 +234,7 @@ const NewTopicModal: React.FC<{
     setSaving(true);
     setError(null);
     try {
-      onCreated(await createTopic(categoryId, title, body));
+      onCreated(await createTopic(categoryId, title, joinBody(body, images)));
     } catch (err) {
       console.error('[Forum] criar tópico', err);
       setError('Não foi possível publicar o tópico. Tente novamente.');
@@ -266,7 +271,16 @@ const NewTopicModal: React.FC<{
         </div>
         <div>
           <Label htmlFor="forum-body">Mensagem</Label>
-          <Textarea id="forum-body" value={body} maxLength={10000} onChange={(e) => setBody(e.target.value)} className="min-h-40" placeholder="Descreva sua dúvida ou ideia com detalhes." />
+          <ForumEditor
+            id="forum-body"
+            text={body}
+            images={images}
+            onTextChange={setBody}
+            onImagesChange={setImages}
+            onBusyChange={setUploading}
+            className="min-h-40"
+            placeholder="Descreva sua dúvida ou ideia com detalhes."
+          />
         </div>
         {error && <FieldMessage error>{error}</FieldMessage>}
       </form>

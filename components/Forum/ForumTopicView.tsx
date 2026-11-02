@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pin, Lock, Unlock, Trash2, Pencil, MessagesSquare, Send } from 'lucide-react';
 import { BackButton } from '../BackButton';
-import { Button, Card, Skeleton, EmptyState, Badge, Textarea, FieldMessage } from '../ui';
+import { Button, Card, Skeleton, EmptyState, Badge, FieldMessage } from '../ui';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   ForumTopic, ForumPost,
   fetchTopic, fetchPosts, createPost, updatePost, deletePost, updateTopic, deleteTopic, timeAgo, roleLabel,
 } from '../../lib/forum';
+import { joinBody, splitBody } from '../../lib/forumImages';
 import { Avatar } from './Avatar';
+import { ForumEditor } from './ForumEditor';
+import { PostBody } from './PostBody';
 
 interface Props {
   topicId: string;
@@ -24,6 +27,8 @@ export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack,
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState('');
+  const [replyImages, setReplyImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,13 +48,14 @@ export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack,
 
   const sendReply = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!reply.trim()) return;
+    if ((!reply.trim() && replyImages.length === 0) || uploading) return;
     setSending(true);
     setError(null);
     try {
-      const post = await createPost(topicId, reply);
+      const post = await createPost(topicId, joinBody(reply, replyImages));
       setPosts((prev) => [...prev, post]);
       setReply('');
+      setReplyImages([]);
       onChanged();
     } catch (err) {
       console.error('[Forum] responder', err);
@@ -180,16 +186,18 @@ export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack,
         <Card>
           <form onSubmit={sendReply} className="space-y-3">
             <label htmlFor="forum-reply" className="text-sm font-medium text-fg">Sua resposta</label>
-            <Textarea
+            <ForumEditor
               id="forum-reply"
-              value={reply}
-              maxLength={10000}
-              onChange={(e) => setReply(e.target.value)}
+              text={reply}
+              images={replyImages}
+              onTextChange={setReply}
+              onImagesChange={setReplyImages}
+              onBusyChange={setUploading}
               placeholder="Escreva uma resposta construtiva."
             />
             {error && <FieldMessage error>{error}</FieldMessage>}
             <div className="flex justify-end">
-              <Button type="submit" isLoading={sending} disabled={!reply.trim()}><Send size={16} /> Responder</Button>
+              <Button type="submit" isLoading={sending} disabled={(!reply.trim() && replyImages.length === 0) || uploading}><Send size={16} /> Responder</Button>
             </div>
           </form>
         </Card>
@@ -214,15 +222,25 @@ const PostCard: React.FC<{
   onDelete: () => void;
 }> = ({ authorName, authorRole, createdAt, edited, body, highlight, canEdit, onSave, onDelete }) => {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(body);
+  const [draft, setDraft] = useState('');
+  const [draftImages, setDraftImages] = useState<string[]>([]);
+  const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const badge = roleLabel(authorRole);
+  const canSave = (draft.trim().length > 0 || draftImages.length > 0) && !uploading;
+
+  const startEditing = () => {
+    const parts = splitBody(body);
+    setDraft(parts.text);
+    setDraftImages(parts.images);
+    setEditing(true);
+  };
 
   const save = async () => {
-    if (!draft.trim()) return;
+    if (!canSave) return;
     setSaving(true);
     try {
-      await onSave(draft.trim());
+      await onSave(joinBody(draft, draftImages));
       setEditing(false);
     } catch (e) {
       console.error('[Forum] editar', e);
@@ -244,7 +262,7 @@ const PostCard: React.FC<{
             </p>
             {canEdit && !editing && (
               <div className="flex shrink-0 gap-1">
-                <Button size="icon" variant="ghost" aria-label="Editar" title="Editar" onClick={() => { setDraft(body); setEditing(true); }}>
+                <Button size="icon" variant="ghost" aria-label="Editar" title="Editar" onClick={startEditing}>
                   <Pencil size={15} />
                 </Button>
                 <Button size="icon" variant="ghost" aria-label="Excluir" title="Excluir" onClick={onDelete} className="hover:text-danger-fg">
@@ -255,14 +273,22 @@ const PostCard: React.FC<{
           </div>
           {editing ? (
             <div className="mt-3 space-y-2">
-              <Textarea value={draft} maxLength={10000} onChange={(e) => setDraft(e.target.value)} aria-label="Editar mensagem" />
+              <ForumEditor
+                id={`forum-edit-${createdAt}`}
+                text={draft}
+                images={draftImages}
+                onTextChange={setDraft}
+                onImagesChange={setDraftImages}
+                onBusyChange={setUploading}
+                ariaLabel="Editar mensagem"
+              />
               <div className="flex justify-end gap-2">
                 <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancelar</Button>
-                <Button size="sm" isLoading={saving} disabled={!draft.trim()} onClick={save}>Salvar</Button>
+                <Button size="sm" isLoading={saving} disabled={!canSave} onClick={save}>Salvar</Button>
               </div>
             </div>
           ) : (
-            <p className="mt-2 whitespace-pre-wrap break-words text-sm leading-relaxed text-fg-muted">{body}</p>
+            <PostBody body={body} />
           )}
         </div>
       </div>
