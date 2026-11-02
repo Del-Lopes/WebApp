@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { Cloud, ExternalLink, ImageIcon, RefreshCw, ShieldAlert } from 'lucide-react';
+import { Cloud, ExternalLink, ImageIcon, RefreshCw, ShieldAlert, Trash2 } from 'lucide-react';
 import { Badge } from '../ui';
 import { formatBytes } from '../../lib/storage';
-import { ForumImagesStats, fetchForumImagesStats, forumImagesEnabled, imageUrl } from '../../lib/forumImages';
+import {
+  ForumImagesStats, deleteForumImage, fetchForumImagesStats, forumImageDeleteErrorMessage, forumImagesEnabled, imageUrl,
+} from '../../lib/forumImages';
 import { CollapsibleSection } from './CollapsibleSection';
 
 // Plano grátis do R2: 10 GB guardados e 1 milhão de gravações por mês.
@@ -30,6 +32,24 @@ export const ForumImagesMonitor: React.FC = () => {
   }, []);
 
   useEffect(() => { void load(); }, [load]);
+
+  const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const remove = async (key: string) => {
+    if (!window.confirm('Apagar esta imagem do R2 definitivamente? Se ela estiver em algum post do Fórum, o post passará a mostrar uma imagem quebrada.')) return;
+    setDeletingKey(key);
+    setDeleteError(null);
+    try {
+      await deleteForumImage(key);
+      await load();
+    } catch (e) {
+      console.error('[ForumImagesMonitor] apagar', e);
+      setDeleteError(forumImageDeleteErrorMessage(e));
+    } finally {
+      setDeletingKey(null);
+    }
+  };
 
   const used = stats?.total_bytes ?? 0;
   const pct = (used / R2_FREE_BYTES) * 100;
@@ -121,6 +141,7 @@ export const ForumImagesMonitor: React.FC = () => {
             {!forumImagesEnabled && (
               <p className="mb-3 text-xs text-warning-fg">VITE_FORUM_IMAGES_URL não está definida: as miniaturas ficam indisponíveis.</p>
             )}
+            {deleteError && <p role="alert" className="mb-3 text-sm text-danger-fg">{deleteError}</p>}
             {stats && stats.recent.length > 0 ? (
               <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {stats.recent.map((img) => (
@@ -148,6 +169,16 @@ export const ForumImagesMonitor: React.FC = () => {
                         <ExternalLink size={16} />
                       </a>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => void remove(img.object_key)}
+                      disabled={deletingKey !== null}
+                      className="shrink-0 rounded-lg p-2 text-fg-subtle hover:bg-danger/10 hover:text-danger-fg disabled:opacity-40 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
+                      title="Apagar do R2"
+                      aria-label="Apagar imagem do R2"
+                    >
+                      <Trash2 size={16} className={deletingKey === img.object_key ? 'animate-pulse' : ''} />
+                    </button>
                   </li>
                 ))}
               </ul>

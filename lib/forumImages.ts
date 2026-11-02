@@ -106,6 +106,34 @@ export async function fetchForumImagesStats(): Promise<ForumImagesStats> {
   return data as ForumImagesStats;
 }
 
+// Apaga a imagem no R2 e no registro. Só staff (a função recusa os demais).
+export async function deleteForumImage(key: string): Promise<void> {
+  const { data } = await supabase.auth.getSession();
+  if (!data.session) throw new Error('not_authenticated');
+
+  const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/forum-image-delete`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${data.session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ key }),
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error ?? 'delete_failed');
+}
+
+export function forumImageDeleteErrorMessage(err: unknown): string {
+  switch ((err as Error)?.message) {
+    case 'forbidden': return 'Apenas a equipe pode apagar imagens.';
+    case 'not_found': return 'Imagem não encontrada. Atualize a lista.';
+    case 'not_authenticated': return 'Entre novamente para apagar imagens.';
+    case 'storage_error': return 'O R2 recusou o pedido. Tente de novo.';
+    default: return 'Não foi possível apagar a imagem. Tente novamente.';
+  }
+}
+
 export function forumImageErrorMessage(err: unknown): string {
   switch ((err as Error)?.message) {
     case 'unsupported_type': return 'Use uma imagem PNG, JPG ou WebP.';
