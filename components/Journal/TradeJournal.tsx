@@ -2,11 +2,13 @@ import React, { useMemo, useState } from 'react';
 import {
   Plus, Edit2, Trash2, AlertTriangle, Search,
   TrendingUp, TrendingDown, Star, BookOpen, Clock, ImageIcon,
-  Target, BarChart3, ListChecks, CalendarDays, List,
+  Target, BarChart3, ListChecks, CalendarDays, List, LineChart,
 } from 'lucide-react';
 import { useTradeJournal, type TradeEntry } from '../../hooks/useTradeJournal';
 import { TradeEditor } from './TradeEditor';
 import { JournalCalendar } from './JournalCalendar';
+import { JournalEvolution } from './JournalEvolution';
+import { journalImageSrc } from '../../lib/journalImages';
 import { BackButton } from '../BackButton';
 import { Button, EmptyState, Input, PageHeader, Select, Skeleton } from '../ui';
 
@@ -38,7 +40,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
   const [editing, setEditing] = useState<TradeEntry | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [view, setView] = useState<'list' | 'calendar'>('calendar');
+  const [view, setView] = useState<'list' | 'calendar' | 'evolution'>('calendar');
   // O calendário busca o próprio período: este número o faz recarregar após salvar/apagar.
   const [calendarVersion, setCalendarVersion] = useState(0);
   const [newTradeDate, setNewTradeDate] = useState<Date | null>(null);
@@ -138,6 +140,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
         {([
           { value: 'calendar', label: 'Calendário', icon: <CalendarDays size={15} /> },
           { value: 'list', label: 'Lista', icon: <List size={15} /> },
+          { value: 'evolution', label: 'Evolução', icon: <LineChart size={15} /> },
         ] as const).map((opt) => (
           <button
             key={opt.value}
@@ -154,7 +157,9 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
         ))}
       </div>
 
-      {view === 'calendar' ? (
+      {view === 'evolution' ? (
+        <JournalEvolution refreshKey={calendarVersion} />
+      ) : view === 'calendar' ? (
         <JournalCalendar
           refreshKey={calendarVersion}
           renderTrade={renderTrade}
@@ -382,11 +387,11 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete }: TradeCardPro
           {entry.screenshot_url && (
             <div>
               <p className="eyebrow-muted mb-1.5">Screenshot</p>
-              <a href={entry.screenshot_url} target="_blank" rel="noopener noreferrer">
+              <a href={journalImageSrc(entry.screenshot_url)} target="_blank" rel="noopener noreferrer">
                 <img
                   loading="lazy"
                   decoding="async"
-                  src={entry.screenshot_url}
+                  src={journalImageSrc(entry.screenshot_url)}
                   alt={`Screenshot ${entry.asset}`}
                   className="max-h-72 max-w-full rounded-lg border border-tint/10 hover:opacity-90 transition-opacity"
                 />

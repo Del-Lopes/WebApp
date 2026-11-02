@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   X, Loader2, AlertTriangle, Upload, Star, Image as ImageIcon, Trash2,
 } from 'lucide-react';
@@ -9,6 +9,8 @@ import {
   type TradeSide,
 } from '../../hooks/useTradeJournal';
 import { Button, Input, Textarea } from '../ui';
+import { forumImageErrorMessage, forumImagesEnabled, uploadForumImage } from '../../lib/forumImages';
+import { journalImageSrc } from '../../lib/journalImages';
 
 interface TradeEditorProps {
   entry: TradeEntry | null;
@@ -40,10 +42,11 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
   const [asset, setAsset] = useState(entry?.asset ?? '');
   const [side, setSide] = useState<TradeSide>(entry?.side ?? 'buy');
   const [volume, setVolume] = useState<string>(entry ? String(entry.volume) : '');
-  const [entryPrice, setEntryPrice] = useState<string>(entry?.entry_price != null ? String(entry.entry_price) : '');
-  const [exitPrice, setExitPrice] = useState<string>(entry?.exit_price != null ? String(entry.exit_price) : '');
-  const [openedAt, setOpenedAt] = useState<string>(toLocalInput(entry?.opened_at) || toLocalInput(defaultOpenedAt ?? new Date().toISOString()));
-  const [closedAt, setClosedAt] = useState<string>(toLocalInput(entry?.closed_at));
+  // Preços e horários saíram do formulário: uma operação nova abre agora (ou no dia
+  // escolhido no calendário) e, com resultado informado, conta como fechada nesse dia.
+  // Em edição, o que já estava salvo é preservado.
+  const openedAt = toLocalInput(entry?.opened_at) || toLocalInput(defaultOpenedAt ?? new Date().toISOString());
+  const closedAt = toLocalInput(entry?.closed_at);
 
   // Resultado
   const [resultAmount, setResultAmount] = useState<string>(entry?.result_amount != null ? String(entry.result_amount) : '');
@@ -67,15 +70,6 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Calcula pips automaticamente quando há entrada e saída
-  const computedPips = useMemo(() => {
-    const e = parseFloat(entryPrice);
-    const x = parseFloat(exitPrice);
-    if (!Number.isFinite(e) || !Number.isFinite(x)) return null;
-    const sign = side === 'buy' ? 1 : -1;
-    return sign * (x - e);
-  }, [entryPrice, exitPrice, side]);
-
   useEffect(() => {
     const handler = (ev: KeyboardEvent) => {
       if (ev.key === 'Escape') onClose();
@@ -88,20 +82,40 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
     setEmotionalTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const uploadImage = async (file: File) => {
+    if (!file.type.startsWith('image/')) return;
     setUploadingFile(true);
     setUploadError(null);
     try {
-      const url = await onUploadScreenshot(file);
-      setScreenshotUrl(url);
+      // Novo storage (R2); se não estiver configurado, cai no upload antigo.
+      const value = forumImagesEnabled ? await uploadForumImage(file) : await onUploadScreenshot(file);
+      setScreenshotUrl(value);
     } catch (err: any) {
-      setUploadError(err?.message ?? 'Falha ao enviar imagem.');
+      setUploadError(forumImagesEnabled ? forumImageErrorMessage(err) : (err?.message ?? 'Falha ao enviar imagem.'));
     } finally {
       setUploadingFile(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) void uploadImage(file);
+  };
+
+  // Ctrl+V em qualquer ponto do formulário: só intercepta se a área de transferência tiver imagem.
+  const onPaste = (e: React.ClipboardEvent) => {
+    const file = Array.from<File>(e.clipboardData.files).find((f) => f.type.startsWith('image/'));
+    if (!file) return;
+    e.preventDefault();
+    void uploadImage(file);
+  };
+
+  const onDrop = (e: React.DragEvent) => {
+    const file = Array.from<File>(e.dataTransfer.files).find((f) => f.type.startsWith('image/'));
+    if (!file) return;
+    e.preventDefault();
+    void uploadImage(file);
   };
 
   const handleSave = async () => {
@@ -112,26 +126,21 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
     if (!Number.isFinite(volNum) || volNum <= 0) { setError('Volume precisa ser maior que zero.'); return; }
     const openedIso = fromLocalInput(openedAt);
     if (!openedIso) { setError('Informe a data/hora de abertura.'); return; }
-    const closedIso = closedAt ? fromLocalInput(closedAt) : null;
-    if (closedAt && !closedIso) { setError('Data/hora de fechamento inválida.'); return; }
-    if (closedIso && new Date(closedIso) < new Date(openedIso)) {
-      setError('Fechamento não pode ser antes da abertura.');
-      return;
-    }
+    const resultNum = resultAmount.trim() ? parseFloat(resultAmount) : null;
+    if (resultNum !== null && !Number.isFinite(resultNum)) { setError('Resultado inválido.'); return; }
+    // Com resultado, a operação fecha no mesmo dia em que abriu (a menos que já tivesse fechamento).
+    const closedIso = closedAt ? fromLocalInput(closedAt) : (resultNum !== null ? openedIso : null);
 
     const input: TradeInput = {
       asset: asset.trim(),
       side,
       volume: volNum,
-      entry_price: entryPrice ? parseFloat(entryPrice) : null,
-      exit_price: exitPrice ? parseFloat(exitPrice) : null,
+      entry_price: entry?.entry_price ?? null,
+      exit_price: entry?.exit_price ?? null,
       opened_at: openedIso,
       closed_at: closedIso,
-      result_amount: resultAmount ? parseFloat(resultAmount) : null,
-      // Se há preço entrada+saída, usa o cálculo. Senão, usa o que o usuário digitou.
-      result_pips: computedPips !== null
-        ? Number(computedPips.toFixed(4))
-        : (resultPipsManual ? parseFloat(resultPipsManual) : null),
+      result_amount: resultNum,
+      result_pips: resultPipsManual ? parseFloat(resultPipsManual) : null,
       entry_reason: entryReason,
       exit_reason: exitReason,
       analysis,
@@ -151,7 +160,12 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
 
   return (
     <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-4">
-      <div className="relative overflow-hidden bg-surface text-fg border border-tint/10 rounded-t-2xl sm:rounded-2xl w-full max-w-3xl max-h-[92dvh] flex flex-col">
+      <div
+        onPaste={onPaste}
+        onDrop={onDrop}
+        onDragOver={(e) => e.preventDefault()}
+        className="relative overflow-hidden bg-surface text-fg border border-tint/10 rounded-t-2xl sm:rounded-2xl w-full max-w-3xl max-h-[92dvh] flex flex-col"
+      >
         <div className="hairline absolute inset-x-0 top-0" aria-hidden />
         <div className="flex items-center justify-between p-5 border-b border-tint/6">
           <h3 className="font-display font-semibold text-fg text-lg">
@@ -217,43 +231,6 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
               </Field>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-              <Field label="Preço de entrada (opcional)">
-                <Input
-                  type="number"
-                  step="any"
-                  value={entryPrice}
-                  onChange={(e) => setEntryPrice(e.target.value)}
-                  placeholder="1.08234"
-                />
-              </Field>
-              <Field label="Preço de saída (opcional)">
-                <Input
-                  type="number"
-                  step="any"
-                  value={exitPrice}
-                  onChange={(e) => setExitPrice(e.target.value)}
-                  placeholder="1.08512"
-                />
-              </Field>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-              <Field label="Abertura">
-                <Input
-                  type="datetime-local"
-                  value={openedAt}
-                  onChange={(e) => setOpenedAt(e.target.value)}
-                />
-              </Field>
-              <Field label="Fechamento (opcional)">
-                <Input
-                  type="datetime-local"
-                  value={closedAt}
-                  onChange={(e) => setClosedAt(e.target.value)}
-                />
-              </Field>
-            </div>
           </Section>
 
           {/* Resultado */}
@@ -268,20 +245,14 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
                   placeholder="Use sinal negativo para prejuízo"
                 />
               </Field>
-              <Field label={computedPips !== null ? 'Pips/pontos (calculado)' : 'Pips/pontos (opcional)'}>
-                {computedPips !== null ? (
-                  <div className="px-3.5 py-2.5 rounded-lg border border-tint/8 bg-tint/5 text-sm font-mono tabular-nums text-fg">
-                    {computedPips.toFixed(4)}
-                  </div>
-                ) : (
-                  <Input
-                    type="number"
-                    step="any"
-                    value={resultPipsManual}
-                    onChange={(e) => setResultPipsManual(e.target.value)}
-                    placeholder="Preencha se quiser"
-                  />
-                )}
+              <Field label="Pips/pontos (opcional)">
+                <Input
+                  type="number"
+                  step="any"
+                  value={resultPipsManual}
+                  onChange={(e) => setResultPipsManual(e.target.value)}
+                  placeholder="Preencha se quiser"
+                />
               </Field>
             </div>
           </Section>
@@ -393,7 +364,7 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
             {screenshotUrl ? (
               <div className="relative inline-block">
                 <img
-                  src={screenshotUrl}
+                  src={journalImageSrc(screenshotUrl)}
                   alt="Screenshot da operação"
                   className="max-h-64 max-w-full rounded-lg border border-tint/10"
                 />
@@ -411,7 +382,7 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp"
                   className="hidden"
                   onChange={handleFileChange}
                 />
@@ -422,8 +393,9 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
                   className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-tint/15 text-sm text-fg-muted hover:border-accent/60 hover:text-accent-fg hover:bg-accent/5 transition-colors disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
                 >
                   {uploadingFile ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
-                  {uploadingFile ? 'Enviando...' : 'Enviar imagem (até 5MB)'}
+                  {uploadingFile ? 'Enviando...' : 'Enviar imagem'}
                 </button>
+                <p className="mt-1.5 text-xs text-fg-subtle">ou cole um print com Ctrl+V em qualquer ponto desta janela</p>
                 {uploadError && (
                   <div className="flex items-start gap-2 mt-2 p-2 rounded-lg border bg-danger/10 border-danger/20 text-danger-fg text-xs">
                     <AlertTriangle size={14} className="shrink-0 mt-0.5" />

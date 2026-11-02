@@ -68,11 +68,20 @@ export interface DayStats {
   wins: number;
   losses: number;
   open: number;
+  /** Resultado lançado direto no dia (já somado em `net`); null se não houver. */
+  manual: number | null;
+  /** O dia tem resultado: operações fechadas com valor ou resultado lançado no dia. */
+  hasResult: boolean;
 }
 
-const emptyDay = (key: string): DayStats => ({ key, entries: [], net: 0, decided: 0, wins: 0, losses: 0, open: 0 });
+const emptyDay = (key: string): DayStats => ({
+  key, entries: [], net: 0, decided: 0, wins: 0, losses: 0, open: 0, manual: null, hasResult: false,
+});
 
-export function groupByDay(entries: TradeEntry[]): Map<string, DayStats> {
+/** Resultados lançados por dia ('YYYY-MM-DD' → valor). */
+export type DayResults = Map<string, number>;
+
+export function groupByDay(entries: TradeEntry[], dayResults?: DayResults): Map<string, DayStats> {
   const map = new Map<string, DayStats>();
   for (const e of entries) {
     const key = dayKey(entryDate(e));
@@ -87,7 +96,18 @@ export function groupByDay(entries: TradeEntry[]): Map<string, DayStats> {
       if (r > 0) day.wins += 1;
       else if (r < 0) day.losses += 1;
     }
+    day.hasResult = day.decided > 0;
     map.set(key, day);
+  }
+  // Resultado lançado direto no dia soma-se ao das operações.
+  if (dayResults) {
+    for (const [key, amount] of dayResults) {
+      const day = map.get(key) ?? emptyDay(key);
+      day.manual = amount;
+      day.net += amount;
+      day.hasResult = true;
+      map.set(key, day);
+    }
   }
   // Dentro do dia, a mais recente primeiro.
   for (const day of map.values()) {
@@ -124,8 +144,8 @@ export interface Report {
   tags: TagLine[];
 }
 
-export function buildReport(entries: TradeEntry[]): Report {
-  const days = groupByDay(entries);
+export function buildReport(entries: TradeEntry[], dayResults?: DayResults): Report {
+  const days = groupByDay(entries, dayResults);
   const closed = entries.filter((e) => e.closed_at && e.result_amount !== null);
   const results = closed.map((e) => Number(e.result_amount));
   const winsArr = results.filter((r) => r > 0);
@@ -135,7 +155,7 @@ export function buildReport(entries: TradeEntry[]): Report {
   const avgWin = winsArr.length ? grossWin / winsArr.length : 0;
   const avgLoss = lossArr.length ? grossLoss / lossArr.length : 0;
 
-  const decidedDays = [...days.values()].filter((d) => d.decided > 0);
+  const decidedDays = [...days.values()].filter((d) => d.hasResult);
   const bestDay = decidedDays.length ? decidedDays.reduce((a, b) => (b.net > a.net ? b : a)) : null;
   const worstDay = decidedDays.length ? decidedDays.reduce((a, b) => (b.net < a.net ? b : a)) : null;
 
@@ -172,7 +192,7 @@ export function buildReport(entries: TradeEntry[]): Report {
     open: entries.filter((e) => !e.closed_at).length,
     wins: winsArr.length,
     losses: lossArr.length,
-    net: results.reduce((a, b) => a + b, 0),
+    net: [...days.values()].reduce((a, d) => a + d.net, 0),
     winRate: closed.length ? winsArr.length / closed.length : 0,
     avgWin,
     avgLoss,
@@ -240,4 +260,47 @@ export function reportToText(r: Report, label: string): string {
     for (const t of r.tags) lines.push(`- ${t.tag}: ${t.count}x, ${formatMoney(t.net)}`);
   }
   return lines.join('\n');
+}
+
+// Soma do resultado dos 7 dias a partir de `start` (semana domingo–sábado).
+export function weekNet(days: Map<string, DayStats>, start: Date): { net: number; hasResult: boolean } {
+  let net = 0;
+  let hasResult = false;
+  for (let i = 0; i < 7; i++) {
+    const d = days.get(dayKey(addDays(start, i)));
+    if (d?.hasResult) { net += d.net; hasResult = true; }
+  }
+  return { net, hasResult };
+}
+
+// Resultado líquido por dia ('YYYY-MM-DD' → valor) para os gráficos de evolução.
+export function dailyNet(
+  trades: Pick<TradeEntry, 'closed_at' | 'opened_at' | 'result_amount'>[],
+  dayResults: DayResults,
+): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const t of trades) {
+    if (!t.closed_at || t.result_amount === null) continue;
+    const key = dayKey(new Date(t.closed_at));
+    map.set(key, (map.get(key) ?? 0) + Number(t.result_amount));
+  }
+  for (const [key, amount] of dayResults) map.set(key, (map.get(key) ?? 0) + amount);
+  return map;
+}
+
+export const keyToDate = (key: string): Date => {
+  const [y, m, d] = key.split('-').map(Number);
+  return new Date(y, m - 1, d);
+};
+
+// Busca os resultados lançados no dia entre [from, to).
+export async function fetchDayResults(supabaseClient: { from: (t: string) => any }, userId: string, from?: Date, to?: Date): Promise<DayResults> {
+  let q = supabaseClient.from('journal_day_results').select('day, amount').eq('user_id', userId);
+  if (from) q = q.gte('day', dayKey(from));
+  if (to) q = q.lt('day', dayKey(to));
+  const { data, error } = await q.limit(5000);
+  if (error) throw error;
+  const map: DayResults = new Map();
+  for (const r of (data ?? []) as { day: string; amount: number | string }[]) map.set(r.day, Number(r.amount));
+  return map;
 }
