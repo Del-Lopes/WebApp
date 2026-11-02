@@ -44,6 +44,7 @@ import {
   Save
 } from 'lucide-react';
 import { formatBytes, getStorageStats, StorageStats, uploadToSupabase, listAllFiles, deleteFromSupabase, StorageFile } from '../../lib/storage';
+import { whatsappUrl } from '../../lib/whatsapp';
 import { BackButton } from '../BackButton';
 import { ArticleAutomationSettings } from './ArticleAutomationSettings';
 import { MarketAdmin } from './MarketAdmin';
@@ -420,7 +421,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
       sortableUsers = sortableUsers.filter(user => {
         const name = user.full_name?.toLowerCase() || '';
         const email = user.email?.toLowerCase() || '';
-        return name.includes(searchLower) || email.includes(searchLower);
+        const phone = user.phone?.replace(/\D/g, '') || '';
+        const searchDigits = searchLower.replace(/\D/g, '');
+        return name.includes(searchLower) || email.includes(searchLower) || (!!searchDigits && phone.includes(searchDigits));
       });
     }
 
@@ -825,6 +828,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               <div className="flex flex-col gap-1">
                 <span className="eyebrow-muted">Email</span>
                 <span className="text-fg font-medium break-all">{user.email}</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="eyebrow-muted">Telefone / WhatsApp</span>
+                {user.phone ? (
+                  <a href={whatsappUrl(user.phone)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 self-start text-fg font-mono tabular-nums whitespace-nowrap hover:text-accent-fg transition-colors" title="Abrir no WhatsApp">
+                    <MessageCircle size={16} className="text-accent-fg shrink-0" /> {user.phone}
+                  </a>
+                ) : (
+                  <span className="text-fg-subtle">Não informado</span>
+                )}
               </div>
               <div className="flex flex-col gap-1">
                 <span className="eyebrow-muted">Membro Desde</span>
@@ -1561,7 +1574,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                           </div>
                         </button>
                     </TD>
-                    <TD className="px-6 text-fg-muted font-medium">{user.email}</TD>
+                    <TD className="px-6 text-fg-muted font-medium">
+                      <div>{user.email}</div>
+                      {user.phone && (
+                        <a href={whatsappUrl(user.phone)} target="_blank" rel="noopener noreferrer" className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-fg-subtle font-mono tabular-nums whitespace-nowrap hover:text-accent-fg transition-colors" title="Abrir no WhatsApp">
+                          <MessageCircle size={12} className="shrink-0" /> {user.phone}
+                        </a>
+                      )}
+                    </TD>
                     <TD className="px-6 font-mono tabular-nums whitespace-nowrap text-xs">
                       {(user as any).last_login ? new Date((user as any).last_login).toLocaleString() : '---'}
                     </TD>

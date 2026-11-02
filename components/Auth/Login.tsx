@@ -4,8 +4,9 @@ import { supabase } from '../../lib/supabase';
 import { Logo } from '../Logo';
 import { AlertCircle } from 'lucide-react';
 import { Button, Input, Label } from '../ui';
+import { PRIVACY_VERSION, isValidPhone } from '../../lib/whatsapp';
 
-// Versão vigente dos documentos legais aceitos no cadastro (gravada em user_metadata).
+// Versão vigente dos Termos e do Aviso de Risco aceitos no cadastro (gravada em user_metadata).
 const TERMS_VERSION = '2026-09-26';
 const LEGAL_LINKS = [
   { href: '/legal/termos.html', label: 'Termos de Uso' },
@@ -18,6 +19,7 @@ export const Login: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot'>('signin');
@@ -26,6 +28,10 @@ export const Login: React.FC = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (mode === 'signup' && !isValidPhone(phone)) {
+      setError('Informe um telefone válido, com DDD.');
+      return;
+    }
     if (mode === 'signup' && !acceptedTerms) {
       setError('Para criar a conta, confirme que tem 18 anos ou mais e aceite os Termos de Uso, a Política de Privacidade e o Aviso de Risco.');
       return;
@@ -43,8 +49,11 @@ export const Login: React.FC = () => {
             emailRedirectTo: window.location.origin,
             data: {
               full_name: fullName,
+              // Copiado para profiles.phone pelo trigger on_auth_user_phone.
+              phone: phone.trim(),
               // Registro do aceite dos documentos legais (sem migration: fica no user_metadata).
               terms_version: TERMS_VERSION,
+              privacy_version: PRIVACY_VERSION,
               terms_accepted_at: new Date().toISOString(),
             },
           },
@@ -160,7 +169,23 @@ export const Login: React.FC = () => {
                 autoComplete="email"
               />
             </div>
-            
+            {mode === 'signup' && (
+              <div>
+                <Label htmlFor="login-phone">Telefone (com DDD)</Label>
+                <Input
+                  id="login-phone"
+                  type="tel"
+                  required
+                  maxLength={30}
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="py-3"
+                  placeholder="(11) 99999-9999"
+                  autoComplete="tel"
+                />
+              </div>
+            )}
+
             {mode !== 'forgot' && (
               <div>
                 <Label htmlFor="login-password">Senha</Label>
