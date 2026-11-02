@@ -9,8 +9,7 @@ import {
   Search, 
   Mail, 
   DollarSign, 
-  TrendingUp, 
-  MoreHorizontal, 
+  MoreHorizontal,
   Filter, 
   Download, 
   RefreshCw,
@@ -51,6 +50,8 @@ import { MarketAdmin } from './MarketAdmin';
 import { LiveRoomAdmin } from './LiveRoomAdmin';
 import { GrowthMetrics } from './GrowthMetrics';
 import { PartnerApplications } from './PartnerApplications';
+import { CollapsibleSection } from './CollapsibleSection';
+import { ForumImagesMonitor } from './ForumImagesMonitor';
 import {
   Badge, Button, Card, EmptyState, Input, Label, PageHeader, Select, Skeleton, Tabs, Textarea,
   Table, THead, TBody, TR, TH, TD,
@@ -92,35 +93,6 @@ interface AdminPanelProps {
   onShowTour?: () => void;
 }
 
-type LegacyItem = { id: string; title: string; type: 'Artigo' | 'Produto'; url: string };
-
-// URLs de imagem ainda apontando para os hosts antigos (antes do Storage).
-function findLegacyItems(articlesData: any[], productsData: any[]): LegacyItem[] {
-    const legacy: LegacyItem[] = [];
-    const legacyPattern = /sslip\.io|tradexperience\.com\.br\/wp-content/;
-
-    articlesData.forEach(a => {
-        if (a.image_url?.match(legacyPattern)) legacy.push({ id: a.id, title: a.title, type: 'Artigo', url: a.image_url });
-        a.gallery_urls?.forEach((url: string) => {
-            if (url.match(legacyPattern)) legacy.push({ id: a.id, title: `${a.title} (Galeria)`, type: 'Artigo', url });
-        });
-    });
-
-    productsData.forEach(p => {
-        if (p.image_url?.match(legacyPattern)) legacy.push({ id: p.id, title: p.title, type: 'Produto', url: p.image_url });
-        const meta = p.metadata as any;
-        if (meta?.avatar_url?.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Avatar)`, type: 'Produto', url: meta.avatar_url });
-        meta?.images?.forEach((url: string) => {
-            if (url.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Imagem)`, type: 'Produto', url });
-        });
-        meta?.manualImages?.forEach((url: string) => {
-            if (url.match(legacyPattern)) legacy.push({ id: p.id, title: `${p.title} (Manual)`, type: 'Produto', url });
-        });
-    });
-
-    return legacy;
-}
-
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) => {
   const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users' | 'content' | 'market' | 'automation' | 'live_room' | 'growth'>('licenses');
   const [activeLicenseSubTab, setActiveLicenseSubTab] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO' | 'FX SQUAD'>('AFK TRADER');
@@ -132,7 +104,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   const [articles, setArticles] = useState<Article[]>([]);
   const [robots, setRobots] = useState<Robot[]>([]);
   const [storageFiles, setStorageFiles] = useState<StorageFile[]>([]);
-  const [legacyItems, setLegacyItems] = useState<LegacyItem[]>([]);
   const [isRefreshingFiles, setIsRefreshingFiles] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -295,7 +266,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           .order('title', { ascending: true });
         
         if (robotsError) throw robotsError;
-        setLegacyItems(findLegacyItems(articlesData || [], productsData || []));
         const robotsData = (productsData || []).filter((item: any) => item.type === 'ea');
         
         const mappedRobots: Robot[] = (robotsData || []).map((item: any) => ({
@@ -1805,21 +1775,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                 )}
             </div>
 
+            <ForumImagesMonitor />
+
             {/* Articles List */}
-            <div>
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                    <h3 className="font-display text-lg sm:text-xl font-semibold text-fg flex items-center gap-2">
-                        <FileText size={22} className="text-fg-subtle" />
-                        Postagens do Blog / Conteúdo
-                    </h3>
+            <CollapsibleSection
+                title="Postagens do Blog / Conteúdo"
+                icon={<FileText size={22} className="text-fg-subtle" />}
+                badge={<Badge className="uppercase"><span className="font-mono tabular-nums">{articles.length}</span> Postagens</Badge>}
+                actions={
                     <Button
                         size="sm"
                         onClick={() => { setEditingArticle(null); setArticleForm({ title: '', excerpt: '', content: '', image_url: '', category: '', gallery_urls: [] }); setIsArticleModalOpen(true); }}
                     >
                         <Plus size={16} /> Nova Postagem
                     </Button>
-                </div>
-
+                }
+            >
                 <Table>
                         <THead>
                             <tr>
@@ -1877,30 +1848,26 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             ))}
                         </TBody>
                 </Table>
-            </div>
+            </CollapsibleSection>
 
             {/* Global File Management */}
-            <div className="pt-8 border-t border-tint/6">
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                    <h3 className="font-display text-lg sm:text-xl font-semibold text-fg flex items-center gap-2">
-                        <Database size={22} className="text-accent-fg" />
-                        Gestão Geral de Arquivos
-                    </h3>
-                    <div className="flex items-center gap-2">
-                        <button
-                            type="button"
-                            onClick={fetchStorageFiles}
-                            className={`${ICON_BTN} p-2 text-fg-subtle hover:text-accent-fg hover:bg-tint/5 ${isRefreshingFiles ? 'animate-spin' : ''}`}
-                            title="Atualizar"
-                        >
-                            <RefreshCw size={18} />
-                        </button>
-                        <Badge className="uppercase">
-                            <span className="font-mono tabular-nums">{storageFiles.length}</span> Arquivos no Bucket
-                        </Badge>
-                    </div>
-                </div>
-
+            <CollapsibleSection
+                className="pt-8 border-t border-tint/6"
+                title="Gestão Geral de Arquivos"
+                icon={<Database size={22} className="text-accent-fg" />}
+                badge={<Badge className="uppercase"><span className="font-mono tabular-nums">{storageFiles.length}</span> Arquivos no Bucket</Badge>}
+                actions={
+                    <button
+                        type="button"
+                        onClick={fetchStorageFiles}
+                        className={`${ICON_BTN} p-2 text-fg-subtle hover:text-accent-fg hover:bg-tint/5 ${isRefreshingFiles ? 'animate-spin' : ''}`}
+                        title="Atualizar"
+                        aria-label="Atualizar lista de arquivos"
+                    >
+                        <RefreshCw size={18} />
+                    </button>
+                }
+            >
                 <Table>
                         <THead>
                             <tr>
@@ -1964,20 +1931,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                             )}
                         </TBody>
                 </Table>
-            </div>
+            </CollapsibleSection>
 
             {/* Strategy Assets List */}
-            <div className="pt-8 border-t border-tint/6">
-                <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-                    <h3 className="font-display text-lg sm:text-xl font-semibold text-fg flex items-center gap-2">
-                        <Activity size={22} className="text-accent-fg" />
-                        Arquivos de Estratégias
-                    </h3>
-                    <Badge className="uppercase">
-                        <span className="font-mono tabular-nums">{robots.length}</span> Robôs Configurados
-                    </Badge>
-                </div>
-
+            <CollapsibleSection
+                className="pt-8 border-t border-tint/6"
+                title="Arquivos de Estratégias"
+                icon={<Activity size={22} className="text-accent-fg" />}
+                badge={<Badge className="uppercase"><span className="font-mono tabular-nums">{robots.length}</span> Robôs Configurados</Badge>}
+            >
                 <Table>
                     <THead>
                         <tr>
@@ -2039,53 +2001,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                         )}
                     </TBody>
                 </Table>
-            </div>
-
-            {/* Legacy Content Alert */}
-            {legacyItems.length > 0 && (
-                <div className="pt-8 border-t border-tint/6">
-                    <div className="bg-warning/5 border border-warning/20 rounded-2xl p-5 sm:p-8">
-                        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
-                            <div className="flex items-center gap-3">
-                                <ShieldAlert size={24} className="text-warning-fg shrink-0" />
-                                <div>
-                                    <h3 className="font-display text-lg sm:text-xl font-semibold text-fg">Detectados Links Legados</h3>
-                                    <p className="text-sm text-fg-muted">Arquivos hospedados no SeaweedFS ou Servidores Antigos.</p>
-                                </div>
-                            </div>
-                            <Badge tone="warning" className="uppercase">
-                                <span className="font-mono tabular-nums">{legacyItems.length}</span> Itens Encontrados
-                            </Badge>
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {legacyItems.map((item, idx) => (
-                                <div key={idx} className="bg-surface p-4 rounded-xl border border-warning/20 flex items-center justify-between gap-3 group hover:border-warning/40 transition-colors">
-                                    <div className="overflow-hidden">
-                                        <div className="text-[10px] font-semibold uppercase tracking-wider text-warning-fg mb-1">{item.type}</div>
-                                        <div className="text-sm font-semibold text-fg truncate mb-1">{item.title}</div>
-                                        <div className="text-[10px] text-fg-subtle font-mono truncate">{item.url}</div>
-                                    </div>
-                                    <a
-                                        href={item.url}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className={`${ICON_BTN} p-2 shrink-0 text-fg-subtle hover:text-warning-fg hover:bg-warning/10`}
-                                    >
-                                        <ExternalLink size={18} />
-                                    </a>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="mt-6 flex items-center gap-3 p-4 bg-warning/10 border border-warning/20 rounded-xl">
-                             <TrendingUp size={16} className="text-warning-fg shrink-0" />
-                             <p className="text-xs font-medium text-warning-fg italic">
-                                Recomendação: Re-faça o upload destes arquivos utilizando o novo sistema para migrá-los ao Supabase. Após migrar, os links antigos deixarão de aparecer aqui.
-                             </p>
-                        </div>
-                    </div>
-                </div>
-            )}
+            </CollapsibleSection>
         </div>
         ) : activeTab === 'market' ? (
           <div className="p-4 sm:p-6">
