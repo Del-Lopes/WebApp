@@ -1,12 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, Layers, Wallet, TrendingUp, ArrowDownToLine, Trash2, Loader2, Target, Power, X } from 'lucide-react';
+import { Plus, Layers, Wallet, TrendingUp, ArrowDownToLine, Trash2, Loader2, Target, Power, X, ChevronLeft, ChevronRight, PiggyBank } from 'lucide-react';
 import { Button, Card, CardHeader, Label, Input, Select, Stat, Badge, Modal, FieldMessage, Skeleton } from '../ui';
 import { cn } from '../../lib/cn';
 import { PropFirm, simulate, formatMoney, formatSize, SimAccount, SimParams } from '../../lib/propFirms';
 import { SeriesChart } from '../charts/SeriesChart';
 import { PLAN_STORAGE_KEY } from './Projecao';
 import {
-  TrackAccount, TrackerData, accountIsActive, addAccounts, addWithdrawal, buildTimeline, daysBetween,
+  TrackAccount, TrackerData, accountIsActive, addAccounts, addDaysISO, addWithdrawal, buildTimeline, daysBetween,
   deleteAccount, deleteResults, deleteWithdrawal, fetchTracker, shortDate, todayISO, updateAccount, upsertResults,
 } from '../../lib/propTracker';
 
@@ -15,6 +15,23 @@ interface Props { firms: PropFirm[] }
 const usd = (v: number) => formatMoney(v, 'USD', v !== 0 && Math.abs(v) < 100 ? 2 : 0);
 const parse = (s: string) => Number(String(s).replace(',', '.'));
 const MAX_TILES = 60;
+const META_KEY = 'traderafk:gestao-meta:v1';
+
+interface Meta { size: string; cost: string; reinvest: string; max: string }
+
+function loadMeta(plan: ReturnType<typeof loadPlan>): Meta {
+  const base: Meta = {
+    size: String(plan?.params.nextSize ?? 10000),
+    cost: String(plan?.params.nextCost ?? 10),
+    reinvest: String(plan?.params.reinvestPct ?? 100),
+    max: String(plan?.params.maxAccounts ?? 50),
+  };
+  try {
+    const raw = localStorage.getItem(META_KEY);
+    if (raw) return { ...base, ...JSON.parse(raw) };
+  } catch { /* storage indisponível */ }
+  return base;
+}
 
 // Plano salvo na aba Projeção (mesmo navegador) — serve de régua para o realizado.
 function loadPlan(): { accounts: SimAccount[]; params: SimParams } | null {
@@ -38,7 +55,12 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
   const plan = useMemo(loadPlan, []);
 
   // Formulários
-  const [acc, setAcc] = useState({ size: '10000', cost: '10', split: String(plan?.params.splitPct ?? 100), opened: today, qty: '1' });
+  const [meta, setMeta] = useState<Meta>(() => loadMeta(plan));
+  const [acc, setAcc] = useState({ size: meta.size, cost: meta.cost, split: String(plan?.params.splitPct ?? 100), opened: today, qty: '1' });
+  // Objetivo (próxima conta, reinvestimento e limite) lembrado entre visitas.
+  useEffect(() => {
+    try { localStorage.setItem(META_KEY, JSON.stringify({ size: acc.size, cost: acc.cost, reinvest: meta.reinvest, max: meta.max })); } catch { /* ignora */ }
+  }, [acc.size, acc.cost, meta.reinvest, meta.max]);
   const [res, setRes] = useState({ date: today, amount: '' });
   const [wd, setWd] = useState({ date: today, amount: '', note: '' });
 
@@ -66,7 +88,29 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
   const active = accounts.filter((a) => accountIsActive(a, date));
 
   const net = (cur?.cumNet ?? 0) - (cur?.invested ?? 0);
-  const cash = net - (cur?.withdrawn ?? 0);
+
+  // Objetivo: parte do lucro reinvestida enche o "loading" da próxima conta.
+  // Contas abertas depois do 1º dia contam como compradas com o lucro.
+  const nextSize = Math.max(0, parse(acc.size) || 0);
+  const nextCost = Math.max(0, parse(acc.cost) || 0);
+  const reinvest = Math.min(100, Math.max(0, parse(meta.reinvest) || 0)) / 100;
+  const maxAccounts = Math.max(1, Math.floor(parse(meta.max) || 1));
+  const firstDay = accounts[0]?.opened_on;
+  const boughtCost = accounts.filter((a) => firstDay && a.opened_on > firstDay && a.opened_on <= date).reduce((s, a) => s + a.cost, 0);
+  const fund = Math.max(0, (cur?.cumNet ?? 0) * reinvest - boughtCost);
+  const available = Math.max(0, (cur?.cumNet ?? 0) * (1 - reinvest) - (cur?.withdrawn ?? 0));
+  const atCap = active.length >= maxAccounts;
+  const progress = nextCost > 0 ? Math.min(1, fund / nextCost) : 0;
+  const daysToNext = (() => {
+    const recent = tl.slice(Math.max(0, idx - 6), idx + 1);
+    const perDay = recent.length ? (recent.reduce((t, d) => t + d.dayNet, 0) / recent.length) * reinvest : 0;
+    if (atCap || perDay <= 0 || nextCost <= 0) return null;
+    return Math.max(0, Math.ceil((nextCost - fund) / perDay));
+  })();
+  // Gráficos precisam de ao menos 2 pontos.
+  const zeroDay = (d: string) => ({ date: d, accounts: 0, dayNet: 0, cumNet: 0, invested: 0, withdrawn: 0 });
+  const chartTl = tl.length >= 2 ? tl : [tl[0] ? { ...tl[0], date: addDaysISO(tl[0].date, -1), dayNet: 0, cumNet: 0, accounts: 0, invested: 0, withdrawn: 0 } : zeroDay(addDaysISO(today, -1)), tl[0] ?? zeroDay(today)];
+  const chartIdx = tl.length >= 2 ? idx : chartTl.length - 1;
 
   // Realizado x planejado (dia N do plano = N dias após a 1ª conta).
   const vsPlan = useMemo(() => {
@@ -175,6 +219,16 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
             </div>
             {field('t-opened', 'Data de abertura', acc.opened, (v) => setAcc((a) => ({ ...a, opened: v })), { type: 'date' })}
             <Button className="w-full" onClick={submitAccounts} disabled={busy}><Plus size={16} /> Adicionar conta</Button>
+            <p className="text-xs text-fg-subtle">O tamanho e o valor acima também definem a próxima conta do seu objetivo.</p>
+          </Card>
+
+          <Card className="space-y-4">
+            <CardHeader className="mb-0" eyebrow="Objetivo" title="Meta de escala" />
+            <div className="grid grid-cols-2 gap-3">
+              {field('t-reinv', 'Reinvestir', meta.reinvest, (v) => setMeta((m) => ({ ...m, reinvest: v })), { hint: '%', max: 100 })}
+              {field('t-max', 'Limite de contas', meta.max, (v) => setMeta((m) => ({ ...m, max: v })), { min: 1, max: 500 })}
+            </div>
+            <p className="text-xs text-fg-subtle">Quanto do lucro vai para comprar novas contas e quantas contas você quer chegar a ter.</p>
           </Card>
 
           <Card className="space-y-4">
@@ -211,7 +265,7 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
             <Stat label="Resultado do dia" value={usd(cur?.dayNet ?? 0)} icon={TrendingUp} hint={cur ? shortDate(cur.date) : undefined} />
             <Stat label="Lucro acumulado" value={usd(cur?.cumNet ?? 0)} icon={Wallet}
               delta={{ value: `${net >= 0 ? '+' : ''}${usd(net)} líquido`, tone: net > 0 ? 'up' : net < 0 ? 'down' : 'flat' }} />
-            <Stat label="Sacado" value={usd(cur?.withdrawn ?? 0)} icon={ArrowDownToLine} hint={`em caixa ${usd(cash)} · investido ${usd(cur?.invested ?? 0)}`} />
+            <Stat label="Disponível p/ saque" value={usd(available)} icon={ArrowDownToLine} hint={`sacado ${usd(cur?.withdrawn ?? 0)} · investido ${usd(cur?.invested ?? 0)}`} />
           </div>
 
           {vsPlan && cur && (
@@ -226,15 +280,60 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
             </div>
           )}
 
-          <Card className="space-y-4">
-            <p className="eyebrow-muted">
+          <Card className="space-y-5">
+            {/* Navegação pelos dias (sem reprodução automática) */}
+            {tl.length > 1 && (
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1">
+                  <Button size="icon" variant="secondary" aria-label="Dia anterior" onClick={() => setSelIdx(Math.max(0, idx - 1))} disabled={idx === 0}>
+                    <ChevronLeft size={16} />
+                  </Button>
+                  <Button size="icon" variant="secondary" aria-label="Próximo dia" onClick={() => setSelIdx(Math.min(tl.length - 1, idx + 1))} disabled={idx >= tl.length - 1}>
+                    <ChevronRight size={16} />
+                  </Button>
+                </div>
+                <div className="flex min-w-48 flex-1 items-center gap-3">
+                  <input type="range" min={0} max={tl.length - 1} value={idx} onChange={(e) => setSelIdx(Number(e.target.value))}
+                    aria-label="Dia do acompanhamento" className="h-1.5 flex-1 cursor-pointer accent-brand-green" />
+                  <span className="w-28 text-right font-display text-sm font-semibold tabular-nums text-fg">
+                    {cur ? shortDate(cur.date) : ''} · dia {idx + 1}/{tl.length}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Loading da próxima conta */}
+            <div className="rounded-xl border border-accent/20 bg-accent/5 p-4">
+              <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
+                <p className="flex items-center gap-2 text-sm font-medium text-fg">
+                  <PiggyBank size={16} className="text-accent-fg" aria-hidden />
+                  {atCap ? 'Limite de contas atingido' : `Próxima conta · ${formatSize(nextSize)}`}
+                </p>
+                <p className="text-sm tabular-nums text-fg-muted">
+                  {atCap ? 'lucro vai para saque' : <><span className="font-semibold text-fg">{usd(fund)}</span> de {usd(nextCost)}</>}
+                </p>
+              </div>
+              <div className="h-3 overflow-hidden rounded-full bg-tint/8" role="progressbar" aria-label="Progresso para a próxima conta"
+                aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round((atCap ? 1 : progress) * 100)}>
+                <div className="h-full rounded-full bg-gradient-to-r from-brand-green-deep via-brand-green to-brand-green-bright transition-[width] duration-300"
+                  style={{ width: `${(atCap ? 1 : progress) * 100}%` }} />
+              </div>
+              <p className="mt-2 text-xs text-fg-subtle">
+                {atCap
+                  ? `Você chegou a ${active.length} ${active.length === 1 ? 'conta' : 'contas'}.`
+                  : `${Math.round(progress * 100)}% carregado${daysToNext != null ? ` · faltam ~${daysToNext} ${daysToNext === 1 ? 'dia' : 'dias'}` : ''} · meta de ${maxAccounts} contas (${active.length} ativas)`}
+              </p>
+            </div>
+
+            <p className="eyebrow-muted -mb-2">
               {accounts.length === 0 ? 'Suas contas' : `Copy em ${active.length} ${active.length === 1 ? 'conta' : 'contas'} · ${cur ? shortDate(cur.date) : ''}`}
             </p>
-            {accounts.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-tint/15 p-6 text-center text-sm text-fg-muted">
+            {accounts.length === 0 && (
+              <p className="rounded-xl border border-dashed border-tint/15 p-4 text-center text-sm text-fg-muted">
                 Cadastre sua primeira conta ao lado. Depois lance o resultado de cada dia e acompanhe a trajetória.
               </p>
-            ) : (
+            )}
+            {accounts.length > 0 && (
               <div className="grid grid-cols-[repeat(auto-fill,minmax(120px,1fr))] gap-2">
                 {shown.map((a, i) => {
                   const total = accSum(a.id, date);
@@ -256,6 +355,10 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
                 {active.length > MAX_TILES && (
                   <div className="flex items-center justify-center rounded-xl border border-dashed border-tint/15 p-2.5 text-sm text-fg-muted">+{active.length - MAX_TILES} contas</div>
                 )}
+                <button type="button" onClick={() => document.getElementById('t-size')?.focus()}
+                  className="flex min-h-[86px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-tint/15 text-xs text-fg-muted transition-colors hover:border-accent/50 hover:text-accent-fg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60">
+                  <Plus size={18} /> Nova conta
+                </button>
               </div>
             )}
             {accounts.some((a) => !accountIsActive(a, date)) && (
@@ -265,14 +368,12 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
             )}
           </Card>
 
-          {tl.length > 0 && (
-            <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
-              <SeriesChart title="Contas ativas" kind="bar" values={tl.map((t) => t.accounts)} labels={tl.map((t) => shortDate(t.date))}
-                format={(v) => String(Math.round(v))} current={idx} onSelectDay={setSelIdx} />
-              <SeriesChart title="Lucro acumulado (USD)" kind="area" values={tl.map((t) => t.cumNet)} labels={tl.map((t) => shortDate(t.date))}
-                format={(v) => usd(v)} current={idx} onSelectDay={setSelIdx} />
-            </div>
-          )}
+          <div className="grid grid-cols-1 gap-4 2xl:grid-cols-2">
+            <SeriesChart title="Contas ativas" kind="bar" values={chartTl.map((t) => t.accounts)} labels={chartTl.map((t) => shortDate(t.date))}
+              format={(v) => String(Math.round(v))} current={chartIdx} onSelectDay={(i) => { if (tl.length >= 2) setSelIdx(i); }} />
+            <SeriesChart title="Lucro acumulado (USD)" kind="area" values={chartTl.map((t) => t.cumNet)} labels={chartTl.map((t) => shortDate(t.date))}
+              format={(v) => usd(v)} current={chartIdx} onSelectDay={(i) => { if (tl.length >= 2) setSelIdx(i); }} />
+          </div>
 
           {log.length > 0 && (
             <Card className="space-y-2">
