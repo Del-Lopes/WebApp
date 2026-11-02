@@ -388,6 +388,15 @@ allow_dynamic_registration = false
   [functions.partner-apply]
     verify_jwt = false
 
+  # Webhooks da loja de Coins: quem chama é o BTCPay / a Asaas, sem JWT de
+  # usuário. A autenticação é feita no código (HMAC do BTCPay; token da Asaas),
+  # e o estado do pagamento é reconfirmado na API do gateway antes de creditar.
+  [functions.btcpay-webhook]
+    verify_jwt = false
+
+  [functions.asaas-webhook]
+    verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

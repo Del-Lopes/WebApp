@@ -39,6 +39,7 @@ const Signals = React.lazy(() => import('./components/Signals/Signals').then(mod
 const Crypto = React.lazy(() => import('./components/Crypto/Crypto').then(module => ({ default: module.Crypto })));
 const LiveRoom = React.lazy(() => import('./components/LiveRoom/LiveRoom').then(module => ({ default: module.LiveRoom })));
 const EconCalendar = React.lazy(() => import('./components/EconCalendar/EconCalendar').then(module => ({ default: module.EconCalendar })));
+const BuyCoins = React.lazy(() => import('./components/Coins/BuyCoins').then(module => ({ default: module.BuyCoins })));
 const Forum = React.lazy(() => import('./components/Forum/Forum').then(module => ({ default: module.Forum })));
 const PropFirms = React.lazy(() => import('./components/PropFirms/PropFirms').then(module => ({ default: module.PropFirms })));
 
@@ -168,6 +169,7 @@ function AppContent() {
       case 'econ_calendar': return 'Calendário Econômico - Trader AFK';
       case 'live_room': return 'Sala ao Vivo - Trader AFK';
       case 'forum': return 'Fórum - Trader AFK';
+      case 'buy_coins': return 'Comprar Coins - Trader AFK';
       case 'prop_firms': return 'Mesas Proprietárias - Trader AFK';
       case 'article': return article ? `${article.title} - Trader AFK` : 'Artigo - Trader AFK';
       default: return 'Trader AFK';
@@ -268,10 +270,10 @@ function AppContent() {
               return <HandBot onBack={() => setCurrentView('dashboard')} />;
 
             case 'trilha_gain':
-              return <TrilhaGain onBack={() => setCurrentView('dashboard')} />;
+              return <TrilhaGain onBack={() => setCurrentView('dashboard')} onBuyCoins={() => setCurrentView('buy_coins')} />;
 
             case 'signals':
-              return <Signals onBack={() => setCurrentView('dashboard')} />;
+              return <Signals onBack={() => setCurrentView('dashboard')} onBuyCoins={() => setCurrentView('buy_coins')} />;
 
             case 'crypto':
               return <Crypto onBack={() => setCurrentView('dashboard')} />;
@@ -281,6 +283,9 @@ function AppContent() {
 
             case 'live_room':
               return <LiveRoom onBack={() => setCurrentView('dashboard')} />;
+
+            case 'buy_coins':
+              return <BuyCoins onBack={() => setCurrentView('dashboard')} />;
 
             case 'forum':
               return <Forum onBack={() => setCurrentView('dashboard')} />;

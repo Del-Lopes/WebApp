@@ -16,9 +16,10 @@ import { EmptyState, PageHeader, Skeleton } from '../ui';
 
 interface Props {
   onBack: () => void;
+  onBuyCoins?: () => void;
 }
 
-export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
+export const TrilhaGain: React.FC<Props> = ({ onBack, onBuyCoins }) => {
   const { role } = useAuth();
   const isAdmin = role === 'admin';
   const [tracks, setTracks] = useState<TrilhaTrack[]>([]);
@@ -106,7 +107,7 @@ export const TrilhaGain: React.FC<Props> = ({ onBack }) => {
             <span className="text-accent-fg truncate">Jornada do Trader</span>
           </span>
         }
-        actions={<GamificationBar stats={stats} />}
+        actions={<GamificationBar stats={stats} onBuy={onBuyCoins} />}
       />
 
       {/* Rolagem reversa: barra começa no topo e desce normal; a trilha

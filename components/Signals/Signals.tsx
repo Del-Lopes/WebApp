@@ -16,6 +16,7 @@ type TabKey = 'trend' | 'auto' | 'setup';
 
 interface Props {
   onBack: () => void;
+  onBuyCoins?: () => void;
 }
 
 const TABS: { key: TabKey; label: string; Icon: React.ElementType; hint: string }[] = [
@@ -24,7 +25,7 @@ const TABS: { key: TabKey; label: string; Icon: React.ElementType; hint: string 
   { key: 'setup', label: 'Meu Setup',   Icon: UserCog,  hint: 'Sinais publicados manualmente pelo time.' },
 ];
 
-export const Signals: React.FC<Props> = ({ onBack }) => {
+export const Signals: React.FC<Props> = ({ onBack, onBuyCoins }) => {
   const { role } = useAuth();
   const isAdmin = role === 'admin';
   const [tab, setTab] = useState<TabKey>('trend');
@@ -137,6 +138,11 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
                 Seu saldo: <span className="font-mono tabular-nums whitespace-nowrap font-semibold text-fg">{balance.toLocaleString('pt-BR')} Coins</span>
                 <span className="text-fg-subtle">•</span>
                 Custo: <span className="font-mono tabular-nums whitespace-nowrap font-semibold text-fg">{cost.toLocaleString('pt-BR')} Coins</span>
+                {onBuyCoins && (
+                  <button type="button" onClick={onBuyCoins} className="ml-1 rounded text-accent-fg font-medium hover:opacity-80 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60">
+                    Comprar mais
+                  </button>
+                )}
               </p>
             </div>
             <div className="flex items-end gap-2 flex-wrap">
