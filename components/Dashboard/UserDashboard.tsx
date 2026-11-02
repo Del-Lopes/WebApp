@@ -5,7 +5,6 @@ import { supabase } from '../../lib/supabase';
 import { 
   Cpu, 
   GraduationCap, 
-  AlertCircle,
   Clock,
   FileText,
   Plus,
@@ -17,8 +16,6 @@ import {
   LayoutDashboard,
   ChevronRight, 
   Download, 
-  Calendar, 
-  CheckCircle2,
   Database,
   ShieldAlert,
   HardDrive,
@@ -27,10 +24,11 @@ import {
   BarChart3,
   Activity
 } from 'lucide-react';
-import { LicenseRequest, Article, View } from '../../types';
+import { Article, View } from '../../types';
 import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
 import { ARTICLE_LIST_COLUMNS, withArticleContent } from '../../lib/articles';
-import { Badge, Button, Card, EmptyState, Input, Label, PageHeader, Skeleton, Textarea } from '../ui';
+import { Button, Card, Input, Label, PageHeader, Textarea } from '../ui';
+import { TrilhaProgressCard } from './TrilhaProgressCard';
 
 interface UserDashboardProps {
   onNavigate: (view: View) => void;
@@ -40,9 +38,6 @@ interface UserDashboardProps {
 
 export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onReadArticle, onShowTour }) => {
   const { user, role } = useAuth();
-
-  const [activeLicenses, setActiveLicenses] = useState<LicenseRequest[]>([]);
-  const [loading, setLoading] = useState(true);
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [coursesCount, setCoursesCount] = useState(0);
@@ -56,7 +51,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
 
   useEffect(() => {
     if (user) {
-        fetchDashboardData();
         fetchContentData();
     }
   }, [user]);
@@ -70,34 +64,6 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
   const fetchStorageStats = async () => {
     const stats = await getStorageStats();
     setStorageStats(stats);
-  };
-
-  const LICENSE_TABLES = [
-    { table: 'license_requests',          ea: 'AFK TRADER' },
-    { table: 'license_requests_snowball', ea: 'SNOW BALL'  },
-    { table: 'license_requests_boletapro',ea: 'BOLETA PRO' },
-    { table: 'license_requests_fxsquad',  ea: 'FX SQUAD'  },
-  ] as const;
-
-  const fetchDashboardData = async () => {
-    try {
-      const results = await Promise.all(
-        LICENSE_TABLES.map(({ table, ea }) =>
-          supabase
-            .from(table)
-            .select('id, mt5_account, license_title, expires_at, status')
-            .eq('user_id', user?.id)
-            .eq('status', 'approved')
-            .then(({ data }) => (data || []).map(r => ({ ...r, ea })))
-        )
-      );
-
-      setActiveLicenses(results.flat() as any[]);
-    } catch (error) {
-      console.error('Error fetching dashboard:', error);
-    } finally {
-      setLoading(false);
-    }
   };
 
   const [page, setPage] = useState(0);
@@ -501,67 +467,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
             )}
           </Card>
 
-          {/* Recent Activity / Licenses List (Now on the right) */}
-          <Card>
-            <div className="flex items-center justify-between gap-3 mb-6">
-              <h3 className="font-display text-lg font-semibold text-fg">Suas Contas</h3>
-              <div
-                onClick={() => onNavigate('licenses')}
-                className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-success/10 border border-success/20 rounded-xl cursor-pointer hover:bg-success/15 transition-colors group"
-              >
-                <CheckCircle2 size={14} className="text-success-fg shrink-0" />
-                <span className="text-sm font-semibold text-success-fg whitespace-nowrap">
-                  <span className="tabular-nums">{activeLicenses.length}</span> Licença{activeLicenses.length !== 1 ? 's' : ''} Ativa{activeLicenses.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-            </div>
-
-            {loading ? (
-                 <div className="space-y-3" role="status">
-                   <Skeleton className="h-24 w-full rounded-2xl" />
-                   <Skeleton className="h-24 w-full rounded-2xl" />
-                   <span className="sr-only">Carregando...</span>
-                 </div>
-            ) : activeLicenses.length > 0 ? (
-              <div className="space-y-3 max-h-[420px] overflow-y-auto pr-2 ds-scrollbar">
-                {activeLicenses.map((license) => (
-                  <div key={license.id} className="p-4 sm:p-5 bg-tint/3 rounded-2xl border border-tint/8 hover:border-tint/15 transition-all space-y-3 group">
-                    {/* Linha 1: Conta e Título */}
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-2 h-2 shrink-0 rounded-full bg-success shadow-[0_0_8px_rgba(34,197,94,0.4)]"></div>
-                        <span className="font-mono font-semibold tabular-nums text-fg text-lg sm:text-xl tracking-tight truncate">{license.mt5_account}</span>
-                      </div>
-                      <Badge className="uppercase tracking-widest text-[10px] rounded-lg">
-                        {license.license_title || (license as any).ea || 'MT5'}
-                      </Badge>
-                    </div>
-
-                    {/* Linha 2: Ativo e Validade */}
-                    <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-tint/6">
-                      <Badge tone="success" className="rounded-lg text-[10px] font-semibold uppercase tracking-[0.2em]">
-                        <CheckCircle2 size={10} />
-                        <span>ATIVO</span>
-                      </Badge>
-                      <div className="flex items-center gap-2 text-fg-subtle">
-                        <Calendar size={12} className="shrink-0" />
-                        <span className="text-[11px] font-medium uppercase tracking-wider">
-                          Validade: <span className="text-fg font-semibold ml-1 tabular-nums">{license.expires_at ? new Date(license.expires_at).toLocaleDateString() : 'Não definida'}</span>
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <EmptyState
-                className="py-8"
-                icon={AlertCircle}
-                title="Você ainda não tem licenças ativas."
-                description={<span className="text-accent-fg font-medium">Vá até a aba Licenças para solicitar.</span>}
-              />
-            )}
-          </Card>
+          {/* Progresso da Trilha Gain (lado direito) */}
+          <TrilhaProgressCard onOpen={() => onNavigate('trilha_gain')} />
       </div>
 
       {/* Article Modal */}

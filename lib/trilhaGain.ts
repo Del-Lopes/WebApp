@@ -51,6 +51,21 @@ export async function fetchTrackTree(trackId: string): Promise<TrilhaTrack | nul
   return { ...(data as any), units } as TrilhaTrack;
 }
 
+// Estrutura leve da trilha (unidades e ids das aulas, sem os passos/exercícios):
+// o suficiente para contar o progresso na página inicial sem baixar todo o conteúdo.
+export async function fetchTrackOutline(trackId: string): Promise<TrilhaUnit[]> {
+  const { data, error } = await supabase
+    .from('trilha_units')
+    .select('id, track_id, title, subtitle, is_locked, unlock_cost, order_index, trilha_lessons(id, unit_id, title, xp_reward, order_index)')
+    .eq('track_id', trackId)
+    .order('order_index', { ascending: true });
+  if (error) { console.error('[trilhaGain] fetchTrackOutline', error); return []; }
+  return (data ?? []).map((u: any): TrilhaUnit => ({
+    ...u,
+    lessons: (u.trilha_lessons ?? []).sort((a: TrilhaLesson, b: TrilhaLesson) => a.order_index - b.order_index),
+  }));
+}
+
 // --- Progresso (por usuário) ---
 
 // Id do usuário logado a partir da sessão local (sem ida ao servidor de auth).
