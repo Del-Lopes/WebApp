@@ -72,7 +72,7 @@ export const TrendPanel: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      const candlesByTF = await fetchCandlesForTFs(a.td, timeframes);
+      const candlesByTF = await fetchCandlesForTFs(a, timeframes);
       const result = computeTrendMeter({
         candlesByTF,
         labels: timeframes.map((t) => t.label),
@@ -259,7 +259,7 @@ export const TrendPanel: React.FC = () => {
         ) : analysis ? (
           <div className="glass-card p-4 sm:p-5 space-y-4">
             {/* Gauges */}
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex flex-wrap justify-center gap-3">
               {analysis.perByTF.map((r) => <TFGauge key={r.label} result={r} />)}
             </div>
 

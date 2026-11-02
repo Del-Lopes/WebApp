@@ -20,7 +20,7 @@ interface Props {
 
 const TABS: { key: TabKey; label: string; Icon: React.ElementType; hint: string }[] = [
   { key: 'trend', label: 'Tendência',   Icon: Gauge,    hint: 'Painel multi-timeframe do seu setup. Abrir um ativo custa Coins (1×/ativo/dia); atualização livre.' },
-  { key: 'auto',  label: 'Análise IA',  Icon: Sparkles, hint: 'Análise sob demanda do XAU/USD com parecer de IA. Cada análise custa Coins.' },
+  { key: 'auto',  label: 'Análise IA',  Icon: Sparkles, hint: 'Análise sob demanda do ativo escolhido, em temas, com parecer de IA. Cada análise custa Coins.' },
   { key: 'setup', label: 'Meu Setup',   Icon: UserCog,  hint: 'Sinais publicados manualmente pelo time.' },
 ];
 
@@ -96,7 +96,7 @@ export const Signals: React.FC<Props> = ({ onBack }) => {
       <PageHeader
         leading={<BackButton onClick={onBack} />}
         title={<span className="inline-flex items-center gap-2.5"><Radio size={22} className="text-accent-fg" aria-hidden /> Sinais</span>}
-        description="Compra e venda para XAU/USD"
+        description="Tendência e análise por IA para ouro, índices, forex e cripto"
         className="mb-2 sm:mb-2"
       />
 

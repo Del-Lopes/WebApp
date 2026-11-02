@@ -5,6 +5,7 @@
 // ============================================================
 
 import { Candle } from './trendMeter';
+import { supabase } from './supabase';
 
 const TD_KEY = import.meta.env.VITE_TWELVEDATA_KEY ?? '';
 const TD_BASE = 'https://api.twelvedata.com/time_series';
@@ -16,6 +17,8 @@ export interface AssetOption {
   label: string;   // exibição (ex.: 'Ouro — XAU/USD')
   td: string;      // símbolo Twelve Data (ex.: 'XAU/USD')
   tv: string;      // símbolo TradingView (ex.: 'OANDA:XAUUSD')
+  /** 'edge' = candles vêm da edge function market-candles (Yahoo), não da Twelve Data. */
+  src?: 'edge';
 }
 
 export const ASSETS: AssetOption[] = [
@@ -25,6 +28,12 @@ export const ASSETS: AssetOption[] = [
   { value: 'USDJPY', label: 'Iene — USD/JPY',      td: 'USD/JPY', tv: 'OANDA:USDJPY' },
   { value: 'BTCUSD', label: 'Bitcoin — BTC/USD',   td: 'BTC/USD', tv: 'BINANCE:BTCUSDT' },
   { value: 'ETHUSD', label: 'Ethereum — ETH/USD',  td: 'ETH/USD', tv: 'BINANCE:ETHUSDT' },
+  // Índices/futuros: a Twelve Data gratuita não cobre; vêm pela edge function market-candles.
+  // WIN usa o Ibovespa e WDO o USD/BRL à vista como base (mesma direção dos contratos).
+  { value: 'NAS100', label: 'Nasdaq 100 — NAS100',          td: 'NAS100', tv: 'CAPITALCOM:US100',   src: 'edge' },
+  { value: 'US30',   label: 'Dow Jones — US30',             td: 'US30',   tv: 'CAPITALCOM:US30',    src: 'edge' },
+  { value: 'WIN',    label: 'Mini Índice — WIN (Ibovespa)', td: 'WIN',    tv: 'BMFBOVESPA:WIN1!',   src: 'edge' },
+  { value: 'WDO',    label: 'Mini Dólar — WDO (USD/BRL)',   td: 'WDO',    tv: 'BMFBOVESPA:WDO1!',   src: 'edge' },
 ];
 
 export function findAsset(value: string): AssetOption | undefined {
@@ -105,10 +114,22 @@ async function fetchOneTF(tdSymbol: string, tdInterval: string): Promise<Candle[
 // Busca os candles de todos os TFs de um ativo, em paralelo.
 // Twelve Data free permite ~8 req/min — 5 TFs cabem numa atualização.
 export async function fetchCandlesForTFs(
-  tdSymbol: string,
+  asset: AssetOption,
   timeframes: TimeframeOption[],
 ): Promise<Candle[][]> {
-  return Promise.all(timeframes.map((tf) => fetchOneTF(tdSymbol, tf.td)));
+  if (asset.src === 'edge') {
+    return Promise.all(timeframes.map((tf) => fetchEdgeTF(asset.value, tf.td)));
+  }
+  return Promise.all(timeframes.map((tf) => fetchOneTF(asset.td, tf.td)));
+}
+
+// Candles de índices/futuros pela edge function (exige login).
+async function fetchEdgeTF(symbol: string, interval: string): Promise<Candle[]> {
+  const { data, error } = await supabase.functions.invoke('market-candles', {
+    body: { symbol, interval, limit: OUTPUTSIZE },
+  });
+  if (error || !Array.isArray(data?.candles)) throw new Error('Falha ao buscar cotações');
+  return data.candles as Candle[];
 }
 
 export const HAS_MARKET_KEY = !!TD_KEY;

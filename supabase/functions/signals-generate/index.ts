@@ -5,7 +5,7 @@
 //   2. Cobra a análise em Coins via RPC charge_signal_analysis (débito
 //      transacional no contexto do usuário). Cobra SEMPRE — a análise é
 //      entregue com ou sem entrada.
-//   3. Puxa candles OHLC do XAU/USD (Twelve Data) + manchetes recentes.
+//   3. Puxa candles OHLC do ativo (Twelve Data; índices/futuros via Yahoo) + manchetes.
 //   4. Calcula indicadores (EMA9/21/50, ATR14) e detecta o setup.
 //   5. IA redige o parecer (tendência + indicadores + leitura macro),
 //      reusando a cascata Gemini→Groq da tabela ai_configurations.
@@ -40,13 +40,18 @@ async function refund(fn: 'refund_crypto_report' | 'refund_signal_analysis', use
 
 // Ativos permitidos (allowlist). Chave = símbolo armazenado (SYMBOL_DB);
 // td = formato Twelve Data; digits = casas decimais p/ formatação do parecer.
-const ASSETS: Record<string, { td: string; label: string; digits: number }> = {
+// `yahoo` = ativo fora da Twelve Data gratuita (índices/futuros): candles via Yahoo Finance.
+const ASSETS: Record<string, { td: string; label: string; digits: number; yahoo?: string }> = {
   XAUUSD: { td: 'XAU/USD', label: 'Ouro (XAU/USD)',     digits: 2 },
   EURUSD: { td: 'EUR/USD', label: 'Euro (EUR/USD)',     digits: 5 },
   GBPUSD: { td: 'GBP/USD', label: 'Libra (GBP/USD)',    digits: 5 },
   USDJPY: { td: 'USD/JPY', label: 'Iene (USD/JPY)',     digits: 3 },
   BTCUSD: { td: 'BTC/USD', label: 'Bitcoin (BTC/USD)',  digits: 2 },
   ETHUSD: { td: 'ETH/USD', label: 'Ethereum (ETH/USD)', digits: 2 },
+  NAS100: { td: 'NAS100', label: 'Nasdaq 100 (NAS100)',             digits: 2, yahoo: 'NQ=F' },
+  US30:   { td: 'US30',   label: 'Dow Jones (US30)',                digits: 2, yahoo: 'YM=F' },
+  WIN:    { td: 'WIN',    label: 'Mini Índice (WIN, base Ibovespa)', digits: 0, yahoo: '^BVSP' },
+  WDO:    { td: 'WDO',    label: 'Mini Dólar (WDO, base USD/BRL)',   digits: 3, yahoo: 'BRL=X' },
 }
 // Escala ordenada de intervalos (do menor para o maior). Usada para a
 // confluência multi-timeframe: TF escolhido + um acima + um abaixo.
@@ -175,6 +180,44 @@ function supportResistance(candles: Candle[], lookback = 30): { support: number;
 }
 
 // ─── Fontes externas ─────────────────────────────────────────────────────────
+
+// Yahoo Finance: 2h/4h não existem — agregados a partir de 1h.
+const YAHOO_CFG: Record<string, [string, string, number]> = {
+  '1min': ['1m', '5d', 0], '5min': ['5m', '1mo', 0], '15min': ['15m', '1mo', 0], '30min': ['30m', '1mo', 0],
+  '1h': ['60m', '3mo', 0], '2h': ['60m', '6mo', 2], '4h': ['60m', '1y', 4], '1day': ['1d', '2y', 0],
+}
+
+async function fetchYahooCandles(ySymbol: string, interval: string): Promise<Candle[]> {
+  const cfg = YAHOO_CFG[interval]
+  if (!cfg) throw new Error('yahoo: intervalo não suportado')
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ySymbol)}?interval=${cfg[0]}&range=${cfg[1]}`
+  const res = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TraderAFK/1.0)' } })
+  if (!res.ok) throw new Error(`yahoo: HTTP ${res.status}`)
+  const json = await res.json()
+  const r = json?.chart?.result?.[0]
+  const q = r?.indicators?.quote?.[0]
+  const ts: number[] | undefined = r?.timestamp
+  if (!r || !q || !Array.isArray(ts)) throw new Error('yahoo: unexpected_response')
+  let out: (Candle & { time: number })[] = []
+  for (let i = 0; i < ts.length; i++) {
+    const o = q.open?.[i], h = q.high?.[i], l = q.low?.[i], c = q.close?.[i]
+    if ([o, h, l, c].some((v) => typeof v !== 'number' || !Number.isFinite(v))) continue
+    out.push({ time: ts[i] * 1000, open: o, high: h, low: l, close: c })
+  }
+  if (cfg[2] > 0) {
+    const size = cfg[2] * 3600_000
+    const agg: (Candle & { time: number })[] = []
+    for (const c of out) {
+      const bucket = Math.floor(c.time / size) * size
+      const last = agg[agg.length - 1]
+      if (last && last.time === bucket) {
+        last.high = Math.max(last.high, c.high); last.low = Math.min(last.low, c.low); last.close = c.close
+      } else agg.push({ ...c, time: bucket })
+    }
+    out = agg
+  }
+  return out.slice(-OUTPUTSIZE).map(({ open, high, low, close }) => ({ open, high, low, close }))
+}
 
 async function fetchCandles(tdSymbol: string, interval: string): Promise<Candle[]> {
   const url = new URL('https://api.twelvedata.com/time_series')
@@ -338,6 +381,22 @@ async function generateText(system: string, user: string, config: AIConfig): Pro
 
 interface TFTrend { label: string; trend: string }
 
+// ─── Análise estruturada (cards por tema) ────────────────────────────────────
+//
+// O parecer é gravado como JSON em signals.analysis (sem coluna nova):
+//   { v: 2, sections: [{ id, title, tone, metrics: [{ label, value, tone? }], text }], disclaimer }
+// Os NÚMEROS vêm do cálculo (determinísticos); a IA só redige o texto de cada tema.
+// O front lê pareceres antigos (texto puro) normalmente.
+
+type Tone = 'up' | 'down' | 'neutral'
+interface Metric { label: string; value: string; tone?: Tone }
+interface Section { id: string; title: string; tone: Tone; metrics: Metric[]; text: string }
+
+const TEXT_KEYS = ['confluencia', 'tendencia', 'momentum', 'volatilidade', 'niveis', 'macro', 'cenarios'] as const
+type TextKey = typeof TEXT_KEYS[number]
+
+const trendTone = (t: string): Tone => (t === 'alta' ? 'up' : t === 'baixa' ? 'down' : 'neutral')
+
 function buildAnalysisPrompt(
   ind: Indicators, setup: Setup | null, headlines: string[],
   label: string, interval: string, digits: number, confluence: TFTrend[],
@@ -353,16 +412,15 @@ function buildAnalysisPrompt(
 
   const setupBlock = setup
     ? `SINAL DETECTADO: ${setup.action === 'BUY' ? 'COMPRA' : 'VENDA'} — entrada ${f(setup.entry)}, stop ${f(setup.stop)}, alvo ${f(setup.target)} (risco:retorno 1:2).`
-    : `NENHUM SETUP DE ENTRADA no momento (não houve cruzamento de médias na direção da tendência). Explique, de forma descritiva, por que não há setup técnico no momento e o que precisaria acontecer para surgir um.`
+    : `NENHUM SETUP DE ENTRADA no momento (não houve cruzamento de médias na direção da tendência).`
   const newsBlock = headlines.length
     ? `Manchetes recentes sobre ${label}/macro:\n${headlines.map((h, i) => `${i + 1}. ${h}`).join('\n')}`
-    : `Sem manchetes disponíveis no momento — baseie a leitura macro no comportamento de preço.`
+    : `Sem manchetes disponíveis — em "macro", faça uma leitura breve baseada no comportamento de preço.`
 
-  // Confluência: tendência de cada TF (menor → maior).
   const confBlock = confluence.map((c) => `${c.label}: ${c.trend}`).join(' | ')
   const aligned = confluence.every((c) => c.trend === confluence[0].trend) && confluence[0].trend !== 'lateral'
 
-  return `Você é um analista de trading de ${label}. Escreva um PARECER curto e objetivo em Português Brasileiro (4 a 6 parágrafos curtos) para um trader de varejo, focado no timeframe ${interval} mas usando os outros timeframes como contexto.
+  return `Você é um analista de trading de ${label}. Escreva em Português Brasileiro, para um trader de varejo, uma análise dividida em TEMAS, focada no timeframe ${interval} e usando os demais timeframes como contexto.
 
 Dados técnicos (${label}, timeframe ${interval}):
 - Preço atual: ${f(ind.price)}
@@ -375,40 +433,137 @@ Dados técnicos (${label}, timeframe ${interval}):
 - Bollinger(20,2): preço ${bollZone} | superior ${f(ind.boll.upper)}, média ${f(ind.boll.mid)}, inferior ${f(ind.boll.lower)}
 - Suporte recente: ${f(ind.sr.support)} | Resistência recente: ${f(ind.sr.resistance)}
 
-Confluência multi-timeframe (tendência por TF): ${confBlock}
-${aligned ? `Os timeframes estão ALINHADOS em ${confluence[0].trend} — confluência forte.` : `Os timeframes NÃO estão totalmente alinhados — há divergência entre eles.`}
+Confluência multi-timeframe: ${confBlock}
+${aligned ? `Os timeframes estão ALINHADOS em ${confluence[0].trend}.` : `Os timeframes NÃO estão totalmente alinhados.`}
 
 ${setupBlock}
 
 ${newsBlock}
 
-Instruções:
-- Comece pela confluência multi-timeframe: diga se os TFs concordam e o que isso significa para a força do movimento.
-- Faça a leitura do ${interval}: tendência, RSI (sobrecompra/sobrevenda), MACD (momentum) e posição nas Bandas de Bollinger.
-- Cite suporte e resistência como referências técnicas de alvo/invalidação do setup.
-- Comente a volatilidade (ATR) e o risco.
-- Leitura macro breve interpretando as manchetes (se houver).
-- Termine descrevendo CENÁRIOS: o que confirmaria o setup (ou a tendência) e o que o invalidaria, com os níveis de preço relevantes. Não diga ao leitor para operar, entrar, sair ou aguardar — descreva condições, não ações.
-- NÃO recomende compra nem venda. Não use imperativos dirigidos ao leitor ("compre", "venda", "opere", "entre").
-- NÃO prometa nem sugira resultado, ganho ou probabilidade de acerto. É análise técnica descritiva, não recomendação de investimento.
-- Não inclua aviso legal no final: ele é anexado automaticamente.
-- Texto corrido, sem markdown, sem títulos, sem bullet points.`
+Responda SOMENTE com um objeto JSON válido (sem markdown, sem crases), exatamente com estas chaves, cada uma com 1 a 3 frases curtas:
+{
+  "confluencia": "os timeframes concordam? o que isso diz sobre a força do movimento",
+  "tendencia": "leitura das médias (EMA9/21/50) e da distância do preço à EMA50",
+  "momentum": "RSI (sobrecompra/sobrevenda) e MACD",
+  "volatilidade": "ATR e posição nas Bandas de Bollinger, com o risco envolvido",
+  "niveis": "suporte e resistência como referências técnicas de alvo/invalidação",
+  "macro": "leitura macro breve interpretando as manchetes (ou o comportamento de preço)",
+  "cenarios": "o que confirmaria e o que invalidaria o setup/a tendência, com os níveis de preço relevantes${setup ? '' : '; explique por que não há setup de entrada agora e o que precisaria acontecer para surgir um'}"
 }
 
-// Aviso regulatório (CVM) anexado ao final de todo parecer gerado.
+Regras:
+- NÃO recomende compra nem venda. Não use imperativos dirigidos ao leitor ("compre", "venda", "opere", "entre", "aguarde").
+- Descreva condições e cenários, não ações. NÃO prometa nem sugira resultado, ganho ou probabilidade de acerto.
+- Cite os números relevantes nos textos. Não inclua aviso legal (é anexado automaticamente).
+- Texto simples dentro das strings: sem markdown, sem quebras de linha.`
+}
+
+// Aviso regulatório (CVM) anexado a todo parecer gerado.
 const ANALYSIS_DISCLAIMER = 'Aviso: conteúdo informativo e educacional. Não constitui recomendação de investimento, consultoria nem análise de valores mobiliários (Res. CVM 20/2021). Sinais e análises descrevem cenários técnicos e podem falhar. Operar forex/CFD alavancado envolve alto risco e pode gerar perdas superiores ao capital investido. Decisões são de responsabilidade exclusiva do usuário.'
 
-function fallbackAnalysis(
-  ind: Indicators, setup: Setup | null, label: string, interval: string, digits: number, confluence: TFTrend[],
-): string {
+// Extrai o objeto JSON da resposta da IA (tolera cercas de código e texto ao redor).
+function parseAiTexts(raw: string | null): Partial<Record<TextKey, string>> {
+  if (!raw) return {}
+  const start = raw.indexOf('{')
+  const end = raw.lastIndexOf('}')
+  if (start < 0 || end <= start) return {}
+  try {
+    const obj = JSON.parse(raw.slice(start, end + 1)) as Record<string, unknown>
+    const out: Partial<Record<TextKey, string>> = {}
+    for (const k of TEXT_KEYS) {
+      const v = obj[k]
+      if (typeof v === 'string' && v.trim()) out[k] = v.trim().replace(/\s+/g, ' ').slice(0, 700)
+    }
+    return out
+  } catch {
+    return {}
+  }
+}
+
+function buildSections(
+  ind: Indicators, setup: Setup | null, interval: string, digits: number, confluence: TFTrend[],
+  ai: Partial<Record<TextKey, string>>,
+): Section[] {
   const f = (v: number) => v.toFixed(digits)
+  const pct = (a: number, b: number) => `${(((a - b) / b) * 100).toFixed(2)}%`
+  const tf = TF_LABEL[interval] ?? interval
   const rsiZone = ind.rsi >= 70 ? 'sobrecomprado' : ind.rsi <= 30 ? 'sobrevendido' : 'neutro'
-  const conf = confluence.map((c) => `${c.label} ${c.trend}`).join(', ')
-  const base = `${label}: tendência no ${interval} em ${ind.trend} (confluência — ${conf}). Preço em ${f(ind.price)}, RSI ${ind.rsi.toFixed(0)} (${rsiZone}), ATR ${f(ind.atr)}. Suporte ${f(ind.sr.support)} e resistência ${f(ind.sr.resistance)} como referências.`
-  const call = setup
-    ? ` Há um setup de ${setup.action === 'BUY' ? 'compra' : 'venda'} no ${interval}: entrada ${f(setup.entry)}, stop ${f(setup.stop)} e alvo ${f(setup.target)} (risco:retorno 1:2).`
-    : ` Não há setup de entrada agora no ${interval} — as médias não cruzaram na direção da tendência. Um novo setup dependeria de cruzamento das médias alinhado à tendência.`
-  return base + call
+  const macdTone: Tone = ind.macd.hist > 0 ? 'up' : ind.macd.hist < 0 ? 'down' : 'neutral'
+  const rsiTone: Tone = ind.rsi >= 70 ? 'down' : ind.rsi <= 30 ? 'up' : 'neutral'
+  const aligned = confluence.every((c) => c.trend === confluence[0].trend) && confluence[0].trend !== 'lateral'
+  const bollText = ind.boll.pctB >= 1 ? 'acima da banda superior' : ind.boll.pctB <= 0 ? 'abaixo da banda inferior'
+    : ind.boll.pctB > 0.8 ? 'perto da banda superior' : ind.boll.pctB < 0.2 ? 'perto da banda inferior' : 'no meio das bandas'
+
+  const sections: Section[] = [
+    {
+      id: 'confluencia', title: 'Confluência multi-timeframe',
+      tone: aligned ? trendTone(confluence[0].trend) : 'neutral',
+      metrics: confluence.map((c) => ({ label: c.label, value: c.trend, tone: trendTone(c.trend) })),
+      text: ai.confluencia ?? (aligned
+        ? `Os timeframes estão alinhados em ${confluence[0].trend}, o que indica um movimento com mais força.`
+        : `Os timeframes não estão alinhados (${confluence.map((c) => `${c.label} ${c.trend}`).join(', ')}), o que indica divergência entre prazos.`),
+    },
+    {
+      id: 'tendencia', title: `Tendência e médias (${tf})`, tone: trendTone(ind.trend),
+      metrics: [
+        { label: 'Preço', value: f(ind.price) },
+        { label: 'EMA 9', value: f(ind.ema9) },
+        { label: 'EMA 21', value: f(ind.ema21) },
+        { label: 'EMA 50', value: f(ind.ema50) },
+        { label: 'Dist. EMA 50', value: pct(ind.price, ind.ema50), tone: ind.price >= ind.ema50 ? 'up' : 'down' },
+      ],
+      text: ai.tendencia ?? `Tendência de ${ind.trend} no ${tf}: preço em ${f(ind.price)} com EMA9 ${f(ind.ema9)}, EMA21 ${f(ind.ema21)} e EMA50 ${f(ind.ema50)}.`,
+    },
+    {
+      id: 'momentum', title: 'Momentum', tone: macdTone,
+      metrics: [
+        { label: 'RSI (14)', value: `${ind.rsi.toFixed(1)} · ${rsiZone}`, tone: rsiTone },
+        { label: 'MACD hist.', value: `${ind.macd.hist >= 0 ? '+' : ''}${ind.macd.hist.toFixed(4)}`, tone: macdTone },
+        { label: 'Viés MACD', value: ind.macd.hist > 0 ? 'comprador' : 'vendedor', tone: macdTone },
+      ],
+      text: ai.momentum ?? `RSI em ${ind.rsi.toFixed(0)} (${rsiZone}) e histograma do MACD com viés ${ind.macd.hist > 0 ? 'comprador' : 'vendedor'}.`,
+    },
+    {
+      id: 'volatilidade', title: 'Volatilidade e Bandas de Bollinger', tone: 'neutral',
+      metrics: [
+        { label: 'ATR (14)', value: f(ind.atr) },
+        { label: 'Banda superior', value: f(ind.boll.upper) },
+        { label: 'Banda média', value: f(ind.boll.mid) },
+        { label: 'Banda inferior', value: f(ind.boll.lower) },
+      ],
+      text: ai.volatilidade ?? `ATR de ${f(ind.atr)} por candle; preço ${bollText}.`,
+    },
+    {
+      id: 'niveis', title: 'Suporte e resistência', tone: 'neutral',
+      metrics: [
+        { label: 'Resistência', value: f(ind.sr.resistance), tone: 'down' },
+        { label: 'Preço', value: f(ind.price) },
+        { label: 'Suporte', value: f(ind.sr.support), tone: 'up' },
+        { label: 'Até a resistência', value: pct(ind.sr.resistance, ind.price) },
+        { label: 'Até o suporte', value: pct(ind.sr.support, ind.price) },
+      ],
+      text: ai.niveis ?? `Suporte recente em ${f(ind.sr.support)} e resistência em ${f(ind.sr.resistance)} como referências técnicas.`,
+    },
+  ]
+
+  if (ai.macro) sections.push({ id: 'macro', title: 'Leitura macro', tone: 'neutral', metrics: [], text: ai.macro })
+
+  sections.push({
+    id: 'cenarios', title: 'Cenários', tone: setup ? (setup.action === 'BUY' ? 'up' : 'down') : 'neutral',
+    metrics: setup
+      ? [
+          { label: setup.action === 'BUY' ? 'Setup de compra' : 'Setup de venda', value: tf, tone: setup.action === 'BUY' ? 'up' : 'down' },
+          { label: 'Entrada', value: f(setup.entry) },
+          { label: 'Stop', value: f(setup.stop), tone: 'down' },
+          { label: 'Alvo', value: f(setup.target), tone: 'up' },
+        ]
+      : [{ label: 'Setup de entrada', value: 'nenhum agora' }],
+    text: ai.cenarios ?? (setup
+      ? `Há um setup de ${setup.action === 'BUY' ? 'compra' : 'venda'} no ${tf}: entrada ${f(setup.entry)}, stop ${f(setup.stop)} e alvo ${f(setup.target)} (risco:retorno 1:2).`
+      : `Não há setup de entrada agora no ${tf}: as médias não cruzaram na direção da tendência. Um novo setup dependeria desse cruzamento alinhado à tendência.`),
+  })
+
+  return sections
 }
 
 const round5 = (v: number) => Math.round(v * 1e5) / 1e5
@@ -459,7 +614,7 @@ Deno.serve(async (req) => {
   const tfs = confluenceTFs(interval)
   let candlesByTf: Record<string, Candle[]>
   try {
-    const results = await Promise.all(tfs.map((tf) => fetchCandles(asset.td, tf)))
+    const results = await Promise.all(tfs.map((tf) => (asset.yahoo ? fetchYahooCandles(asset.yahoo, tf) : fetchCandles(asset.td, tf))))
     candlesByTf = Object.fromEntries(tfs.map((tf, i) => [tf, results[i]]))
   } catch (e) {
     console.error('[signals-generate] fetchCandles', e)
@@ -481,15 +636,16 @@ Deno.serve(async (req) => {
   })
 
   const setup = detectSetup(candles, ind)
-  const headlines = await fetchHeadlines(asset.td)
+  const headlines = asset.yahoo ? [] : await fetchHeadlines(asset.td)
 
   // Parecer por IA (best-effort com fallback técnico local).
   const { data: aiConfig } = await supabaseAdmin.from('ai_configurations').select('*').maybeSingle()
   const system = `Você é um analista técnico de ${asset.label} objetivo e conservador. Descreve cenários técnicos; nunca recomenda compra ou venda e nunca promete lucro.`
   const aiText = await generateText(system, buildAnalysisPrompt(ind, setup, headlines, asset.label, interval, asset.digits, confluence), aiConfig || {})
-  const analysisBody = (aiText?.trim()) || fallbackAnalysis(ind, setup, asset.label, interval, asset.digits, confluence)
+  // Seções (números calculados + textos da IA, com texto local de reserva por tema).
+  const sections = buildSections(ind, setup, interval, asset.digits, confluence, parseAiTexts(aiText))
   // Aviso anexado por código (não depende da IA) antes de gravar/retornar.
-  const analysis = `${analysisBody}\n\n${ANALYSIS_DISCLAIMER}`
+  const analysis = JSON.stringify({ v: 2, sections, disclaimer: ANALYSIS_DISCLAIMER })
 
   const { data: inserted, error: insertErr } = await supabaseAdmin
     .from('signals')

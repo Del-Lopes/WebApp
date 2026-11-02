@@ -3,6 +3,8 @@ import { ArrowUpRight, ArrowDownRight, Target, ShieldAlert, Clock, CheckCircle2,
 import { Signal } from '../../types';
 import { tvSymbol, tvInterval } from '../../lib/marketData';
 import { TradingViewChart } from './TradingViewChart';
+import { AnalysisSections } from './AnalysisSections';
+import { parseAnalysis } from '../../lib/signalAnalysis';
 
 const STATUS_META: Record<Signal['status'], { label: string; className: string; Icon: React.ElementType }> = {
   open:      { label: 'Ativo',       className: 'bg-accent/10 text-accent-fg border-accent/20', Icon: Clock },
@@ -43,6 +45,7 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
   const analysis = signal.analysis ?? signal.rationale ?? null;
   // Gráfico só para sinais da Análise IA (source 'auto'); setup manual não tem.
   const canShowChart = signal.source === 'auto';
+  const structured = parseAnalysis(analysis);
   const isLong = (analysis?.length ?? 0) > 220;
 
   // Verde para compra, vermelho para venda, neutro para "sem entrada".
@@ -123,7 +126,8 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
       )}
 
       {/* Parecer — sempre presente na análise on-demand */}
-      {analysis && (
+      {structured && <AnalysisSections analysis={structured} />}
+      {!structured && analysis && (
         <div className="relative mt-3">
           <p className="eyebrow-muted mb-1">Parecer</p>
           <p className={`text-sm text-fg-muted leading-relaxed whitespace-pre-line ${!expanded && isLong ? 'line-clamp-4' : ''}`}>
