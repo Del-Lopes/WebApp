@@ -62,15 +62,21 @@ async function currentUserId(): Promise<string | null> {
 // Retorna o conjunto de lesson_id já concluídos pelo usuário atual.
 // Filtra pelo próprio id: staff enxerga o progresso de todos pela RLS, e sem o
 // filtro as lições concluídas por outros apareceriam como concluídas.
+// Junta as aulas (trilha_progress) e os nós Gain/Revisão (trilha_node_progress,
+// ids sintéticos que não cabem em trilha_progress.lesson_id).
 export async function fetchCompletedLessonIds(): Promise<Set<string>> {
   const userId = await currentUserId();
   if (!userId) return new Set();
-  const { data, error } = await supabase
-    .from('trilha_progress')
-    .select('lesson_id')
-    .eq('user_id', userId);
-  if (error) { console.error('[trilhaGain] fetchCompletedLessonIds', error); return new Set(); }
-  return new Set((data ?? []).map((r: { lesson_id: string }) => r.lesson_id));
+  const [lessons, nodes] = await Promise.all([
+    supabase.from('trilha_progress').select('lesson_id').eq('user_id', userId),
+    supabase.from('trilha_node_progress').select('node_id').eq('user_id', userId),
+  ]);
+  if (lessons.error) { console.error('[trilhaGain] fetchCompletedLessonIds', lessons.error); return new Set(); }
+  if (nodes.error) console.error('[trilhaGain] fetchCompletedLessonIds (nodes)', nodes.error);
+  return new Set([
+    ...(lessons.data ?? []).map((r: { lesson_id: string }) => r.lesson_id),
+    ...(nodes.data ?? []).map((r: { node_id: string }) => r.node_id),
+  ]);
 }
 
 // Retorna o conjunto de unit_id que o usuário já desbloqueou gastando XP.
@@ -140,7 +146,11 @@ export async function fetchStats(): Promise<TrilhaStats | null> {
 // não escreve mais em trilha_stats — antes o saldo podia ser forjado pelo console.
 // `xpReward` fica na assinatura por compatibilidade; o valor usado é o do banco.
 export async function completeLesson(lessonId: string, _xpReward?: number, score = 100): Promise<void> {
-  const { error } = await supabase.rpc('complete_lesson', { p_lesson_id: lessonId, p_score: score });
+  // Gain e Revisão têm id sintético (ver unitNodes.ts): vão por outra RPC, sem Coins.
+  const isSyntheticNode = lessonId.startsWith('licao-') || lessonId.startsWith('revisao-');
+  const { error } = isSyntheticNode
+    ? await supabase.rpc('complete_trilha_node', { p_node_id: lessonId })
+    : await supabase.rpc('complete_lesson', { p_lesson_id: lessonId, p_score: score });
   if (error) {
     console.error('[trilhaGain] completeLesson', error);
     throw new Error(error.message || 'complete_lesson_failed');

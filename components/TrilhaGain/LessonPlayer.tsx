@@ -30,6 +30,7 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
   const [stepIndex, setStepIndex] = useState(0);
   const [finished, setFinished] = useState(false); // chegou ao fim do módulo
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false); // falha ao gravar o progresso do nó
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set()); // nós já gravados
   // Tela intersticial de XP ao concluir um gain (candle vermelho de exercício).
   const [reward, setReward] = useState<{ xp: number } | null>(null);
@@ -41,14 +42,18 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
   const isLastNode = nodeIndex >= nodes.length - 1;
 
   // Grava a conclusão de um nó (idempotente; só salva XP na 1ª vez no back-end).
-  const saveNode = useCallback(async (n: TrackNode) => {
-    if (savedIds.has(n.id)) return;
-    setSavedIds((prev) => new Set(prev).add(n.id));
+  // Só marca como salvo depois do sucesso, para poder tentar de novo; devolve
+  // false se não gravou (o chamador não avança, senão o mapa fica travado).
+  const saveNode = useCallback(async (n: TrackNode): Promise<boolean> => {
+    if (savedIds.has(n.id)) return true;
     try {
       await completeLesson(n.lesson.id, n.lesson.xp_reward);
+      setSavedIds((prev) => new Set(prev).add(n.id));
       onCompleted(n.lesson.id);
+      return true;
     } catch (e) {
       console.error('[LessonPlayer] completeLesson', e);
+      return false;
     }
   }, [savedIds, onCompleted]);
 
@@ -68,8 +73,10 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
   const goNextNode = useCallback(async () => {
     if (node) {
       setSaving(true);
-      await saveNode(node);
+      setSaveError(false);
+      const ok = await saveNode(node);
       setSaving(false);
+      if (!ok) { setSaveError(true); return; }
       // Gain concluído no meio do módulo → celebra o XP ganho.
       if (node.kind === 'licao' && !isLastNode && (node.lesson.xp_reward || 0) > 0) {
         setReward({ xp: node.lesson.xp_reward });
@@ -104,6 +111,7 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
   // Volta um passo; no primeiro passo, vai ao nó anterior (último passo dele).
   const canGoBack = nodeIndex > 0 || stepIndex > 0;
   const goBack = () => {
+    setSaveError(false);
     if (finished) { setFinished(false); return; }
     if (stepIndex > 0) {
       setStepIndex((s) => s - 1);
@@ -257,6 +265,13 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
           </div>
         ) : saving ? (
           <div className="flex h-full items-center justify-center text-fg-muted">Salvando…</div>
+        ) : saveError ? (
+          <div className="flex flex-col h-full items-center justify-center text-center gap-4">
+            <p role="alert" className="text-sm text-danger-fg max-w-xs">
+              Não foi possível salvar o seu progresso. Verifique a conexão e tente de novo; se persistir, fale com o suporte.
+            </p>
+            <Button size="lg" onClick={goNextNode}>Tentar novamente</Button>
+          </div>
         ) : (
           <>
             {/* Título do nó atual, para situar dentro do módulo */}
