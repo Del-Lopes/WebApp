@@ -175,3 +175,30 @@ export function buildTimeline(data: TrackerData, today: string, maxDays = 400): 
   }
   return out;
 }
+
+// ── Objetivo / padrões do usuário (uma linha por usuário) ──
+export interface TrackSettings {
+  next_size: number;
+  next_cost: number;
+  split_pct: number;
+  reinvest_pct: number;
+  max_accounts: number;
+}
+
+export async function fetchSettings(): Promise<TrackSettings | null> {
+  const uid = await userId();
+  const { data, error } = await supabase.from('prop_tracker_settings')
+    .select('next_size, next_cost, split_pct, reinvest_pct, max_accounts').eq('user_id', uid).maybeSingle();
+  if (error) throw error;
+  if (!data) return null;
+  return {
+    next_size: Number(data.next_size), next_cost: Number(data.next_cost), split_pct: Number(data.split_pct),
+    reinvest_pct: Number(data.reinvest_pct), max_accounts: Number(data.max_accounts),
+  };
+}
+
+export async function saveSettings(s: TrackSettings): Promise<void> {
+  const uid = await userId();
+  const { error } = await supabase.from('prop_tracker_settings').upsert({ user_id: uid, ...s }, { onConflict: 'user_id' });
+  if (error) throw error;
+}

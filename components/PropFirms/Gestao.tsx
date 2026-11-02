@@ -7,7 +7,7 @@ import { SeriesChart } from '../charts/SeriesChart';
 import { PLAN_STORAGE_KEY } from './Projecao';
 import {
   TrackAccount, TrackerData, accountIsActive, addAccounts, addDaysISO, addWithdrawal, buildTimeline, daysBetween,
-  deleteAccount, deleteResults, deleteWithdrawal, fetchTracker, shortDate, todayISO, updateAccount, upsertResults,
+  deleteAccount, deleteResults, deleteWithdrawal, fetchSettings, fetchTracker, saveSettings, shortDate, todayISO, updateAccount, upsertResults,
 } from '../../lib/propTracker';
 
 interface Props { firms: PropFirm[] }
@@ -57,10 +57,35 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
   // Formulários
   const [meta, setMeta] = useState<Meta>(() => loadMeta(plan));
   const [acc, setAcc] = useState({ size: meta.size, cost: meta.cost, split: String(plan?.params.splitPct ?? 100), opened: today, qty: '1' });
-  // Objetivo (próxima conta, reinvestimento e limite) lembrado entre visitas.
+  // Objetivo (próxima conta, split, reinvestimento e limite): salvo na conta do
+  // usuário (prop_tracker_settings). O navegador guarda uma cópia só como
+  // reserva, caso a tabela ainda não exista ou a rede falhe.
+  const [settingsReady, setSettingsReady] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    fetchSettings()
+      .then((s) => {
+        if (!alive || !s) return;
+        setMeta((m) => ({ ...m, size: String(s.next_size), cost: String(s.next_cost), reinvest: String(s.reinvest_pct), max: String(s.max_accounts) }));
+        setAcc((a) => ({ ...a, size: String(s.next_size), cost: String(s.next_cost), split: String(s.split_pct) }));
+      })
+      .catch((e) => console.error('[Gestao] settings', e))
+      .finally(() => { if (alive) setSettingsReady(true); });
+    return () => { alive = false; };
+  }, []);
+
   useEffect(() => {
     try { localStorage.setItem(META_KEY, JSON.stringify({ size: acc.size, cost: acc.cost, reinvest: meta.reinvest, max: meta.max })); } catch { /* ignora */ }
-  }, [acc.size, acc.cost, meta.reinvest, meta.max]);
+    if (!settingsReady) return;   // não sobrescrever o que está salvo antes de carregá-lo
+    const next_size = parse(acc.size), next_cost = parse(acc.cost), split_pct = parse(acc.split);
+    const reinvest_pct = parse(meta.reinvest), max_accounts = Math.floor(parse(meta.max));
+    if (!(next_size > 0) || !(next_cost >= 0) || !(split_pct >= 0 && split_pct <= 100)
+      || !(reinvest_pct >= 0 && reinvest_pct <= 100) || !(max_accounts >= 1 && max_accounts <= 500)) return;
+    const t = window.setTimeout(() => {
+      saveSettings({ next_size, next_cost, split_pct, reinvest_pct, max_accounts }).catch((e) => console.error('[Gestao] saveSettings', e));
+    }, 700);
+    return () => window.clearTimeout(t);
+  }, [settingsReady, acc.size, acc.cost, acc.split, meta.reinvest, meta.max]);
   const [res, setRes] = useState({ date: today, amount: '' });
   const [wd, setWd] = useState({ date: today, amount: '', note: '' });
 
