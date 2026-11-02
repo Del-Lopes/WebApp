@@ -2,10 +2,11 @@ import React, { useMemo, useState } from 'react';
 import {
   Plus, Edit2, Trash2, AlertTriangle, Search,
   TrendingUp, TrendingDown, Star, BookOpen, Clock, ImageIcon,
-  Target, BarChart3, ListChecks,
+  Target, BarChart3, ListChecks, CalendarDays, List,
 } from 'lucide-react';
 import { useTradeJournal, type TradeEntry } from '../../hooks/useTradeJournal';
 import { TradeEditor } from './TradeEditor';
+import { JournalCalendar } from './JournalCalendar';
 import { BackButton } from '../BackButton';
 import { Button, EmptyState, Input, PageHeader, Select, Skeleton } from '../ui';
 
@@ -37,6 +38,10 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
   const [editing, setEditing] = useState<TradeEntry | null>(null);
   const [creatingNew, setCreatingNew] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [view, setView] = useState<'list' | 'calendar'>('list');
+  // O calendário busca o próprio período: este número o faz recarregar após salvar/apagar.
+  const [calendarVersion, setCalendarVersion] = useState(0);
+  const [newTradeDate, setNewTradeDate] = useState<Date | null>(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -72,15 +77,35 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
   }, [filtered]);
 
   const handleSave = async (input: Parameters<typeof createEntry>[0]) => {
-    if (editing) return updateEntry(editing.id, input);
-    return createEntry(input);
+    const result = editing ? await updateEntry(editing.id, input) : await createEntry(input);
+    if (result.ok) setCalendarVersion((v) => v + 1);
+    return result;
   };
 
   const handleDelete = async (entry: TradeEntry) => {
     if (!window.confirm(`Apagar a operação de ${entry.asset} (${formatDateTime(entry.opened_at)}) definitivamente?`)) return;
     const result = await deleteEntry(entry.id);
     if (!result.ok) alert(result.error ?? 'Falha ao apagar.');
+    else setCalendarVersion((v) => v + 1);
   };
+
+  const closeEditor = () => {
+    setEditing(null);
+    setCreatingNew(false);
+    setNewTradeDate(null);
+    setCalendarVersion((v) => v + 1);
+    refresh();
+  };
+
+  const renderTrade = (entry: TradeEntry) => (
+    <TradeCard
+      entry={entry}
+      expanded={expandedId === entry.id}
+      onToggle={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
+      onEdit={() => { setEditing(entry); setCreatingNew(false); }}
+      onDelete={() => handleDelete(entry)}
+    />
+  );
 
   return (
     <div className="space-y-6">
@@ -109,6 +134,40 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
         </div>
       )}
 
+      <div className="flex rounded-lg border border-tint/10 bg-tint/3 p-0.5 w-fit" role="group" aria-label="Modo de visualização">
+        {([
+          { value: 'list', label: 'Lista', icon: <List size={15} /> },
+          { value: 'calendar', label: 'Calendário', icon: <CalendarDays size={15} /> },
+        ] as const).map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            aria-pressed={view === opt.value}
+            onClick={() => setView(opt.value)}
+            className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+              view === opt.value ? 'bg-accent/10 font-medium text-accent-fg' : 'text-fg-muted hover:text-fg'
+            }`}
+          >
+            {opt.icon}
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {view === 'calendar' ? (
+        <JournalCalendar
+          refreshKey={calendarVersion}
+          renderTrade={renderTrade}
+          onNewTrade={(date) => {
+            const now = new Date();
+            // Dia escolhido, na hora atual: o editor deixa ajustar.
+            setNewTradeDate(new Date(date.getFullYear(), date.getMonth(), date.getDate(), now.getHours(), now.getMinutes()));
+            setEditing(null);
+            setCreatingNew(true);
+          }}
+        />
+      ) : (
+      <>
       {/* Stats cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
         <StatCard
@@ -195,22 +254,18 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
       ) : (
         <div className="space-y-3">
           {filtered.map((entry) => (
-            <TradeCard
-              key={entry.id}
-              entry={entry}
-              expanded={expandedId === entry.id}
-              onToggle={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
-              onEdit={() => { setEditing(entry); setCreatingNew(false); }}
-              onDelete={() => handleDelete(entry)}
-            />
+            <React.Fragment key={entry.id}>{renderTrade(entry)}</React.Fragment>
           ))}
         </div>
+      )}
+      </>
       )}
 
       {(editing || creatingNew) && (
         <TradeEditor
           entry={editing}
-          onClose={() => { setEditing(null); setCreatingNew(false); refresh(); }}
+          defaultOpenedAt={newTradeDate?.toISOString()}
+          onClose={closeEditor}
           onSave={handleSave}
           onUploadScreenshot={uploadScreenshot}
         />

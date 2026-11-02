@@ -12,6 +12,8 @@ import { Button, Input, Textarea } from '../ui';
 
 interface TradeEditorProps {
   entry: TradeEntry | null;
+  /** Data/hora inicial de uma operação nova (ex.: o dia escolhido no calendário). */
+  defaultOpenedAt?: string;
   onClose: () => void;
   onSave: (input: TradeInput) => Promise<{ ok: boolean; error?: string }>;
   onUploadScreenshot: (file: File) => Promise<string>;
@@ -31,7 +33,7 @@ function fromLocalInput(local: string): string | null {
   return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
-export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: TradeEditorProps) {
+export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadScreenshot }: TradeEditorProps) {
   const isEditing = !!entry;
 
   // Operação
@@ -40,7 +42,7 @@ export function TradeEditor({ entry, onClose, onSave, onUploadScreenshot }: Trad
   const [volume, setVolume] = useState<string>(entry ? String(entry.volume) : '');
   const [entryPrice, setEntryPrice] = useState<string>(entry?.entry_price != null ? String(entry.entry_price) : '');
   const [exitPrice, setExitPrice] = useState<string>(entry?.exit_price != null ? String(entry.exit_price) : '');
-  const [openedAt, setOpenedAt] = useState<string>(toLocalInput(entry?.opened_at) || toLocalInput(new Date().toISOString()));
+  const [openedAt, setOpenedAt] = useState<string>(toLocalInput(entry?.opened_at) || toLocalInput(defaultOpenedAt ?? new Date().toISOString()));
   const [closedAt, setClosedAt] = useState<string>(toLocalInput(entry?.closed_at));
 
   // Resultado
