@@ -11,6 +11,7 @@ import { TrackMap } from './TrackMap';
 import { LessonPlayer } from './LessonPlayer';
 import { TrackNode } from './unitNodes';
 import { InvertedScroll } from './InvertedScroll';
+import { ProgressPanel } from './ProgressPanel';
 import { useAuth } from '../../contexts/AuthContext';
 import { EmptyState, PageHeader, Skeleton } from '../ui';
 
@@ -109,6 +110,8 @@ export const TrilhaGain: React.FC<Props> = ({ onBack, onBuyCoins }) => {
         }
         actions={<GamificationBar stats={stats} onBuy={onBuyCoins} />}
       />
+
+      {activeTrack && <ProgressPanel track={activeTrack} completed={completed} stats={stats} />}
 
       {/* Rolagem reversa: barra começa no topo e desce normal; a trilha
           sobe (aula 1 sai por baixo, aula 2 entra por cima). */}

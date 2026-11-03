@@ -11,6 +11,8 @@ import { JournalEvolution } from './JournalEvolution';
 import { journalImageSrc } from '../../lib/journalImages';
 import { BackButton } from '../BackButton';
 import { Button, EmptyState, Input, PageHeader, Select, Skeleton } from '../ui';
+import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
+import type { CardSpec } from '../../lib/shareCard';
 
 interface TradeJournalProps {
   onBack: () => void;
@@ -44,6 +46,8 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
   // O calendário busca o próprio período: este número o faz recarregar após salvar/apagar.
   const [calendarVersion, setCalendarVersion] = useState(0);
   const [newTradeDate, setNewTradeDate] = useState<Date | null>(null);
+  const [shareTrade, setShareTrade] = useState<TradeEntry | null>(null);
+  const [sharePeriod, setSharePeriod] = useState(false);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -106,6 +110,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
       onToggle={() => setExpandedId(expandedId === entry.id ? null : entry.id)}
       onEdit={() => { setEditing(entry); setCreatingNew(false); }}
       onDelete={() => handleDelete(entry)}
+      onShare={() => setShareTrade(entry)}
     />
   );
 
@@ -201,6 +206,12 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
         />
       </div>
 
+      {filteredStats.closedTrades > 0 && (
+        <div className="flex justify-end">
+          <ShareButton label="Compartilhar resultado do período" onClick={() => setSharePeriod(true)} />
+        </div>
+      )}
+
       {/* Filtros */}
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative w-full sm:w-auto sm:flex-1 sm:min-w-[200px] max-w-md">
@@ -275,6 +286,29 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
           onUploadScreenshot={uploadScreenshot}
         />
       )}
+
+      {shareTrade && (
+        <ShareCardModal
+          open
+          onClose={() => setShareTrade(null)}
+          title="Compartilhar operação"
+          canHideValues
+          fileName={`operacao-${shareTrade.asset}`}
+          build={({ showValues }) => tradeCard(shareTrade, showValues)}
+          caption={tradeCaption(shareTrade)}
+        />
+      )}
+      {sharePeriod && (
+        <ShareCardModal
+          open
+          onClose={() => setSharePeriod(false)}
+          title="Compartilhar resultado"
+          canHideValues
+          fileName="resultado-diario-de-operacoes"
+          build={({ showValues }) => periodCard(filteredStats, periodDays, showValues)}
+          caption={periodCaption(filteredStats, periodDays)}
+        />
+      )}
     </div>
   );
 }
@@ -286,9 +320,10 @@ interface TradeCardProps {
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onShare: () => void;
 }
 
-function TradeCard({ entry, expanded, onToggle, onEdit, onDelete }: TradeCardProps) {
+function TradeCard({ entry, expanded, onToggle, onEdit, onDelete, onShare }: TradeCardProps) {
   const isOpen = !entry.closed_at;
   const result = entry.result_amount ?? 0;
   const isWin = result > 0;
@@ -400,6 +435,7 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete }: TradeCardPro
           )}
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-tint/6">
+            {!isOpen && <ShareButton variant="ghost" onClick={onShare} />}
             <Button variant="ghost" size="sm" onClick={onEdit}>
               <Edit2 size={14} />
               Editar
@@ -482,3 +518,62 @@ function formatMoney(value: number) {
   const sign = value > 0 ? '+' : '';
   return `${sign}${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
 }
+
+// ── Cards de compartilhamento ──
+const moneyAbs = (v: number) => Math.abs(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const shortDay = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
+
+function tradeCard(e: TradeEntry, showValues: boolean): CardSpec {
+  const r = e.result_amount ?? 0;
+  const tone = r > 0 ? 'up' : r < 0 ? 'down' : 'neutral';
+  const pips = e.result_pips != null ? Number(e.result_pips) : null;
+  const stats: { label: string; value: string; tone?: 'up' | 'down' | 'neutral' }[] = [
+    { label: 'Direção', value: e.side === 'buy' ? 'Compra' : 'Venda', tone: e.side === 'buy' ? 'up' : 'down' },
+    { label: 'Volume', value: `${e.volume} lote${e.volume !== 1 ? 's' : ''}` },
+  ];
+  if (pips != null) stats.push({ label: 'Pips/Pontos', value: `${pips > 0 ? '+' : ''}${pips.toFixed(1)}`, tone });
+  if (e.entry_price != null && e.exit_price != null) stats.push({ label: 'Entrada → Saída', value: `${e.entry_price} → ${e.exit_price}` });
+  return {
+    kind: 'result',
+    eyebrow: `Operação · ${e.side === 'buy' ? 'Compra' : 'Venda'}`,
+    title: e.asset,
+    subtitle: shortDay(e.closed_at ?? e.opened_at),
+    headlineLabel: 'Resultado',
+    headline: showValues
+      ? `${r > 0 ? '+' : r < 0 ? '−' : ''}${moneyAbs(r)}`
+      : (r > 0 ? 'GAIN' : r < 0 ? 'LOSS' : 'ZERO A ZERO'),
+    tone,
+    stats,
+  };
+}
+
+const tradeCaption = (e: TradeEntry) => {
+  const r = e.result_amount ?? 0;
+  return `${r > 0 ? '✅ Gain' : r < 0 ? '📉 Loss' : '➖ Zero a zero'} em ${e.asset} (${e.side === 'buy' ? 'compra' : 'venda'}). Registrando e estudando cada operação no Diário do Trader AFK. traderafk.com`;
+};
+
+function periodLabel(days: number) {
+  return days === 0 ? 'Todo o período' : days === 365 ? 'Último ano' : `Últimos ${days} dias`;
+}
+
+function periodCard(s: { totalTrades: number; closedTrades: number; winRate: number; resultSum: number }, days: number, showValues: boolean): CardSpec {
+  const tone = s.resultSum > 0 ? 'up' : s.resultSum < 0 ? 'down' : 'neutral';
+  return {
+    kind: 'result',
+    eyebrow: 'Diário de operações',
+    title: periodLabel(days),
+    subtitle: `${s.closedTrades} operações fechadas`,
+    headlineLabel: 'Resultado acumulado',
+    headline: showValues
+      ? `${s.resultSum > 0 ? '+' : s.resultSum < 0 ? '−' : ''}${moneyAbs(s.resultSum)}`
+      : `${Math.round(s.winRate * 100)}% de acerto`,
+    tone,
+    stats: [
+      { label: 'Win rate', value: `${Math.round(s.winRate * 100)}%`, tone: s.winRate >= 0.5 ? 'up' : 'neutral' },
+      { label: 'Operações', value: String(s.totalTrades) },
+    ],
+  };
+}
+
+const periodCaption = (s: { closedTrades: number; winRate: number }, days: number) =>
+  `📊 ${periodLabel(days)}: ${s.closedTrades} operações e ${Math.round(s.winRate * 100)}% de acerto, tudo registrado no Diário do Trader AFK. traderafk.com`;

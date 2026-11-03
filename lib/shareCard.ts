@@ -1,0 +1,346 @@
+// Gerador de cards compartilháveis (PNG) — desenhado direto no <canvas>, sem
+// dependências. O card segue a identidade do app: fundo quase preto, um único
+// destaque verde, Space Grotesk nos títulos e JetBrains Mono nos números.
+import type { BadgeGlyph, BadgeTier } from './badges';
+
+export type ShareFormat = 'feed' | 'story';
+
+export const SIZES: Record<ShareFormat, { w: number; h: number }> = {
+  feed: { w: 1080, h: 1350 },
+  story: { w: 1080, h: 1920 },
+};
+
+export type Tone = 'up' | 'down' | 'neutral';
+
+export interface ShareStat { label: string; value: string; tone?: Tone }
+
+/** Resultado de uma operação, do dia/período ou da trajetória nas mesas. */
+export interface ResultCard {
+  kind: 'result';
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+  headline: string;
+  headlineLabel?: string;
+  tone: Tone;
+  stats: ShareStat[];
+}
+
+export interface CardBadge { name: string; tier: BadgeTier; glyph: BadgeGlyph; earned: boolean }
+
+export interface ProgressCard {
+  kind: 'progress';
+  rank: string;
+  lessons: number;
+  totalLessons: number;
+  streak: number;
+  bestStreak: number;
+  badges: CardBadge[];
+}
+
+export interface BadgeCard {
+  kind: 'badge';
+  badge: { name: string; description: string; tier: BadgeTier; glyph: BadgeGlyph; tierLabel: string };
+  rank: string;
+  lessons: number;
+  bestStreak: number;
+}
+
+export type CardSpec = ResultCard | ProgressCard | BadgeCard;
+
+const C = {
+  bg: '#0a0a0a', surface: '#111111', elevated: '#171717', line: '#262626',
+  text: '#fafafa', muted: '#a3a3a3', subtle: '#737373',
+  green: '#22c55e', greenBright: '#5eea96', greenDark: '#15803d',
+  red: '#f87171', redDark: '#b91c1c',
+};
+const DISPLAY = '"Space Grotesk", Inter, system-ui, sans-serif';
+const BODY = 'Inter, system-ui, sans-serif';
+const MONO = '"JetBrains Mono", ui-monospace, Menlo, monospace';
+
+const TIER_COLORS: Record<BadgeTier, [string, string]> = {
+  bronze: ['#f5c9a0', '#b9722f'],
+  silver: ['#f1f5f9', '#94a3b8'],
+  gold: ['#fde68a', '#d4a017'],
+  diamond: ['#a5f3fc', '#22d3ee'],
+};
+
+const toneColor = (t: Tone | undefined) => (t === 'up' ? C.greenBright : t === 'down' ? C.red : C.text);
+const toneGlow = (t: Tone | undefined) => (t === 'up' ? C.green : t === 'down' ? C.redDark : '#404040');
+
+// ── utilidades de desenho ──
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/** Reduz o corpo da fonte até o texto caber em maxW. */
+function fitFont(ctx: CanvasRenderingContext2D, text: string, weight: number | string, family: string, size: number, maxW: number, min = 28) {
+  let s = size;
+  ctx.font = `${weight} ${s}px ${family}`;
+  while (ctx.measureText(text).width > maxW && s > min) { s -= 2; ctx.font = `${weight} ${s}px ${family}`; }
+  return s;
+}
+
+function spaced(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, spacing: number, align: 'left' | 'center' = 'left') {
+  const w = [...text].reduce((t, ch) => t + ctx.measureText(ch).width + spacing, -spacing);
+  let cx = align === 'center' ? x - w / 2 : x;
+  const prev = ctx.textAlign;
+  ctx.textAlign = 'left';
+  for (const ch of text) { ctx.fillText(ch, cx, y); cx += ctx.measureText(ch).width + spacing; }
+  ctx.textAlign = prev;
+}
+
+function loadImage(src: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+}
+
+function background(ctx: CanvasRenderingContext2D, W: number, H: number, glow: string) {
+  ctx.fillStyle = C.bg; ctx.fillRect(0, 0, W, H);
+  // grade sutil
+  ctx.strokeStyle = 'rgba(255,255,255,0.035)'; ctx.lineWidth = 1;
+  for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+  for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+  // brilho difuso no topo e no rodapé
+  const g1 = ctx.createRadialGradient(W * 0.85, 0, 0, W * 0.85, 0, W * 0.9);
+  g1.addColorStop(0, `${glow}55`); g1.addColorStop(1, `${glow}00`);
+  ctx.fillStyle = g1; ctx.fillRect(0, 0, W, H);
+  const g2 = ctx.createRadialGradient(W * 0.1, H, 0, W * 0.1, H, W * 0.8);
+  g2.addColorStop(0, `${C.green}22`); g2.addColorStop(1, `${C.green}00`);
+  ctx.fillStyle = g2; ctx.fillRect(0, 0, W, H);
+  // moldura
+  ctx.strokeStyle = C.line; ctx.lineWidth = 2; roundRect(ctx, 24, 24, W - 48, H - 48, 36); ctx.stroke();
+}
+
+function header(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number) {
+  const x = 84, y = 92;
+  if (logo) ctx.drawImage(logo, x, y - 12, 64, 64);
+  ctx.fillStyle = C.text; ctx.font = `700 34px ${DISPLAY}`; ctx.textBaseline = 'alphabetic';
+  spaced(ctx, 'TRADER AFK', x + 84, y + 32, 5);
+  ctx.fillStyle = C.green; ctx.fillRect(W - 84 - 120, y + 18, 120, 3);
+}
+
+function footer(ctx: CanvasRenderingContext2D, W: number, H: number, line: string) {
+  ctx.fillStyle = C.line; ctx.fillRect(84, H - 168, W - 168, 2);
+  ctx.textAlign = 'left'; ctx.fillStyle = C.muted; ctx.font = `500 28px ${BODY}`;
+  ctx.fillText(line, 84, H - 108);
+  ctx.textAlign = 'right'; ctx.fillStyle = C.greenBright; ctx.font = `700 34px ${DISPLAY}`;
+  ctx.fillText('traderafk.com', W - 84, H - 106);
+  ctx.textAlign = 'left';
+}
+
+function statBox(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, s: ShareStat) {
+  ctx.fillStyle = C.surface; roundRect(ctx, x, y, w, h, 24); ctx.fill();
+  ctx.strokeStyle = C.line; ctx.lineWidth = 2; roundRect(ctx, x, y, w, h, 24); ctx.stroke();
+  ctx.textAlign = 'left'; ctx.fillStyle = C.subtle; ctx.font = `600 22px ${BODY}`;
+  spaced(ctx, s.label.toUpperCase(), x + 30, y + 46, 2.5);
+  ctx.fillStyle = toneColor(s.tone);
+  const size = fitFont(ctx, s.value, 500, MONO, 52, w - 60, 26);
+  ctx.font = `500 ${size}px ${MONO}`;
+  ctx.fillText(s.value, x + 30, y + h - 34);
+}
+
+function star(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const rad = i % 2 === 0 ? r : r * 0.45;
+    const a = -Math.PI / 2 + (i * Math.PI) / 5;
+    const px = cx + Math.cos(a) * rad, py = cy + Math.sin(a) * rad;
+    if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+}
+
+function flame(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.bezierCurveTo(cx + r * 0.2, cy - r * 0.5, cx + r * 0.85, cy - r * 0.15, cx + r * 0.7, cy + r * 0.45);
+  ctx.bezierCurveTo(cx + r * 0.6, cy + r * 0.95, cx - r * 0.6, cy + r * 0.95, cx - r * 0.7, cy + r * 0.45);
+  ctx.bezierCurveTo(cx - r * 0.8, cy + r * 0.05, cx - r * 0.35, cy - r * 0.1, cx - r * 0.2, cy - r * 0.45);
+  ctx.bezierCurveTo(cx - r * 0.05, cy - r * 0.2, cx + r * 0.05, cy - r * 0.55, cx, cy - r);
+  ctx.closePath();
+}
+
+function medal(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, tier: BadgeTier, glyph: BadgeGlyph, earned: boolean) {
+  const [light, dark] = TIER_COLORS[tier];
+  if (earned) {
+    const halo = ctx.createRadialGradient(cx, cy, r * 0.6, cx, cy, r * 1.7);
+    halo.addColorStop(0, `${dark}66`); halo.addColorStop(1, `${dark}00`);
+    ctx.fillStyle = halo; ctx.beginPath(); ctx.arc(cx, cy, r * 1.7, 0, Math.PI * 2); ctx.fill();
+  }
+  const g = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  if (earned) { g.addColorStop(0, light); g.addColorStop(1, dark); } else { g.addColorStop(0, '#1f1f1f'); g.addColorStop(1, '#171717'); }
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+  ctx.lineWidth = Math.max(2, r * 0.06);
+  ctx.strokeStyle = earned ? 'rgba(255,255,255,0.55)' : C.line;
+  ctx.beginPath(); ctx.arc(cx, cy, r * 0.82, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = earned ? '#0a0a0a' : '#3a3a3a';
+  if (glyph === 'star') star(ctx, cx, cy + r * 0.04, r * 0.46); else flame(ctx, cx, cy, r * 0.46);
+  ctx.fill();
+}
+
+// ── cards ──
+function drawResult(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: ResultCard) {
+  background(ctx, W, H, toneGlow(s.tone));
+  header(ctx, logo, W);
+
+  const top = 190, bottom = H - 200;
+  const rows = Math.ceil(s.stats.length / 2);
+  const statsH = rows * 168 + Math.max(0, rows - 1) * 24;
+  const blockH = 40 + 24 + 130 + (s.subtitle ? 56 : 0) + 60 + 215 + 50 + statsH;
+  let y = top + Math.max(0, (bottom - top - blockH) / 2);
+
+  ctx.textAlign = 'left'; ctx.fillStyle = C.green; ctx.font = `700 28px ${BODY}`;
+  spaced(ctx, s.eyebrow.toUpperCase(), 84, y + 30, 6);
+  y += 40 + 24;
+
+  ctx.fillStyle = C.text;
+  const ts = fitFont(ctx, s.title, 700, DISPLAY, 120, W - 168, 56);
+  ctx.font = `700 ${ts}px ${DISPLAY}`;
+  ctx.fillText(s.title, 84, y + 96);
+  y += 130;
+  if (s.subtitle) {
+    ctx.fillStyle = C.muted; ctx.font = `500 32px ${BODY}`;
+    ctx.fillText(s.subtitle, 84, y + 30);
+    y += 56;
+  }
+  y += 60;
+
+  if (s.headlineLabel) {
+    ctx.fillStyle = C.subtle; ctx.font = `600 24px ${BODY}`;
+    spaced(ctx, s.headlineLabel.toUpperCase(), 84, y + 8, 4);
+  }
+  ctx.fillStyle = toneColor(s.tone);
+  const hs = fitFont(ctx, s.headline, 500, MONO, 170, W - 168, 60);
+  ctx.font = `500 ${hs}px ${MONO}`;
+  ctx.fillText(s.headline, 84, y + 46 + hs * 0.8);
+  y += 215 + 50;
+
+  const bw = (W - 168 - 24) / 2;
+  s.stats.slice(0, 6).forEach((st, i) => {
+    statBox(ctx, 84 + (i % 2) * (bw + 24), y + Math.floor(i / 2) * (168 + 24), bw, 168, st);
+  });
+  footer(ctx, W, H, 'Meu diário de operações');
+}
+
+function drawProgress(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: ProgressCard) {
+  background(ctx, W, H, C.green);
+  header(ctx, logo, W);
+
+  const top = 190, bottom = H - 200;
+  const cx = W / 2;
+  const content = 50 + 100 + 360 + 40 + 140 + 40 + 196;
+  let y = top + Math.max(0, (bottom - top - content) / 2);
+
+  ctx.textAlign = 'center'; ctx.fillStyle = C.green; ctx.font = `700 28px ${BODY}`;
+  spaced(ctx, 'MINHA JORNADA NA TRILHA GAIN', cx, y + 28, 5, 'center');
+  y += 50;
+  ctx.fillStyle = C.text;
+  const rs = fitFont(ctx, s.rank, 700, DISPLAY, 88, W - 168, 48);
+  ctx.font = `700 ${rs}px ${DISPLAY}`;
+  ctx.fillText(s.rank, cx, y + 76);
+  y += 100;
+
+  // anel de progresso
+  const R = 140, ry = y + 170;
+  const pct = s.totalLessons > 0 ? Math.min(1, s.lessons / s.totalLessons) : 0;
+  ctx.lineWidth = 22; ctx.lineCap = 'round';
+  ctx.strokeStyle = C.elevated; ctx.beginPath(); ctx.arc(cx, ry, R, 0, Math.PI * 2); ctx.stroke();
+  if (pct > 0) {
+    const g = ctx.createLinearGradient(cx - R, ry - R, cx + R, ry + R);
+    g.addColorStop(0, C.greenBright); g.addColorStop(1, C.greenDark);
+    ctx.strokeStyle = g; ctx.beginPath(); ctx.arc(cx, ry, R, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct); ctx.stroke();
+  }
+  ctx.fillStyle = C.text; ctx.font = `500 84px ${MONO}`; ctx.fillText(`${Math.round(pct * 100)}%`, cx, ry + 18);
+  ctx.fillStyle = C.muted; ctx.font = `500 26px ${BODY}`;
+  ctx.fillText(s.totalLessons > 0 ? `${s.lessons} de ${s.totalLessons} aulas` : `${s.lessons} aulas`, cx, ry + 62);
+  y += 360 + 40;
+
+  const bw = (W - 168 - 24) / 2;
+  statBox(ctx, 84, y, bw, 140, { label: 'Sequência', value: `${s.streak} dias`, tone: s.streak > 0 ? 'up' : 'neutral' });
+  statBox(ctx, 84 + bw + 24, y, bw, 140, { label: 'Melhor sequência', value: `${s.bestStreak} dias` });
+  y += 140 + 40;
+
+  // insígnias (até 10, em duas fileiras de 5)
+  const shown = s.badges.slice(0, 10);
+  const per = 5, r = 44, gap = (W - 168 - per * r * 2) / (per - 1);
+  shown.forEach((b, i) => {
+    const bx = 84 + r + (i % per) * (r * 2 + gap);
+    const by = y + r + Math.floor(i / per) * (r * 2 + 20);
+    medal(ctx, bx, by, r, b.tier, b.glyph, b.earned);
+  });
+  ctx.textAlign = 'left';
+  footer(ctx, W, H, 'Aprendendo a operar, um dia de cada vez');
+}
+
+function drawBadge(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: BadgeCard) {
+  const [, dark] = TIER_COLORS[s.badge.tier];
+  background(ctx, W, H, dark);
+  header(ctx, logo, W);
+
+  const top = 190, bottom = H - 200;
+  const content = 60 + 420 + 70 + 110 + 40 + 120 + 60 + 168;
+  let y = top + Math.max(0, (bottom - top - content) / 2);
+  const cx = W / 2;
+
+  ctx.textAlign = 'center'; ctx.fillStyle = C.green; ctx.font = `700 28px ${BODY}`;
+  spaced(ctx, 'NOVA INSÍGNIA CONQUISTADA', cx, y + 28, 6, 'center');
+  y += 60;
+  medal(ctx, cx, y + 210, 190, s.badge.tier, s.badge.glyph, true);
+  y += 420 + 70;
+
+  ctx.fillStyle = C.text;
+  const ns = fitFont(ctx, s.badge.name, 700, DISPLAY, 96, W - 168, 48);
+  ctx.font = `700 ${ns}px ${DISPLAY}`; ctx.fillText(s.badge.name, cx, y + 80);
+  y += 110;
+  ctx.fillStyle = TIER_COLORS[s.badge.tier][0]; ctx.font = `700 26px ${BODY}`;
+  spaced(ctx, `NÍVEL ${s.badge.tierLabel.toUpperCase()}`, cx, y + 20, 5, 'center');
+  y += 40;
+  ctx.fillStyle = C.muted; ctx.font = `500 34px ${BODY}`;
+  ctx.fillText(s.badge.description, cx, y + 56);
+  y += 120 + 60;
+
+  const bw = (W - 168 - 24) / 2;
+  statBox(ctx, 84, y, bw, 168, { label: 'Patente', value: s.rank });
+  statBox(ctx, 84 + bw + 24, y, bw, 168, { label: 'Aulas concluídas', value: String(s.lessons), tone: 'up' });
+  ctx.textAlign = 'left';
+  footer(ctx, W, H, 'Conquistado na Trilha Gain');
+}
+
+export async function renderShareCard(spec: CardSpec, format: ShareFormat): Promise<Blob> {
+  const { w, h } = SIZES[format];
+  try {
+    await Promise.all([
+      document.fonts.load(`700 64px "Space Grotesk"`),
+      document.fonts.load(`500 32px Inter`),
+      document.fonts.load(`700 32px Inter`),
+      document.fonts.load(`500 64px "JetBrains Mono"`),
+    ]);
+  } catch { /* segue com a fonte reserva */ }
+  const logo = await loadImage('/images/logo-icon-128.png');
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('canvas_unavailable');
+
+  if (spec.kind === 'result') drawResult(ctx, logo, w, h, spec);
+  else if (spec.kind === 'progress') drawProgress(ctx, logo, w, h, spec);
+  else drawBadge(ctx, logo, w, h, spec);
+
+  return new Promise((resolve, reject) =>
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('render_failed'))), 'image/png'));
+}
+
+export const canShareFiles = (file: File) =>
+  typeof navigator !== 'undefined' && !!navigator.canShare && navigator.canShare({ files: [file] });

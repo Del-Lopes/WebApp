@@ -4,6 +4,7 @@ import { Button, Card, CardHeader, Label, Input, Select, Stat, Badge, Modal, Fie
 import { cn } from '../../lib/cn';
 import { PropFirm, simulate, formatMoney, formatSize, SimAccount, SimParams } from '../../lib/propFirms';
 import { SeriesChart } from '../charts/SeriesChart';
+import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
 import { PLAN_STORAGE_KEY } from './Projecao';
 import {
   TrackAccount, TrackerData, accountIsActive, addAccounts, addDaysISO, addWithdrawal, buildTimeline, daysBetween,
@@ -50,6 +51,7 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
   const [error, setError] = useState<string | null>(null);
   const [selIdx, setSelIdx] = useState<number | null>(null);
   const [openAccount, setOpenAccount] = useState<string | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const today = todayISO();
   const plan = useMemo(loadPlan, []);
@@ -283,8 +285,44 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
           {error && <FieldMessage error>{error}</FieldMessage>}
         </div>
 
+        {shareOpen && (
+          <ShareCardModal
+            open
+            onClose={() => setShareOpen(false)}
+            title="Compartilhar trajetória"
+            canHideValues
+            fileName="trajetoria-mesas-proprietarias"
+            build={({ showValues }) => ({
+              kind: 'result',
+              eyebrow: 'Mesas proprietárias · Gestão',
+              title: 'Trajetória de alavancagem',
+              subtitle: cur ? `Até ${new Date(cur.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}` : undefined,
+              headlineLabel: showValues ? 'Lucro acumulado' : 'Contas ativas',
+              headline: showValues ? usd(cur?.cumNet ?? 0) : String(active.length),
+              tone: showValues ? ((cur?.cumNet ?? 0) > 0 ? 'up' : (cur?.cumNet ?? 0) < 0 ? 'down' : 'neutral') : 'up',
+              stats: showValues
+                ? [
+                    { label: 'Contas ativas', value: String(active.length) },
+                    { label: 'Resultado do dia', value: usd(cur?.dayNet ?? 0), tone: (cur?.dayNet ?? 0) > 0 ? 'up' : (cur?.dayNet ?? 0) < 0 ? 'down' : 'neutral' },
+                    { label: 'Líquido (após custos)', value: usd(net), tone: net > 0 ? 'up' : net < 0 ? 'down' : 'neutral' },
+                    { label: 'Já sacado', value: usd(cur?.withdrawn ?? 0) },
+                  ]
+                : [
+                    { label: 'Contas no total', value: String(accounts.length) },
+                    { label: 'Dias de jornada', value: String(tl.length) },
+                  ],
+            })}
+            caption={`🚀 Minha trajetória de alavancagem em mesas proprietárias: ${active.length} contas ativas. Acompanhando tudo na Gestão do Trader AFK. traderafk.com`}
+          />
+        )}
+
         {/* Painel */}
         <div className="min-w-0 space-y-4">
+          {accounts.length > 0 && (
+            <div className="flex justify-end">
+              <ShareButton label="Compartilhar trajetória" onClick={() => setShareOpen(true)} />
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Stat label="Contas ativas" value={active.length} icon={Layers} hint={`${accounts.length} no total`} />
             <Stat label="Resultado do dia" value={usd(cur?.dayNet ?? 0)} icon={TrendingUp} hint={cur ? shortDate(cur.date) : undefined} />
