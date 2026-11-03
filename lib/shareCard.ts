@@ -326,30 +326,36 @@ function drawBadge(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null,
   header(ctx, logo, W);
 
   const top = 190, bottom = H - 200;
-  const content = 60 + 420 + 70 + 110 + 40 + 120 + 60 + 168;
+  // Medalha de 150 px de raio: o bloco todo (~830 px) cabe no formato feed (960 px úteis).
+  const content = 50 + 340 + 50 + 100 + 40 + 70 + 50 + 140;
   let y = top + Math.max(0, (bottom - top - content) / 2);
   const cx = W / 2;
 
   ctx.textAlign = 'center'; ctx.fillStyle = C.green; ctx.font = `700 28px ${BODY}`;
   spaced(ctx, 'NOVA INSÍGNIA CONQUISTADA', cx, y + 28, 6, 'center');
-  y += 60;
-  medal(ctx, cx, y + 210, 190, s.badge.tier, s.badge.glyph, true);
-  y += 420 + 70;
+  y += 50;
+  medal(ctx, cx, y + 170, 150, s.badge.tier, s.badge.glyph, true);
+  y += 340 + 50;
 
   ctx.fillStyle = C.text;
-  const ns = fitFont(ctx, s.badge.name, 700, DISPLAY, 96, W - 168, 48);
-  ctx.font = `700 ${ns}px ${DISPLAY}`; ctx.fillText(s.badge.name, cx, y + 80);
-  y += 110;
+  const ns = fitFont(ctx, s.badge.name, 700, DISPLAY, 88, W - 168, 48);
+  ctx.font = `700 ${ns}px ${DISPLAY}`; ctx.fillText(s.badge.name, cx, y + 72);
+  y += 100;
   ctx.fillStyle = TIER_COLORS[s.badge.tier][0]; ctx.font = `700 26px ${BODY}`;
   spaced(ctx, `NÍVEL ${s.badge.tierLabel.toUpperCase()}`, cx, y + 20, 5, 'center');
   y += 40;
-  ctx.fillStyle = C.muted; ctx.font = `500 34px ${BODY}`;
-  ctx.fillText(s.badge.description, cx, y + 56);
-  y += 120 + 60;
+  ctx.fillStyle = C.muted;
+  fitFont(ctx, s.badge.description, 500, BODY, 32, W - 168, 22);
+  ctx.fillText(s.badge.description, cx, y + 36);
+  y += 70 + 50;
 
   const bw = (W - 168 - 24) / 2;
-  statBox(ctx, 84, y, bw, 168, { label: 'Patente', value: s.rank });
-  statBox(ctx, 84 + bw + 24, y, bw, 168, { label: 'Aulas concluídas', value: String(s.lessons), tone: 'up' });
+  statBox(ctx, 84, y, bw, 140, { label: 'Patente', value: s.rank });
+  if (s.badge.glyph === 'flame') {
+    statBox(ctx, 84 + bw + 24, y, bw, 140, { label: 'Melhor sequência', value: `${s.bestStreak} dias`, tone: 'up' });
+  } else {
+    statBox(ctx, 84 + bw + 24, y, bw, 140, { label: 'Aulas concluídas', value: String(s.lessons), tone: 'up' });
+  }
   ctx.textAlign = 'left';
   footer(ctx, W, H, 'Conquistado na Trilha Gain');
 }
