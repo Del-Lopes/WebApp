@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { ArrowRight, CheckCircle2, Lock, Milestone } from 'lucide-react';
+import { ArrowRight, Milestone } from 'lucide-react';
 import { Button, Card, EmptyState, Skeleton } from '../ui';
 import { ProgressPanel, isRealLesson } from '../TrilhaGain/ProgressPanel';
 import { buildUnitNodes } from '../TrilhaGain/unitNodes';
@@ -123,36 +123,6 @@ export const TrilhaProgressCard: React.FC<Props> = ({ onOpen }) => {
           </div>
 
           <ProgressPanel lessons={progress.lessons} totalLessons={progress.totalLessons} stats={progress.stats} />
-
-          <ul className="max-h-[260px] space-y-2 overflow-y-auto pr-1 ds-scrollbar">
-            {progress.units.map((u) => {
-              const complete = !u.locked && u.total > 0 && u.done >= u.total;
-              const unitPct = u.total ? Math.round((u.done / u.total) * 100) : 0;
-              return (
-                <li key={u.id} className="rounded-xl border border-tint/8 bg-tint/3 px-3.5 py-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className={`min-w-0 truncate text-sm font-medium ${u.locked ? 'text-fg-subtle' : 'text-fg'}`}>{u.title}</p>
-                    {u.locked ? (
-                      <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-fg-subtle">
-                        <Lock size={12} aria-hidden /> Premium
-                      </span>
-                    ) : complete ? (
-                      <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-success-fg">
-                        <CheckCircle2 size={13} aria-hidden /> Concluída
-                      </span>
-                    ) : (
-                      <span className="shrink-0 font-mono text-xs tabular-nums text-fg-muted">{u.done}/{u.total}</span>
-                    )}
-                  </div>
-                  {!u.locked && !complete && (
-                    <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-tint/6">
-                      <div className="h-full rounded-full bg-accent/70 transition-all duration-500" style={{ width: `${unitPct}%` }} />
-                    </div>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
 
           <Button onClick={onOpen} className="w-full">
             {done === 0 ? 'Começar a Trilha' : 'Continuar a Trilha'} <ArrowRight size={16} />

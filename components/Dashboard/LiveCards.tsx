@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDownRight, ArrowUpRight, Bitcoin, CalendarClock, Clock, MinusCircle, Radio } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Bitcoin, CalendarClock, MinusCircle, Radio } from 'lucide-react';
 import {
   EconEvent, EconProfile, displayTitle, fetchEvents, fetchProfiles, fmtTime, fmtValue,
 } from '../../lib/econCalendar';
@@ -19,7 +19,7 @@ interface CardProps { onNavigate: (view: View) => void }
 
 const CARD = 'glass-card glass-card-hover p-6 rounded-2xl cursor-pointer group';
 const ICON = 'p-3 bg-tint/5 border border-tint/10 text-fg-muted rounded-xl group-hover:bg-accent/10 group-hover:border-accent/20 group-hover:text-accent-fg transition-colors';
-const TITLE = 'font-display text-lg font-semibold text-fg';
+const TITLE = 'font-display text-lg font-semibold text-fg truncate';
 
 const Shell: React.FC<{
   onClick: () => void; icon: React.ElementType; eyebrow: string; title: string; label: string;
@@ -34,13 +34,18 @@ const Shell: React.FC<{
     className={cn(CARD, 'focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60', className)}>
     <div className="mb-4 flex items-center gap-4">
       <div className={ICON}><Icon size={24} /></div>
-      <div className="min-w-0">
+      <div className="min-w-0 flex-1">
         <p className="eyebrow-muted truncate">{eyebrow}</p>
         <h3 className={TITLE}>{title}</h3>
       </div>
     </div>
     {children}
   </div>
+);
+
+/** Uma única linha, na altura do texto de apoio dos atalhos estáticos. */
+const Line: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+  <div className="flex h-4 min-w-0 items-center gap-1.5 overflow-hidden whitespace-nowrap text-xs text-fg-muted">{children}</div>
 );
 
 const Pulse: React.FC<{ className?: string }> = ({ className }) => (
@@ -94,29 +99,22 @@ export const EconCalendarCard: React.FC<CardProps> = ({ onNavigate }) => {
   const imminent = !!next && ms < 30 * 60_000;
 
   return (
-    <Shell onClick={() => onNavigate('econ_calendar')} icon={CalendarClock} eyebrow="Calendário Econômico"
-      title={next ? `Próxima notícia ${countdown(ms)}` : 'Notícias do mercado'}
+    <Shell onClick={() => onNavigate('econ_calendar')} icon={CalendarClock}
+      eyebrow={next ? 'Próxima notícia em' : 'Calendário Econômico'}
+      title={next ? countdown(ms) : 'Notícias do mercado'}
       label="Abrir o Calendário Econômico"
       className={imminent ? 'border-warning/40!' : undefined}>
       {events === null ? (
-        <div className="space-y-2"><Pulse className="h-4 w-3/4" /><Pulse className="h-3 w-1/2" /></div>
+        <Pulse className="h-4 w-3/4" />
       ) : next ? (
-        <div className="space-y-1.5">
-          <p className="line-clamp-2 text-sm font-medium text-fg">{displayTitle(next, profiles.get(next.event_key))}</p>
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-fg-muted">
-            <span className="rounded-md border border-tint/10 bg-tint/6 px-1.5 py-0.5 font-mono text-[11px] font-semibold text-fg">{next.currency}</span>
-            <Stars n={next.importance} />
-            <span className="inline-flex items-center gap-1 tabular-nums"><Clock size={11} /> {fmtTime(next.occurs_at)}</span>
-          </div>
-          {(next.forecast != null || next.previous != null) && (
-            <p className="text-xs text-fg-subtle tabular-nums">
-              {next.previous != null && <>Anterior <span className="text-fg-muted">{fmtValue(next.previous, next.unit, next.precision)}</span></>}
-              {next.forecast != null && <> · Projeção <span className="text-fg-muted">{fmtValue(next.forecast, next.unit, next.precision)}</span></>}
-            </p>
-          )}
-        </div>
+        <Line>
+          <span className="rounded-md border border-tint/10 bg-tint/6 px-1.5 font-mono text-[11px] font-semibold leading-4 text-fg">{next.currency}</span>
+          <Stars n={next.importance} />
+          <span className="tabular-nums">{fmtTime(next.occurs_at)}</span>
+          <span className="truncate text-fg">· {displayTitle(next, profiles.get(next.event_key))}</span>
+        </Line>
       ) : (
-        <p className="text-xs text-fg-muted">{failed ? 'Veja os indicadores do dia e a leitura por IA.' : 'Sem notícias relevantes nos próximos dias.'}</p>
+        <Line>{failed ? 'Veja os indicadores do dia e a leitura por IA.' : 'Sem notícias relevantes nos próximos dias.'}</Line>
       )}
     </Shell>
   );
@@ -143,30 +141,26 @@ export const CryptoCard: React.FC<CardProps> = ({ onNavigate }) => {
   const fgTone = fg ? (fg.value >= 55 ? 'text-success-fg' : fg.value <= 45 ? 'text-danger-fg' : 'text-warning-fg') : '';
 
   return (
-    <Shell onClick={() => onNavigate('crypto')} icon={Bitcoin} eyebrow="Crypto" title="Termômetro do mercado" label="Abrir a área Crypto">
+    <Shell onClick={() => onNavigate('crypto')} icon={Bitcoin} eyebrow="Tendências" title="Crypto" label="Abrir a área Crypto">
       {loading ? (
-        <div className="space-y-2"><Pulse className="h-4 w-2/3" /><Pulse className="h-3 w-1/2" /></div>
+        <Pulse className="h-4 w-3/4" />
       ) : fg || global ? (
-        <div className="space-y-1.5">
+        <Line>
           {fg && (
-            <p className="text-sm text-fg">
-              Medo e Ganância{' '}
-              <span className={cn('font-mono font-semibold tabular-nums', fgTone)}>{fg.value}</span>
-              <span className="text-fg-muted"> · {fearGreedLabel(fg.classification)}</span>
-            </p>
+            <span className="truncate">
+              Medo e Ganância <span className={cn('font-mono font-semibold tabular-nums', fgTone)}>{fg.value}</span>
+              <span> · {fearGreedLabel(fg.classification)}</span>
+            </span>
           )}
           {global && (
-            <p className="flex flex-wrap items-center gap-x-2 text-xs text-fg-muted tabular-nums">
-              <span className={cn('inline-flex items-center gap-0.5 font-semibold', (change ?? 0) >= 0 ? 'text-success-fg' : 'text-danger-fg')}>
-                {(change ?? 0) >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
-                {Math.abs(change ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}% em 24h
-              </span>
-              <span>· Dominância BTC {global.btcDominance.toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%</span>
-            </p>
+            <span className={cn('inline-flex shrink-0 items-center gap-0.5 font-semibold tabular-nums', (change ?? 0) >= 0 ? 'text-success-fg' : 'text-danger-fg')}>
+              {(change ?? 0) >= 0 ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
+              {Math.abs(change ?? 0).toLocaleString('pt-BR', { maximumFractionDigits: 1 })}%
+            </span>
           )}
-        </div>
+        </Line>
       ) : (
-        <p className="text-xs text-fg-muted">Altas, narrativas e desbloqueios de tokens.</p>
+        <Line>Altas, narrativas e desbloqueios de tokens.</Line>
       )}
     </Shell>
   );
@@ -202,23 +196,17 @@ export const SignalsCard: React.FC<CardProps> = ({ onNavigate }) => {
   return (
     <Shell onClick={() => onNavigate('signals')} icon={Radio} eyebrow="Sinais" title="Análise por IA" label="Abrir os Sinais">
       {signals === null ? (
-        <div className="space-y-2"><Pulse className="h-4 w-2/3" /><Pulse className="h-3 w-1/2" /></div>
+        <Pulse className="h-4 w-3/4" />
       ) : last ? (
-        <div className="space-y-1.5">
-          <p className="flex flex-wrap items-center gap-x-2 text-sm">
-            <span className={cn('inline-flex items-center gap-1 font-display font-semibold', meta.cls)}>
-              <meta.Icon size={15} /> {meta.label}
-            </span>
-            <span className="font-mono font-medium text-fg">{last.symbol}</span>
-            {last.timeframe && <span className="font-mono text-xs text-fg-subtle">{last.timeframe}</span>}
-          </p>
-          <p className="text-xs text-fg-muted">
-            Última análise {ago(last.created_at)}
-            {open > 0 && <> · <span className="font-semibold text-accent-fg">{open} {open === 1 ? 'ativa' : 'ativas'}</span></>}
-          </p>
-        </div>
+        <Line>
+          <span className={cn('inline-flex shrink-0 items-center gap-0.5 font-semibold', meta.cls)}>
+            <meta.Icon size={12} /> {meta.label}
+          </span>
+          <span className="shrink-0 font-mono font-medium text-fg">{last.symbol}</span>
+          <span className="truncate">· {ago(last.created_at)}{open > 0 ? ` · ${open} ${open === 1 ? 'ativa' : 'ativas'}` : ''}</span>
+        </Line>
       ) : (
-        <p className="text-xs text-fg-muted">Peça a primeira análise de um ativo.</p>
+        <Line>Peça a primeira análise de um ativo.</Line>
       )}
     </Shell>
   );
