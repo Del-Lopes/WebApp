@@ -186,7 +186,7 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
                 )}
               >
                 {p.highlight && (
-                  <span className="absolute -top-2.5 right-3"><Badge tone="accent"><Sparkles size={11} /> Mais escolhido</Badge></span>
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-page"><Badge tone="accent" className="border-accent/40 bg-accent/15 shadow-sm"><Sparkles size={11} /> Mais escolhido</Badge></span>
                 )}
                 <p className="eyebrow-muted">{p.name}</p>
                 <p className="mt-2 flex items-center gap-1.5 font-mono text-2xl font-bold tabular-nums text-fg">
