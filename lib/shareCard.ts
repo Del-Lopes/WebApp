@@ -46,7 +46,38 @@ export interface BadgeCard {
   bestStreak: number;
 }
 
-export type CardSpec = ResultCard | ProgressCard | BadgeCard;
+/** Análise de um sinal (compra, venda ou sem entrada). */
+export interface SignalShareCard {
+  kind: 'signal';
+  action: 'BUY' | 'SELL' | 'NONE';
+  symbol: string;
+  timeframe?: string | null;
+  when: string;
+  /** Entrada / Stop / Alvo; null quando não há setup. */
+  levels: { label: string; value: string; tone: Tone }[] | null;
+  themes: { title: string; value: string; tone: Tone }[];
+  note?: string;
+}
+
+export type Dir3 = 'up' | 'down' | 'flat';
+
+/** Interpretação de um indicador do calendário, antes ou depois da divulgação. */
+export interface NewsShareCard {
+  kind: 'news';
+  phase: 'pre' | 'post';
+  title: string;
+  meta: string;
+  stars: number;
+  numbers: ShareStat[];
+  headline: string;
+  headlineTone: Tone;
+  verdict?: string;
+  rowsTitle: string;
+  rows: { label: string; value: string; dir: Dir3 }[];
+  note?: string;
+}
+
+export type CardSpec = ResultCard | ProgressCard | BadgeCard | SignalShareCard | NewsShareCard;
 
 const C = {
   bg: '#0a0a0a', surface: '#111111', elevated: '#171717', line: '#262626',
@@ -143,11 +174,11 @@ function statBox(ctx: CanvasRenderingContext2D, x: number, y: number, w: number,
   ctx.fillStyle = C.surface; roundRect(ctx, x, y, w, h, 24); ctx.fill();
   ctx.strokeStyle = C.line; ctx.lineWidth = 2; roundRect(ctx, x, y, w, h, 24); ctx.stroke();
   ctx.textAlign = 'left'; ctx.fillStyle = C.subtle; ctx.font = `600 22px ${BODY}`;
-  spaced(ctx, s.label.toUpperCase(), x + 30, y + 46, 2.5);
+  spaced(ctx, s.label.toUpperCase(), x + 30, y + 42, 2.5);
   ctx.fillStyle = toneColor(s.tone);
-  const size = fitFont(ctx, s.value, 500, MONO, 52, w - 60, 26);
+  const size = fitFont(ctx, s.value, 500, MONO, Math.min(52, h - 88), w - 60, 24);
   ctx.font = `500 ${size}px ${MONO}`;
-  ctx.fillText(s.value, x + 30, y + h - 34);
+  ctx.fillText(s.value, x + 30, y + h - 26);
 }
 
 function star(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) {
@@ -317,6 +348,176 @@ function drawBadge(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null,
   footer(ctx, W, H, 'Conquistado na Trilha Gain');
 }
 
+/** Quebra o texto em linhas que cabem em maxW (a última ganha reticências). */
+function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLines: number): string[] {
+  const clean = text.replace(/\s+/g, ' ').trim();
+  const words = clean.split(' ');
+  const lines: string[] = [];
+  let cur = '';
+  let consumed = 0;
+  for (let i = 0; i < words.length; i++) {
+    const test = cur ? `${cur} ${words[i]}` : words[i];
+    if (ctx.measureText(test).width <= maxW) { cur = test; consumed = i + 1; continue; }
+    if (lines.length === maxLines - 1) break;
+    lines.push(cur);
+    cur = words[i];
+    consumed = i + 1;
+  }
+  if (cur) lines.push(cur);
+  if (consumed < words.length && lines.length) {
+    let last = lines[lines.length - 1];
+    while (last.length > 1 && ctx.measureText(`${last}…`).width > maxW) last = last.slice(0, -1);
+    lines[lines.length - 1] = `${last.replace(/[ ,.;:]+$/, '')}…`;
+  }
+  return lines.slice(0, maxLines);
+}
+
+function triangle(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, dir: Dir3, color: string) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  if (dir === 'up') { ctx.moveTo(cx, cy - r); ctx.lineTo(cx + r, cy + r * 0.8); ctx.lineTo(cx - r, cy + r * 0.8); }
+  else if (dir === 'down') { ctx.moveTo(cx, cy + r); ctx.lineTo(cx + r, cy - r * 0.8); ctx.lineTo(cx - r, cy - r * 0.8); }
+  else { ctx.rect(cx - r, cy - r * 0.22, r * 2, r * 0.44); }
+  ctx.closePath(); ctx.fill();
+}
+
+const DIR_COLOR: Record<Dir3, string> = { up: C.greenBright, down: C.red, flat: C.muted };
+
+function drawSignal(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: SignalShareCard) {
+  const tone: Tone = s.action === 'BUY' ? 'up' : s.action === 'SELL' ? 'down' : 'neutral';
+  background(ctx, W, H, toneGlow(tone));
+  header(ctx, logo, W);
+
+  const word = s.action === 'BUY' ? 'COMPRA' : s.action === 'SELL' ? 'VENDA' : 'SEM ENTRADA';
+  ctx.font = `500 30px ${BODY}`;
+  const noteLines = s.note ? wrapLines(ctx, s.note, W - 168, 3) : [];
+  const themes = s.themes.slice(0, 4);
+  const themeRows = Math.ceil(themes.length / 2);
+  const h = 64 + 120 + 90 + 50
+    + (s.levels ? 150 + 36 : 0)
+    + (themes.length ? themeRows * 130 + (themeRows - 1) * 20 + 36 : 0)
+    + (noteLines.length ? noteLines.length * 42 + 10 : 0);
+  const top = 190, bottom = H - 200;
+  let y = top + Math.max(0, (bottom - top - h) / 2);
+
+  ctx.textAlign = 'left'; ctx.fillStyle = C.green; ctx.font = `700 28px ${BODY}`;
+  spaced(ctx, `ANÁLISE IA${s.timeframe ? ` · ${s.timeframe}` : ''}`, 84, y + 30, 6);
+  y += 64;
+
+  ctx.fillStyle = toneColor(tone);
+  const ws = fitFont(ctx, word, 700, DISPLAY, 120, W - 168, 56);
+  ctx.font = `700 ${ws}px ${DISPLAY}`;
+  ctx.fillText(word, 84, y + 96);
+  y += 120;
+
+  ctx.fillStyle = C.text;
+  const ss = fitFont(ctx, s.symbol, 500, MONO, 76, W - 168, 36);
+  ctx.font = `500 ${ss}px ${MONO}`;
+  ctx.fillText(s.symbol, 84, y + 62);
+  y += 90;
+  ctx.fillStyle = C.muted; ctx.font = `500 28px ${BODY}`;
+  ctx.fillText(s.when, 84, y + 22);
+  y += 50;
+
+  if (s.levels) {
+    const n = s.levels.length, gap = 20, bw = (W - 168 - gap * (n - 1)) / n;
+    s.levels.forEach((l, i) => statBox(ctx, 84 + i * (bw + gap), y, bw, 150, { label: l.label, value: l.value, tone: l.tone }));
+    y += 150 + 36;
+  }
+  if (themes.length) {
+    const bw = (W - 168 - 20) / 2;
+    themes.forEach((t, i) => statBox(ctx, 84 + (i % 2) * (bw + 20), y + Math.floor(i / 2) * (130 + 20), bw, 130, { label: t.title, value: t.value, tone: t.tone }));
+    y += themeRows * 130 + (themeRows - 1) * 20 + 36;
+  }
+  if (noteLines.length) {
+    ctx.fillStyle = C.muted; ctx.font = `500 30px ${BODY}`;
+    noteLines.forEach((l, i) => ctx.fillText(l, 84, y + 30 + i * 42));
+  }
+  footer(ctx, W, H, 'Informativo · não é recomendação');
+}
+
+function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: NewsShareCard) {
+  background(ctx, W, H, toneGlow(s.headlineTone));
+  header(ctx, logo, W);
+
+  ctx.font = `700 56px ${DISPLAY}`;
+  const titleLines = wrapLines(ctx, s.title, W - 168, 2);
+  ctx.font = `500 28px ${BODY}`;
+  const noteLines = s.note ? wrapLines(ctx, s.note, W - 168, 2) : [];
+  const rows = s.rows.slice(0, 6);
+  const cols = rows.length > 3 ? 2 : 1;
+  const rowH = 80, rowGap = 14;
+  const rowCount = Math.ceil(rows.length / cols);
+  const rowsH = rowCount * rowH + Math.max(0, rowCount - 1) * rowGap;
+  const h = 64 + titleLines.length * 66 + 50 + 16
+    + (s.numbers.length ? 130 + 24 : 0)
+    + 84 + (s.verdict ? 44 : 0) + 16 + 36 + rowsH
+    + (noteLines.length ? noteLines.length * 38 + 20 : 0);
+  const top = 190, bottom = H - 200;
+  let y = top + Math.max(0, (bottom - top - h) / 2);
+
+  ctx.textAlign = 'left'; ctx.fillStyle = C.green; ctx.font = `700 26px ${BODY}`;
+  spaced(ctx, `CALENDÁRIO ECONÔMICO · ${s.phase === 'pre' ? 'ANTES DA NOTÍCIA' : 'APÓS A NOTÍCIA'}`, 84, y + 28, 4);
+  y += 64;
+
+  ctx.fillStyle = C.text; ctx.font = `700 56px ${DISPLAY}`;
+  titleLines.forEach((l, i) => ctx.fillText(l, 84, y + 50 + i * 66));
+  y += titleLines.length * 66;
+
+  ctx.fillStyle = C.muted; ctx.font = `500 28px ${BODY}`;
+  ctx.fillText(s.meta, 84, y + 34);
+  const metaW = ctx.measureText(s.meta).width;
+  ctx.fillStyle = '#fbbf24';
+  for (let i = 0; i < s.stars; i++) { star(ctx, 84 + metaW + 40 + i * 34, y + 24, 13); ctx.fill(); }
+  y += 50 + 16;
+
+  if (s.numbers.length) {
+    const n = s.numbers.length, gap = 16, bw = (W - 168 - gap * (n - 1)) / n;
+    s.numbers.forEach((st, i) => statBox(ctx, 84 + i * (bw + gap), y, bw, 130, st));
+    y += 130 + 24;
+  }
+
+  ctx.fillStyle = toneColor(s.headlineTone);
+  const hs = fitFont(ctx, s.headline, 700, DISPLAY, 72, W - 168, 36);
+  ctx.font = `700 ${hs}px ${DISPLAY}`;
+  ctx.fillText(s.headline, 84, y + 62);
+  y += 84;
+  if (s.verdict) {
+    ctx.fillStyle = C.text;
+    fitFont(ctx, s.verdict, 600, BODY, 32, W - 168, 22);
+    ctx.fillText(s.verdict, 84, y + 26);
+    y += 44;
+  }
+  y += 16;
+
+  ctx.fillStyle = C.subtle; ctx.font = `600 22px ${BODY}`;
+  spaced(ctx, s.rowsTitle.toUpperCase(), 84, y + 18, 3);
+  y += 36;
+
+  const gap = 20, rw = (W - 168 - gap * (cols - 1)) / cols;
+  rows.forEach((r, i) => {
+    const x = 84 + (i % cols) * (rw + gap), ry = y + Math.floor(i / cols) * (rowH + rowGap);
+    ctx.fillStyle = C.surface; roundRect(ctx, x, ry, rw, rowH, 20); ctx.fill();
+    ctx.strokeStyle = C.line; ctx.lineWidth = 2; roundRect(ctx, x, ry, rw, rowH, 20); ctx.stroke();
+    ctx.textAlign = 'left'; ctx.fillStyle = C.text;
+    fitFont(ctx, r.label, 600, MONO, 30, rw * 0.5, 20);
+    ctx.fillText(r.label, x + 28, ry + rowH / 2 + 10);
+    ctx.textAlign = 'right'; ctx.fillStyle = DIR_COLOR[r.dir];
+    fitFont(ctx, r.value, 600, BODY, 28, rw * 0.5 - 20, 18);
+    ctx.fillText(r.value, x + rw - 28, ry + rowH / 2 + 10);
+    const vw = ctx.measureText(r.value).width;
+    triangle(ctx, x + rw - 28 - vw - 26, ry + rowH / 2 + 1, 10, r.dir, DIR_COLOR[r.dir]);
+    ctx.textAlign = 'left';
+  });
+  y += rowsH;
+
+  if (noteLines.length) {
+    ctx.fillStyle = C.muted; ctx.font = `500 28px ${BODY}`;
+    noteLines.forEach((l, i) => ctx.fillText(l, 84, y + 48 + i * 38));
+  }
+  footer(ctx, W, H, 'Leitura gerada por IA · não é recomendação');
+}
+
 export async function renderShareCard(spec: CardSpec, format: ShareFormat): Promise<Blob> {
   const { w, h } = SIZES[format];
   try {
@@ -336,6 +537,8 @@ export async function renderShareCard(spec: CardSpec, format: ShareFormat): Prom
 
   if (spec.kind === 'result') drawResult(ctx, logo, w, h, spec);
   else if (spec.kind === 'progress') drawProgress(ctx, logo, w, h, spec);
+  else if (spec.kind === 'signal') drawSignal(ctx, logo, w, h, spec);
+  else if (spec.kind === 'news') drawNews(ctx, logo, w, h, spec);
   else drawBadge(ctx, logo, w, h, spec);
 
   return new Promise((resolve, reject) =>

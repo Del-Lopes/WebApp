@@ -5,6 +5,8 @@ import { tvSymbol, tvInterval } from '../../lib/marketData';
 import { TradingViewChart } from './TradingViewChart';
 import { AnalysisSections } from './AnalysisSections';
 import { parseAnalysis } from '../../lib/signalAnalysis';
+import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
+import { signalCard, signalCaption } from '../../lib/shareSpecs';
 
 const STATUS_META: Record<Signal['status'], { label: string; className: string; Icon: React.ElementType }> = {
   open:      { label: 'Ativo',       className: 'bg-accent/10 text-accent-fg border-accent/20', Icon: Clock },
@@ -42,6 +44,7 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
   const [expanded, setExpanded] = useState(false);
   // Gráfico TradingView sob demanda (carrega iframe só quando aberto).
   const [showChart, setShowChart] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const analysis = signal.analysis ?? signal.rationale ?? null;
   // Gráfico só para sinais da Análise IA (source 'auto'); setup manual não tem.
   const canShowChart = signal.source === 'auto';
@@ -146,9 +149,21 @@ export const SignalCard: React.FC<Props> = ({ signal }) => {
       )}
 
       {/* Aviso curto (CVM) */}
-      <p className="relative mt-3 pt-2 border-t border-tint/6 text-[11px] text-fg-subtle">
-        Informativo · não é recomendação
-      </p>
+      <div className="relative mt-3 flex items-center justify-between gap-2 border-t border-tint/6 pt-2">
+        <p className="text-[11px] text-fg-subtle">Informativo · não é recomendação</p>
+        <ShareButton variant="ghost" onClick={() => setShareOpen(true)} />
+      </div>
+
+      {shareOpen && (
+        <ShareCardModal
+          open
+          onClose={() => setShareOpen(false)}
+          title="Compartilhar análise"
+          fileName={`analise-${signal.symbol}`}
+          build={() => signalCard(signal, structured)}
+          caption={signalCaption(signal)}
+        />
+      )}
     </div>
   );
 };

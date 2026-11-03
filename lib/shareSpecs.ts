@@ -1,0 +1,159 @@
+// Monta os cards de compartilhamento de Sinais e do Calendário Econômico a partir
+// dos dados da tela. Só apresentação: nada aqui consulta o banco nem muda estado.
+import type { Signal } from '../types';
+import type { AnalysisSection, StructuredAnalysis } from './signalAnalysis';
+import {
+  EconEvent, EconProfile, Dir, Outcome, ScenarioKey, displayTitle, fmtDiff, fmtValue,
+} from './econCalendar';
+import type { CardSpec, Dir3, ShareStat, Tone } from './shareCard';
+
+const fmtPrice = (v: number | null): string => {
+  if (v == null) return '—';
+  const abs = Math.abs(v);
+  const digits = abs >= 1000 ? 2 : abs >= 100 ? 3 : abs >= 10 ? 4 : 5;
+  return v.toLocaleString('pt-BR', { minimumFractionDigits: digits, maximumFractionDigits: digits });
+};
+
+const fmtWhen = (iso: string) =>
+  new Date(iso).toLocaleString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' });
+
+const clip = (t: string, n: number) => {
+  const c = t.replace(/\s+/g, ' ').trim();
+  return c.length > n ? `${c.slice(0, n).replace(/[ ,.;:]+$/, '')}…` : c;
+};
+
+// ── Sinais ──────────────────────────────────────────────────────────────
+const THEME_PRIORITY = ['confluencia', 'tendencia', 'momentum', 'macro', 'volatilidade', 'niveis', 'cenarios'];
+
+function themeTile(s: AnalysisSection): { title: string; value: string; tone: Tone } {
+  const m = s.metrics[0];
+  return {
+    title: s.title,
+    value: m ? m.value : s.tone === 'up' ? 'Positivo' : s.tone === 'down' ? 'Negativo' : 'Neutro',
+    tone: m?.tone ?? s.tone,
+  };
+}
+
+export function signalCard(signal: Signal, analysis: StructuredAnalysis | null): CardSpec {
+  const hasSetup = signal.action !== 'NONE';
+  const sections = analysis?.sections ?? [];
+  const ordered = [...sections].sort((a, b) => {
+    const ia = THEME_PRIORITY.indexOf(a.id), ib = THEME_PRIORITY.indexOf(b.id);
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  const note = sections.find((s) => s.id === 'cenarios')?.text
+    ?? sections.find((s) => s.id === 'confluencia')?.text
+    ?? (analysis ? undefined : (signal.analysis ?? signal.rationale ?? undefined));
+
+  return {
+    kind: 'signal',
+    action: signal.action,
+    symbol: signal.symbol,
+    timeframe: signal.timeframe,
+    when: fmtWhen(signal.created_at),
+    levels: hasSetup
+      ? [
+          { label: 'Entrada', value: fmtPrice(signal.entry_price), tone: 'neutral' },
+          { label: 'Stop', value: fmtPrice(signal.stop_loss), tone: 'down' },
+          { label: 'Alvo', value: fmtPrice(signal.take_profit), tone: 'up' },
+        ]
+      : null,
+    themes: ordered.filter((s) => s.id !== 'niveis' && s.id !== 'cenarios').slice(0, 4).map(themeTile),
+    note: note ? clip(note, 190) : undefined,
+  };
+}
+
+export const signalCaption = (signal: Signal) => {
+  const verb = signal.action === 'BUY' ? 'compra' : signal.action === 'SELL' ? 'venda' : 'sem entrada';
+  return `🔎 Análise IA de ${signal.symbol}${signal.timeframe ? ` (${signal.timeframe})` : ''}: ${verb}. Informativo, não é recomendação. Feita no Trader AFK: traderafk.com`;
+};
+
+// ── Calendário Econômico ────────────────────────────────────────────────
+const dirOf = (d: Dir): Dir3 => (d === 'alta' ? 'up' : d === 'baixa' ? 'down' : 'flat');
+const dirWord = (d: Dir) => (d === 'alta' ? 'alta' : d === 'baixa' ? 'baixa' : 'estável');
+const toneOf = (d: Dir): Tone => (d === 'alta' ? 'up' : d === 'baixa' ? 'down' : 'neutral');
+const SCENARIO_LABEL: Record<ScenarioKey, string> = { acima: 'Acima', em_linha: 'Em linha', abaixo: 'Abaixo' };
+const SCENARIO_LABEL_QUAL: Record<ScenarioKey, string> = { acima: 'Hawkish', em_linha: 'Neutro', abaixo: 'Dovish' };
+const RELEVANCE_ORDER = { alta: 0, media: 1, baixa: 2 } as const;
+
+const COUNTRY_SHORT: Record<string, string> = {
+  US: 'EUA', EU: 'Zona do Euro', GB: 'Reino Unido', JP: 'Japão', CN: 'China', BR: 'Brasil', DE: 'Alemanha',
+  FR: 'França', IT: 'Itália', ES: 'Espanha', CA: 'Canadá', AU: 'Austrália', NZ: 'Nova Zelândia', CH: 'Suíça',
+};
+
+export function newsCard(event: EconEvent, profile: EconProfile | undefined, outcome: Outcome | null): CardSpec | null {
+  const interp = profile?.interpretation;
+  if (!interp) return null;
+  const qual = interp.tipo === 'qualitativo';
+  const labels = qual ? SCENARIO_LABEL_QUAL : SCENARIO_LABEL;
+  const phase = outcome ? 'post' : 'pre';
+
+  const time = new Date(event.occurs_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const meta = `${COUNTRY_SHORT[event.country] ?? event.country} · ${event.currency} · ${time}`;
+
+  const numbers: ShareStat[] = [];
+  if (event.previous != null) numbers.push({ label: 'Anterior', value: fmtValue(event.previous, event.unit, event.precision) });
+  if (event.forecast != null) numbers.push({ label: 'Projeção', value: fmtValue(event.forecast, event.unit, event.precision) });
+  if (outcome && event.actual != null) numbers.push({ label: 'Atual', value: fmtValue(event.actual, event.unit, event.precision), tone: 'up' });
+
+  const base = {
+    kind: 'news' as const,
+    phase: phase as 'pre' | 'post',
+    title: displayTitle(event, profile),
+    meta,
+    stars: event.importance,
+    numbers,
+  };
+
+  if (!outcome) {
+    // Antes da divulgação: o que cada cenário faria com a moeda.
+    return {
+      ...base,
+      headline: 'Aguardando a divulgação',
+      headlineTone: 'neutral',
+      verdict: 'A reação vem da diferença entre o dado e a projeção.',
+      rowsTitle: `Se o dado vier… (efeito em ${event.currency})`,
+      rows: (['acima', 'em_linha', 'abaixo'] as ScenarioKey[]).map((k) => ({
+        label: labels[k],
+        value: `${event.currency} ${dirWord(interp.cenarios[k].moeda)}`,
+        dir: dirOf(interp.cenarios[k].moeda),
+      })),
+      note: interp.resumo ? clip(interp.resumo, 150) : undefined,
+    };
+  }
+
+  // Depois: o que aconteceu e como cada ativo tende a reagir a esse cenário.
+  const hit = interp.cenarios[outcome.scenario];
+  const against = outcome.baseline === 'forecast' ? 'da projeção' : 'do dado anterior';
+  const headline = outcome.scenario === 'em_linha'
+    ? 'Em linha'
+    : `${outcome.scenario === 'acima' ? 'Acima' : 'Abaixo'} ${against}`;
+  const assets = [...(profile?.asset_interpretation?.ativos ?? [])]
+    .sort((a, b) => RELEVANCE_ORDER[a.relevancia] - RELEVANCE_ORDER[b.relevancia])
+    .slice(0, 6);
+
+  return {
+    ...base,
+    headline,
+    headlineTone: toneOf(hit.moeda),
+    verdict: `${event.currency} tende a ${dirWord(hit.moeda)}${hit.moeda !== 'neutra' ? ` ${hit.intensidade}` : ''}`
+      + (outcome.scenario !== 'em_linha' ? ` · ${fmtDiff(outcome.diff, event.unit, event.precision)}` : ''),
+    rowsTitle: assets.length ? 'Reação típica por ativo' : `Cenário: ${labels[outcome.scenario]}`,
+    rows: assets.length
+      ? assets.map((a) => ({
+          label: a.ativo,
+          value: dirWord(a[outcome.scenario]),
+          dir: dirOf(a[outcome.scenario]),
+        }))
+      : hit.ativos.slice(0, 6).map((a) => ({ label: a.ativo, value: dirWord(a.direcao), dir: dirOf(a.direcao) })),
+    note: hit.leitura ? clip(hit.leitura, 150) : undefined,
+  };
+}
+
+export const newsCaption = (event: EconEvent, profile: EconProfile | undefined, outcome: Outcome | null) => {
+  const t = displayTitle(event, profile);
+  return outcome
+    ? `📰 ${t}: saiu ${fmtValue(event.actual, event.unit, event.precision)}. Veja a leitura por ativo no Calendário Econômico do Trader AFK. Leitura por IA, não é recomendação. traderafk.com`
+    : `📅 Hoje: ${t} (${event.currency}). Veja os cenários antes da divulgação no Calendário Econômico do Trader AFK. Leitura por IA, não é recomendação. traderafk.com`;
+};
+

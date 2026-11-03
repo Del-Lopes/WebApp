@@ -5,6 +5,8 @@ import {
   evaluateOutcome, fetchHistory, fmtValue, fmtDiff, FOCUS_ASSET_LABEL,
 } from '../../lib/econCalendar';
 import { Table, THead, TBody, TR, TH, TD } from '../ui';
+import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
+import { newsCard, newsCaption } from '../../lib/shareSpecs';
 
 interface Props {
   event: EconEvent;
@@ -141,6 +143,7 @@ const AssetInterpretation: React.FC<{ profile: EconProfile; tipo: 'dado' | 'qual
 
 export const EventDetail: React.FC<Props> = ({ event, profile }) => {
   const [history, setHistory] = useState<EconEvent[] | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
   const interp = profile?.interpretation ?? null;
   const outcome = evaluateOutcome(event);
   const hasNumbers = event.forecast != null || event.previous != null || event.actual != null;
@@ -157,6 +160,25 @@ export const EventDetail: React.FC<Props> = ({ event, profile }) => {
 
   return (
     <div className="space-y-4 px-4 pb-4 pt-1">
+      {interp && (
+        <div className="flex justify-end">
+          <ShareButton
+            label={outcome ? 'Compartilhar resultado' : 'Compartilhar cenários'}
+            onClick={() => setShareOpen(true)}
+          />
+        </div>
+      )}
+      {shareOpen && (
+        <ShareCardModal
+          open
+          onClose={() => setShareOpen(false)}
+          title={outcome ? 'Compartilhar leitura pós-notícia' : 'Compartilhar leitura pré-notícia'}
+          fileName={`calendario-${event.event_key}`}
+          build={() => newsCard(event, profile, outcome)!}
+          caption={newsCaption(event, profile, outcome)}
+        />
+      )}
+
       {/* Resultado — só depois da divulgação */}
       {outcome && (
         <div className="rounded-xl bg-accent/5 border border-accent/20 p-3.5 flex items-start gap-2.5">
