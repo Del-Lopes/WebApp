@@ -24,6 +24,8 @@ export interface ResultCard {
   headlineLabel?: string;
   tone: Tone;
   stats: ShareStat[];
+  /** Linha do rodapé (padrão: diário de operações). */
+  footer?: string;
 }
 
 export interface CardBadge { name: string; tier: BadgeTier; glyph: BadgeGlyph; earned: boolean }
@@ -226,9 +228,13 @@ function drawResult(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null
   header(ctx, logo, W);
 
   const top = 190, bottom = H - 200;
+  // Mais de 4 caixas (ex.: um ponteiro por timeframe): layout compacto para caber no feed.
+  const compact = s.stats.length > 4;
+  const boxH = compact ? 120 : 168;
+  const headArea = compact ? 170 : 215;
   const rows = Math.ceil(s.stats.length / 2);
-  const statsH = rows * 168 + Math.max(0, rows - 1) * 24;
-  const blockH = 40 + 24 + 130 + (s.subtitle ? 56 : 0) + 60 + 215 + 50 + statsH;
+  const statsH = rows * boxH + Math.max(0, rows - 1) * 24;
+  const blockH = 40 + 24 + 130 + (s.subtitle ? 56 : 0) + 60 + headArea + 50 + statsH;
   let y = top + Math.max(0, (bottom - top - blockH) / 2);
 
   ctx.textAlign = 'left'; ctx.fillStyle = C.green; ctx.font = `700 28px ${BODY}`;
@@ -252,16 +258,16 @@ function drawResult(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null
     spaced(ctx, s.headlineLabel.toUpperCase(), 84, y + 8, 4);
   }
   ctx.fillStyle = toneColor(s.tone);
-  const hs = fitFont(ctx, s.headline, 500, MONO, 170, W - 168, 60);
+  const hs = fitFont(ctx, s.headline, 500, MONO, compact ? 130 : 170, W - 168, 60);
   ctx.font = `500 ${hs}px ${MONO}`;
   ctx.fillText(s.headline, 84, y + 46 + hs * 0.8);
-  y += 215 + 50;
+  y += headArea + 50;
 
   const bw = (W - 168 - 24) / 2;
   s.stats.slice(0, 6).forEach((st, i) => {
-    statBox(ctx, 84 + (i % 2) * (bw + 24), y + Math.floor(i / 2) * (168 + 24), bw, 168, st);
+    statBox(ctx, 84 + (i % 2) * (bw + 24), y + Math.floor(i / 2) * (boxH + 24), bw, boxH, st);
   });
-  footer(ctx, W, H, 'Meu diário de operações');
+  footer(ctx, W, H, s.footer ?? 'Meu diário de operações');
 }
 
 function drawProgress(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: ProgressCard) {

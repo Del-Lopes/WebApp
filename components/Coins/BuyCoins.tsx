@@ -11,6 +11,8 @@ import {
 import { fetchStats } from '../../lib/trilhaGain';
 import { useAuth } from '../../contexts/AuthContext';
 import { CoinsAdmin } from './CoinsAdmin';
+import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
+import { coinsCard, coinsCaption } from '../../lib/shareSpecs';
 
 interface Props { onBack: () => void }
 
@@ -47,8 +49,10 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
   const [selected, setSelected] = useState<string | null>(null);
   const [method, setMethod] = useState<PayMethod>('nowpayments');
   const [busy, setBusy] = useState(false);
+  const [sharing, setSharing] = useState<CoinOrder | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [credited, setCredited] = useState<number | null>(null);
+  const [shareOrder, setShareOrder] = useState<CoinOrder | null>(null);
   const knownPending = useRef<Set<string>>(new Set());
 
   const refresh = useCallback(async () => {
@@ -84,6 +88,7 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
           if (o.status === 'paid' && knownPending.current.has(o.id)) {
             knownPending.current.delete(o.id);
             setCredited(o.coins);
+            setShareOrder(o);
           }
         }
       } catch { /* tenta no próximo ciclo */ }
@@ -153,6 +158,7 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
       {credited !== null && (
         <div role="status" className="flex items-center gap-2 rounded-xl border border-success/25 bg-success/10 px-4 py-3 text-sm text-success-fg">
           <CheckCircle2 size={18} /> Pagamento confirmado! <strong className="font-mono">+{credited.toLocaleString('pt-BR')} Coins</strong> na sua conta.
+          {shareOrder && <span className="ml-auto"><ShareButton variant="ghost" label="Compartilhar" onClick={() => setSharing(shareOrder)} /></span>}
         </div>
       )}
 
@@ -253,6 +259,7 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
                 <span className="text-xs text-fg-subtle">{new Date(o.created_at).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}</span>
                 <span className="ml-auto flex items-center gap-2">
                   <Badge tone={STATUS[o.status].tone}>{STATUS[o.status].label}</Badge>
+                  {o.status === 'paid' && <ShareButton variant="ghost" label="Compartilhar" onClick={() => setSharing(o)} />}
                   {o.status === 'pending' && o.checkout_url && (
                     <a href={o.checkout_url} target="_blank" rel="noopener noreferrer"
                        className="inline-flex items-center gap-1 text-xs font-medium text-accent-fg hover:opacity-80">
@@ -266,6 +273,17 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
         )}
       </section>
       </>)}
+
+      {sharing && (
+        <ShareCardModal
+          open
+          onClose={() => setSharing(null)}
+          title="Compartilhar conquista"
+          fileName="coins-trader-afk"
+          build={() => coinsCard(sharing.coins, packages.find((p) => p.id === sharing.package_id)?.name ?? null, balance)}
+          caption={coinsCaption(sharing.coins)}
+        />
+      )}
     </div>
   );
 };

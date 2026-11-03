@@ -6,6 +6,7 @@ import {
   EconEvent, EconProfile, Dir, Outcome, ScenarioKey, displayTitle, fmtDiff, fmtValue,
 } from './econCalendar';
 import type { CardSpec, Dir3, ShareStat, Tone } from './shareCard';
+import { TrendAnalysis, richStateName } from './trendMeter';
 
 const fmtPrice = (v: number | null): string => {
   if (v == null) return '—';
@@ -157,3 +158,50 @@ export const newsCaption = (event: EconEvent, profile: EconProfile | undefined, 
     : `📅 Hoje: ${t} (${event.currency}). Veja os cenários antes da divulgação no Calendário Econômico do Trader AFK. Leitura por IA, não é recomendação. traderafk.com`;
 };
 
+
+// ── Painel de tendência ─────────────────────────────────────────────────
+const STATE_TONE: Record<number, Tone> = { 0: 'neutral', 1: 'up', 2: 'neutral', 3: 'down', 4: 'neutral', 5: 'up', 6: 'down' };
+
+export function trendCard(assetLabel: string, analysis: TrendAnalysis, at: Date): CardSpec {
+  const up = analysis.superTrend === 'up' || analysis.bias === 1;
+  const down = analysis.superTrend === 'down' || analysis.bias === -1;
+  const tone: Tone = up ? 'up' : down ? 'down' : 'neutral';
+  return {
+    kind: 'result',
+    eyebrow: 'Painel de tendência',
+    title: assetLabel,
+    subtitle: at.toLocaleString('pt-BR', { day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' }),
+    headlineLabel: 'Viés consolidado',
+    headline: up ? 'ALTA' : down ? 'BAIXA' : 'NEUTRO',
+    tone,
+    stats: analysis.perByTF.map((r) => ({ label: r.label, value: richStateName(r.state), tone: STATE_TONE[r.state] ?? 'neutral' })),
+    footer: 'Informativo · não é recomendação',
+  };
+}
+
+export const trendCaption = (assetLabel: string, analysis: TrendAnalysis) => {
+  const up = analysis.superTrend === 'up' || analysis.bias === 1;
+  const down = analysis.superTrend === 'down' || analysis.bias === -1;
+  return `📊 Painel de tendência de ${assetLabel}: viés de ${up ? 'alta' : down ? 'baixa' : 'neutro'} em ${analysis.perByTF.length} timeframes. Informativo, não é recomendação. Veja no Trader AFK: traderafk.com`;
+};
+
+// ── Loja de Coins (sem valores em R$: só o que foi conquistado) ─────────
+export function coinsCard(coins: number, packageName: string | null, balance: number | null): CardSpec {
+  const stats: ShareStat[] = [];
+  if (packageName) stats.push({ label: 'Pacote', value: packageName });
+  if (balance != null) stats.push({ label: 'Saldo atual', value: balance.toLocaleString('pt-BR'), tone: 'up' });
+  return {
+    kind: 'result',
+    eyebrow: 'Loja de Coins',
+    title: 'Coins conquistados',
+    subtitle: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
+    headlineLabel: 'Novo crédito',
+    headline: `+${coins.toLocaleString('pt-BR')} Coins`,
+    tone: 'up',
+    stats,
+    footer: 'Para análises de IA, tendência e a Trilha Gain',
+  };
+}
+
+export const coinsCaption = (coins: number) =>
+  `🪙 +${coins.toLocaleString('pt-BR')} Coins na conta! Vou usar nas análises de IA, no painel de tendência e na Trilha Gain do Trader AFK. traderafk.com`;

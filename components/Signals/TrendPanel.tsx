@@ -10,6 +10,8 @@ import { fetchTrendPanelCost, fetchTodayPanelAccess, openTrendPanel } from '../.
 import { fetchStats } from '../../lib/trilhaGain';
 import { TFGauge } from './TFGauge';
 import { Button, Label, Select, Skeleton } from '../ui';
+import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
+import { trendCard, trendCaption } from '../../lib/shareSpecs';
 
 // Auto-refresh a cada 90s: com 5 TFs = 5 req por rodada, fica bem abaixo do
 // limite do plano free do Twelve Data (8 req/min).
@@ -25,6 +27,7 @@ export const TrendPanel: React.FC = () => {
   const [timeframes, setTimeframes] = useState<TimeframeOption[]>(DEFAULT_TIMEFRAMES);
   const [maPeriod, setMaPeriod] = useState(8);
   const [showSettings, setShowSettings] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
 
   const [cost, setCost] = useState(200);
   const [stats, setStats] = useState<TrilhaStats | null>(null);
@@ -274,6 +277,20 @@ export const TrendPanel: React.FC = () => {
                   </div>
                 </div>
               </div>
+            )}
+
+            <div className="flex justify-end">
+              <ShareButton label="Compartilhar leitura" onClick={() => setShareOpen(true)} />
+            </div>
+            {shareOpen && (
+              <ShareCardModal
+                open
+                onClose={() => setShareOpen(false)}
+                title="Compartilhar painel de tendência"
+                fileName={`tendencia-${asset}`}
+                build={() => trendCard(findAsset(asset)?.label ?? asset, analysis, lastUpdate ?? new Date())}
+                caption={trendCaption(findAsset(asset)?.label ?? asset, analysis)}
+              />
             )}
 
             {lastUpdate && (

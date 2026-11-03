@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ArrowRight, CheckCircle2, Lock, Milestone } from 'lucide-react';
 import { Button, Card, EmptyState, Skeleton } from '../ui';
 import { GamificationBar } from '../TrilhaGain/GamificationBar';
+import { ProgressPanel, isRealLesson } from '../TrilhaGain/ProgressPanel';
 import { buildUnitNodes } from '../TrilhaGain/unitNodes';
 import {
   fetchCompletedLessonIds, fetchStats, fetchTrackOutline, fetchTracks, fetchUnlockedUnitIds,
@@ -20,6 +21,9 @@ interface UnitProgress {
 interface Progress {
   units: UnitProgress[];
   stats: TrilhaStats | null;
+  /** Aulas reais (sem Gain/Revisão) concluídas e total, para patente e insígnias. */
+  lessons: number;
+  totalLessons: number;
 }
 
 interface Props {
@@ -48,6 +52,8 @@ export const TrilhaProgressCard: React.FC<Props> = ({ onOpen }) => {
 
         setProgress({
           stats,
+          lessons: [...completed].filter(isRealLesson).length,
+          totalLessons: outline.reduce((t, u) => t + (u.lessons?.length ?? 0), 0),
           units: outline.map((u) => {
             const nodes = buildUnitNodes(u.id, u.lessons ?? []);
             return {
@@ -117,6 +123,8 @@ export const TrilhaProgressCard: React.FC<Props> = ({ onOpen }) => {
               </p>
             )}
           </div>
+
+          <ProgressPanel lessons={progress.lessons} totalLessons={progress.totalLessons} stats={progress.stats} />
 
           <ul className="max-h-[260px] space-y-2 overflow-y-auto pr-1 ds-scrollbar">
             {progress.units.map((u) => {

@@ -295,6 +295,7 @@ export const Gestao: React.FC<Props> = ({ firms }) => {
             build={({ showValues }) => ({
               kind: 'result',
               eyebrow: 'Mesas proprietárias · Gestão',
+              footer: 'Gestão de mesas proprietárias',
               title: 'Trajetória de alavancagem',
               subtitle: cur ? `Até ${new Date(cur.date + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })}` : undefined,
               headlineLabel: showValues ? 'Lucro acumulado' : 'Contas ativas',
