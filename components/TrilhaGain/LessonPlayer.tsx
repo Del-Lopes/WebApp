@@ -187,17 +187,15 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
     const isModule = shareKind === 'module';
     const xp = isModule ? moduleXp : (reward?.xp ?? 0);
     return {
-      kind: 'result',
-      eyebrow: isModule ? 'Trilha Gain · Módulo dominado' : 'Trilha Gain · Exercícios vencidos',
+      kind: 'reward',
+      variant: isModule ? 'module' : 'gain',
+      eyebrow: isModule ? 'Módulo dominado' : 'Exercícios vencidos',
       title: isModule ? 'Módulo concluído!' : 'Gain concluído!',
       subtitle: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
-      headlineLabel: 'Recompensa',
-      headline: `+${xp.toLocaleString('pt-BR')} Coins`,
-      tone: 'up',
+      coins: xp,
       stats: isModule
         ? [{ label: 'Aulas', value: String(lessonCount) }, { label: 'Gains vencidos', value: String(gainCount), tone: 'up' }]
         : [{ label: 'Etapa', value: `${nodeIndex + 1} de ${nodes.length}` }, { label: 'Aulas do módulo', value: String(lessonCount) }],
-      footer: 'Aprendendo a operar, um dia de cada vez',
     };
   };
 

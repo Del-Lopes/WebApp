@@ -79,7 +79,19 @@ export interface NewsShareCard {
   note?: string;
 }
 
-export type CardSpec = ResultCard | ProgressCard | BadgeCard | SignalShareCard | NewsShareCard;
+/** Tela de parabéns da Trilha (Gain ou módulo concluído): ícone, título e caixa de Coins. */
+export interface RewardCard {
+  kind: 'reward';
+  variant: 'gain' | 'module';
+  eyebrow: string;
+  title: string;
+  subtitle?: string;
+  coins: number;
+  stats: ShareStat[];
+  footer?: string;
+}
+
+export type CardSpec = ResultCard | ProgressCard | BadgeCard | SignalShareCard | NewsShareCard | RewardCard;
 
 const C = {
   bg: '#0a0a0a', surface: '#111111', elevated: '#171717', line: '#262626',
@@ -360,6 +372,88 @@ function drawBadge(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null,
   footer(ctx, W, H, 'Conquistado na Trilha Gain');
 }
 
+// Ícones (traçado do Lucide, grade 24x24) desenhados direto no canvas.
+const SWORDS = [
+  'M14.5 17.5 3 6V3h3l11.5 11.5', 'M13 19l6-6', 'M16 16l4 4', 'M19 21l2-2',
+  'M14.5 6.5 18 3h3v3l-3.5 3.5', 'M5 14l4 4', 'M7 17l-3 3', 'M3 19l2 2',
+];
+const TROPHY = [
+  'M6 9H4.5a2.5 2.5 0 0 1 0-5H6', 'M18 9h1.5a2.5 2.5 0 0 0 0-5H18', 'M4 22h16',
+  'M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22',
+  'M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22',
+  'M18 2H6v7a6 6 0 0 0 12 0V2Z',
+];
+const COINS = ['M18.09 10.37A6 6 0 1 1 10.34 18', 'M7 6h1v4', 'm16.71 13.88.7.71-2.82 2.82'];
+
+/** Traça um ícone de 24x24 centrado em (cx, cy) com `size` px de lado. */
+function strokeIcon(ctx: CanvasRenderingContext2D, paths: string[], cx: number, cy: number, size: number, color: string, width = 2, circle = false) {
+  ctx.save();
+  ctx.translate(cx - size / 2, cy - size / 2);
+  ctx.scale(size / 24, size / 24);
+  ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (circle) { ctx.beginPath(); ctx.arc(8, 8, 6, 0, Math.PI * 2); ctx.stroke(); }
+  for (const d of paths) ctx.stroke(new Path2D(d));
+  ctx.restore();
+}
+
+function drawReward(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: RewardCard) {
+  const gain = s.variant === 'gain';
+  const glow = gain ? '#ef4444' : '#d97706';
+  const accent = gain ? '#f87171' : '#fbbf24';
+  background(ctx, W, H, glow);
+  header(ctx, logo, W);
+
+  const stats = s.stats.slice(0, 2);
+  const top = 190, bottom = H - 200;
+  const content = 224 + 50 + 38 + 20 + 100 + 44 + 40 + 130 + (stats.length ? 50 + 140 : 0);
+  let y = top + Math.max(0, (bottom - top - content) / 2);
+  const cx = W / 2;
+
+  // círculo do ícone, com anel suave (igual à tela de parabéns)
+  const R = 112, cy = y + R;
+  ctx.fillStyle = `${glow}22`; ctx.beginPath(); ctx.arc(cx, cy, R + 26, 0, Math.PI * 2); ctx.fill();
+  const g = ctx.createLinearGradient(cx - R, cy - R, cx + R, cy + R);
+  if (gain) { g.addColorStop(0, '#f87171'); g.addColorStop(1, '#dc2626'); } else { g.addColorStop(0, '#fbbf24'); g.addColorStop(1, '#d97706'); }
+  ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
+  strokeIcon(ctx, gain ? SWORDS : TROPHY, cx, cy, 120, '#ffffff', 2.4);
+  y += 224 + 50;
+
+  ctx.textAlign = 'center'; ctx.fillStyle = accent; ctx.font = `700 26px ${BODY}`;
+  spaced(ctx, s.eyebrow.toUpperCase(), cx, y + 26, 7, 'center');
+  y += 38 + 20;
+
+  ctx.fillStyle = C.text;
+  const ts = fitFont(ctx, s.title, 700, DISPLAY, 92, W - 168, 48);
+  ctx.font = `700 ${ts}px ${DISPLAY}`;
+  ctx.fillText(s.title, cx, y + 74);
+  y += 100;
+
+  if (s.subtitle) { ctx.fillStyle = C.muted; ctx.font = `500 30px ${BODY}`; ctx.fillText(s.subtitle, cx, y + 26); }
+  y += 44 + 40;
+
+  // caixa dourada de Coins
+  const label = `+${s.coins.toLocaleString('pt-BR')} Coins`;
+  ctx.font = `700 76px ${DISPLAY}`;
+  const tw = ctx.measureText(label).width;
+  const iconS = 64, padX = 44, gap = 22;
+  const bw = Math.min(W - 168, padX * 2 + iconS + gap + tw), bh = 130;
+  const bx = cx - bw / 2;
+  ctx.fillStyle = 'rgba(245,158,11,0.10)'; roundRect(ctx, bx, y, bw, bh, 36); ctx.fill();
+  ctx.strokeStyle = 'rgba(245,158,11,0.30)'; ctx.lineWidth = 2; roundRect(ctx, bx, y, bw, bh, 36); ctx.stroke();
+  strokeIcon(ctx, COINS, bx + padX + iconS / 2, y + bh / 2, iconS, '#f59e0b', 2, true);
+  ctx.fillStyle = '#fcd34d'; ctx.textAlign = 'left';
+  ctx.fillText(label, bx + padX + iconS + gap, y + bh / 2 + 26);
+  y += bh;
+
+  if (stats.length) {
+    y += 50;
+    const n = stats.length, sg = 24, sw = (W - 168 - sg * (n - 1)) / n;
+    stats.forEach((st, i) => statBox(ctx, 84 + i * (sw + sg), y, sw, 140, st));
+  }
+  ctx.textAlign = 'left';
+  footer(ctx, W, H, s.footer ?? 'Aprendendo a operar, um dia de cada vez');
+}
+
 /** Quebra o texto em linhas que cabem em maxW (a última ganha reticências). */
 function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxW: number, maxLines: number): string[] {
   const clean = text.replace(/\s+/g, ' ').trim();
@@ -551,6 +645,7 @@ export async function renderShareCard(spec: CardSpec, format: ShareFormat): Prom
   else if (spec.kind === 'progress') drawProgress(ctx, logo, w, h, spec);
   else if (spec.kind === 'signal') drawSignal(ctx, logo, w, h, spec);
   else if (spec.kind === 'news') drawNews(ctx, logo, w, h, spec);
+  else if (spec.kind === 'reward') drawReward(ctx, logo, w, h, spec);
   else drawBadge(ctx, logo, w, h, spec);
 
   return new Promise((resolve, reject) =>
