@@ -12,6 +12,8 @@ import { TrueFalseStep } from './steps/TrueFalseStep';
 import { OrderStep } from './steps/OrderStep';
 import { ChartStep } from './steps/ChartStep';
 import { Button } from '../ui';
+import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
+import type { CardSpec } from '../../lib/shareCard';
 
 interface Props {
   // Sequência de nós da unidade (aulas + gains + revisão) e o índice inicial.
@@ -34,6 +36,7 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set()); // nós já gravados
   // Tela intersticial de XP ao concluir um gain (candle vermelho de exercício).
   const [reward, setReward] = useState<{ xp: number } | null>(null);
+  const [shareKind, setShareKind] = useState<'gain' | 'module' | null>(null);
 
   const node = nodes[nodeIndex];
   const lesson = node?.lesson;
@@ -177,6 +180,26 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
 
   // XP total acumulado no módulo (para a tela final).
   const moduleXp = nodes.reduce((a, n) => a + (n.lesson.xp_reward || 0), 0);
+  const lessonCount = nodes.filter((n) => n.kind === 'aula').length;
+  const gainCount = nodes.filter((n) => n.kind === 'licao').length;
+
+  const buildShare = (): CardSpec => {
+    const isModule = shareKind === 'module';
+    const xp = isModule ? moduleXp : (reward?.xp ?? 0);
+    return {
+      kind: 'result',
+      eyebrow: isModule ? 'Trilha Gain · Módulo dominado' : 'Trilha Gain · Exercícios vencidos',
+      title: isModule ? 'Módulo concluído!' : 'Gain concluído!',
+      subtitle: new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' }),
+      headlineLabel: 'Recompensa',
+      headline: `+${xp.toLocaleString('pt-BR')} Coins`,
+      tone: 'up',
+      stats: isModule
+        ? [{ label: 'Aulas', value: String(lessonCount) }, { label: 'Gains vencidos', value: String(gainCount), tone: 'up' }]
+        : [{ label: 'Etapa', value: `${nodeIndex + 1} de ${nodes.length}` }, { label: 'Aulas do módulo', value: String(lessonCount) }],
+      footer: 'Aprendendo a operar, um dia de cada vez',
+    };
+  };
 
   return (
     <div className="fixed inset-0 z-[60] bg-page text-fg flex flex-col">
@@ -232,6 +255,9 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
               >
                 Continuar
               </Button>
+              <div className="mt-3 flex justify-center">
+                <ShareButton variant="ghost" size="md" label="Compartilhar conquista" onClick={() => setShareKind('gain')} />
+              </div>
             </div>
           </div>
         ) : finished ? (
@@ -261,6 +287,9 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
               >
                 Voltar à trilha
               </Button>
+              <div className="mt-3 flex justify-center">
+                <ShareButton variant="ghost" size="md" label="Compartilhar conquista" onClick={() => setShareKind('module')} />
+              </div>
             </div>
           </div>
         ) : saving ? (
@@ -282,6 +311,19 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
           </>
         )}
       </div>
+
+      {shareKind && (
+        <ShareCardModal
+          open
+          onClose={() => setShareKind(null)}
+          title="Compartilhar conquista"
+          fileName={shareKind === 'module' ? 'modulo-concluido' : 'gain-concluido'}
+          build={buildShare}
+          caption={shareKind === 'module'
+            ? `🏆 Módulo concluído na Trilha Gain do Trader AFK: +${moduleXp.toLocaleString('pt-BR')} Coins! Aprendendo a operar um dia de cada vez. traderafk.com`
+            : `⚔️ Gain concluído na Trilha Gain do Trader AFK: +${(reward?.xp ?? 0).toLocaleString('pt-BR')} Coins! Aprendendo a operar um dia de cada vez. traderafk.com`}
+        />
+      )}
     </div>
   );
 };

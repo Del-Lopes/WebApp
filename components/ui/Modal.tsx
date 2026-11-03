@@ -71,7 +71,7 @@ export const Modal: React.FC<ModalProps> = ({
   return <>
     <span ref={anchorRef} hidden />
     {createPortal(
-    <div data-theme={theme} className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-6">
+    <div data-theme={theme} className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-6">
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
         onClick={closeOnOverlay ? onClose : undefined}
