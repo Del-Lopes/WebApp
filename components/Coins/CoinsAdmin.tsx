@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Coins, Plus, Save, RefreshCw } from 'lucide-react';
-import { Badge, Button, Card, EmptyState, FieldMessage, Input, Label, Select, Skeleton, Stat, Table, TBody, TD, TH, THead, TR } from '../ui';
+import { Coins, Plus, Save, RefreshCw, Trash2 } from 'lucide-react';
+import { Badge, Button, Card, EmptyState, FieldMessage, Input, Label, Modal, Select, Skeleton, Stat, Table, TBody, TD, TH, THead, TR } from '../ui';
 import type { BadgeTone } from '../ui';
 import {
   AdminOrder, AdminPackage, METHOD_LABEL, OrderStatus, brl,
-  fetchAdminOrders, fetchAllPackages, savePackage,
+  deleteOrders, fetchAdminOrders, fetchAllPackages, savePackage,
 } from '../../lib/coinStore';
 
 const STATUS: Record<OrderStatus, { label: string; tone: BadgeTone }> = {
@@ -176,6 +176,8 @@ const OrdersPanel: React.FC = () => {
   const [status, setStatus] = useState<'all' | OrderStatus>('all');
   const [method, setMethod] = useState<'all' | AdminOrder['method']>('all');
   const [busy, setBusy] = useState(false);
+  const [toDelete, setToDelete] = useState<AdminOrder[] | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     setBusy(true);
@@ -198,6 +200,26 @@ const OrdersPanel: React.FC = () => {
       pending: (orders ?? []).filter((o) => o.status === 'pending').length,
     };
   }, [orders]);
+
+  const unpaid = useMemo(() => shown.filter((o) => o.status !== 'paid'), [shown]);
+
+  const confirmDelete = async () => {
+    if (!toDelete) return;
+    setDeleting(true);
+    try {
+      const n = await deleteOrders(toDelete.map((o) => o.id));
+      if (n < toDelete.length) setError('Alguns pedidos não puderam ser excluídos (pedidos pagos são protegidos).');
+      else setError(null);
+      setToDelete(null);
+      await load();
+    } catch (e) {
+      console.error('[CoinsAdmin] delete', e);
+      setError('Não foi possível excluir. Rode a migration 20261113 e confira se você é admin.');
+      setToDelete(null);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   if (orders === null) return <Skeleton className="h-64" />;
 
@@ -227,6 +249,9 @@ const OrdersPanel: React.FC = () => {
           </Select>
         </div>
         <Button variant="secondary" size="sm" onClick={() => void load()} isLoading={busy}><RefreshCw size={14} /> Atualizar</Button>
+        <Button variant="danger" size="sm" disabled={unpaid.length === 0} onClick={() => setToDelete(unpaid)}>
+          <Trash2 size={14} /> Excluir não pagos ({unpaid.length})
+        </Button>
       </div>
 
       {error && <FieldMessage error>{error}</FieldMessage>}
@@ -238,7 +263,7 @@ const OrdersPanel: React.FC = () => {
           <THead>
             <TR>
               <TH>Data</TH><TH>Usuário</TH><TH>Pacote</TH><TH align="right">Coins</TH>
-              <TH align="right">Valor</TH><TH>Método</TH><TH>Status</TH><TH>ID no gateway</TH>
+              <TH align="right">Valor</TH><TH>Método</TH><TH>Status</TH><TH>ID no gateway</TH><TH><span className="sr-only">Ações</span></TH>
             </TR>
           </THead>
           <TBody>
@@ -255,11 +280,34 @@ const OrdersPanel: React.FC = () => {
                 <TD>{METHOD_LABEL[o.method]}</TD>
                 <TD><Badge tone={STATUS[o.status].tone}>{STATUS[o.status].label}</Badge></TD>
                 <TD className="font-mono text-xs">{o.external_id ?? '—'}</TD>
+                <TD align="right">
+                  {o.status !== 'paid' && (
+                    <Button variant="ghost" size="icon" aria-label="Excluir pedido" onClick={() => setToDelete([o])}><Trash2 size={15} /></Button>
+                  )}
+                </TD>
               </TR>
             ))}
           </TBody>
         </Table>
       )}
+      <Modal
+        open={toDelete !== null}
+        onClose={() => !deleting && setToDelete(null)}
+        title={toDelete && toDelete.length > 1 ? `Excluir ${toDelete.length} pedidos?` : 'Excluir pedido?'}
+        description="Pedidos pagos nunca são excluídos."
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setToDelete(null)} disabled={deleting}>Cancelar</Button>
+            <Button variant="danger" onClick={() => void confirmDelete()} isLoading={deleting}>Excluir</Button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-muted">
+          Se alguém ainda pagar uma cobrança excluída, o pagamento chega ao gateway mas os Coins <strong>não</strong> são
+          creditados. Exclua só pedidos de teste ou que você sabe que não foram pagos.
+        </p>
+      </Modal>
     </div>
   );
 };

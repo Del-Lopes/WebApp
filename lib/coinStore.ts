@@ -134,3 +134,12 @@ export async function fetchAdminOrders(limit = 200): Promise<AdminOrder[]> {
     user_email: names.get(o.user_id as string)?.email ?? null,
   })) as AdminOrder[];
 }
+
+// Exclui pedidos não pagos (a RLS recusa pedido pago ou já creditado). Retorna quantos saíram.
+export async function deleteOrders(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const { data, error } = await supabase
+    .from('coin_orders').delete().in('id', ids).neq('status', 'paid').select('id');
+  if (error) throw error;
+  return data?.length ?? 0;
+}
