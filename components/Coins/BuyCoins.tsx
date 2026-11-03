@@ -13,7 +13,7 @@ import { fetchStats } from '../../lib/trilhaGain';
 interface Props { onBack: () => void }
 
 const METHODS: { id: PayMethod; label: string; hint: string; Icon: React.ElementType; soon?: boolean }[] = [
-  { id: 'btcpay', label: 'Cripto', hint: 'BTC, USDT ou USDC', Icon: Bitcoin },
+  { id: 'nowpayments', label: 'Cripto', hint: 'BTC, USDT, USDC e outras', Icon: Bitcoin },
   { id: 'asaas', label: 'Cartão', hint: 'Crédito, na Asaas', Icon: CreditCard },
   { id: 'depix', label: 'Pix', hint: 'Em breve', Icon: QrCode, soon: true },
 ];
@@ -38,7 +38,7 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
   const [balance, setBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState<string | null>(null);
-  const [method, setMethod] = useState<PayMethod>('btcpay');
+  const [method, setMethod] = useState<PayMethod>('nowpayments');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [credited, setCredited] = useState<number | null>(null);

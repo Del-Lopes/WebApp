@@ -1,14 +1,14 @@
 // Supabase Edge Function — coin-checkout
 // Cria um pedido de compra de Coins e a cobrança no meio de pagamento escolhido.
-//   POST /functions/v1/coin-checkout   { package_id, method: 'btcpay'|'asaas'|'depix' }
+//   POST /functions/v1/coin-checkout   { package_id, method: 'nowpayments'|'asaas'|'depix' }
 //     Authorization: Bearer <JWT do usuário>
 //     → 200 { order_id, checkout_url }
 //
 // Exige login (verify_jwt ligado + getUser). Preço e quantidade de Coins vêm do
 // banco (coin_packages) — o cliente só diz QUAL pacote. O crédito NÃO acontece
-// aqui: só os webhooks (btcpay-webhook / asaas-webhook) chamam credit_coin_order.
+// aqui: só os webhooks (nowpayments-webhook / asaas-webhook) chamam credit_coin_order.
 //
-// Secrets: BTCPAY_URL, BTCPAY_STORE_ID, BTCPAY_API_KEY,
+// Secrets: NOWPAYMENTS_API_KEY (+ NOWPAYMENTS_API_URL opcional; padrão produção),
 //          ASAAS_API_KEY (+ ASAAS_API_URL opcional; padrão produção).
 // Deno runtime
 
@@ -18,9 +18,8 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 
-const BTCPAY_URL = (Deno.env.get('BTCPAY_URL') ?? '').replace(/\/+$/, '')
-const BTCPAY_STORE_ID = Deno.env.get('BTCPAY_STORE_ID') ?? ''
-const BTCPAY_API_KEY = Deno.env.get('BTCPAY_API_KEY') ?? ''
+const NOWPAYMENTS_API_KEY = Deno.env.get('NOWPAYMENTS_API_KEY') ?? ''
+const NOWPAYMENTS_API_URL = (Deno.env.get('NOWPAYMENTS_API_URL') ?? 'https://api.nowpayments.io/v1').replace(/\/+$/, '')
 const ASAAS_API_KEY = Deno.env.get('ASAAS_API_KEY') ?? ''
 const ASAAS_API_URL = (Deno.env.get('ASAAS_API_URL') ?? 'https://api.asaas.com/v3').replace(/\/+$/, '')
 
@@ -44,24 +43,29 @@ function corsHeaders(origin: string | null): Record<string, string> {
   }
 }
 
-type Method = 'btcpay' | 'asaas' | 'depix'
+type Method = 'nowpayments' | 'asaas' | 'depix'
 
-// ── BTCPay: invoice em BRL; o cliente escolhe BTC/USDT/USDC na página dela ──
-async function createBtcpayInvoice(orderId: string, userId: string, price: number, label: string, redirectUrl: string) {
-  const res = await fetch(`${BTCPAY_URL}/api/v1/stores/${BTCPAY_STORE_ID}/invoices`, {
+// ── NOWPayments: invoice em BRL, preço fixo; o cliente escolhe a moeda na página dela ──
+async function createNowpaymentsInvoice(orderId: string, price: number, label: string, site: string) {
+  const res = await fetch(`${NOWPAYMENTS_API_URL}/invoice`, {
     method: 'POST',
-    headers: { Authorization: `token ${BTCPAY_API_KEY}`, 'Content-Type': 'application/json' },
+    headers: { 'x-api-key': NOWPAYMENTS_API_KEY, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      amount: price.toFixed(2),
-      currency: 'BRL',
-      metadata: { orderId, userId, itemDesc: label },
-      checkout: { redirectURL: redirectUrl, expirationMinutes: 60, speedPolicy: 'MediumSpeed' },
+      price_amount: price,
+      price_currency: 'brl',
+      order_id: orderId,
+      order_description: label,
+      ipn_callback_url: `${SUPABASE_URL}/functions/v1/nowpayments-webhook`,
+      success_url: site,
+      cancel_url: site,
+      is_fixed_rate: true,
+      is_fee_paid_by_user: false,
     }),
   })
-  if (!res.ok) throw new Error(`btcpay_${res.status}: ${(await res.text()).slice(0, 200)}`)
+  if (!res.ok) throw new Error(`nowpayments_${res.status}: ${(await res.text()).slice(0, 200)}`)
   const inv = await res.json()
-  if (!inv?.id || !inv?.checkoutLink) throw new Error('btcpay_bad_response')
-  return { externalId: String(inv.id), url: String(inv.checkoutLink) }
+  if (!inv?.id || !inv?.invoice_url) throw new Error('nowpayments_bad_response')
+  return { externalId: String(inv.id), url: String(inv.invoice_url) }
 }
 
 // ── Asaas: link de pagamento avulso só para cartão de crédito ──
@@ -107,11 +111,11 @@ Deno.serve(async (req) => {
   try { body = await req.json() } catch { return json(400, { error: 'invalid_body' }) }
   const packageId = typeof body.package_id === 'string' ? body.package_id : ''
   const method = body.method as Method
-  if (!packageId || !['btcpay', 'asaas', 'depix'].includes(method)) return json(400, { error: 'invalid_input' })
+  if (!packageId || !['nowpayments', 'asaas', 'depix'].includes(method)) return json(400, { error: 'invalid_input' })
 
   // Meios sem configuração (ou ainda não implementados) respondem de forma clara.
   if (method === 'depix') return json(503, { error: 'method_unavailable' })
-  if (method === 'btcpay' && !(BTCPAY_URL && BTCPAY_STORE_ID && BTCPAY_API_KEY)) return json(503, { error: 'method_unavailable' })
+  if (method === 'nowpayments' && !NOWPAYMENTS_API_KEY) return json(503, { error: 'method_unavailable' })
   if (method === 'asaas' && !ASAAS_API_KEY) return json(503, { error: 'method_unavailable' })
 
   const { data: pkg } = await admin
@@ -139,8 +143,8 @@ Deno.serve(async (req) => {
   const site = origin && ALLOWED_ORIGINS.some((re) => re.test(origin)) ? origin : 'https://traderafk.com'
 
   try {
-    const charge = method === 'btcpay'
-      ? await createBtcpayInvoice(order.id, userId, price, label, site)
+    const charge = method === 'nowpayments'
+      ? await createNowpaymentsInvoice(order.id, price, label, site)
       : await createAsaasLink(order.id, price, label)
 
     const { error: updError } = await admin

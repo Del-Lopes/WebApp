@@ -1,4 +1,4 @@
--- Loja de Coins: pacotes progressivos + pedidos pagos por BTCPay (cripto),
+-- Loja de Coins: pacotes progressivos + pedidos pagos por NOWPayments (cripto),
 -- Asaas (cartão) e Depix (Pix). O crédito SÓ acontece no servidor, pela RPC
 -- credit_coin_order, chamada exclusivamente pelos webhooks (service_role).
 -- Coins = trilha_stats.total_xp.
@@ -48,10 +48,10 @@ create table if not exists public.coin_orders (
   -- Congelados na criação: mudar o pacote depois não altera pedidos antigos.
   coins         integer not null check (coins > 0),
   price_brl     numeric(10,2) not null check (price_brl > 0),
-  method        text not null check (method in ('btcpay', 'asaas', 'depix')),
+  method        text not null check (method in ('nowpayments', 'asaas', 'depix')),
   status        text not null default 'pending'
                   check (status in ('pending', 'paid', 'expired', 'failed')),
-  external_id   text,                -- invoice (BTCPay), paymentLink (Asaas), id Depix
+  external_id   text,                -- invoice (NOWPayments), paymentLink (Asaas), id Depix
   checkout_url  text,
   created_at    timestamptz not null default now(),
   paid_at       timestamptz,

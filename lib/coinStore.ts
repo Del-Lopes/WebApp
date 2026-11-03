@@ -3,7 +3,7 @@ import { supabase } from './supabase';
 // Loja de Coins. Preço e quantidade vêm do banco; o cliente só escolhe o
 // pacote e o meio de pagamento. O crédito é feito pelos webhooks no servidor.
 
-export type PayMethod = 'btcpay' | 'asaas' | 'depix';
+export type PayMethod = 'nowpayments' | 'asaas' | 'depix';
 export type OrderStatus = 'pending' | 'paid' | 'expired' | 'failed';
 
 export interface CoinPackage {
@@ -28,7 +28,7 @@ export interface CoinOrder {
 }
 
 export const METHOD_LABEL: Record<PayMethod, string> = {
-  btcpay: 'Cripto',
+  nowpayments: 'Cripto',
   asaas: 'Cartão',
   depix: 'Pix',
 };
