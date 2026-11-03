@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowRight, CheckCircle2, Lock, Milestone } from 'lucide-react';
 import { Button, Card, EmptyState, Skeleton } from '../ui';
-import { GamificationBar } from '../TrilhaGain/GamificationBar';
 import { ProgressPanel, isRealLesson } from '../TrilhaGain/ProgressPanel';
 import { buildUnitNodes } from '../TrilhaGain/unitNodes';
 import {
@@ -83,9 +82,8 @@ export const TrilhaProgressCard: React.FC<Props> = ({ onOpen }) => {
 
   return (
     <Card>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div className="mb-6">
         <h3 className="font-display text-lg font-semibold text-fg">Sua Trilha</h3>
-        <GamificationBar stats={progress?.stats ?? null} />
       </div>
 
       {loading ? (

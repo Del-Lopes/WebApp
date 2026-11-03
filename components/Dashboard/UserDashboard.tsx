@@ -20,15 +20,17 @@ import {
   ShieldAlert,
   HardDrive,
   Loader2,
-  Notebook,
-  BarChart3,
-  Activity
+  Notebook
 } from 'lucide-react';
 import { Article, View } from '../../types';
 import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
 import { ARTICLE_LIST_COLUMNS, withArticleContent } from '../../lib/articles';
-import { Button, Card, Input, Label, PageHeader, Textarea } from '../ui';
+import { Button, Card, Input, Label, Textarea } from '../ui';
 import { TrilhaProgressCard } from './TrilhaProgressCard';
+import { GamificationBar } from '../TrilhaGain/GamificationBar';
+import { CryptoCard, EconCalendarCard, SignalsCard } from './LiveCards';
+import { fetchStats } from '../../lib/trilhaGain';
+import { TrilhaStats } from '../../types';
 
 interface UserDashboardProps {
   onNavigate: (view: View) => void;
@@ -41,6 +43,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
 
   const [articles, setArticles] = useState<Article[]>([]);
   const [coursesCount, setCoursesCount] = useState(0);
+  const [stats, setStats] = useState<TrilhaStats | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    let alive = true;
+    fetchStats().then((st) => { if (alive) setStats(st); });
+    return () => { alive = false; };
+  }, [user]);
 
   // Article Admin State
   const [isArticleModalOpen, setIsArticleModalOpen] = useState(false);
@@ -225,12 +235,16 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
 
   return (
     <div className="space-y-8">
-      <PageHeader
-        className="mb-0 sm:mb-0"
-        eyebrow="Painel"
-        title={<>Olá, {user?.user_metadata?.full_name || 'Trader'}!</>}
-        description="Bem-vindo ao seu painel de controle."
-      />
+      <header className="space-y-1.5">
+        <p className="eyebrow">Painel</p>
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+          <h1 className="min-w-0 font-display text-2xl font-semibold leading-tight text-fg sm:text-3xl">
+            Olá, {user?.user_metadata?.full_name || 'Trader'}!
+          </h1>
+          <GamificationBar stats={stats} onBuy={() => onNavigate('buy_coins')} />
+        </div>
+        <p className="max-w-2xl text-sm leading-relaxed text-fg-muted sm:text-base">Bem-vindo ao seu painel de controle.</p>
+      </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
         {/* Journey Card (Start Here) */}
@@ -307,56 +321,10 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
           <div className={navHint}>Registre suas operações</div>
         </div>
 
-        {/* Analysis Card */}
-        <div
-          onClick={() => onNavigate('analysis')}
-          className={navCard}
-        >
-          <div className="flex items-center gap-4 mb-4">
-            <div className={navIcon}>
-              <BarChart3 size={24} />
-            </div>
-            <div className="min-w-0">
-              <p className={`${navEyebrow} truncate`}>Análise de Resultados</p>
-              <h3 className={navTitle}>Performance</h3>
-            </div>
-          </div>
-          <div className={navHint}>Métricas e relatórios MT5</div>
-        </div>
-
-        {/* Live Portfolio Card */}
-        <div
-          onClick={() => onNavigate('live_portfolio')}
-          className={navCard}
-        >
-          <div className="flex items-center gap-4 mb-4">
-            <div className={navIcon}>
-              <Activity size={24} />
-            </div>
-            <div>
-              <p className={navEyebrow}>Live Portfólio</p>
-              <h3 className={navTitle}>Tempo real</h3>
-            </div>
-          </div>
-          <div className={navHint}>Suas contas MT5 ao vivo</div>
-        </div>
-
-        {/* Hand Bot Card */}
-        <div
-          onClick={() => onNavigate('hand_bot')}
-          className={navCard}
-        >
-          <div className="flex items-center gap-4 mb-4">
-            <div className={navIcon}>
-              <Cpu size={24} />
-            </div>
-            <div>
-              <p className={navEyebrow}>Automação</p>
-              <h3 className={navTitle}>Hand Bot</h3>
-            </div>
-          </div>
-          <div className={navHint}>Gerencie seu robô de trades</div>
-        </div>
+        {/* Atalhos vivos: mostram o que está acontecendo em cada área */}
+        <EconCalendarCard onNavigate={onNavigate} />
+        <CryptoCard onNavigate={onNavigate} />
+        <SignalsCard onNavigate={onNavigate} />
 
         {/* Courses Card (Renamed to Biblioteca) */}
         <div
