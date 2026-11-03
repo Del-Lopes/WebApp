@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Coins, Bitcoin, CreditCard, QrCode, ExternalLink, Loader2, CheckCircle2, Sparkles, ShieldCheck } from 'lucide-react';
+import { Coins, Bitcoin, Store, Package, ReceiptText, CreditCard, QrCode, ExternalLink, Loader2, CheckCircle2, Sparkles, ShieldCheck } from 'lucide-react';
 import { BackButton } from '../BackButton';
-import { Badge, Button, Card, EmptyState, FieldMessage, PageHeader, Skeleton } from '../ui';
+import { Badge, Button, Card, EmptyState, FieldMessage, PageHeader, Skeleton, Tabs } from '../ui';
 import type { BadgeTone } from '../ui';
 import { cn } from '../../lib/cn';
 import {
@@ -9,6 +9,8 @@ import {
   fetchMyOrders, fetchPackages, startCheckout,
 } from '../../lib/coinStore';
 import { fetchStats } from '../../lib/trilhaGain';
+import { useAuth } from '../../contexts/AuthContext';
+import { CoinsAdmin } from './CoinsAdmin';
 
 interface Props { onBack: () => void }
 
@@ -32,7 +34,12 @@ const STATUS: Record<OrderStatus, { label: string; tone: BadgeTone }> = {
   failed: { label: 'Falhou', tone: 'danger' },
 };
 
+type View = 'store' | 'packages' | 'orders';
+
 export const BuyCoins: React.FC<Props> = ({ onBack }) => {
+  const { role } = useAuth();
+  const isAdmin = role === 'admin';
+  const [view, setView] = useState<View>('store');
   const [packages, setPackages] = useState<CoinPackage[]>([]);
   const [orders, setOrders] = useState<CoinOrder[]>([]);
   const [balance, setBalance] = useState<number | null>(null);
@@ -88,6 +95,11 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
     orders.filter((o) => o.status === 'pending').forEach((o) => knownPending.current.add(o.id));
   }, [orders]);
 
+  // Voltando da edição de pacotes, a loja mostra os valores novos.
+  const reloadPackages = useCallback(() => {
+    fetchPackages().then(setPackages).catch((e) => console.error('[BuyCoins] reload', e));
+  }, []);
+
   const pkg = packages.find((p) => p.id === selected) ?? null;
 
   const buy = async () => {
@@ -122,6 +134,22 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
         }
       />
 
+      {isAdmin && (
+        <Tabs
+          aria-label="Área da loja"
+          value={view}
+          onChange={(v) => { setView(v); if (v === 'store') reloadPackages(); }}
+          items={[
+            { key: 'store', label: 'Loja', icon: Store },
+            { key: 'packages', label: 'Pacotes', icon: Package },
+            { key: 'orders', label: 'Pedidos', icon: ReceiptText },
+          ]}
+        />
+      )}
+
+      {isAdmin && view !== 'store' && <CoinsAdmin view={view} onPackagesChanged={reloadPackages} />}
+
+      {view === 'store' && (<>
       {credited !== null && (
         <div role="status" className="flex items-center gap-2 rounded-xl border border-success/25 bg-success/10 px-4 py-3 text-sm text-success-fg">
           <CheckCircle2 size={18} /> Pagamento confirmado! <strong className="font-mono">+{credited.toLocaleString('pt-BR')} Coins</strong> na sua conta.
@@ -237,6 +265,7 @@ export const BuyCoins: React.FC<Props> = ({ onBack }) => {
           </ul>
         )}
       </section>
+      </>)}
     </div>
   );
 };
