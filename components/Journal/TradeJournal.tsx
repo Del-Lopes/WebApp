@@ -167,7 +167,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
       </div>
 
       <div className="flex rounded-lg border border-tint/10 bg-tint/3 p-0.5 w-fit" role="group" aria-label="Moeda dos valores" title="Só troca o símbolo: os valores não são convertidos">
-        {([['BRL', 'R$ Real'], ['USD', 'US$ Dólar']] as const).map(([value, label]) => (
+        {([['BRL', 'R$ Real'], ['USD', '$ Dólar']] as const).map(([value, label]) => (
           <button
             key={value}
             type="button"

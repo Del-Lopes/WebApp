@@ -232,15 +232,20 @@ export function subscribeJournalCurrency(l: () => void): () => void {
   currencyListeners.add(l);
   return () => { currencyListeners.delete(l); };
 }
-export const currencySymbol = (c: JournalCurrency = currentCurrency): string => (c === 'USD' ? 'US$' : 'R$');
+export const currencySymbol = (c: JournalCurrency = currentCurrency): string => (c === 'USD' ? '$' : 'R$');
 
-/** Valor absoluto na moeda atual, ex.: "R$ 5,38" ou "US$ 5,38". */
-export const formatMoneyAbs = (value: number): string =>
-  Math.abs(value).toLocaleString('pt-BR', { style: 'currency', currency: currentCurrency });
+// Real: "R$ 5,38". Dólar: só o cifrão, sem "US": "$5,38". Sinal sempre antes do símbolo.
+function money(value: number, plus: boolean): string {
+  const sign = value < 0 ? '-' : plus && value > 0 ? '+' : '';
+  if (currentCurrency === 'BRL') return `${sign}${Math.abs(value).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+  return `${sign}$${Math.abs(value).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+/** Valor absoluto na moeda atual, ex.: "R$ 5,38" ou "$5,38". */
+export const formatMoneyAbs = (value: number): string => money(Math.abs(value), false);
 
 export function formatMoney(value: number): string {
-  const sign = value > 0 ? '+' : '';
-  return `${sign}${value.toLocaleString('pt-BR', { style: 'currency', currency: currentCurrency })}`;
+  return money(value, true);
 }
 
 export const formatPercent = (v: number): string => `${Math.round(v * 100)}%`;
