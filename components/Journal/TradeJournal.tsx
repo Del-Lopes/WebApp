@@ -12,7 +12,7 @@ import { entryScreenshots, journalImageSrc } from '../../lib/journalImages';
 import { BackButton } from '../BackButton';
 import { Button, EmptyState, ImageViewer, Input, PageHeader, Select, Skeleton } from '../ui';
 import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
-import type { CardSpec } from '../../lib/shareCard';
+import type { CardSpec, MediaFrame } from '../../lib/shareCard';
 
 interface TradeJournalProps {
   onBack: () => void;
@@ -295,7 +295,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
           canHideValues
           canToggleMedia={entryScreenshots(shareTrade).length > 0}
           fileName={`operacao-${shareTrade.asset}`}
-          build={({ showValues, showMedia }) => tradeCard(shareTrade, showValues, showMedia)}
+          build={({ showValues, showMedia, frames }) => tradeCard(shareTrade, showValues, showMedia, frames)}
           caption={tradeCaption(shareTrade)}
         />
       )}
@@ -546,7 +546,7 @@ function formatMoney(value: number) {
 const moneyAbs = (v: number) => Math.abs(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const shortDay = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-function tradeCard(e: TradeEntry, showValues: boolean, showMedia = false): CardSpec {
+function tradeCard(e: TradeEntry, showValues: boolean, showMedia = false, frames?: Record<number, MediaFrame>): CardSpec {
   const r = e.result_amount ?? 0;
   const tone = r > 0 ? 'up' : r < 0 ? 'down' : 'neutral';
   const pips = e.result_pips != null ? Number(e.result_pips) : null;
@@ -568,6 +568,7 @@ function tradeCard(e: TradeEntry, showValues: boolean, showMedia = false): CardS
     tone,
     stats,
     media: showMedia ? entryScreenshots(e).slice(0, 4).map(journalImageSrc) : undefined,
+    mediaFrames: showMedia ? frames : undefined,
   };
 }
 
