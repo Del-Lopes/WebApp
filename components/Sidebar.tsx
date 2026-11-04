@@ -130,15 +130,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {item('dashboard', 'Início', LayoutDashboard)}
           {item('journey', 'Comece Aqui', Map)}
+          {item('trilha_gain', 'Trilha Gain', Milestone)}
+          {item('econ_calendar', 'Calendário Econômico', CalendarClock)}
+          {item('journal', 'Diário', Notebook)}
+          {item('live_room', 'Sala ao Vivo', Video)}
+          {item('signals', 'Sinais', Radio)}
+          {item('crypto', 'Crypto', Bitcoin)}
           {item('forum', 'Fórum', MessageSquareText)}
           {item('prop_firms', 'Mesas Proprietárias', Building2)}
-          {item('econ_calendar', 'Calendário Econômico', CalendarClock)}
-          {item('live_room', 'Sala ao Vivo', Video)}
-          {item('journal', 'Diário', Notebook)}
-          {item('trilha_gain', 'Trilha Gain', Milestone)}
-          {item('signals', 'Sinais', Radio)}
           {item('buy_coins', 'Comprar Coins', Coins)}
-          {item('crypto', 'Crypto', Bitcoin)}
           {item('articles', 'Artigos e Análises', FileText)}
           {item('hand_bot', 'Hand Bot', Bot)}
           {item('downloads', 'Downloads', Download)}

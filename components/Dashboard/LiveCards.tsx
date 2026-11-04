@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowDownRight, ArrowUpRight, Bitcoin, CalendarClock, MinusCircle, Notebook, Radio } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { useJournalCurrency } from '../../hooks/useJournalCurrency';
 import { supabase } from '../../lib/supabase';
 import type { TradeEntry } from '../../hooks/useTradeJournal';
 import { buildReport, fetchDayResults, formatMoney, formatPercent, type Report } from '../../lib/journalCalendar';
@@ -172,6 +173,7 @@ export const CryptoCard: React.FC<CardProps> = ({ onNavigate }) => {
 
 // ── Diário: resumo do mês ───────────────────────────────────────────────
 export const JournalCard: React.FC<CardProps> = ({ onNavigate }) => {
+  useJournalCurrency(); // acompanha a moeda escolhida no Diário (R$ ou $)
   const { user } = useAuth();
   const userId = user?.id;
   const [report, setReport] = useState<Report | null>(null);
