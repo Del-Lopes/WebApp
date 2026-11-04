@@ -7,11 +7,13 @@ interface ShareCardModalProps {
   open: boolean;
   onClose: () => void;
   /** Monta o card; `showValues` vem do interruptor de privacidade. */
-  build: (opts: { showValues: boolean }) => CardSpec;
+  build: (opts: { showValues: boolean; showMedia: boolean }) => CardSpec;
   /** Texto que acompanha a imagem na hora de postar. */
   caption: string;
   /** Mostra o interruptor "Mostrar valores em R$" (para cards com dinheiro). */
   canHideValues?: boolean;
+  /** Mostra o interruptor "Incluir prints do trade" (para cards com imagens anexadas). */
+  canToggleMedia?: boolean;
   title?: string;
   fileName?: string;
 }
@@ -26,10 +28,11 @@ export const ShareButton: React.FC<{
 );
 
 export const ShareCardModal: React.FC<ShareCardModalProps> = ({
-  open, onClose, build, caption, canHideValues, title = 'Compartilhar card', fileName = 'trader-afk',
+  open, onClose, build, caption, canHideValues, canToggleMedia, title = 'Compartilhar card', fileName = 'trader-afk',
 }) => {
   const [format, setFormat] = useState<ShareFormat>('feed');
   const [showValues, setShowValues] = useState(true);
+  const [showMedia, setShowMedia] = useState(true);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -44,7 +47,7 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
     if (!open) return;
     let alive = true;
     setBusy(true); setError(null); setNote(null);
-    renderShareCard(buildRef.current({ showValues }), format)
+    renderShareCard(buildRef.current({ showValues, showMedia }), format)
       .then((b) => {
         if (!alive) return;
         setBlob(b);
@@ -53,7 +56,7 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
       .catch((e) => { console.error('[share] render', e); if (alive) setError('Não foi possível gerar a imagem.'); })
       .finally(() => { if (alive) setBusy(false); });
     return () => { alive = false; };
-  }, [open, format, showValues]);
+  }, [open, format, showValues, showMedia]);
 
   useEffect(() => {
     if (open) return;
@@ -120,12 +123,20 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
             onChange={setFormat}
             items={[{ key: 'feed', label: 'Feed 4:5' }, { key: 'story', label: 'Story 9:16' }]}
           />
-          {canHideValues && (
-            <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-fg">
-              <input type="checkbox" checked={showValues} onChange={(e) => setShowValues(e.target.checked)} className="h-4 w-4 accent-accent" />
-              Mostrar valores em R$
-            </label>
-          )}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            {canToggleMedia && (
+              <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-fg">
+                <input type="checkbox" checked={showMedia} onChange={(e) => setShowMedia(e.target.checked)} className="h-4 w-4 accent-accent" />
+                Incluir prints do trade
+              </label>
+            )}
+            {canHideValues && (
+              <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-fg">
+                <input type="checkbox" checked={showValues} onChange={(e) => setShowValues(e.target.checked)} className="h-4 w-4 accent-accent" />
+                Mostrar valores em R$
+              </label>
+            )}
+          </div>
         </div>
 
         <div className="flex min-h-48 items-center justify-center rounded-xl border border-tint/10 bg-tint/3 p-3">

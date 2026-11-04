@@ -26,6 +26,8 @@ export interface ResultCard {
   stats: ShareStat[];
   /** Linha do rodapé (padrão: diário de operações). */
   footer?: string;
+  /** Endereços de imagens (prints do trade) para ilustrar o card; até 4. Se não carregarem, o card sai sem elas. */
+  media?: string[];
 }
 
 export interface CardBadge { name: string; tier: BadgeTier; glyph: BadgeGlyph; earned: boolean }
@@ -148,9 +150,11 @@ function spaced(ctx: CanvasRenderingContext2D, text: string, x: number, y: numbe
   ctx.textAlign = prev;
 }
 
-function loadImage(src: string): Promise<HTMLImageElement | null> {
+function loadImage(src: string, cors = false): Promise<HTMLImageElement | null> {
   return new Promise((resolve) => {
     const img = new Image();
+    // Imagem de outro domínio só vai para o canvas (e vira PNG) se o servidor liberar CORS.
+    if (cors) img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
     img.src = src;
@@ -239,6 +243,88 @@ function medal(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number,
   ctx.fillStyle = earned ? '#0a0a0a' : '#3a3a3a';
   if (glyph === 'star') star(ctx, cx, cy + r * 0.04, r * 0.46); else flame(ctx, cx, cy, r * 0.46);
   ctx.fill();
+}
+
+/** Desenha a imagem preenchendo o retângulo (recorte central), com cantos arredondados e borda. */
+function drawCover(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
+  ctx.save();
+  roundRect(ctx, x, y, w, h, 24); ctx.clip();
+  ctx.fillStyle = C.surface; ctx.fillRect(x, y, w, h);
+  const k = Math.max(w / img.width, h / img.height);
+  const dw = img.width * k, dh = img.height * k;
+  ctx.drawImage(img, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
+  ctx.restore();
+  ctx.strokeStyle = C.line; ctx.lineWidth = 2; roundRect(ctx, x, y, w, h, 24); ctx.stroke();
+}
+
+/** Grade de prints: 1 ocupa tudo; 2 lado a lado (ou empilhadas se a área for alta); 3 = uma larga + duas; 4 = 2x2. */
+function drawMediaGrid(ctx: CanvasRenderingContext2D, imgs: HTMLImageElement[], x: number, y: number, w: number, h: number) {
+  const g = 16, n = imgs.length;
+  if (n === 1) { drawCover(ctx, imgs[0], x, y, w, h); return; }
+  if (n === 2) {
+    if (h > w * 0.9) {
+      const hh = (h - g) / 2;
+      drawCover(ctx, imgs[0], x, y, w, hh); drawCover(ctx, imgs[1], x, y + hh + g, w, hh);
+    } else {
+      const ww = (w - g) / 2;
+      drawCover(ctx, imgs[0], x, y, ww, h); drawCover(ctx, imgs[1], x + ww + g, y, ww, h);
+    }
+    return;
+  }
+  const hh = (h - g) / 2, ww = (w - g) / 2;
+  if (n === 3) {
+    drawCover(ctx, imgs[0], x, y, w, hh);
+    drawCover(ctx, imgs[1], x, y + hh + g, ww, hh);
+    drawCover(ctx, imgs[2], x + ww + g, y + hh + g, ww, hh);
+    return;
+  }
+  imgs.slice(0, 4).forEach((im, i) => drawCover(ctx, im, x + (i % 2) * (ww + g), y + Math.floor(i / 2) * (hh + g), ww, hh));
+}
+
+/** Versão do card de resultado com os prints do trade no meio: cabeçalho enxuto, prints e até 3 números. */
+function drawResultMedia(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: ResultCard, media: HTMLImageElement[]) {
+  background(ctx, W, H, toneGlow(s.tone));
+  header(ctx, logo, W);
+  const top = 190, bottom = H - 200, gap = 18, statsH = 124;
+  const headH = 40 + 110 + (s.subtitle ? 56 : 0) + 30 + 120;
+  const mediaMax = Math.min(1000, bottom - top - headH - statsH - gap * 2);
+  const mw = W - 168;
+  const mediaH = media.length === 1
+    ? Math.max(300, Math.min(mediaMax, mw * (media[0].height / media[0].width)))
+    : mediaMax;
+  const block = headH + gap + mediaH + gap + statsH;
+  let y = top + Math.max(0, (bottom - top - block) / 2);
+
+  ctx.textAlign = 'left'; ctx.fillStyle = C.green; ctx.font = `700 28px ${BODY}`;
+  spaced(ctx, s.eyebrow.toUpperCase(), 84, y + 30, 6);
+  y += 40;
+  ctx.fillStyle = C.text;
+  const ts = fitFont(ctx, s.title, 700, DISPLAY, 96, W - 168, 48);
+  ctx.font = `700 ${ts}px ${DISPLAY}`;
+  ctx.fillText(s.title, 84, y + 84);
+  y += 110;
+  if (s.subtitle) {
+    ctx.fillStyle = C.muted; ctx.font = `500 30px ${BODY}`;
+    ctx.fillText(s.subtitle, 84, y + 28);
+    y += 56;
+  }
+  if (s.headlineLabel) {
+    ctx.fillStyle = C.subtle; ctx.font = `600 22px ${BODY}`;
+    spaced(ctx, s.headlineLabel.toUpperCase(), 84, y + 18, 4);
+  }
+  y += 30;
+  ctx.fillStyle = toneColor(s.tone);
+  const hs = fitFont(ctx, s.headline, 500, MONO, 110, W - 168, 56);
+  ctx.font = `500 ${hs}px ${MONO}`;
+  ctx.fillText(s.headline, 84, y + hs * 0.82);
+  y += 120 + gap;
+
+  drawMediaGrid(ctx, media, 84, y, mw, mediaH);
+  y += mediaH + gap;
+
+  const st = s.stats.slice(0, 3), n = Math.max(1, st.length), bg = 16, bw = (mw - bg * (n - 1)) / n;
+  st.forEach((x, i) => statBox(ctx, 84 + i * (bw + bg), y, bw, statsH, x));
+  footer(ctx, W, H, s.footer ?? 'Meu diário de operações');
 }
 
 // ── cards ──
@@ -654,7 +740,12 @@ export async function renderShareCard(spec: CardSpec, format: ShareFormat): Prom
   const ctx = canvas.getContext('2d');
   if (!ctx) throw new Error('canvas_unavailable');
 
-  if (spec.kind === 'result') drawResult(ctx, logo, w, h, spec);
+  // Prints do trade: só os que carregam (e liberam CORS); sem nenhum, usa o layout normal.
+  const media = spec.kind === 'result' && spec.media?.length
+    ? (await Promise.all(spec.media.slice(0, 4).map((u) => loadImage(u, true)))).filter((i): i is HTMLImageElement => !!i)
+    : [];
+
+  if (spec.kind === 'result') { if (media.length) drawResultMedia(ctx, logo, w, h, spec, media); else drawResult(ctx, logo, w, h, spec); }
   else if (spec.kind === 'progress') drawProgress(ctx, logo, w, h, spec);
   else if (spec.kind === 'signal') drawSignal(ctx, logo, w, h, spec);
   else if (spec.kind === 'news') drawNews(ctx, logo, w, h, spec);

@@ -293,8 +293,9 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
           onClose={() => setShareTrade(null)}
           title="Compartilhar operação"
           canHideValues
+          canToggleMedia={entryScreenshots(shareTrade).length > 0}
           fileName={`operacao-${shareTrade.asset}`}
-          build={({ showValues }) => tradeCard(shareTrade, showValues)}
+          build={({ showValues, showMedia }) => tradeCard(shareTrade, showValues, showMedia)}
           caption={tradeCaption(shareTrade)}
         />
       )}
@@ -545,7 +546,7 @@ function formatMoney(value: number) {
 const moneyAbs = (v: number) => Math.abs(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const shortDay = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
-function tradeCard(e: TradeEntry, showValues: boolean): CardSpec {
+function tradeCard(e: TradeEntry, showValues: boolean, showMedia = false): CardSpec {
   const r = e.result_amount ?? 0;
   const tone = r > 0 ? 'up' : r < 0 ? 'down' : 'neutral';
   const pips = e.result_pips != null ? Number(e.result_pips) : null;
@@ -566,6 +567,7 @@ function tradeCard(e: TradeEntry, showValues: boolean): CardSpec {
       : (r > 0 ? 'GAIN' : r < 0 ? 'LOSS' : 'ZERO A ZERO'),
     tone,
     stats,
+    media: showMedia ? entryScreenshots(e).slice(0, 4).map(journalImageSrc) : undefined,
   };
 }
 
