@@ -103,13 +103,34 @@ Deno.serve(async (req) => {
 
   await deleteAvatar(targetId)
 
-  // Tabelas que apontam para o usuário sem ON DELETE CASCADE: precisam ser limpas antes.
-  for (const table of ['license_requests', 'partner_requests']) {
-    const { error } = await supabaseAdmin.from(table).delete().eq('user_id', targetId)
-    if (error && error.code !== '42P01') console.warn(`[delete-account] ${table}`, error.message)
+  // Tabelas que apontam para o perfil SEM exclusão em cascata (NO ACTION): travam a exclusão e precisam ser limpas antes.
+  // Conferido no banco: broadcasts.sender_id, license_requests*, partner_requests, prospects.partner_id.
+  const cleanup: { table: string; column: string; nullify?: boolean }[] = [
+    { table: 'license_requests', column: 'user_id' },
+    { table: 'license_requests_boletapro', column: 'user_id' },
+    { table: 'license_requests_fxsquad', column: 'user_id' },
+    { table: 'license_requests_snowball', column: 'user_id' },
+    { table: 'partner_requests', column: 'user_id' },
+    { table: 'prospects', column: 'partner_id' },
+    // Comunicados enviados continuam existindo; só perdem o remetente.
+    { table: 'broadcasts', column: 'sender_id', nullify: true },
+  ]
+  for (const c of cleanup) {
+    const q = c.nullify
+      ? supabaseAdmin.from(c.table).update({ [c.column]: null }).eq(c.column, targetId)
+      : supabaseAdmin.from(c.table).delete().eq(c.column, targetId)
+    const { error } = await q
+    // 42P01 = tabela inexistente (nem todo ambiente tem os produtos white-label).
+    if (error && error.code !== '42P01') {
+      console.error(`[delete-account] limpeza de ${c.table}.${c.column}`, error)
+      return json(500, { error: 'delete_failed', detail: `${c.table}.${c.column}: ${error.message}` })
+    }
   }
   const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', targetId)
-  if (profileError) console.warn('[delete-account] profiles', profileError.message)
+  if (profileError) {
+    console.error('[delete-account] profiles', profileError)
+    return json(500, { error: 'delete_failed', detail: `profiles: ${profileError.message}` })
+  }
 
   const { error: delError } = await supabaseAdmin.auth.admin.deleteUser(targetId)
   if (delError) {
