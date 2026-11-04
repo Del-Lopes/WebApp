@@ -9,6 +9,7 @@ import {
   groupByDay, keyToLabel, monthGrid, periodLabel, reportRange, reportToText, startOfDay, startOfWeek, weekNet,
 } from '../../lib/journalCalendar';
 import { Button, EmptyState, Input, Skeleton } from '../ui';
+import { useJournalCurrency } from '../../hooks/useJournalCurrency';
 
 interface Props {
   /** Muda quando o Diário salva/apaga uma operação: recarrega o período. */
@@ -34,6 +35,7 @@ function compact(v: number): string {
 const tone = (v: number) => (v > 0 ? 'text-success-fg' : v < 0 ? 'text-danger-fg' : 'text-fg-muted');
 
 export function JournalCalendar({ refreshKey, renderTrade, onNewTrade }: Props) {
+  useJournalCurrency(); // re-renderiza quando a moeda muda
   const { user } = useAuth();
   const userId = user?.id;
   const [mode, setMode] = useState<CalendarMode>('month');

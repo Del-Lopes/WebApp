@@ -9,6 +9,8 @@ import { TradeEditor } from './TradeEditor';
 import { JournalCalendar } from './JournalCalendar';
 import { JournalEvolution } from './JournalEvolution';
 import { entryScreenshots, journalImageSrc } from '../../lib/journalImages';
+import { currencySymbol, formatMoney, formatMoneyAbs } from '../../lib/journalCalendar';
+import { useJournalCurrency } from '../../hooks/useJournalCurrency';
 import { BackButton } from '../BackButton';
 import { Button, EmptyState, ImageViewer, Input, PageHeader, Select, Skeleton } from '../ui';
 import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
@@ -35,6 +37,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
     createEntry, updateEntry, deleteEntry, uploadScreenshot, refresh,
   } = useTradeJournal();
 
+  const [currency, setCurrency] = useJournalCurrency();
   const [search, setSearch] = useState('');
   const [periodDays, setPeriodDays] = useState(0);
   const [sideFilter, setSideFilter] = useState<SideFilter>('all');
@@ -141,6 +144,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
         </div>
       )}
 
+      <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex rounded-lg border border-tint/10 bg-tint/3 p-0.5 w-fit" role="group" aria-label="Modo de visualização">
         {([
           { value: 'calendar', label: 'Calendário', icon: <CalendarDays size={15} /> },
@@ -160,6 +164,23 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
             {opt.label}
           </button>
         ))}
+      </div>
+
+      <div className="flex rounded-lg border border-tint/10 bg-tint/3 p-0.5 w-fit" role="group" aria-label="Moeda dos valores" title="Só troca o símbolo: os valores não são convertidos">
+        {([['BRL', 'R$ Real'], ['USD', 'US$ Dólar']] as const).map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={currency === value}
+            onClick={() => setCurrency(value)}
+            className={`rounded-md px-3 py-1.5 text-sm transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+              currency === value ? 'bg-accent/10 font-medium text-accent-fg' : 'text-fg-muted hover:text-fg'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
       </div>
 
       {view === 'evolution' ? (
@@ -293,6 +314,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
           onClose={() => setShareTrade(null)}
           title="Compartilhar operação"
           canHideValues
+          valuesLabel={`Mostrar valores em ${currencySymbol(currency)}`}
           canToggleMedia={entryScreenshots(shareTrade).length > 0}
           fileName={`operacao-${shareTrade.asset}`}
           build={({ showValues, showMedia, frames }) => tradeCard(shareTrade, showValues, showMedia, frames)}
@@ -537,13 +559,8 @@ function formatDateTime(iso: string) {
   });
 }
 
-function formatMoney(value: number) {
-  const sign = value > 0 ? '+' : '';
-  return `${sign}${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
-}
-
 // ── Cards de compartilhamento ──
-const moneyAbs = (v: number) => Math.abs(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const moneyAbs = formatMoneyAbs;
 const shortDay = (iso: string) => new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' });
 
 function tradeCard(e: TradeEntry, showValues: boolean, showMedia = false, frames?: Record<number, MediaFrame>): CardSpec {

@@ -6,6 +6,7 @@ import {
   DayResults, WEEKDAYS_SHORT, dailyNet, dayKey, fetchDayResults, formatMoney, formatPercent, keyToDate, keyToLabel,
 } from '../../lib/journalCalendar';
 import { EmptyState, Skeleton } from '../ui';
+import { useJournalCurrency } from '../../hooks/useJournalCurrency';
 
 interface Props {
   /** Muda quando o Diário salva/apaga uma operação: recarrega os dados. */
@@ -25,6 +26,7 @@ const MONTHS_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 's
 const tone = (v: number) => (v > 0 ? 'text-success-fg' : v < 0 ? 'text-danger-fg' : 'text-fg-muted');
 
 export function JournalEvolution({ refreshKey }: Props) {
+  useJournalCurrency(); // re-renderiza quando a moeda muda
   const { user } = useAuth();
   const userId = user?.id;
   const [period, setPeriod] = useState(90);

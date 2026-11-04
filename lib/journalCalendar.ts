@@ -212,9 +212,35 @@ export function buildReport(entries: TradeEntry[], dayResults?: DayResults): Rep
 
 // --- Formatação ---
 
+// Moeda de exibição do Diário. Os valores gravados são números simples (o trader lança no que opera): trocar entre
+// real e dólar muda só o símbolo, não converte nada. Fica num pequeno "store" para toda a tela reagir à troca.
+export type JournalCurrency = 'BRL' | 'USD';
+const CURRENCY_KEY = 'journal_currency';
+let currentCurrency: JournalCurrency = (() => {
+  try { return localStorage.getItem(CURRENCY_KEY) === 'USD' ? 'USD' : 'BRL'; } catch { return 'BRL'; }
+})();
+const currencyListeners = new Set<() => void>();
+
+export const getJournalCurrency = (): JournalCurrency => currentCurrency;
+export function setJournalCurrency(c: JournalCurrency) {
+  if (c === currentCurrency) return;
+  currentCurrency = c;
+  try { localStorage.setItem(CURRENCY_KEY, c); } catch { /* storage indisponível */ }
+  currencyListeners.forEach((l) => l());
+}
+export function subscribeJournalCurrency(l: () => void): () => void {
+  currencyListeners.add(l);
+  return () => { currencyListeners.delete(l); };
+}
+export const currencySymbol = (c: JournalCurrency = currentCurrency): string => (c === 'USD' ? 'US$' : 'R$');
+
+/** Valor absoluto na moeda atual, ex.: "R$ 5,38" ou "US$ 5,38". */
+export const formatMoneyAbs = (value: number): string =>
+  Math.abs(value).toLocaleString('pt-BR', { style: 'currency', currency: currentCurrency });
+
 export function formatMoney(value: number): string {
   const sign = value > 0 ? '+' : '';
-  return `${sign}${value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`;
+  return `${sign}${value.toLocaleString('pt-BR', { style: 'currency', currency: currentCurrency })}`;
 }
 
 export const formatPercent = (v: number): string => `${Math.round(v * 100)}%`;

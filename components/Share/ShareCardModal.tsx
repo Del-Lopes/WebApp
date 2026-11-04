@@ -12,6 +12,8 @@ interface ShareCardModalProps {
   caption: string;
   /** Mostra o interruptor "Mostrar valores em R$" (para cards com dinheiro). */
   canHideValues?: boolean;
+  /** Texto do interruptor de valores (padrão: "Mostrar valores em R$"). */
+  valuesLabel?: string;
   /** Mostra o interruptor "Incluir prints do trade" (para cards com imagens anexadas). */
   canToggleMedia?: boolean;
   title?: string;
@@ -28,7 +30,7 @@ export const ShareButton: React.FC<{
 );
 
 export const ShareCardModal: React.FC<ShareCardModalProps> = ({
-  open, onClose, build, caption, canHideValues, canToggleMedia, title = 'Compartilhar card', fileName = 'trader-afk',
+  open, onClose, build, caption, canHideValues, valuesLabel = 'Mostrar valores em R$', canToggleMedia, title = 'Compartilhar card', fileName = 'trader-afk',
 }) => {
   const [format, setFormat] = useState<ShareFormat>('feed');
   const [showValues, setShowValues] = useState(true);
@@ -189,7 +191,7 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
             {canHideValues && (
               <label className="inline-flex cursor-pointer items-center gap-2 text-sm text-fg">
                 <input type="checkbox" checked={showValues} onChange={(e) => setShowValues(e.target.checked)} className="h-4 w-4 accent-accent" />
-                Mostrar valores em R$
+                {valuesLabel}
               </label>
             )}
           </div>
