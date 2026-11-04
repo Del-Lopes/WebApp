@@ -7,6 +7,7 @@ export { Label, Input, Textarea, Select, FieldMessage } from './Field';
 export { Badge } from './Badge';
 export type { BadgeTone } from './Badge';
 export { Modal } from './Modal';
+export { ImageViewer } from './ImageViewer';
 export { Tabs } from './Tabs';
 export type { TabItem } from './Tabs';
 export { Table, THead, TBody, TR, TH, TD } from './Table';

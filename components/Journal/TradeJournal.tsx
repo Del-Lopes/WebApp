@@ -10,7 +10,7 @@ import { JournalCalendar } from './JournalCalendar';
 import { JournalEvolution } from './JournalEvolution';
 import { entryScreenshots, journalImageSrc } from '../../lib/journalImages';
 import { BackButton } from '../BackButton';
-import { Button, EmptyState, Input, PageHeader, Select, Skeleton } from '../ui';
+import { Button, EmptyState, ImageViewer, Input, PageHeader, Select, Skeleton } from '../ui';
 import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
 import type { CardSpec } from '../../lib/shareCard';
 
@@ -329,6 +329,7 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete, onShare }: Tra
   const isWin = result > 0;
   const isLoss = result < 0;
   const shots = entryScreenshots(entry);
+  const [viewer, setViewer] = useState<number | null>(null);
 
   return (
     <div className="glass-card glass-card-hover rounded-xl overflow-hidden">
@@ -428,7 +429,13 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete, onShare }: Tra
               <p className="eyebrow-muted mb-1.5">{shots.length > 1 ? `Prints (${shots.length})` : 'Screenshot'}</p>
               <div className="flex flex-wrap gap-3">
                 {shots.map((src, i) => (
-                  <a key={`${src}-${i}`} href={journalImageSrc(src)} target="_blank" rel="noopener noreferrer">
+                  <button
+                    key={`${src}-${i}`}
+                    type="button"
+                    onClick={() => setViewer(i)}
+                    aria-label={`Ampliar print ${i + 1} de ${shots.length}`}
+                    className="cursor-zoom-in rounded-lg focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
+                  >
                     <img
                       loading="lazy"
                       decoding="async"
@@ -436,9 +443,16 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete, onShare }: Tra
                       alt={`Print ${i + 1} ${entry.asset}`}
                       className="max-h-72 max-w-full rounded-lg border border-tint/10 hover:opacity-90 transition-opacity"
                     />
-                  </a>
+                  </button>
                 ))}
               </div>
+              <ImageViewer
+                images={shots.map(journalImageSrc)}
+                index={viewer}
+                onIndexChange={setViewer}
+                onClose={() => setViewer(null)}
+                label={`Print ${entry.asset}`}
+              />
             </div>
           )}
 
