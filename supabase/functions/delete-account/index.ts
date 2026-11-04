@@ -60,8 +60,7 @@ async function deleteAvatar(userId: string) {
   }
 }
 
-Deno.serve(async (req) => {
-  const cors = corsHeaders(req.headers.get('origin'))
+async function handle(req: Request, cors: Record<string, string>): Promise<Response> {
   const json = (status: number, body: unknown) =>
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json', ...cors } })
 
@@ -101,7 +100,9 @@ Deno.serve(async (req) => {
 
   console.log(`[delete-account] ${self ? 'auto-exclusão' : `admin ${callerId} excluindo`} ${targetId}`)
 
+  console.log('[delete-account] etapa: foto de perfil')
   await deleteAvatar(targetId)
+  console.log('[delete-account] etapa: limpeza de tabelas')
 
   // Tabelas que apontam para o perfil SEM exclusão em cascata (NO ACTION): travam a exclusão e precisam ser limpas antes.
   // Conferido no banco: broadcasts.sender_id, license_requests*, partner_requests, prospects.partner_id.
@@ -126,12 +127,14 @@ Deno.serve(async (req) => {
       return json(500, { error: 'delete_failed', detail: `${c.table}.${c.column}: ${error.message}` })
     }
   }
+  console.log('[delete-account] etapa: perfil')
   const { error: profileError } = await supabaseAdmin.from('profiles').delete().eq('id', targetId)
   if (profileError) {
     console.error('[delete-account] profiles', profileError)
     return json(500, { error: 'delete_failed', detail: `profiles: ${profileError.message}` })
   }
 
+  console.log('[delete-account] etapa: login (auth)')
   const { error: delError } = await supabaseAdmin.auth.admin.deleteUser(targetId)
   if (delError) {
     console.error('[delete-account] deleteUser', delError)
@@ -139,4 +142,17 @@ Deno.serve(async (req) => {
   }
 
   return json(200, { ok: true })
+}
+
+Deno.serve(async (req) => {
+  const cors = corsHeaders(req.headers.get('origin'))
+  try {
+    return await handle(req, cors)
+  } catch (e) {
+    console.error('[delete-account] exceção não tratada', e)
+    return new Response(JSON.stringify({ error: 'delete_failed', detail: `exceção: ${(e as Error)?.message ?? String(e)}` }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json', ...cors },
+    })
+  }
 })

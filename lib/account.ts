@@ -27,6 +27,8 @@ export async function deleteAccount(userId?: string): Promise<void> {
       code = body?.error ?? code;
       detail = typeof body?.detail === 'string' ? body.detail : '';
     } catch { /* corpo ilegível */ }
+    // Falha de rede/execução (sem corpo de resposta): mostra o que o supabase-js informou.
+    if (!detail && (error as Error).message) detail = (error as Error).message;
     // O detalhe técnico ajuda o suporte a achar o que travou a exclusão.
     throw new DeleteAccountError(code, `${MESSAGES[code] ?? MESSAGES.delete_failed}${detail ? ` (${detail})` : ''}`);
   }
