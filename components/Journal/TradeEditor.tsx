@@ -10,7 +10,7 @@ import {
 } from '../../hooks/useTradeJournal';
 import { Button, Input, Textarea } from '../ui';
 import { forumImageErrorMessage, forumImagesEnabled, uploadForumImage } from '../../lib/forumImages';
-import { journalImageSrc } from '../../lib/journalImages';
+import { entryScreenshots, journalImageSrc, MAX_JOURNAL_SCREENSHOTS } from '../../lib/journalImages';
 
 interface TradeEditorProps {
   entry: TradeEntry | null;
@@ -62,7 +62,7 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
   const [conclusion, setConclusion] = useState(entry?.conclusion ?? '');
 
   // Screenshot
-  const [screenshotUrl, setScreenshotUrl] = useState<string | null>(entry?.screenshot_url ?? null);
+  const [screenshots, setScreenshots] = useState<string[]>(entry ? entryScreenshots(entry) : []);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingFile, setUploadingFile] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -82,14 +82,26 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
     setEmotionalTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]);
   };
 
-  const uploadImage = async (file: File) => {
-    if (!file.type.startsWith('image/')) return;
+  const atLimit = screenshots.length >= MAX_JOURNAL_SCREENSHOTS;
+
+  // Envia um ou mais arquivos em sequência, respeitando o limite de prints.
+  const uploadImages = async (files: File[]) => {
+    const images = files.filter((f) => f.type.startsWith('image/'));
+    if (images.length === 0) return;
+    const room = MAX_JOURNAL_SCREENSHOTS - screenshots.length;
+    if (room <= 0) {
+      setUploadError(`Limite de ${MAX_JOURNAL_SCREENSHOTS} prints por operação.`);
+      return;
+    }
     setUploadingFile(true);
     setUploadError(null);
     try {
-      // Novo storage (R2); se não estiver configurado, cai no upload antigo.
-      const value = forumImagesEnabled ? await uploadForumImage(file) : await onUploadScreenshot(file);
-      setScreenshotUrl(value);
+      for (const file of images.slice(0, room)) {
+        // Novo storage (R2); se não estiver configurado, cai no upload antigo.
+        const value = forumImagesEnabled ? await uploadForumImage(file) : await onUploadScreenshot(file);
+        setScreenshots((prev) => (prev.length >= MAX_JOURNAL_SCREENSHOTS ? prev : [...prev, value]));
+      }
+      if (images.length > room) setUploadError(`Limite de ${MAX_JOURNAL_SCREENSHOTS} prints por operação: o excedente foi ignorado.`);
     } catch (err: any) {
       setUploadError(forumImagesEnabled ? forumImageErrorMessage(err) : (err?.message ?? 'Falha ao enviar imagem.'));
     } finally {
@@ -99,23 +111,22 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) void uploadImage(file);
+    void uploadImages(Array.from<File>(e.target.files ?? []));
   };
 
   // Ctrl+V em qualquer ponto do formulário: só intercepta se a área de transferência tiver imagem.
   const onPaste = (e: React.ClipboardEvent) => {
-    const file = Array.from<File>(e.clipboardData.files).find((f) => f.type.startsWith('image/'));
-    if (!file) return;
+    const files = Array.from<File>(e.clipboardData.files).filter((f) => f.type.startsWith('image/'));
+    if (files.length === 0) return;
     e.preventDefault();
-    void uploadImage(file);
+    void uploadImages(files);
   };
 
   const onDrop = (e: React.DragEvent) => {
-    const file = Array.from<File>(e.dataTransfer.files).find((f) => f.type.startsWith('image/'));
-    if (!file) return;
+    const files = Array.from<File>(e.dataTransfer.files).filter((f) => f.type.startsWith('image/'));
+    if (files.length === 0) return;
     e.preventDefault();
-    void uploadImage(file);
+    void uploadImages(files);
   };
 
   const handleSave = async () => {
@@ -148,7 +159,7 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
       emotional_note: emotionalNote,
       rating,
       conclusion,
-      screenshot_url: screenshotUrl,
+      screenshot_urls: screenshots,
     };
 
     setSaving(true);
@@ -360,50 +371,58 @@ export function TradeEditor({ entry, defaultOpenedAt, onClose, onSave, onUploadS
           </Section>
 
           {/* Screenshot */}
-          <Section title="Screenshot do gráfico (opcional)">
-            {screenshotUrl ? (
-              <div className="relative inline-block">
-                <img
-                  src={journalImageSrc(screenshotUrl)}
-                  alt="Screenshot da operação"
-                  className="max-h-64 max-w-full rounded-lg border border-tint/10"
-                />
-                <button
-                  type="button"
-                  onClick={() => setScreenshotUrl(null)}
-                  className="absolute -top-2 -right-2 p-1.5 rounded-full bg-brand-red text-white hover:brightness-110 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
-                  aria-label="Remover screenshot"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ) : (
-              <div>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingFile}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-tint/15 text-sm text-fg-muted hover:border-accent/60 hover:text-accent-fg hover:bg-accent/5 transition-colors disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
-                >
-                  {uploadingFile ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
-                  {uploadingFile ? 'Enviando...' : 'Enviar imagem'}
-                </button>
-                <p className="mt-1.5 text-xs text-fg-subtle">ou cole um print com Ctrl+V em qualquer ponto desta janela</p>
-                {uploadError && (
-                  <div className="flex items-start gap-2 mt-2 p-2 rounded-lg border bg-danger/10 border-danger/20 text-danger-fg text-xs">
-                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
-                    <span>{uploadError}</span>
+          <Section title={`Prints do gráfico (opcional · até ${MAX_JOURNAL_SCREENSHOTS})`}>
+            {screenshots.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
+                {screenshots.map((src, i) => (
+                  <div key={`${src}-${i}`} className="relative">
+                    <img
+                      src={journalImageSrc(src)}
+                      alt={`Print ${i + 1} da operação`}
+                      className="w-full h-32 object-cover rounded-lg border border-tint/10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setScreenshots((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="absolute -top-2 -right-2 p-1.5 rounded-full bg-brand-red text-white hover:brightness-110 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
+                      aria-label={`Remover print ${i + 1}`}
+                    >
+                      <Trash2 size={14} />
+                    </button>
                   </div>
-                )}
+                ))}
               </div>
             )}
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept="image/png,image/jpeg,image/webp"
+                className="hidden"
+                onChange={handleFileChange}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFile || atLimit}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg border-2 border-dashed border-tint/15 text-sm text-fg-muted hover:border-accent/60 hover:text-accent-fg hover:bg-accent/5 transition-colors disabled:opacity-50 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
+              >
+                {uploadingFile ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+                {uploadingFile ? 'Enviando...' : screenshots.length > 0 ? 'Adicionar outra imagem' : 'Enviar imagem'}
+              </button>
+              <p className="mt-1.5 text-xs text-fg-subtle">
+                {atLimit
+                  ? `Limite de ${MAX_JOURNAL_SCREENSHOTS} prints atingido.`
+                  : 'ou cole um print com Ctrl+V em qualquer ponto desta janela'}
+              </p>
+              {uploadError && (
+                <div className="flex items-start gap-2 mt-2 p-2 rounded-lg border bg-danger/10 border-danger/20 text-danger-fg text-xs">
+                  <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                  <span>{uploadError}</span>
+                </div>
+              )}
+            </div>
           </Section>
 
           {error && (

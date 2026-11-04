@@ -8,7 +8,7 @@ import { useTradeJournal, type TradeEntry } from '../../hooks/useTradeJournal';
 import { TradeEditor } from './TradeEditor';
 import { JournalCalendar } from './JournalCalendar';
 import { JournalEvolution } from './JournalEvolution';
-import { journalImageSrc } from '../../lib/journalImages';
+import { entryScreenshots, journalImageSrc } from '../../lib/journalImages';
 import { BackButton } from '../BackButton';
 import { Button, EmptyState, Input, PageHeader, Select, Skeleton } from '../ui';
 import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
@@ -328,6 +328,7 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete, onShare }: Tra
   const result = entry.result_amount ?? 0;
   const isWin = result > 0;
   const isLoss = result < 0;
+  const shots = entryScreenshots(entry);
 
   return (
     <div className="glass-card glass-card-hover rounded-xl overflow-hidden">
@@ -362,8 +363,11 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete, onShare }: Tra
           </span>
         )}
 
-        {entry.screenshot_url && (
-          <ImageIcon size={14} className="text-fg-subtle" />
+        {shots.length > 0 && (
+          <span className="flex items-center gap-1 text-fg-subtle text-xs">
+            <ImageIcon size={14} />
+            {shots.length > 1 && <span className="tabular-nums">{shots.length}</span>}
+          </span>
         )}
 
         <span className={`px-3 py-1 rounded-lg border text-sm font-semibold font-mono tabular-nums whitespace-nowrap ${
@@ -419,18 +423,22 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete, onShare }: Tra
           {entry.conclusion && (
             <ReflectionField label="Conclusão" value={entry.conclusion} />
           )}
-          {entry.screenshot_url && (
+          {shots.length > 0 && (
             <div>
-              <p className="eyebrow-muted mb-1.5">Screenshot</p>
-              <a href={journalImageSrc(entry.screenshot_url)} target="_blank" rel="noopener noreferrer">
-                <img
-                  loading="lazy"
-                  decoding="async"
-                  src={journalImageSrc(entry.screenshot_url)}
-                  alt={`Screenshot ${entry.asset}`}
-                  className="max-h-72 max-w-full rounded-lg border border-tint/10 hover:opacity-90 transition-opacity"
-                />
-              </a>
+              <p className="eyebrow-muted mb-1.5">{shots.length > 1 ? `Prints (${shots.length})` : 'Screenshot'}</p>
+              <div className="flex flex-wrap gap-3">
+                {shots.map((src, i) => (
+                  <a key={`${src}-${i}`} href={journalImageSrc(src)} target="_blank" rel="noopener noreferrer">
+                    <img
+                      loading="lazy"
+                      decoding="async"
+                      src={journalImageSrc(src)}
+                      alt={`Print ${i + 1} ${entry.asset}`}
+                      className="max-h-72 max-w-full rounded-lg border border-tint/10 hover:opacity-90 transition-opacity"
+                    />
+                  </a>
+                ))}
+              </div>
             </div>
           )}
 

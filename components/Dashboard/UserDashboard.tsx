@@ -19,8 +19,7 @@ import {
   Database,
   ShieldAlert,
   HardDrive,
-  Loader2,
-  Notebook
+  Loader2
 } from 'lucide-react';
 import { Article, View } from '../../types';
 import { getStorageStats, uploadToSupabase, formatBytes, type StorageStats } from '../../lib/storage';
@@ -28,7 +27,7 @@ import { ARTICLE_LIST_COLUMNS, withArticleContent } from '../../lib/articles';
 import { Button, Card, Input, Label, Textarea } from '../ui';
 import { TrilhaProgressCard } from './TrilhaProgressCard';
 import { GamificationBar } from '../TrilhaGain/GamificationBar';
-import { CryptoCard, EconCalendarCard, SignalsCard } from './LiveCards';
+import { CryptoCard, EconCalendarCard, JournalCard, SignalsCard } from './LiveCards';
 import { fetchStats } from '../../lib/trilhaGain';
 import { TrilhaStats } from '../../types';
 
@@ -304,24 +303,8 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ onNavigate, onRead
           <div className={navHint}>Gerenciar estratégias</div>
         </div>
 
-        {/* Journal Card */}
-        <div
-          onClick={() => onNavigate('journal')}
-          className={navCard}
-        >
-          <div className="flex items-center gap-4 mb-4">
-            <div className={navIcon}>
-              <Notebook size={24} />
-            </div>
-            <div>
-              <p className={navEyebrow}>Diário</p>
-              <h3 className={navTitle}>Anotações</h3>
-            </div>
-          </div>
-          <div className={navHint}>Registre suas operações</div>
-        </div>
-
         {/* Atalhos vivos: mostram o que está acontecendo em cada área */}
+        <JournalCard onNavigate={onNavigate} />
         <EconCalendarCard onNavigate={onNavigate} />
         <CryptoCard onNavigate={onNavigate} />
         <SignalsCard onNavigate={onNavigate} />

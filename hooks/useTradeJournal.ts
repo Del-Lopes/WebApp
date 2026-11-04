@@ -40,6 +40,7 @@ export interface TradeEntry {
   rating: number | null;
   conclusion: string | null;
   screenshot_url: string | null;
+  screenshot_urls: string[];
   created_at: string;
   updated_at: string;
 }
@@ -61,7 +62,7 @@ export interface TradeInput {
   emotional_note?: string | null;
   rating?: number | null;
   conclusion?: string | null;
-  screenshot_url?: string | null;
+  screenshot_urls?: string[];
 }
 
 export interface JournalStats {
@@ -140,7 +141,8 @@ export function useTradeJournal() {
       emotional_note: input.emotional_note?.trim() || null,
       rating: input.rating ?? null,
       conclusion: input.conclusion?.trim() || null,
-      screenshot_url: input.screenshot_url ?? null,
+      screenshot_url: input.screenshot_urls?.[0] ?? null,
+      screenshot_urls: input.screenshot_urls ?? [],
     };
     const { data, error: err } = await supabase
       .from('trade_journal')
@@ -170,7 +172,10 @@ export function useTradeJournal() {
     if (input.emotional_note !== undefined) patch.emotional_note = input.emotional_note?.trim() || null;
     if (input.rating !== undefined) patch.rating = input.rating;
     if (input.conclusion !== undefined) patch.conclusion = input.conclusion?.trim() || null;
-    if (input.screenshot_url !== undefined) patch.screenshot_url = input.screenshot_url;
+    if (input.screenshot_urls !== undefined) {
+      patch.screenshot_urls = input.screenshot_urls;
+      patch.screenshot_url = input.screenshot_urls[0] ?? null;
+    }
     const { error: err } = await supabase.from('trade_journal').update(patch).eq('id', id);
     if (err) return { ok: false, error: err.message };
     await fetchEntries();

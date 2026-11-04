@@ -1,5 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowDownRight, ArrowUpRight, Bitcoin, CalendarClock, MinusCircle, Radio } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Bitcoin, CalendarClock, MinusCircle, Notebook, Radio } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../lib/supabase';
+import type { TradeEntry } from '../../hooks/useTradeJournal';
+import { buildReport, fetchDayResults, formatMoney, formatPercent, type Report } from '../../lib/journalCalendar';
 import {
   EconEvent, EconProfile, displayTitle, fetchEvents, fetchProfiles, fmtTime, fmtValue,
 } from '../../lib/econCalendar';
@@ -161,6 +165,67 @@ export const CryptoCard: React.FC<CardProps> = ({ onNavigate }) => {
         </Line>
       ) : (
         <Line>Altas, narrativas e desbloqueios de tokens.</Line>
+      )}
+    </Shell>
+  );
+};
+
+// ── Diário: resumo do mês ───────────────────────────────────────────────
+export const JournalCard: React.FC<CardProps> = ({ onNavigate }) => {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const [report, setReport] = useState<Report | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!userId) return;
+    let alive = true;
+    const now = new Date();
+    const from = new Date(now.getFullYear(), now.getMonth(), 1);
+    const to = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const f = from.toISOString();
+    const t = to.toISOString();
+    (async () => {
+      try {
+        const [trades, dayResults] = await Promise.all([
+          supabase
+            .from('trade_journal')
+            .select('id, asset, side, opened_at, closed_at, result_amount, emotional_tags')
+            .eq('user_id', userId)
+            .or(`and(closed_at.gte.${f},closed_at.lt.${t}),and(closed_at.is.null,opened_at.gte.${f},opened_at.lt.${t})`)
+            .limit(1000),
+          fetchDayResults(supabase, userId, from, to),
+        ]);
+        if (trades.error) throw trades.error;
+        if (alive) setReport(buildReport((trades.data ?? []) as TradeEntry[], dayResults));
+      } catch (e) {
+        console.error('[LiveCards] diário', e);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [userId]);
+
+  const has = !!report && (report.trades > 0 || report.tradedDays > 0);
+  const tone = !report || report.net === 0 ? 'text-fg' : report.net > 0 ? 'text-success-fg' : 'text-danger-fg';
+
+  return (
+    <Shell onClick={() => onNavigate('journal')} icon={Notebook}
+      eyebrow={has ? 'Diário · este mês' : 'Diário'}
+      title={has && report ? formatMoney(report.net) : 'Anotações'}
+      label="Abrir o Diário">
+      {loading ? (
+        <Pulse className="h-4 w-3/4" />
+      ) : has && report ? (
+        <Line>
+          <span className="shrink-0 tabular-nums">{report.trades} {report.trades === 1 ? 'operação' : 'operações'}</span>
+          {report.decided > 0 && (
+            <span className="truncate">· win rate <span className={cn('font-semibold tabular-nums', tone)}>{formatPercent(report.winRate)}</span></span>
+          )}
+        </Line>
+      ) : (
+        <Line>Registre suas operações e acompanhe a evolução.</Line>
       )}
     </Shell>
   );
