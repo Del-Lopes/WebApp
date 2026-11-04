@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Pin, Lock, Unlock, Trash2, Pencil, MessagesSquare, Send } from 'lucide-react';
 import { BackButton } from '../BackButton';
-import { Button, Card, Skeleton, EmptyState, Badge, FieldMessage } from '../ui';
+import { Button, Card, Skeleton, EmptyState, Badge, FieldMessage, Input } from '../ui';
 import { useAuth } from '../../contexts/AuthContext';
 import {
   ForumTopic, ForumPost,
@@ -23,6 +23,7 @@ interface Props {
 export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack, onChanged }) => {
   const { user, role } = useAuth();
   const isStaff = role === 'admin' || role === 'first_mate';
+  const isAdmin = role === 'admin';
   const [topic, setTopic] = useState<ForumTopic | null>(null);
   const [posts, setPosts] = useState<ForumPost[]>([]);
   const [loading, setLoading] = useState(true);
@@ -31,6 +32,11 @@ export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack,
   const [uploading, setUploading] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Edição do título (só admin)
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [titleError, setTitleError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -73,6 +79,33 @@ export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack,
       onChanged();
     } catch (e) {
       console.error('[Forum] moderar', e);
+    }
+  };
+
+  const startEditTitle = () => {
+    if (!topic) return;
+    setTitleDraft(topic.title);
+    setTitleError(null);
+    setEditingTitle(true);
+  };
+
+  const saveTitle = async () => {
+    if (!topic) return;
+    const next = titleDraft.trim();
+    if (next.length < 3) { setTitleError('O título precisa ter pelo menos 3 caracteres.'); return; }
+    if (next === topic.title) { setEditingTitle(false); return; }
+    setSavingTitle(true);
+    setTitleError(null);
+    try {
+      await updateTopic(topic.id, { title: next });
+      setTopic({ ...topic, title: next });
+      setEditingTitle(false);
+      onChanged();
+    } catch (e) {
+      console.error('[Forum] editar título', e);
+      setTitleError('Não foi possível salvar o título. Tente novamente.');
+    } finally {
+      setSavingTitle(false);
     }
   };
 
@@ -119,7 +152,33 @@ export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack,
             {topic.is_pinned && <Badge tone="accent"><Pin size={11} /> Fixado</Badge>}
             {topic.is_locked && <Badge tone="neutral"><Lock size={11} /> Trancado</Badge>}
           </p>
-          <h1 className="font-display text-2xl font-semibold leading-tight text-fg break-words sm:text-3xl">{topic.title}</h1>
+          {editingTitle ? (
+            <form onSubmit={(e) => { e.preventDefault(); void saveTitle(); }} className="space-y-2">
+              <Input
+                value={titleDraft}
+                maxLength={140}
+                autoFocus
+                aria-label="Título do tópico"
+                onChange={(e) => setTitleDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Escape') setEditingTitle(false); }}
+              />
+              <div className="flex flex-wrap items-center gap-2">
+                <Button type="submit" size="sm" isLoading={savingTitle} disabled={titleDraft.trim().length < 3}>Salvar título</Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => setEditingTitle(false)} disabled={savingTitle}>Cancelar</Button>
+                <span className="text-xs text-fg-subtle tabular-nums">{titleDraft.length}/140</span>
+              </div>
+              {titleError && <FieldMessage error>{titleError}</FieldMessage>}
+            </form>
+          ) : (
+            <div className="flex items-start gap-2">
+              <h1 className="min-w-0 flex-1 font-display text-2xl font-semibold leading-tight text-fg break-words sm:text-3xl">{topic.title}</h1>
+              {isAdmin && (
+                <Button size="icon" variant="ghost" aria-label="Editar título" title="Editar título" onClick={startEditTitle} className="mt-0.5 shrink-0">
+                  <Pencil size={16} />
+                </Button>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
