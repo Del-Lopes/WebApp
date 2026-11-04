@@ -214,7 +214,7 @@ export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack,
 
 const PostCard: React.FC<{
   authorName: string;
-  authorId: string;
+  authorId: string | null;
   authorRole: string | null;
   createdAt: string;
   edited: boolean;
@@ -255,7 +255,7 @@ const PostCard: React.FC<{
   return (
     <Card className={highlight ? 'border-accent/20' : undefined}>
       <div className="flex items-start gap-3">
-        <Avatar name={authorName} userId={authorId} />
+        <Avatar name={authorName} userId={authorId} deleted={authorId === null} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">

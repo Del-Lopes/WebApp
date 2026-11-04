@@ -18,7 +18,8 @@ export interface ForumCategory {
 export interface ForumTopic {
   id: string;
   category_id: string;
-  author_id: string;
+  /** null = autor excluiu a conta (a mensagem permanece, anônima). */
+  author_id: string | null;
   author_name: string;
   author_role: string | null;
   title: string;
@@ -34,7 +35,7 @@ export interface ForumTopic {
 export interface ForumPost {
   id: string;
   topic_id: string;
-  author_id: string;
+  author_id: string | null;
   author_name: string;
   author_role: string | null;
   body: string;

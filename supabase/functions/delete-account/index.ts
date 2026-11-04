@@ -10,8 +10,9 @@
 //   • qualquer usuário pode excluir a própria conta, EXCETO admin (para o sistema nunca ficar sem admin);
 //   • só admin exclui a conta de outra pessoa, e nunca a de outro admin.
 //
-// Antes de apagar o usuário limpamos o que não tem exclusão em cascata (licenças e pedidos de parceria)
-// e, se os secrets do R2 estiverem configurados, as imagens do Fórum enviadas por ele (LGPD).
+// Antes de apagar o usuário limpamos o que não tem exclusão em cascata (licenças e pedidos de parceria) e a FOTO DE
+// PERFIL no R2 (dado pessoal). As mensagens do Fórum permanecem, anônimas (migration 20261115: nome vira
+// "Usuário excluído" e author_id vira NULL); por isso as imagens dentro delas também ficam no bucket.
 // Deno runtime
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
@@ -45,18 +46,17 @@ function corsHeaders(origin: string | null): Record<string, string> {
   }
 }
 
-// Apaga do R2 as imagens do Fórum do usuário (melhor esforço: falha aqui não impede a exclusão da conta).
-async function deleteForumImages(userId: string) {
+// Apaga do R2 a foto de perfil do usuário (melhor esforço: falha aqui não impede a exclusão da conta).
+async function deleteAvatar(userId: string) {
   if (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET) return
-  const { data: rows, error } = await supabaseAdmin.from('forum_images').select('object_key').eq('user_id', userId).limit(1000)
-  if (error || !rows?.length) return
+  const { data } = await supabaseAdmin.from('profiles').select('avatar_key').eq('id', userId).maybeSingle()
+  const key = data?.avatar_key
+  if (!key) return
   const r2 = new AwsClient({ accessKeyId: R2_ACCESS_KEY_ID, secretAccessKey: R2_SECRET_ACCESS_KEY, service: 's3', region: 'auto' })
-  for (const row of rows) {
-    try {
-      await r2.fetch(`https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET}/${row.object_key}`, { method: 'DELETE' })
-    } catch (e) {
-      console.warn('[delete-account] R2', row.object_key, e)
-    }
+  try {
+    await r2.fetch(`https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com/${R2_BUCKET}/${key}`, { method: 'DELETE' })
+  } catch (e) {
+    console.warn('[delete-account] R2 avatar', key, e)
   }
 }
 
@@ -101,7 +101,7 @@ Deno.serve(async (req) => {
 
   console.log(`[delete-account] ${self ? 'auto-exclusão' : `admin ${callerId} excluindo`} ${targetId}`)
 
-  await deleteForumImages(targetId)
+  await deleteAvatar(targetId)
 
   // Tabelas que apontam para o usuário sem ON DELETE CASCADE: precisam ser limpas antes.
   for (const table of ['license_requests', 'partner_requests']) {

@@ -591,7 +591,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
         alert('Não é possível excluir a conta de outro administrador.');
         return;
     }
-    if (!window.confirm('TEM CERTEZA? Isso excluirá permanentemente a CONTA do usuário (login, perfil, licenças, diário, progresso e Coins). Ele não conseguirá mais entrar. Esta ação não tem volta.')) return;
+    if (!window.confirm('TEM CERTEZA? Isso excluirá permanentemente a CONTA do usuário (login, perfil, licenças, diário, progresso e Coins). As mensagens dele no Fórum permanecem, como "Usuário excluído". Ele não conseguirá mais entrar. Esta ação não tem volta.')) return;
 
     setLoading(true);
     try {

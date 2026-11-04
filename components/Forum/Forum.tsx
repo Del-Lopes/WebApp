@@ -177,7 +177,7 @@ const TopicRow: React.FC<{ topic: ForumTopic; categoryName: string | null; onOpe
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpen(); } }}
       className="flex items-center gap-4 focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60"
     >
-      <Avatar name={topic.author_name} userId={topic.author_id} />
+      <Avatar name={topic.author_name} userId={topic.author_id} deleted={topic.author_id === null} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           {topic.is_pinned && <Pin size={14} className="shrink-0 text-accent-fg" aria-label="Fixado" />}

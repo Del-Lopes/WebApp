@@ -363,8 +363,8 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
         ) : (
           <>
             <p className="text-sm text-fg-muted leading-relaxed">
-              Exclui sua conta e apaga seus dados: login, perfil, diário de operações, progresso na Trilha, <strong className="text-fg">Coins</strong>, licenças e imagens enviadas ao Fórum.
-              Essa ação <strong className="text-fg">não tem volta</strong> e os Coins não são reembolsados.
+              Exclui sua conta e apaga seus dados: login, perfil e foto, diário de operações, progresso na Trilha, <strong className="text-fg">Coins</strong> e licenças.
+              Suas mensagens no Fórum continuam publicadas, sem seu nome nem sua foto. Essa ação <strong className="text-fg">não tem volta</strong> e os Coins não são reembolsados.
             </p>
             <div className="mt-4 flex justify-end">
               <Button variant="danger" onClick={() => { setDeleteText(''); setDeleteError(null); setDeleteOpen(true); }}>
@@ -392,7 +392,7 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
       >
         <div className="space-y-3">
           <p className="text-sm text-fg-muted leading-relaxed">
-            Você perderá o acesso à plataforma e todos os seus dados serão apagados, incluindo o diário, o progresso, as licenças e os Coins.
+            Você perderá o acesso à plataforma e seus dados serão apagados, incluindo o diário, o progresso, as licenças e os Coins. Suas mensagens no Fórum permanecem, como "Usuário excluído".
           </p>
           <div>
             <Label htmlFor="delete-confirm">Para confirmar, digite <strong className="text-fg">EXCLUIR</strong></Label>
