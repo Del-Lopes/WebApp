@@ -136,6 +136,7 @@ export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack,
 
       <PostCard
         authorName={topic.author_name}
+        authorId={topic.author_id}
         authorRole={topic.author_role}
         createdAt={topic.created_at}
         edited={topic.updated_at !== topic.created_at}
@@ -159,6 +160,7 @@ export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack,
           <PostCard
             key={p.id}
             authorName={p.author_name}
+            authorId={p.author_id}
             authorRole={p.author_role}
             createdAt={p.created_at}
             edited={p.updated_at !== p.created_at}
@@ -212,6 +214,7 @@ export const ForumTopicView: React.FC<Props> = ({ topicId, categoryName, onBack,
 
 const PostCard: React.FC<{
   authorName: string;
+  authorId: string;
   authorRole: string | null;
   createdAt: string;
   edited: boolean;
@@ -220,7 +223,7 @@ const PostCard: React.FC<{
   canEdit: boolean;
   onSave: (body: string) => Promise<void>;
   onDelete: () => void;
-}> = ({ authorName, authorRole, createdAt, edited, body, highlight, canEdit, onSave, onDelete }) => {
+}> = ({ authorName, authorId, authorRole, createdAt, edited, body, highlight, canEdit, onSave, onDelete }) => {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
   const [draftImages, setDraftImages] = useState<string[]>([]);
@@ -252,7 +255,7 @@ const PostCard: React.FC<{
   return (
     <Card className={highlight ? 'border-accent/20' : undefined}>
       <div className="flex items-start gap-3">
-        <Avatar name={authorName} />
+        <Avatar name={authorName} userId={authorId} />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
             <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">

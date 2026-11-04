@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { deleteAccount } from '../../lib/account';
 import { LicenseRequest, PartnerRequest, Profile, Prospect, LicenseTitle, Article, Robot } from '../../types';
 import { UserCoinsCard } from './UserCoinsCard';
 import { 
@@ -586,17 +587,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!window.confirm('TEM CERTEZA? Isso excluirá permanentemente o perfil e todas as licenças do usuário. Esta ação não tem volta.')) return;
-    
+    if (users.find((u) => u.id === userId)?.role === 'admin') {
+        alert('Não é possível excluir a conta de outro administrador.');
+        return;
+    }
+    if (!window.confirm('TEM CERTEZA? Isso excluirá permanentemente a CONTA do usuário (login, perfil, licenças, diário, progresso e Coins). Ele não conseguirá mais entrar. Esta ação não tem volta.')) return;
+
     setLoading(true);
     try {
-        const { error: licensesError } = await supabase.from('license_requests').delete().eq('user_id', userId);
-        if (licensesError) throw licensesError;
-        const { error: requestsError } = await supabase.from('partner_requests').delete().eq('user_id', userId);
-        if (requestsError) throw requestsError;
-        const { error } = await supabase.from('profiles').delete().eq('id', userId);
-
-        if (error) throw error;
+        // A exclusão roda no servidor (remove também o login do usuário e valida que o alvo não é admin).
+        await deleteAccount(userId);
 
         setUsers(prev => prev.filter(u => u.id !== userId));
         setPartners(prev => prev.filter(p => p.id !== userId));
@@ -780,13 +780,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
               </div>
             </div>
           </div>
-          <Button
-            variant="danger"
-            onClick={() => handleDeleteUser(user.id)}
-            className="w-full md:w-auto whitespace-normal text-center"
-          >
-            <Trash2 size={18} /> Excluir permanentemente este registro
-          </Button>
+          {user.role === 'admin' ? (
+            <p className="max-w-xs text-xs text-fg-subtle md:text-right">Contas de administrador não podem ser excluídas por aqui.</p>
+          ) : (
+            <Button
+              variant="danger"
+              onClick={() => handleDeleteUser(user.id)}
+              className="w-full md:w-auto whitespace-normal text-center"
+            >
+              <Trash2 size={18} /> Excluir conta deste usuário
+            </Button>
+          )}
         </Card>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

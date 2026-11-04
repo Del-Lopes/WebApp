@@ -1,10 +1,13 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { User, Lock, Save, Loader2, AlertCircle, CheckCircle, ShieldCheck, FileText, ExternalLink } from 'lucide-react';
+import { User, Lock, Save, Loader2, AlertCircle, CheckCircle, ShieldCheck, FileText, ExternalLink, Camera, Trash2, TriangleAlert } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { BackButton } from './BackButton';
-import { Button, Card, Input, Label, PageHeader } from './ui';
+import { Button, Card, Input, Label, Modal, PageHeader } from './ui';
+import { Avatar } from './Forum/Avatar';
+import { avatarErrorMessage, avatarsEnabled, removeAvatar, uploadAvatar, useAvatarKey } from '../lib/avatars';
+import { DeleteAccountError, deleteAccount } from '../lib/account';
 import { isValidPhone } from '../lib/whatsapp';
 
 interface SettingsProps {
@@ -18,7 +21,7 @@ const LEGAL_DOCS = [
 ] as const;
 
 export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
@@ -26,6 +29,17 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [savedPhone, setSavedPhone] = useState('');
+
+  // Foto de perfil
+  const avatarInput = useRef<HTMLInputElement>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+
+  // Exclusão da conta
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteText, setDeleteText] = useState('');
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Password State
   const [newPassword, setNewPassword] = useState('');
@@ -55,6 +69,53 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
         setSavedPhone(data?.phone ?? '');
       });
   }, [userId]);
+
+  const myAvatarKey = useAvatarKey(user?.id);
+
+  const handleAvatarFile = async (file: File | undefined) => {
+    if (!file || !user) return;
+    setAvatarBusy(true);
+    setAvatarError(null);
+    try {
+      await uploadAvatar(user.id, file);
+      setMessage({ type: 'success', text: 'Foto de perfil atualizada!' });
+    } catch (err) {
+      console.error('[Settings] avatar', err);
+      setAvatarError(avatarErrorMessage(err));
+    } finally {
+      setAvatarBusy(false);
+      if (avatarInput.current) avatarInput.current.value = '';
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!user) return;
+    setAvatarBusy(true);
+    setAvatarError(null);
+    try {
+      await removeAvatar(user.id);
+    } catch (err) {
+      console.error('[Settings] remover avatar', err);
+      setAvatarError('Não foi possível remover a foto. Tente novamente.');
+    } finally {
+      setAvatarBusy(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteAccount();
+      // A conta já não existe: encerra a sessão deste navegador e volta para o início.
+      await supabase.auth.signOut().catch(() => undefined);
+      window.location.assign('/');
+    } catch (err) {
+      console.error('[Settings] excluir conta', err);
+      setDeleteError(err instanceof DeleteAccountError ? err.message : 'Não foi possível excluir a conta agora. Tente novamente.');
+      setDeleting(false);
+    }
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -152,6 +213,32 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
             <User size={22} />
           </div>
           <h3 className="font-display text-lg font-semibold text-fg">Perfil</h3>
+        </div>
+
+        {/* Foto de perfil */}
+        <div className="mb-6 flex flex-wrap items-center gap-4 rounded-xl border border-tint/8 bg-tint/2 p-4">
+          <Avatar name={fullName || user?.email || '?'} userId={user?.id} className="h-20 w-20 text-2xl" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium text-fg">Foto de perfil</p>
+            <p className="mt-0.5 text-xs text-fg-muted">Aparece no menu e nas suas mensagens do Fórum. A imagem é recortada em quadrado.</p>
+            {avatarsEnabled ? (
+              <div className="mt-2.5 flex flex-wrap gap-2">
+                <input ref={avatarInput} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => void handleAvatarFile(e.target.files?.[0])} />
+                <Button type="button" size="sm" variant="secondary" disabled={avatarBusy} onClick={() => avatarInput.current?.click()}>
+                  {avatarBusy ? <Loader2 size={15} className="animate-spin" /> : <Camera size={15} />}
+                  {myAvatarKey ? 'Trocar foto' : 'Enviar foto'}
+                </Button>
+                {myAvatarKey && (
+                  <Button type="button" size="sm" variant="ghost" disabled={avatarBusy} onClick={() => void handleRemoveAvatar()}>
+                    <Trash2 size={15} /> Remover
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-fg-subtle">O envio de fotos não está disponível no momento.</p>
+            )}
+            {avatarError && <p className="mt-2 text-xs text-danger-fg">{avatarError}</p>}
+          </div>
         </div>
 
         <form onSubmit={handleUpdateProfile} className="space-y-4">
@@ -260,10 +347,60 @@ export const Settings: React.FC<SettingsProps> = ({ onBack }) => {
             Você pode pedir a exclusão da sua conta, uma cópia dos seus dados pessoais ou exercer outros direitos previstos na LGPD.
           </p>
           <p className="mt-2 text-sm text-fg-muted leading-relaxed">
-            Para fazer a solicitação, fale com o suporte da Trader AFK pelos canais de atendimento da plataforma.
+            Para uma cópia dos seus dados ou outros direitos, fale com o suporte da Trader AFK pelos canais de atendimento da plataforma. A exclusão da conta você faz sozinho, na seção abaixo.
           </p>
         </div>
       </Card>
+
+      {/* Excluir a conta */}
+      <Card className="border-danger/20">
+        <div className="mb-4 flex items-center gap-3">
+          <div className="rounded-lg border border-danger/20 bg-danger/10 p-2 text-danger-fg"><TriangleAlert size={22} /></div>
+          <h3 className="font-display text-lg font-semibold text-fg">Excluir conta</h3>
+        </div>
+        {role === 'admin' ? (
+          <p className="text-sm text-fg-muted leading-relaxed">Contas de administrador não podem ser excluídas por aqui. Para encerrar esta conta, transfira a administração antes.</p>
+        ) : (
+          <>
+            <p className="text-sm text-fg-muted leading-relaxed">
+              Exclui sua conta e apaga seus dados: login, perfil, diário de operações, progresso na Trilha, <strong className="text-fg">Coins</strong>, licenças e imagens enviadas ao Fórum.
+              Essa ação <strong className="text-fg">não tem volta</strong> e os Coins não são reembolsados.
+            </p>
+            <div className="mt-4 flex justify-end">
+              <Button variant="danger" onClick={() => { setDeleteText(''); setDeleteError(null); setDeleteOpen(true); }}>
+                <Trash2 size={16} /> Excluir minha conta
+              </Button>
+            </div>
+          </>
+        )}
+      </Card>
+
+      <Modal
+        open={deleteOpen}
+        onClose={() => { if (!deleting) setDeleteOpen(false); }}
+        title="Excluir sua conta?"
+        description="Essa ação é permanente."
+        closeOnOverlay={false}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setDeleteOpen(false)} disabled={deleting}>Cancelar</Button>
+            <Button variant="danger" onClick={() => void handleDeleteAccount()} isLoading={deleting} disabled={deleteText.trim().toUpperCase() !== 'EXCLUIR'}>
+              Excluir definitivamente
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-fg-muted leading-relaxed">
+            Você perderá o acesso à plataforma e todos os seus dados serão apagados, incluindo o diário, o progresso, as licenças e os Coins.
+          </p>
+          <div>
+            <Label htmlFor="delete-confirm">Para confirmar, digite <strong className="text-fg">EXCLUIR</strong></Label>
+            <Input id="delete-confirm" value={deleteText} onChange={(e) => setDeleteText(e.target.value)} autoComplete="off" placeholder="EXCLUIR" />
+          </div>
+          {deleteError && <p className="text-sm text-danger-fg">{deleteError}</p>}
+        </div>
+      </Modal>
     </div>
   );
 };

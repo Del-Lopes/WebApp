@@ -5,6 +5,7 @@ import { View, UserRole } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { Logo } from './Logo';
+import { Avatar } from './Forum/Avatar';
 import { cn } from '../lib/cn';
 import { fetchLiveRoom } from '../lib/liveRoom';
 
@@ -175,9 +176,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className="p-3 border-t border-tint/6">
           <div className="w-full flex items-center justify-between gap-1 p-2 rounded-xl hover:bg-tint/3 transition-colors group cursor-pointer" onClick={() => handleViewChange('settings')}>
             <div className="flex items-center gap-3 min-w-0">
-              <div className="w-9 h-9 shrink-0 rounded-full bg-accent/10 border border-accent/20 flex items-center justify-center text-accent-fg font-semibold text-sm">
-                 {user?.email?.charAt(0).toUpperCase()}
-              </div>
+              <Avatar name={user?.user_metadata?.full_name || user?.email || '?'} userId={user?.id} className="h-9 w-9" />
               <div className="text-left min-w-0">
                 <p className="text-sm font-medium text-fg truncate group-hover:text-accent-fg transition-colors">
                     {user?.user_metadata?.full_name || 'Usuário'}
