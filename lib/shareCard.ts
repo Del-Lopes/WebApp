@@ -639,63 +639,88 @@ function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, 
   background(ctx, W, H, toneGlow(s.headlineTone));
   header(ctx, logo, W);
 
-  ctx.font = `700 56px ${DISPLAY}`;
-  const titleLines = wrapLines(ctx, s.title, W - 168, 2);
-  ctx.font = `500 28px ${BODY}`;
-  const noteLines = s.note ? wrapLines(ctx, s.note, W - 168, s.noteMax ?? 2) : [];
+  const top = 190, bottom = H - 200, avail = bottom - top;
+  const story = H > 1500;
+  // No story há muito mais altura: a análise pode ocupar o dobro de linhas.
+  const noteMax = s.noteMax ? (story ? s.noteMax * 2 : s.noteMax) : 2;
   const rows = s.rows.slice(0, 6);
   const cols = rows.length > 3 && !s.wide ? 2 : 1;
   const rowH = 80, rowGap = 14;
   const rowCount = Math.ceil(rows.length / cols);
   const rowsH = rowCount * rowH + Math.max(0, rowCount - 1) * rowGap;
-  const h = 64 + titleLines.length * 66 + 50 + 16
-    + (s.numbers.length ? 130 + 24 : 0)
-    + 84 + (s.verdict ? 44 : 0) + 16 + 36 + rowsH
-    + (noteLines.length ? noteLines.length * 38 + 20 + (s.noteTitle ? 40 : 0) : 0);
-  const top = 190, bottom = H - 200;
-  let y = top + Math.max(0, (bottom - top - h) / 2);
 
-  ctx.textAlign = 'left'; ctx.fillStyle = C.green; ctx.font = `700 26px ${BODY}`;
-  spaced(ctx, s.eyebrow ?? `CALENDÁRIO ECONÔMICO · ${s.phase === 'pre' ? 'ANTES DA NOTÍCIA' : 'APÓS A NOTÍCIA'}`, 84, y + 28, 4);
+  // Desenha num espaço "lógico" ampliado por k: fontes, caixas e espaços crescem juntos. Escolhe o maior k
+  // em que o conteúdo ainda cabe, então o story (mais alto) sai com tudo maior e preenchido, não encolhido no meio.
+  const layout = (k: number) => {
+    const cw = (W - 168) / k;
+    ctx.font = `700 56px ${DISPLAY}`;
+    const titleLines = wrapLines(ctx, s.title, cw, 2);
+    ctx.font = `500 28px ${BODY}`;
+    const noteLines = s.note ? wrapLines(ctx, s.note, cw, noteMax) : [];
+    const h = 64 + titleLines.length * 66 + 50 + 16
+      + (s.numbers.length ? 130 + 24 : 0)
+      + 84 + (s.verdict ? 44 : 0) + 16 + 36 + rowsH
+      + (noteLines.length ? noteLines.length * 38 + 20 + (s.noteTitle ? 40 : 0) : 0);
+    return { cw, titleLines, noteLines, h };
+  };
+  let k = 1, L = layout(1);
+  for (const c of [1.6, 1.5, 1.4, 1.3, 1.2, 1.1, 1.05]) {
+    const t = layout(c);
+    if (t.h * c <= avail) { k = c; L = t; break; }
+  }
+  const { cw, titleLines, noteLines, h } = L;
+
+  ctx.save();
+  ctx.translate(84, top + Math.max(0, (avail - h * k) / 2));
+  ctx.scale(k, k);
+  let y = 0;
+
+  // O topo é espaçado letra a letra: reduz o corpo até caber na largura (títulos longos como "· APÓS A NOTÍCIA").
+  const eyebrow = s.eyebrow ?? `CALENDÁRIO ECONÔMICO · ${s.phase === 'pre' ? 'ANTES DA NOTÍCIA' : 'APÓS A NOTÍCIA'}`;
+  let es = 26;
+  const spacedW = (size: number) => { ctx.font = `700 ${size}px ${BODY}`; return [...eyebrow].reduce((t, ch) => t + ctx.measureText(ch).width + 4, -4); };
+  while (es > 16 && spacedW(es) > cw) es -= 1;
+  ctx.textAlign = 'left'; ctx.fillStyle = C.green; ctx.font = `700 ${es}px ${BODY}`;
+  spaced(ctx, eyebrow, 0, y + 28, 4);
   y += 64;
 
   ctx.fillStyle = C.text; ctx.font = `700 56px ${DISPLAY}`;
-  titleLines.forEach((l, i) => ctx.fillText(l, 84, y + 50 + i * 66));
+  titleLines.forEach((l, i) => ctx.fillText(l, 0, y + 50 + i * 66));
   y += titleLines.length * 66;
 
   ctx.fillStyle = C.muted; ctx.font = `500 28px ${BODY}`;
-  ctx.fillText(s.meta, 84, y + 34);
+  ctx.fillText(s.meta, 0, y + 34);
   const metaW = ctx.measureText(s.meta).width;
   ctx.fillStyle = '#fbbf24';
-  for (let i = 0; i < s.stars; i++) { star(ctx, 84 + metaW + 40 + i * 34, y + 24, 13); ctx.fill(); }
+  for (let i = 0; i < s.stars; i++) { star(ctx, metaW + 40 + i * 34, y + 24, 13); ctx.fill(); }
   y += 50 + 16;
 
   if (s.numbers.length) {
-    const n = s.numbers.length, gap = 16, bw = (W - 168 - gap * (n - 1)) / n;
-    s.numbers.forEach((st, i) => statBox(ctx, 84 + i * (bw + gap), y, bw, 130, st));
+    const n = s.numbers.length, gap = 16, bw = (cw - gap * (n - 1)) / n;
+    s.numbers.forEach((st, i) => statBox(ctx, i * (bw + gap), y, bw, 130, st));
     y += 130 + 24;
   }
 
   ctx.fillStyle = toneColor(s.headlineTone);
-  const hs = fitFont(ctx, s.headline, 700, DISPLAY, 72, W - 168, 36);
+  const hs = fitFont(ctx, s.headline, 700, DISPLAY, 72, cw, 36);
   ctx.font = `700 ${hs}px ${DISPLAY}`;
-  ctx.fillText(s.headline, 84, y + 62);
+  ctx.fillText(s.headline, 0, y + 62);
   y += 84;
   if (s.verdict) {
     ctx.fillStyle = C.text;
-    fitFont(ctx, s.verdict, 600, BODY, 32, W - 168, 22);
-    ctx.fillText(s.verdict, 84, y + 26);
+    fitFont(ctx, s.verdict, 600, BODY, 32, cw, 22);
+    ctx.fillText(s.verdict, 0, y + 26);
     y += 44;
   }
   y += 16;
 
   ctx.fillStyle = C.subtle; ctx.font = `600 22px ${BODY}`;
-  spaced(ctx, s.rowsTitle.toUpperCase(), 84, y + 18, 3);
+  spaced(ctx, s.rowsTitle.toUpperCase(), 0, y + 18, 3);
   y += 36;
 
-  const gap = 20, rw = (W - 168 - gap * (cols - 1)) / cols;
+  const gap = 20, rw = (cw - gap * (cols - 1)) / cols;
   rows.forEach((r, i) => {
-    const x = 84 + (i % cols) * (rw + gap), ry = y + Math.floor(i / cols) * (rowH + rowGap);
+    const x = (i % cols) * (rw + gap), ry = y + Math.floor(i / cols) * (rowH + rowGap);
     ctx.fillStyle = C.surface; roundRect(ctx, x, ry, rw, rowH, 20); ctx.fill();
     ctx.strokeStyle = C.line; ctx.lineWidth = 2; roundRect(ctx, x, ry, rw, rowH, 20); ctx.stroke();
     ctx.textAlign = 'left'; ctx.fillStyle = C.text;
@@ -714,12 +739,13 @@ function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, 
     let ny = y;
     if (s.noteTitle) {
       ctx.fillStyle = C.subtle; ctx.font = `600 22px ${BODY}`;
-      spaced(ctx, s.noteTitle.toUpperCase(), 84, ny + 54, 3);
+      spaced(ctx, s.noteTitle.toUpperCase(), 0, ny + 54, 3);
       ny += 40;
     }
     ctx.fillStyle = s.noteTitle ? C.text : C.muted; ctx.font = `500 28px ${BODY}`;
-    noteLines.forEach((l, i) => ctx.fillText(l, 84, ny + 48 + i * 38));
+    noteLines.forEach((l, i) => ctx.fillText(l, 0, ny + 48 + i * 38));
   }
+  ctx.restore();
   footer(ctx, W, H, 'Leitura gerada por IA · não é recomendação');
 }
 

@@ -190,7 +190,7 @@ export function assetNewsCard(event: EconEvent, profile: EconProfile | undefined
           noteMax: 6,
           note: clip(
             [reading.leitura, interp.cenarios[hit]?.leitura, interp.contexto].filter(Boolean).join(' '),
-            520,
+            900,
           ) || undefined,
         }
       : { note: reading.leitura ? clip(reading.leitura, 150) : undefined }),
