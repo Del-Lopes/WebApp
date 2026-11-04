@@ -26,6 +26,9 @@ const MARKER_RE = new RegExp(`\\[img:(${KEY})\\]`, 'g');
 
 export const imageUrl = (key: string) => `${BASE}/${key}`;
 
+/** O valor é uma chave de imagem do bucket do Fórum (e não uma URL de outro armazenamento)? */
+export const isForumImageKey = (v: string): boolean => new RegExp(`^${KEY}$`).test(v);
+
 // Separa o texto dos marcadores de imagem (sem repetir imagens).
 export function splitBody(body: string): { text: string; images: string[] } {
   const images: string[] = [];

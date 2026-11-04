@@ -255,7 +255,7 @@ function AppContent() {
               );
 
             case 'journal':
-              return <TradeJournal onBack={() => setCurrentView('dashboard')} />;
+              return <TradeJournal onBack={() => setCurrentView('dashboard')} onOpenForum={() => setCurrentView('forum')} />;
 
             case 'analysis':
               return <ResultsAnalysis onBack={() => setCurrentView('dashboard')} />;

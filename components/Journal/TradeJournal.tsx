@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   Plus, Edit2, Trash2, AlertTriangle, Search,
   TrendingUp, TrendingDown, Star, BookOpen, Clock, ImageIcon,
-  Target, BarChart3, ListChecks, CalendarDays, List, LineChart,
+  Target, BarChart3, ListChecks, CalendarDays, List, LineChart, MessageSquarePlus,
 } from 'lucide-react';
 import { useTradeJournal, type TradeEntry } from '../../hooks/useTradeJournal';
 import { TradeEditor } from './TradeEditor';
@@ -14,10 +14,13 @@ import { useJournalCurrency } from '../../hooks/useJournalCurrency';
 import { BackButton } from '../BackButton';
 import { Button, EmptyState, ImageViewer, Input, PageHeader, Select, Skeleton } from '../ui';
 import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
+import { ShareToForumModal } from './ShareToForumModal';
 import type { CardSpec, MediaFrame } from '../../lib/shareCard';
 
 interface TradeJournalProps {
   onBack: () => void;
+  /** Abre o Fórum (usado depois de publicar uma operação como tópico). */
+  onOpenForum?: () => void;
 }
 
 type SideFilter = 'all' | 'buy' | 'sell';
@@ -31,7 +34,7 @@ const PERIOD_OPTIONS = [
   { value: 365, label: '1 ano' },
 ];
 
-export function TradeJournal({ onBack }: TradeJournalProps) {
+export function TradeJournal({ onBack, onOpenForum }: TradeJournalProps) {
   const {
     entries, stats, loading, error,
     createEntry, updateEntry, deleteEntry, uploadScreenshot, refresh,
@@ -50,6 +53,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
   const [calendarVersion, setCalendarVersion] = useState(0);
   const [newTradeDate, setNewTradeDate] = useState<Date | null>(null);
   const [shareTrade, setShareTrade] = useState<TradeEntry | null>(null);
+  const [forumTrade, setForumTrade] = useState<TradeEntry | null>(null);
   const [sharePeriod, setSharePeriod] = useState(false);
 
   const filtered = useMemo(() => {
@@ -114,6 +118,7 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
       onEdit={() => { setEditing(entry); setCreatingNew(false); }}
       onDelete={() => handleDelete(entry)}
       onShare={() => setShareTrade(entry)}
+      onForum={() => setForumTrade(entry)}
     />
   );
 
@@ -308,6 +313,14 @@ export function TradeJournal({ onBack }: TradeJournalProps) {
         />
       )}
 
+      {forumTrade && (
+        <ShareToForumModal
+          entry={forumTrade}
+          onClose={() => setForumTrade(null)}
+          onOpenForum={onOpenForum}
+        />
+      )}
+
       {shareTrade && (
         <ShareCardModal
           open
@@ -344,9 +357,10 @@ interface TradeCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onShare: () => void;
+  onForum: () => void;
 }
 
-function TradeCard({ entry, expanded, onToggle, onEdit, onDelete, onShare }: TradeCardProps) {
+function TradeCard({ entry, expanded, onToggle, onEdit, onDelete, onShare, onForum }: TradeCardProps) {
   const isOpen = !entry.closed_at;
   const result = entry.result_amount ?? 0;
   const isWin = result > 0;
@@ -481,6 +495,10 @@ function TradeCard({ entry, expanded, onToggle, onEdit, onDelete, onShare }: Tra
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-tint/6">
             {!isOpen && <ShareButton variant="ghost" onClick={onShare} />}
+            <Button variant="ghost" size="sm" onClick={onForum}>
+              <MessageSquarePlus size={14} />
+              Discutir no Fórum
+            </Button>
             <Button variant="ghost" size="sm" onClick={onEdit}>
               <Edit2 size={14} />
               Editar
