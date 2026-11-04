@@ -6,7 +6,7 @@ import {
 } from '../../lib/econCalendar';
 import { Table, THead, TBody, TR, TH, TD } from '../ui';
 import { ShareButton, ShareCardModal } from '../Share/ShareCardModal';
-import { newsCard, newsCaption } from '../../lib/shareSpecs';
+import { newsCard, newsCaption, assetNewsCard, assetNewsCaption } from '../../lib/shareSpecs';
 
 interface Props {
   event: EconEvent;
@@ -61,7 +61,12 @@ const RELEVANCE: Record<AssetReading['relevancia'], { label: string; cls: string
   baixa: { label: 'Sensibilidade baixa', cls: 'bg-tint/2 text-fg-subtle border-tint/8' },
 };
 
-const AssetCard: React.FC<{ a: AssetReading; labels: Record<ScenarioKey, string>; hit: ScenarioKey | null }> = ({ a, labels, hit }) => (
+const AssetCard: React.FC<{
+  a: AssetReading; labels: Record<ScenarioKey, string>; hit: ScenarioKey | null;
+  event: EconEvent; profile: EconProfile; outcome: Outcome | null;
+}> = ({ a, labels, hit, event, profile, outcome }) => {
+  const [shareOpen, setShareOpen] = useState(false);
+  return (
   <div className="rounded-xl border border-tint/8 bg-surface p-3.5">
     <div className="flex items-start justify-between gap-2">
       <p className="text-sm font-semibold text-fg">
@@ -90,10 +95,24 @@ const AssetCard: React.FC<{ a: AssetReading; labels: Record<ScenarioKey, string>
       ))}
     </div>
     <p className="mt-2.5 text-xs leading-relaxed text-fg-muted">{a.leitura}</p>
+    <div className="mt-2.5 flex justify-end">
+      <ShareButton variant="ghost" label={`Compartilhar ${a.ativo}`} onClick={() => setShareOpen(true)} />
+    </div>
+    {shareOpen && (
+      <ShareCardModal
+        open
+        onClose={() => setShareOpen(false)}
+        title={`Compartilhar ${a.ativo} · ${outcome ? 'pós-notícia' : 'pré-notícia'}`}
+        fileName={`calendario-${event.event_key}-${a.ativo.toLowerCase()}`}
+        build={() => assetNewsCard(event, profile, a, outcome)!}
+        caption={assetNewsCaption(event, profile, a, outcome)}
+      />
+    )}
   </div>
-);
+  );
+};
 
-const AssetInterpretation: React.FC<{ profile: EconProfile; tipo: 'dado' | 'qualitativo'; outcome: Outcome | null }> = ({ profile, tipo, outcome }) => {
+const AssetInterpretation: React.FC<{ profile: EconProfile; event: EconEvent; tipo: 'dado' | 'qualitativo'; outcome: Outcome | null }> = ({ profile, event, tipo, outcome }) => {
   const [open, setOpen] = useState(false);
   const ativos = profile.asset_interpretation?.ativos ?? [];
   const labels: Record<ScenarioKey, string> = tipo === 'qualitativo'
@@ -123,7 +142,7 @@ const AssetInterpretation: React.FC<{ profile: EconProfile; tipo: 'dado' | 'qual
           {ativos.length > 0 ? (
             <>
               <div className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
-                {ativos.map((a) => <AssetCard key={a.ativo} a={a} labels={labels} hit={outcome?.scenario ?? null} />)}
+                {ativos.map((a) => <AssetCard key={a.ativo} a={a} labels={labels} hit={outcome?.scenario ?? null} event={event} profile={profile} outcome={outcome} />)}
               </div>
               <p className="mt-2.5 text-[11px] text-fg-subtle">
                 Reações típicas para cada cenário do indicador, geradas por IA. Não são recomendação de compra ou venda.
@@ -246,7 +265,7 @@ export const EventDetail: React.FC<Props> = ({ event, profile }) => {
             </div>
           )}
 
-          {profile && <AssetInterpretation profile={profile} tipo={interp.tipo} outcome={outcome} />}
+          {profile && <AssetInterpretation profile={profile} event={event} tipo={interp.tipo} outcome={outcome} />}
         </>
       ) : (
         <div className="rounded-xl border border-dashed border-tint/10 p-3.5 text-sm text-fg-muted flex items-start gap-2">

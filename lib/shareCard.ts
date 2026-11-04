@@ -77,6 +77,10 @@ export interface NewsShareCard {
   rowsTitle: string;
   rows: { label: string; value: string; dir: Dir3 }[];
   note?: string;
+  /** Substitui o texto do topo (padrão: "Calendário Econômico · antes/após a notícia"). */
+  eyebrow?: string;
+  /** Linhas de largura total (rótulos longos, como o nome de uma notícia). */
+  wide?: boolean;
 }
 
 /** Tela de parabéns da Trilha (Gain ou módulo concluído): ícone, título e caixa de Coins. */
@@ -551,7 +555,7 @@ function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, 
   ctx.font = `500 28px ${BODY}`;
   const noteLines = s.note ? wrapLines(ctx, s.note, W - 168, 2) : [];
   const rows = s.rows.slice(0, 6);
-  const cols = rows.length > 3 ? 2 : 1;
+  const cols = rows.length > 3 && !s.wide ? 2 : 1;
   const rowH = 80, rowGap = 14;
   const rowCount = Math.ceil(rows.length / cols);
   const rowsH = rowCount * rowH + Math.max(0, rowCount - 1) * rowGap;
@@ -563,7 +567,7 @@ function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, 
   let y = top + Math.max(0, (bottom - top - h) / 2);
 
   ctx.textAlign = 'left'; ctx.fillStyle = C.green; ctx.font = `700 26px ${BODY}`;
-  spaced(ctx, `CALENDÁRIO ECONÔMICO · ${s.phase === 'pre' ? 'ANTES DA NOTÍCIA' : 'APÓS A NOTÍCIA'}`, 84, y + 28, 4);
+  spaced(ctx, s.eyebrow ?? `CALENDÁRIO ECONÔMICO · ${s.phase === 'pre' ? 'ANTES DA NOTÍCIA' : 'APÓS A NOTÍCIA'}`, 84, y + 28, 4);
   y += 64;
 
   ctx.fillStyle = C.text; ctx.font = `700 56px ${DISPLAY}`;
@@ -606,10 +610,10 @@ function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, 
     ctx.fillStyle = C.surface; roundRect(ctx, x, ry, rw, rowH, 20); ctx.fill();
     ctx.strokeStyle = C.line; ctx.lineWidth = 2; roundRect(ctx, x, ry, rw, rowH, 20); ctx.stroke();
     ctx.textAlign = 'left'; ctx.fillStyle = C.text;
-    fitFont(ctx, r.label, 600, MONO, 30, rw * 0.5, 20);
+    fitFont(ctx, r.label, 600, s.wide ? BODY : MONO, 30, rw * (s.wide ? 0.62 : 0.5), 18);
     ctx.fillText(r.label, x + 28, ry + rowH / 2 + 10);
     ctx.textAlign = 'right'; ctx.fillStyle = DIR_COLOR[r.dir];
-    fitFont(ctx, r.value, 600, BODY, 28, rw * 0.5 - 20, 18);
+    fitFont(ctx, r.value, 600, BODY, 28, rw * (s.wide ? 0.26 : 0.5) - 20, 18);
     ctx.fillText(r.value, x + rw - 28, ry + rowH / 2 + 10);
     const vw = ctx.measureText(r.value).width;
     triangle(ctx, x + rw - 28 - vw - 26, ry + rowH / 2 + 1, 10, r.dir, DIR_COLOR[r.dir]);

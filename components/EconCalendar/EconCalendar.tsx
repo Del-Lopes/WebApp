@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CalendarClock, AlertTriangle, Loader2, Clock, ChevronDown, CalendarX, RefreshCw } from 'lucide-react';
+import { CalendarClock, AlertTriangle, Loader2, Clock, ChevronDown, CalendarX, RefreshCw, Layers } from 'lucide-react';
 import { BackButton } from '../BackButton';
 import {
   EconEvent, EconProfile, SyncStatus,
@@ -8,6 +8,7 @@ import {
 } from '../../lib/econCalendar';
 import { EventRow, Stars } from './EventRow';
 import { EventDetail, DirIcon } from './EventDetail';
+import { AssetMacroView } from './AssetMacro';
 import { PageHeader, Tabs, EmptyState, Skeleton } from '../ui';
 import { useNow } from '../../hooks/useNow';
 
@@ -152,6 +153,8 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
   const [range, setRange] = useState<RangeKey>('today');
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const [openId, setOpenId] = useState<string | null>(null);
+  // 'list' = calendário por horário; 'assets' = compilado macro por ativo.
+  const [mode, setMode] = useState<'list' | 'assets'>('list');
   const now = useNow(15_000);
   // Último status lido; o ciclo usa para decidir se pede coleta.
   const syncRef = useRef<SyncStatus | null>(null);
@@ -243,6 +246,16 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
     return [...groups.entries()];
   }, [events, range, prefs.onlyHigh, currencyOk]);
 
+  // Compilado por ativo: mesmo período e filtro de estrelas, sem o filtro de moeda (o ativo já faz esse papel).
+  const macroEvents = useMemo(() => {
+    const [from, to] = rangeBounds(range);
+    return events.filter((e) => {
+      const t = new Date(e.occurs_at).getTime();
+      return t >= from.getTime() && t < to.getTime() && (!prefs.onlyHigh || e.importance >= 3);
+    });
+  }, [events, range, prefs.onlyHigh]);
+  const rangeLabel = RANGES.find((x) => x.key === range)?.label ?? '';
+
   const toggleCurrency = (c: string) =>
     setPrefs((p) => ({
       ...p,
@@ -304,12 +317,23 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => setMode((m) => (m === 'assets' ? 'list' : 'assets'))}
+            aria-pressed={mode === 'assets'}
+            title="Compilado macro de cada ativo para o período"
+            className={`flex items-center gap-1.5 px-3 py-2.5 rounded-xl border text-sm font-medium whitespace-nowrap transition-colors focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-accent/60 ${
+              mode === 'assets' ? 'bg-accent/10 text-accent-fg border-accent/30' : 'bg-tint/3 text-fg-muted border-tint/6 hover:text-fg'
+            }`}
+          >
+            <Layers size={15} aria-hidden /> Macro por ativo
+          </button>
           {sync?.last_ok_at && (
             <span className="text-[11px] text-fg-subtle ml-auto">Atualizado {fmtAgo(sync.last_ok_at, now)}</span>
           )}
         </div>
 
-        {currencies.length > 0 && (
+        {mode === 'list' && currencies.length > 0 && (
           <div className="flex flex-wrap gap-1.5">
             <button
               onClick={() => setPrefs((p) => ({ ...p, currencies: [] }))}
@@ -353,6 +377,8 @@ export const EconCalendar: React.FC<Props> = ({ onBack }) => {
           <p className="font-display text-base font-semibold text-fg">Coletando o calendário econômico…</p>
           <p className="mt-1 text-sm text-fg-muted">Na primeira carga isso leva alguns instantes.</p>
         </div>
+      ) : mode === 'assets' ? (
+        <AssetMacroView events={macroEvents} profiles={profiles} periodLabel={rangeLabel} now={now} />
       ) : grouped.length === 0 ? (
         <EmptyState icon={CalendarX} title="Nenhum evento com esses filtros neste período." />
       ) : (

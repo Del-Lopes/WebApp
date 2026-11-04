@@ -3,8 +3,9 @@
 import type { Signal } from '../types';
 import type { AnalysisSection, StructuredAnalysis } from './signalAnalysis';
 import {
-  EconEvent, EconProfile, Dir, Outcome, ScenarioKey, displayTitle, fmtDiff, fmtValue,
+  AssetReading, EconEvent, EconProfile, Dir, Outcome, ScenarioKey, displayTitle, fmtDiff, fmtValue, fmtTime, FOCUS_ASSET_LABEL,
 } from './econCalendar';
+import { AssetMacro, biasLabel } from './econMacro';
 import type { CardSpec, Dir3, ShareStat, Tone } from './shareCard';
 import { TrendAnalysis, richStateName } from './trendMeter';
 
@@ -158,6 +159,77 @@ export const newsCaption = (event: EconEvent, profile: EconProfile | undefined, 
     : `📅 Hoje: ${t} (${event.currency}). Veja os cenários antes da divulgação no Calendário Econômico do Trader AFK. Leitura por IA, não é recomendação. traderafk.com`;
 };
 
+
+// Card exclusivo de UM ativo dentro de uma notícia: os três cenários do indicador e o efeito em só esse ativo.
+export function assetNewsCard(event: EconEvent, profile: EconProfile | undefined, reading: AssetReading, outcome: Outcome | null): CardSpec | null {
+  const base = newsCard(event, profile, outcome);
+  const interp = profile?.interpretation;
+  if (!base || base.kind !== 'news' || !interp) return null;
+  const labels = interp.tipo === 'qualitativo' ? SCENARIO_LABEL_QUAL : SCENARIO_LABEL;
+  const name = FOCUS_ASSET_LABEL[reading.ativo] ?? reading.ativo;
+  const hit = outcome?.scenario ?? null;
+  const dir = hit ? reading[hit] : null;
+  return {
+    ...base,
+    eyebrow: `CALENDÁRIO ECONÔMICO · ${reading.ativo} · ${hit ? 'APÓS A NOTÍCIA' : 'ANTES DA NOTÍCIA'}`,
+    headline: dir ? `${name} ${dirWord(dir)}` : `${name} (${reading.ativo})`,
+    headlineTone: dir ? toneOf(dir) : 'neutral',
+    verdict: hit
+      ? (outcome!.scenario === 'em_linha' ? 'Dado em linha: ' : `Dado ${outcome!.scenario === 'acima' ? 'acima' : 'abaixo'}: `) + `reação típica do ${name}`
+      : `Reação típica do ${name} em cada cenário`,
+    rowsTitle: `${hit ? 'Cenários do dado' : 'Se o dado vier…'} (efeito no ${reading.ativo})`,
+    rows: (['acima', 'em_linha', 'abaixo'] as ScenarioKey[]).map((k) => ({
+      label: hit === k ? `${labels[k]} ✓` : labels[k],
+      value: `${reading.ativo} ${dirWord(reading[k])}`,
+      dir: dirOf(reading[k]),
+    })),
+    note: reading.leitura ? clip(reading.leitura, 150) : undefined,
+  };
+}
+
+export const assetNewsCaption = (event: EconEvent, profile: EconProfile | undefined, reading: AssetReading, outcome: Outcome | null) => {
+  const t = displayTitle(event, profile);
+  const name = FOCUS_ASSET_LABEL[reading.ativo] ?? reading.ativo;
+  return outcome
+    ? `📰 ${t}: saiu ${fmtValue(event.actual, event.unit, event.precision)}. Reação típica do ${name} (${reading.ativo}) no Calendário Econômico do Trader AFK. Leitura por IA, não é recomendação. traderafk.com`
+    : `📅 ${t}: o que esperar do ${name} (${reading.ativo}) em cada cenário, no Calendário Econômico do Trader AFK. Leitura por IA, não é recomendação. traderafk.com`;
+};
+
+// Card do compilado macro de um ativo: notícias que já saíram e as que ainda vão sair.
+export function assetMacroCard(m: AssetMacro, periodLabel: string): CardSpec {
+  const tone: Tone = m.bias === 'alta' ? 'up' : m.bias === 'baixa' ? 'down' : 'neutral';
+  const rows = [
+    ...m.released.filter((i) => i.dir !== null).slice(-3).map((i) => ({
+      label: `${fmtTime(i.event.occurs_at)} · ${clip(i.title, 38)}`,
+      value: dirWord(i.dir!),
+      dir: dirOf(i.dir!),
+    })),
+    ...m.upcoming.slice(0, 2).map((i) => ({
+      label: `${fmtTime(i.event.occurs_at)} · ${clip(i.title, 38)}`,
+      value: 'a sair',
+      dir: 'flat' as Dir3,
+    })),
+  ].slice(0, 5);
+  return {
+    kind: 'news',
+    phase: 'pre',
+    eyebrow: `CALENDÁRIO ECONÔMICO · MACRO · ${periodLabel.toUpperCase()}`,
+    wide: true,
+    title: `${m.label} (${m.ativo})`,
+    meta: `${m.released.length} já saíram · ${m.upcoming.length} a sair`,
+    stars: 0,
+    numbers: [],
+    headline: biasLabel(m.bias) + (m.bias === 'alta' || m.bias === 'baixa' ? ` ${m.strength}` : ''),
+    headlineTone: tone,
+    verdict: `Saldo das notícias de ${periodLabel.toLowerCase()}`,
+    rowsTitle: rows.length ? 'Notícias que mexem no ativo' : 'Sem notícias relevantes',
+    rows,
+    note: clip(m.summary, 150),
+  };
+}
+
+export const assetMacroCaption = (m: AssetMacro, periodLabel: string) =>
+  `🧭 Macro do ${m.label} (${m.ativo}) — ${periodLabel.toLowerCase()}: ${biasLabel(m.bias).toLowerCase()}, ${m.released.length} notícia(s) já saíram e ${m.upcoming.length} ainda vão sair. Compilado por IA no Calendário Econômico do Trader AFK, não é recomendação. traderafk.com`;
 
 // ── Painel de tendência ─────────────────────────────────────────────────
 const STATE_TONE: Record<number, Tone> = { 0: 'neutral', 1: 'up', 2: 'neutral', 3: 'down', 4: 'neutral', 5: 'up', 6: 'down' };
