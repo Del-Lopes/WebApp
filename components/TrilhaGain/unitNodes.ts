@@ -19,7 +19,7 @@ const REVISAO_XP_MULT = 1.5;
 // e fecha SEMPRE com uma REVISÃO geral: candle final com os exercícios de TODAS
 // as aulas da unidade e XP bônus (soma das aulas × 1.5).
 // XP: 0 nas aulas; o ganho é liberado nas lições (gains) e na revisão final.
-export function buildUnitNodes(unitId: string, lessons: TrilhaLesson[]): TrackNode[] {
+export function buildUnitNodes(unitId: string, lessons: TrilhaLesson[], unitTitle?: string): TrackNode[] {
   const nodes: TrackNode[] = [];
   let bucket: TrilhaLesson[] = []; // aulas acumuladas desde a última lição
 
@@ -56,7 +56,7 @@ export function buildUnitNodes(unitId: string, lessons: TrilhaLesson[]): TrackNo
       id: l.id,
       xp: 0,
       num: i + 1,
-      lesson: { ...l, xp_reward: 0, steps: conceptSteps },
+      lesson: { ...l, unit_title: unitTitle, xp_reward: 0, steps: conceptSteps },
     });
     // só acumula aulas que serão cobertas por um gain de 2; o resto vai pra revisão.
     if (i < lastGainIdx) {

@@ -215,6 +215,8 @@ export interface TrilhaLesson {
   unit_id: string;
   title: string;
   icon?: string;
+  /** Título da unidade (preenchido ao montar os nós; usado para achar a ilustração da aula). */
+  unit_title?: string;
   xp_reward: number;
   order_index: number;
   created_at?: string;

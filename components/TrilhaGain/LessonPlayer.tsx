@@ -137,7 +137,13 @@ export const LessonPlayer: React.FC<Props> = ({ nodes, startIndex, onClose, onCo
     if (!current) return null;
     switch (current.type) {
       case 'concept':
-        return <ConceptStep payload={current.payload as ConceptPayload} onContinue={advance} />;
+        return <ConceptStep
+            payload={current.payload as ConceptPayload}
+            unitTitle={lesson?.unit_title}
+            lessonTitle={lesson?.title}
+            showIllustration={stepIndex === 0}
+            onContinue={advance}
+          />;
       case 'quiz':
         return (
           <QuizStep

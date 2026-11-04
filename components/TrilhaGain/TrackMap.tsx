@@ -106,7 +106,7 @@ export const TrackMap: React.FC<Props> = ({
 
   // Nós (aula + lição-checkpoint) por unidade.
   const nodesByUnit = new Map<string, TrackNode[]>();
-  for (const u of units) nodesByUnit.set(u.id, buildUnitNodes(u.id, u.lessons ?? []));
+  for (const u of units) nodesByUnit.set(u.id, buildUnitNodes(u.id, u.lessons ?? [], u.title));
   const unitNodeIds = (u: TrilhaUnit) => (nodesByUnit.get(u.id) ?? []).map((n) => n.id);
   const unitDone = (u: TrilhaUnit) => {
     const ids = unitNodeIds(u);
