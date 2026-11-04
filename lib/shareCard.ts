@@ -157,7 +157,10 @@ function loadImage(src: string, cors = false): Promise<HTMLImageElement | null> 
     if (cors) img.crossOrigin = 'anonymous';
     img.onload = () => resolve(img);
     img.onerror = () => resolve(null);
-    img.src = src;
+    // A mesma imagem já foi exibida na tela sem CORS: o navegador e a CDN guardam essa resposta (sem o cabeçalho
+    // Access-Control-Allow-Origin) e a reaproveitariam aqui, fazendo o canvas falhar. Um parâmetro próprio
+    // gera outra entrada de cache, buscada já com CORS.
+    img.src = cors && /^https?:/.test(src) ? `${src}${src.includes('?') ? '&' : '?'}_cors=1` : src;
   });
 }
 
