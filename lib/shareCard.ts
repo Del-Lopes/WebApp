@@ -198,8 +198,13 @@ function footer(ctx: CanvasRenderingContext2D, W: number, H: number, line: strin
 function statBox(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, s: ShareStat) {
   ctx.fillStyle = C.surface; roundRect(ctx, x, y, w, h, 24); ctx.fill();
   ctx.strokeStyle = C.line; ctx.lineWidth = 2; roundRect(ctx, x, y, w, h, 24); ctx.stroke();
-  ctx.textAlign = 'left'; ctx.fillStyle = C.subtle; ctx.font = `600 22px ${BODY}`;
-  spaced(ctx, s.label.toUpperCase(), x + 30, y + 42, 2.5);
+  ctx.textAlign = 'left'; ctx.fillStyle = C.subtle;
+  const lab = s.label.toUpperCase();
+  let ls = 22;
+  const labW = (size: number) => { ctx.font = `600 ${size}px ${BODY}`; return [...lab].reduce((t, ch) => t + ctx.measureText(ch).width + 2.5, -2.5); };
+  while (ls > 13 && labW(ls) > w - 60) ls -= 1;
+  ctx.font = `600 ${ls}px ${BODY}`;
+  spaced(ctx, lab, x + 30, y + 42, 2.5);
   ctx.fillStyle = toneColor(s.tone);
   const size = fitFont(ctx, s.value, 500, MONO, Math.min(52, h - 88), w - 60, 24);
   ctx.font = `500 ${size}px ${MONO}`;
@@ -328,11 +333,25 @@ function drawResultMedia(ctx: CanvasRenderingContext2D, logo: HTMLImageElement |
 }
 
 // ── cards ──
+/**
+ * Amplia o corpo do card (fontes, caixas e espaços juntos) até ele ocupar a altura útil, no máximo 1,5x.
+ * Devolve a largura e os limites verticais no espaço ampliado; quem chama usa `W` e `top/bottom` devolvidos
+ * e fecha com ctx.restore() antes de desenhar o rodapé. As margens laterais (84 px) ficam iguais às do cabeçalho.
+ */
+function beginFit(ctx: CanvasRenderingContext2D, W: number, H: number, content: number, kmax = 1.5) {
+  const top = 190, avail = H - 200 - top;
+  const k = Math.max(1, Math.min(kmax, avail / content));
+  ctx.save();
+  ctx.translate(84 * (1 - k), top * (1 - k));
+  ctx.scale(k, k);
+  return { k, W: (W - 168) / k + 168, top, bottom: top + avail / k };
+}
+
 function drawResult(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: ResultCard) {
   background(ctx, W, H, toneGlow(s.tone));
   header(ctx, logo, W);
+  const RW = W, RH = H; // medidas reais (o corpo do card é desenhado numa escala ampliada)
 
-  const top = 190, bottom = H - 200;
   // Mais de 4 caixas (ex.: um ponteiro por timeframe): layout compacto para caber no feed.
   const compact = s.stats.length > 4;
   const boxH = compact ? 120 : 168;
@@ -340,6 +359,9 @@ function drawResult(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null
   const rows = Math.ceil(s.stats.length / 2);
   const statsH = rows * boxH + Math.max(0, rows - 1) * 24;
   const blockH = 40 + 24 + 130 + (s.subtitle ? 56 : 0) + 60 + headArea + 50 + statsH;
+  const fit = beginFit(ctx, W, H, blockH);
+  W = fit.W;
+  const { top, bottom } = fit;
   let y = top + Math.max(0, (bottom - top - blockH) / 2);
 
   ctx.textAlign = 'left'; ctx.fillStyle = C.green; ctx.font = `700 28px ${BODY}`;
@@ -372,16 +394,20 @@ function drawResult(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null
   s.stats.slice(0, 6).forEach((st, i) => {
     statBox(ctx, 84 + (i % 2) * (bw + 24), y + Math.floor(i / 2) * (boxH + 24), bw, boxH, st);
   });
-  footer(ctx, W, H, s.footer ?? 'Meu diário de operações');
+  ctx.restore();
+  footer(ctx, RW, RH, s.footer ?? 'Meu diário de operações');
 }
 
 function drawProgress(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: ProgressCard) {
   background(ctx, W, H, C.green);
   header(ctx, logo, W);
+  const RW = W, RH = H; // medidas reais (o corpo do card é desenhado numa escala ampliada)
 
-  const top = 190, bottom = H - 200;
-  const cx = W / 2;
   const content = 50 + 100 + 360 + 40 + 140 + 40 + 196;
+  const fit = beginFit(ctx, W, H, content);
+  W = fit.W;
+  const { top, bottom } = fit;
+  const cx = W / 2;
   let y = top + Math.max(0, (bottom - top - content) / 2);
 
   ctx.textAlign = 'center'; ctx.fillStyle = C.green; ctx.font = `700 28px ${BODY}`;
@@ -422,17 +448,21 @@ function drawProgress(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | nu
     medal(ctx, bx, by, r, b.tier, b.glyph, b.earned);
   });
   ctx.textAlign = 'left';
-  footer(ctx, W, H, 'Aprendendo a operar, um dia de cada vez');
+  ctx.restore();
+  footer(ctx, RW, RH, 'Aprendendo a operar, um dia de cada vez');
 }
 
 function drawBadge(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: BadgeCard) {
   const [, dark] = TIER_COLORS[s.badge.tier];
   background(ctx, W, H, dark);
   header(ctx, logo, W);
+  const RW = W, RH = H; // medidas reais (o corpo do card é desenhado numa escala ampliada)
 
-  const top = 190, bottom = H - 200;
   // Medalha de 150 px de raio: o bloco todo (~830 px) cabe no formato feed (960 px úteis).
   const content = 50 + 340 + 50 + 100 + 40 + 70 + 50 + 140;
+  const fit = beginFit(ctx, W, H, content);
+  W = fit.W;
+  const { top, bottom } = fit;
   let y = top + Math.max(0, (bottom - top - content) / 2);
   const cx = W / 2;
 
@@ -462,7 +492,8 @@ function drawBadge(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null,
     statBox(ctx, 84 + bw + 24, y, bw, 140, { label: 'Aulas concluídas', value: String(s.lessons), tone: 'up' });
   }
   ctx.textAlign = 'left';
-  footer(ctx, W, H, 'Conquistado na Trilha Gain');
+  ctx.restore();
+  footer(ctx, RW, RH, 'Conquistado na Trilha Gain');
 }
 
 // Ícones (traçado do Lucide, grade 24x24) desenhados direto no canvas.
@@ -495,10 +526,13 @@ function drawReward(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null
   const accent = gain ? '#f87171' : '#fbbf24';
   background(ctx, W, H, glow);
   header(ctx, logo, W);
+  const RW = W, RH = H; // medidas reais (o corpo do card é desenhado numa escala ampliada)
 
   const stats = s.stats.slice(0, 2);
-  const top = 190, bottom = H - 200;
   const content = 224 + 50 + 38 + 20 + 100 + 44 + 40 + 130 + (stats.length ? 50 + 140 : 0);
+  const fit = beginFit(ctx, W, H, content);
+  W = fit.W;
+  const { top, bottom } = fit;
   let y = top + Math.max(0, (bottom - top - content) / 2);
   const cx = W / 2;
 
@@ -544,7 +578,8 @@ function drawReward(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null
     stats.forEach((st, i) => statBox(ctx, 84 + i * (sw + sg), y, sw, 140, st));
   }
   ctx.textAlign = 'left';
-  footer(ctx, W, H, s.footer ?? 'Aprendendo a operar, um dia de cada vez');
+  ctx.restore();
+  footer(ctx, RW, RH, s.footer ?? 'Aprendendo a operar, um dia de cada vez');
 }
 
 /** Quebra o texto em linhas que cabem em maxW (a última ganha reticências). */
@@ -586,17 +621,20 @@ function drawSignal(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null
   const tone: Tone = s.action === 'BUY' ? 'up' : s.action === 'SELL' ? 'down' : 'neutral';
   background(ctx, W, H, toneGlow(tone));
   header(ctx, logo, W);
+  const RW = W, RH = H; // medidas reais (o corpo do card é desenhado numa escala ampliada)
 
   const word = s.action === 'BUY' ? 'COMPRA' : s.action === 'SELL' ? 'VENDA' : 'SEM ENTRADA';
-  ctx.font = `500 30px ${BODY}`;
-  const noteLines = s.note ? wrapLines(ctx, s.note, W - 168, 3) : [];
   const themes = s.themes.slice(0, 4);
   const themeRows = Math.ceil(themes.length / 2);
   const h = 64 + 120 + 90 + 50
     + (s.levels ? 150 + 36 : 0)
     + (themes.length ? themeRows * 130 + (themeRows - 1) * 20 + 36 : 0)
-    + (noteLines.length ? noteLines.length * 42 + 10 : 0);
-  const top = 190, bottom = H - 200;
+    + (s.note ? 3 * 42 + 10 : 0);
+  const fit = beginFit(ctx, W, H, h);
+  W = fit.W;
+  const { top, bottom } = fit;
+  ctx.font = `500 30px ${BODY}`;
+  const noteLines = s.note ? wrapLines(ctx, s.note, W - 168, 3) : [];
   let y = top + Math.max(0, (bottom - top - h) / 2);
 
   ctx.textAlign = 'left'; ctx.fillStyle = C.green; ctx.font = `700 28px ${BODY}`;
@@ -632,7 +670,8 @@ function drawSignal(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null
     ctx.fillStyle = C.muted; ctx.font = `500 30px ${BODY}`;
     noteLines.forEach((l, i) => ctx.fillText(l, 84, y + 30 + i * 42));
   }
-  footer(ctx, W, H, 'Informativo · não é recomendação');
+  ctx.restore();
+  footer(ctx, RW, RH, 'Informativo · não é recomendação');
 }
 
 function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, W: number, H: number, s: NewsShareCard) {
@@ -746,10 +785,12 @@ function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, 
     noteLines.forEach((l, i) => ctx.fillText(l, 0, ny + 48 + i * 38));
   }
   ctx.restore();
-  footer(ctx, W, H, 'Leitura gerada por IA · não é recomendação');
+  footer(ctx, W, H, 'Não é recomendação · Leitura completa no app');
 }
 
-export async function renderShareCard(spec: CardSpec, format: ShareFormat): Promise<Blob> {
+export interface RenderInfo { mediaRequested: number; mediaLoaded: number }
+
+export async function renderShareCard(spec: CardSpec, format: ShareFormat, info?: RenderInfo): Promise<Blob> {
   const { w, h } = SIZES[format];
   try {
     await Promise.all([
@@ -770,6 +811,10 @@ export async function renderShareCard(spec: CardSpec, format: ShareFormat): Prom
   const media = spec.kind === 'result' && spec.media?.length
     ? (await Promise.all(spec.media.slice(0, 4).map((u) => loadImage(u, true)))).filter((i): i is HTMLImageElement => !!i)
     : [];
+  if (info) {
+    info.mediaRequested = spec.kind === 'result' ? Math.min(4, spec.media?.length ?? 0) : 0;
+    info.mediaLoaded = media.length;
+  }
 
   if (spec.kind === 'result') { if (media.length) drawResultMedia(ctx, logo, w, h, spec, media); else drawResult(ctx, logo, w, h, spec); }
   else if (spec.kind === 'progress') drawProgress(ctx, logo, w, h, spec);

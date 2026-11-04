@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, Copy, Download, ImageDown, Loader2, Share2 } from 'lucide-react';
 import { Button, FieldMessage, Modal, Tabs } from '../ui';
-import { CardSpec, ShareFormat, canShareFiles, renderShareCard } from '../../lib/shareCard';
+import { CardSpec, RenderInfo, ShareFormat, canShareFiles, renderShareCard } from '../../lib/shareCard';
 
 interface ShareCardModalProps {
   open: boolean;
@@ -33,6 +33,7 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
   const [format, setFormat] = useState<ShareFormat>('feed');
   const [showValues, setShowValues] = useState(true);
   const [showMedia, setShowMedia] = useState(true);
+  const [mediaWarn, setMediaWarn] = useState<string | null>(null);
   const [blob, setBlob] = useState<Blob | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -47,9 +48,13 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
     if (!open) return;
     let alive = true;
     setBusy(true); setError(null); setNote(null);
-    renderShareCard(buildRef.current({ showValues, showMedia }), format)
+    const info: RenderInfo = { mediaRequested: 0, mediaLoaded: 0 };
+    renderShareCard(buildRef.current({ showValues, showMedia }), format, info)
       .then((b) => {
         if (!alive) return;
+        setMediaWarn(info.mediaRequested > info.mediaLoaded
+          ? `${info.mediaRequested - info.mediaLoaded} de ${info.mediaRequested} print(s) não puderam entrar no card: o servidor das imagens precisa permitir o acesso do app (CORS). Os demais dados do card foram gerados normalmente.`
+          : null);
         setBlob(b);
         setUrl((prev) => { if (prev) URL.revokeObjectURL(prev); return URL.createObjectURL(b); });
       })
@@ -147,6 +152,7 @@ export const ShareCardModal: React.FC<ShareCardModalProps> = ({
           ) : null}
         </div>
 
+        {mediaWarn && <FieldMessage error>{mediaWarn}</FieldMessage>}
         {error && <FieldMessage error>{error}</FieldMessage>}
         {note && <FieldMessage>{note}</FieldMessage>}
 
