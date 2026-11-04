@@ -36,11 +36,13 @@ const ALLOWED_ORIGINS = [
   /^http:\/\/localhost(:\d+)?$/,
 ]
 
-function corsHeaders(origin: string | null): Record<string, string> {
+// supabase-js novo envia cabeçalhos x-supabase-client-* além dos clássicos: devolvemos exatamente os que o navegador pediu
+// no preflight, senão ele bloqueia o POST (a função nem chega a ser chamada).
+function corsHeaders(origin: string | null, requested?: string | null): Record<string, string> {
   const allowed = origin && ALLOWED_ORIGINS.some((re) => re.test(origin)) ? origin : 'https://traderafk.com'
   return {
     'Access-Control-Allow-Origin': allowed,
-    'Access-Control-Allow-Headers': 'authorization, apikey, content-type, x-client-info',
+    'Access-Control-Allow-Headers': requested || 'authorization, apikey, content-type, x-client-info, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     Vary: 'Origin',
   }
@@ -145,7 +147,7 @@ async function handle(req: Request, cors: Record<string, string>): Promise<Respo
 }
 
 Deno.serve(async (req) => {
-  const cors = corsHeaders(req.headers.get('origin'))
+  const cors = corsHeaders(req.headers.get('origin'), req.headers.get('access-control-request-headers'))
   try {
     return await handle(req, cors)
   } catch (e) {
