@@ -81,6 +81,9 @@ export interface NewsShareCard {
   eyebrow?: string;
   /** Linhas de largura total (rótulos longos, como o nome de uma notícia). */
   wide?: boolean;
+  /** Título acima do texto de análise e quantas linhas ele pode ocupar (padrão: sem título, 2 linhas). */
+  noteTitle?: string;
+  noteMax?: number;
 }
 
 /** Tela de parabéns da Trilha (Gain ou módulo concluído): ícone, título e caixa de Coins. */
@@ -553,7 +556,7 @@ function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, 
   ctx.font = `700 56px ${DISPLAY}`;
   const titleLines = wrapLines(ctx, s.title, W - 168, 2);
   ctx.font = `500 28px ${BODY}`;
-  const noteLines = s.note ? wrapLines(ctx, s.note, W - 168, 2) : [];
+  const noteLines = s.note ? wrapLines(ctx, s.note, W - 168, s.noteMax ?? 2) : [];
   const rows = s.rows.slice(0, 6);
   const cols = rows.length > 3 && !s.wide ? 2 : 1;
   const rowH = 80, rowGap = 14;
@@ -562,7 +565,7 @@ function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, 
   const h = 64 + titleLines.length * 66 + 50 + 16
     + (s.numbers.length ? 130 + 24 : 0)
     + 84 + (s.verdict ? 44 : 0) + 16 + 36 + rowsH
-    + (noteLines.length ? noteLines.length * 38 + 20 : 0);
+    + (noteLines.length ? noteLines.length * 38 + 20 + (s.noteTitle ? 40 : 0) : 0);
   const top = 190, bottom = H - 200;
   let y = top + Math.max(0, (bottom - top - h) / 2);
 
@@ -622,8 +625,14 @@ function drawNews(ctx: CanvasRenderingContext2D, logo: HTMLImageElement | null, 
   y += rowsH;
 
   if (noteLines.length) {
-    ctx.fillStyle = C.muted; ctx.font = `500 28px ${BODY}`;
-    noteLines.forEach((l, i) => ctx.fillText(l, 84, y + 48 + i * 38));
+    let ny = y;
+    if (s.noteTitle) {
+      ctx.fillStyle = C.subtle; ctx.font = `600 22px ${BODY}`;
+      spaced(ctx, s.noteTitle.toUpperCase(), 84, ny + 54, 3);
+      ny += 40;
+    }
+    ctx.fillStyle = s.noteTitle ? C.text : C.muted; ctx.font = `500 28px ${BODY}`;
+    noteLines.forEach((l, i) => ctx.fillText(l, 84, ny + 48 + i * 38));
   }
   footer(ctx, W, H, 'Leitura gerada por IA · não é recomendação');
 }

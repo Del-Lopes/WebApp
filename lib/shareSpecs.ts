@@ -177,13 +177,23 @@ export function assetNewsCard(event: EconEvent, profile: EconProfile | undefined
     verdict: hit
       ? (outcome!.scenario === 'em_linha' ? 'Dado em linha: ' : `Dado ${outcome!.scenario === 'acima' ? 'acima' : 'abaixo'}: `) + `reação típica do ${name}`
       : `Reação típica do ${name} em cada cenário`,
-    rowsTitle: `${hit ? 'Cenários do dado' : 'Se o dado vier…'} (efeito no ${reading.ativo})`,
-    rows: (['acima', 'em_linha', 'abaixo'] as ScenarioKey[]).map((k) => ({
+    // Depois da divulgação só importa o cenário que aconteceu: os outros saem e o espaço vira análise.
+    rowsTitle: hit ? `Cenário que aconteceu (efeito no ${reading.ativo})` : `Se o dado vier… (efeito no ${reading.ativo})`,
+    rows: (['acima', 'em_linha', 'abaixo'] as ScenarioKey[]).filter((k) => !hit || k === hit).map((k) => ({
       label: hit === k ? `${labels[k]} ✓` : labels[k],
       value: `${reading.ativo} ${dirWord(reading[k])}`,
       dir: dirOf(reading[k]),
     })),
-    note: reading.leitura ? clip(reading.leitura, 150) : undefined,
+    ...(hit
+      ? {
+          noteTitle: `Análise da notícia para o ${name}`,
+          noteMax: 6,
+          note: clip(
+            [reading.leitura, interp.cenarios[hit]?.leitura, interp.contexto].filter(Boolean).join(' '),
+            520,
+          ) || undefined,
+        }
+      : { note: reading.leitura ? clip(reading.leitura, 150) : undefined }),
   };
 }
 
