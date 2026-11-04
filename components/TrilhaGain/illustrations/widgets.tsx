@@ -13,7 +13,7 @@ export const Slider: React.FC<{
   <label className="flex items-center gap-3 text-xs text-fg-muted">
     <span className="w-24 shrink-0 font-medium">{label}</span>
     <input type="range" min={min} max={max} step={step} value={value} onChange={(e) => onChange(+e.target.value)} className="min-w-0 flex-1 accent-[var(--color-accent)]" />
-    <span className="w-16 shrink-0 text-right font-mono text-sm font-bold text-fg tabular-nums">{fmt ? fmt(value) : value}{unit}</span>
+    <span className="min-w-16 shrink-0 text-right font-mono text-sm font-bold text-fg tabular-nums">{fmt ? fmt(value) : value}{unit}</span>
   </label>
 );
 
@@ -90,10 +90,14 @@ export const CandleLab: React.FC<{ start?: string; presets?: string[]; hint?: st
   const k = classify(s);
   const Hh = 150, y = (v: number) => 8 + (1 - (v - 0) / 100) * (Hh - 16);
   const up = s.c >= s.o, col = up ? '#10b981' : '#f43f5e';
-  const close = Math.abs(y(s.o) - y(s.c)) < 13;
-  const lines: [string, number][] = close
-    ? [['Máxima', hi], ['Abertura ≈ Fechamento', (s.o + s.c) / 2], ['Mínima', lo]]
-    : [['Máxima', hi], [up ? 'Fechamento' : 'Abertura', Math.max(s.o, s.c)], [up ? 'Abertura' : 'Fechamento', Math.min(s.o, s.c)], ['Mínima', lo]];
+  // Rótulos que cairiam um em cima do outro (ex.: Marubozu, Doji) são unidos numa linha só.
+  const raw: [string, number][] = [['Máxima', hi], [up ? 'Fechamento' : 'Abertura', Math.max(s.o, s.c)], [up ? 'Abertura' : 'Fechamento', Math.min(s.o, s.c)], ['Mínima', lo]];
+  const lines: [string, number][] = [];
+  for (const [t, v] of raw) {
+    const prev = lines[lines.length - 1];
+    if (prev && Math.abs(y(prev[1]) - y(v)) < 13) lines[lines.length - 1] = [prev[0] + ' = ' + t.toLowerCase(), prev[1]];
+    else lines.push([t, v]);
+  }
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap gap-1.5">
@@ -106,13 +110,13 @@ export const CandleLab: React.FC<{ start?: string; presets?: string[]; hint?: st
           <g className="text-fg-subtle">
             {lines.map(([t, v], i) => (
               <g key={t + i}>
-                <line x1={120} x2={235} y1={y(v)} y2={y(v)} stroke="currentColor" strokeDasharray="3 3" opacity={0.5} />
-                <text x={245} y={y(v) + 3} fontSize={10} fontWeight={600} fill="currentColor">{t}</text>
+                <line x1={70} x2={185} y1={y(v)} y2={y(v)} stroke="currentColor" strokeDasharray="3 3" opacity={0.5} />
+                <text x={194} y={y(v) + 3} fontSize={9.5} fontWeight={600} fill="currentColor">{t}</text>
               </g>
             ))}
           </g>
-          <line x1={170} x2={170} y1={y(hi)} y2={y(lo)} stroke={col} strokeWidth={3} strokeLinecap="round" />
-          <rect x={150} y={y(Math.max(s.o, s.c))} width={40} height={Math.max(2, Math.abs(y(s.o) - y(s.c)))} rx={3} fill={col} />
+          <line x1={120} x2={120} y1={y(hi)} y2={y(lo)} stroke={col} strokeWidth={3} strokeLinecap="round" />
+          <rect x={100} y={y(Math.max(s.o, s.c))} width={40} height={Math.max(2, Math.abs(y(s.o) - y(s.c)))} rx={3} fill={col} />
         </svg>
       </Panel>
       <Panel className="space-y-2">

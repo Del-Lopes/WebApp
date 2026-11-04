@@ -156,8 +156,8 @@ export const RRCalc: React.FC<{ focus?: 'sl' | 'tp' | 'rr' }> = ({ focus = 'rr' 
   const rr = tp / sl;
   const be = 100 / (1 + rr);
   const ev = (wr / 100) * rr - (1 - wr / 100);
-  const H = 150, mid = 75, scale = 0.45;
-  const yTp = mid - Math.min(tp * scale, 68), ySl = mid + Math.min(sl * scale, 68);
+  const H = 170, mid = 85, scale = 0.9;
+  const yTp = mid - Math.min(tp * scale, 66), ySl = mid + Math.min(sl * scale, 66);
   return (
     <div className="space-y-2.5">
       <Panel>
@@ -167,9 +167,9 @@ export const RRCalc: React.FC<{ focus?: 'sl' | 'tp' | 'rr' }> = ({ focus = 'rr' 
           <g className="text-fg-muted"><line x1={20} x2={320} y1={mid} y2={mid} stroke="currentColor" strokeWidth={1.5} /></g>
           <line x1={20} x2={320} y1={yTp} y2={yTp} stroke="#10b981" strokeWidth={2} strokeDasharray="5 3" />
           <line x1={20} x2={320} y1={ySl} y2={ySl} stroke="#f43f5e" strokeWidth={2} strokeDasharray="5 3" />
-          <text x={26} y={yTp + 12} fontSize={10} fontWeight={700} fill="#10b981">Take profit · +{tp} pips</text>
-          <text x={26} y={mid - 4} fontSize={10} fontWeight={700} className="fill-current text-fg">Entrada</text>
-          <text x={26} y={ySl - 4} fontSize={10} fontWeight={700} fill="#f43f5e">Stop loss · -{sl} pips</text>
+          <text x={26} y={yTp - 4} fontSize={10} fontWeight={700} fill="#10b981">Take profit · +{tp} pips</text>
+          <text x={314} y={mid + 12} textAnchor="end" fontSize={10} fontWeight={700} className="fill-current text-fg">Entrada</text>
+          <text x={26} y={ySl + 12} fontSize={10} fontWeight={700} fill="#f43f5e">Stop loss · -{sl} pips</text>
           <text x={314} y={mid - 4} textAnchor="end" fontSize={11} fontWeight={800} className="fill-current text-accent-fg">R:R 1:{rr.toFixed(1)}</text>
         </svg>
       </Panel>
@@ -235,8 +235,8 @@ export const MartingaleCalc: React.FC = () => {
       <Panel>
         <div className="flex h-28 items-end gap-1">
           {bets.map((b, i) => (
-            <div key={i} className="flex flex-1 flex-col items-center justify-end gap-0.5">
-              <div className={cn('w-full rounded-t transition-all', i === bets.length - 1 ? 'bg-warning' : 'bg-danger/60')} style={{ height: `${Math.max(4, (b / max) * 100)}%` }} />
+            <div key={i} className="flex h-full flex-1 flex-col items-center gap-0.5">
+              <div className="flex w-full flex-1 items-end"><div className={cn('w-full rounded-t transition-all', i === bets.length - 1 ? 'bg-warning' : 'bg-danger/60')} style={{ height: `${Math.max(4, (b / max) * 100)}%` }} /></div>
               <span className="font-mono text-[9px] text-fg-subtle">{i + 1}ª</span>
             </div>
           ))}
