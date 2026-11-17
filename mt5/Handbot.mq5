@@ -169,7 +169,7 @@ input int _hourEnd       = 23;                                            // Hor
 input int _minuteEnd     = 59;                                            // Minuto de Fim (0-59)
 input int  _maxSpread    = 100;                                             // Spread Máximo permitido
 input group "";
-input int Magic_Number   = 0231;                                          //Numero de Identidade do robô
+input int Magic_Number   = 231;                                          //Numero de Identidade do robô
 
 input group "Trader AFK - Hand Bot Sync";
 input string ApiKey      = "";    // Chave de API gerada no app Trader AFK
@@ -463,6 +463,7 @@ class CControlsDialog : public CAppDialog
       CLabel m_lmetabatida;
       CLabel m_lhorario;
       CLabel m_lsinalmacro;
+      CLabel m_lhedge;        // status do Hedge Dinâmico
       
        // Buttons
 
@@ -558,7 +559,14 @@ bool CControlsDialog::CreatePanel(void)
     m_lhorario.Text("Loading...");
     m_lhorario.Color(clrRed);
     m_lhorario.FontSize(InpPanelFontSize);
-    this.Add(m_lhorario);  
+    this.Add(m_lhorario);
+
+    // Status do Hedge Dinâmico (à esquerda do botão Auto Cover)
+    m_lhedge.Create(NULL,"lhedge", 0,20,376,1,1);
+    m_lhedge.Text("Hedge: ...");
+    m_lhedge.Color(InpPanelFontColor);
+    m_lhedge.FontSize(InpPanelFontSize);
+    this.Add(m_lhedge);
 
     //---------------------- Botoes -> -------------------------
 
@@ -753,6 +761,9 @@ if(Posicionado() == false){
     m_lhorario.Color(clrRed);}
   }
  
+//------------------- Hedge Dinâmico ------------------------
+m_lhedge.Text(HedgeStatusText());
+m_lhedge.Color(HedgeStatusColor());
 //------------------- Tendência ----------------------------
 m_lsinalmacro.Text("Trend: "+(string)H4Signal);
 //------------------- on / off  ----------------------------
@@ -4546,16 +4557,19 @@ bool coverVolume(){
       PositionSelectByTicket(positionTicket); //set id position to verify
       ulong magic = PositionGetInteger(POSITION_MAGIC);
 
-      if(_Symbol==symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_BUY)
+      // Mesma regra do gatilho: se o flutuante manual disparou a trava, o
+      // volume manual também precisa entrar na cobertura, senão travaríamos
+      // menos exposição do que a que acionou o hedge.
+      if(_Symbol==symbol && HedgeOwns(magic) && PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_BUY)
         {
             totalVolumeBuy += PositionGetDouble(POSITION_VOLUME);
-        } 
-      else if(_Symbol==symbol && magic == Magic_Number && PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_SELL)
+        }
+      else if(_Symbol==symbol && HedgeOwns(magic) && PositionGetInteger(POSITION_TYPE)==POSITION_TYPE_SELL)
         {
             totalVolumeSell += PositionGetDouble(POSITION_VOLUME);
-        } 
+        }
     }
-     
+
     double volMin  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
     double volStep = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
     double difference = MathAbs(totalVolumeBuy - totalVolumeSell);
@@ -4605,7 +4619,74 @@ bool coverVolume(){
 // cada novo múltiplo do percentual, empilhando coberturas) e o EA continuava
 // operando normalmente depois — grids e adds desbalanceavam a trava logo em seguida.
 
-// Remove stop loss e take profit de todas as posições deste símbolo/magic.
+// Uma posição conta para o hedge se for do EA ou, quando o usuário liga
+// "incluir trades manuais" no painel, também as abertas na mão (magic 0).
+// O resto do EA (trailing, break even) já usava essa mesma regra; o hedge
+// olhava só o magic próprio e por isso ignorava posições manuais.
+bool HedgeOwns(ulong magic)
+{
+   return magic == Magic_Number || (magic == 0 && _RemoteIncludeManualTrades);
+}
+
+// Há exposição relevante para o hedge? (equivalente a Posicionado(), porém
+// respeitando include_manual_trades)
+bool PosicionadoHedge()
+{
+   for(int i = 0; i < PositionsTotal(); i++)
+     {
+       ulong  ticket = PositionGetTicket(i);
+       if(ticket == 0) continue;
+       if(!PositionSelectByTicket(ticket)) continue;
+       if(_Symbol == PositionGetString(POSITION_SYMBOL)
+          && HedgeOwns(PositionGetInteger(POSITION_MAGIC)))
+          return true;
+     }
+   return false;
+}
+
+// Flutuante considerado pelo hedge (mesma regra de HedgeOwns).
+double FloatingHedge()
+{
+   double total = 0.0;
+   for(int i = 0; i < PositionsTotal(); i++)
+     {
+       ulong ticket = PositionGetTicket(i);
+       if(ticket == 0) continue;
+       if(!PositionSelectByTicket(ticket)) continue;
+       if(_Symbol == PositionGetString(POSITION_SYMBOL)
+          && HedgeOwns(PositionGetInteger(POSITION_MAGIC)))
+          total += PositionGetDouble(POSITION_PROFIT);
+     }
+   return NormalizeDouble(total, 2);
+}
+
+// Linha de status do hedge no painel. Sem ela não há como distinguir
+// "não armou" de "armou e já travou" — foi exatamente essa dúvida que
+// apareceu no primeiro teste em VPS.
+string HedgeStatusText()
+{
+   if(_HedgeLocked)
+      return "HEDGE TRAVADO - liquide tudo";
+
+   bool   on  = _RemoteParamsLoaded ? _RemoteDynamicHedgeEnabled : InpEnableDynamicHedge;
+   double pct = _RemoteParamsLoaded ? _RemoteDynamicHedgePercent : InpDynamicHedgePercent;
+
+   if(!on)                 return "Hedge: desligado";
+   if(saldo_inicial <= 0)  return "Hedge: sem saldo base";
+   if(!PosicionadoHedge()) return "Hedge: ligado, sem posicao";
+
+   double gatilho = saldo_inicial * pct / 100.0;
+   return StringFormat("Hedge: %.2f de %.2f", FloatingHedge(), gatilho * -1);
+}
+
+color HedgeStatusColor()
+{
+   if(_HedgeLocked) return clrRed;
+   bool on = _RemoteParamsLoaded ? _RemoteDynamicHedgeEnabled : InpEnableDynamicHedge;
+   return on ? clrGold : InpPanelFontColor;
+}
+
+// Remove stop loss e take profit de todas as posições consideradas pelo hedge.
 // Durante o stand by qualquer SL/TP que disparasse desfaria a trava, devolvendo
 // exposição direcional justamente no momento em que o EA não pode mais reagir.
 void ClearAllStopsAndTakes(){
@@ -4617,7 +4698,7 @@ void ClearAllStopsAndTakes(){
        if(!m_position.SelectByIndex(i))
           continue;
 
-       if(_Symbol != m_position.Symbol() || m_position.Magic() != Magic_Number)
+       if(_Symbol != m_position.Symbol() || !HedgeOwns(m_position.Magic()))
           continue;
 
        if(m_position.StopLoss() == 0 && m_position.TakeProfit() == 0)
@@ -4644,7 +4725,7 @@ void CancelOrdersMagic(){
            string symbol = OrderGetString(ORDER_SYMBOL);
            ulong  magic  = OrderGetInteger(ORDER_MAGIC);
 
-           if(_Symbol == symbol && magic == Magic_Number)
+           if(_Symbol == symbol && HedgeOwns(magic))
               m_trade.OrderDelete(m_order.Ticket());
          }
      }
@@ -4703,6 +4784,18 @@ void ReleaseHedgeLock(){
 // é atingido e o desarma assim que a conta fica sem posições. Roda também fora do
 // horário de operação e com a chave geral desligada — se a exposição estourou o
 // limite, ela precisa ser travada independentemente do horário.
+// Loga o motivo apenas quando ele muda. O gatilho falhar em silêncio é pior que
+// falhar com erro: no primeiro teste em VPS não havia como saber se o hedge não
+// tinha armado ou se já estava travado.
+string _HedgeLastReason = "";
+
+void HedgeLog(string reason)
+{
+   if(reason == _HedgeLastReason) return;
+   _HedgeLastReason = reason;
+   Print("[HandBot][Hedge] ", reason);
+}
+
 void HedgeLockManager(){
 
    bool   hedgeEnabled = _RemoteParamsLoaded ? _RemoteDynamicHedgeEnabled : InpEnableDynamicHedge;
@@ -4714,19 +4807,48 @@ void HedgeLockManager(){
    // em stand by para sempre.
    if(_HedgeLocked)
      {
-       if(!Posicionado() && !Pendurado())
+       HedgeLog("em stand by — aguardando liquidacao manual de posicoes e pendentes");
+       // Mesma regra do gatilho: se manuais entraram na trava, elas também
+       // precisam sumir para o EA voltar a operar.
+       if(!PosicionadoHedge() && !Pendurado())
           ReleaseHedgeLock();
        return;
      }
 
-   if(!hedgeEnabled || !Posicionado())
-      return;
+   if(!hedgeEnabled)
+     {
+       HedgeLog("desligado (dynamic_hedge_enabled = false)");
+       return;
+     }
+
+   if(saldo_inicial <= 0)
+     {
+       HedgeLog("sem saldo base — gatilho nao pode ser calculado");
+       return;
+     }
+
+   if(!PosicionadoHedge())
+     {
+       HedgeLog(StringFormat(
+         "ligado, sem posicao elegivel (magic %d%s)",
+         Magic_Number,
+         _RemoteIncludeManualTrades ? " + manuais" : ", manuais NAO incluidos"));
+       return;
+     }
 
    double trigger = saldo_inicial * hedgePercent / 100.0;
    if(trigger <= 0)
-      return;
+     {
+       HedgeLog(StringFormat("percentual invalido (%.2f%%) — gatilho seria zero", hedgePercent));
+       return;
+     }
 
-   double currentFloat = getFloatingProfit_value();
+   // A mensagem não inclui o flutuante de propósito: ele muda a cada tick e
+   // encheria o log. O valor ao vivo fica no painel.
+   HedgeLog(StringFormat("armado — dispara quando o flutuante atingir %.2f (%.2f%% de %.2f)",
+                         trigger * -1, hedgePercent, saldo_inicial));
+
+   double currentFloat = FloatingHedge();
 
    if(currentFloat <= trigger * -1)
       TriggerHedgeLock(currentFloat, trigger, hedgePercent);

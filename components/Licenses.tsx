@@ -5,6 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { BackButton } from './BackButton';
 import { Button, EmptyState, Input, Modal, PageHeader } from './ui';
 import { LicenseRequest, LicenseTitle } from '../types';
+import { TraderProCard } from './TraderPro/TraderProCard';
+import { TraderProAdmin } from './TraderPro/TraderProAdmin';
 
 interface LicensesProps {
   onBack?: () => void;
@@ -181,6 +183,9 @@ export const Licenses: React.FC<LicensesProps> = ({ onBack }) => {
         title="Gestor de Licença"
         description="Tudo relacionado as suas licenças MT4 e MT5."
       />
+
+      <TraderProCard />
+      {role === 'admin' && <TraderProAdmin />}
 
       <div className="grid md:grid-cols-2 gap-6 md:gap-8">
         <div className="space-y-6 md:space-y-8 min-w-0">

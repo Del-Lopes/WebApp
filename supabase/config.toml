@@ -397,6 +397,13 @@ allow_dynamic_registration = false
   [functions.asaas-webhook]
     verify_jwt = false
 
+  # Trader Pro (extensão): as rotas da extensão autenticam por código/token de dispositivo; as do WebApp validam o JWT no código.
+  [functions.ext-license]
+    verify_jwt = false
+
+  [functions.ext-journal]
+    verify_jwt = false
+
 [edge_runtime]
 enabled = true
 # Supported request policies: `oneshot`, `per_worker`.

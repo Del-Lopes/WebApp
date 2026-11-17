@@ -30,3 +30,6 @@ dist-ssr
 
 # Gerado por `deno check` local; as edge functions não usam lockfile na raiz
 deno.lock
+
+# Pack de carrosséis do Instagram (imagens geradas, ~51 MB)
+instagram-carrosseis/
