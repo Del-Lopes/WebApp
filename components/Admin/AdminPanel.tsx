@@ -1056,7 +1056,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
           {(activeTab === 'licenses' || activeTab === 'partners' || activeTab === 'users' || activeTab === 'prospects') && (
             <div className="space-y-4">
-              <div className={`relative ${activeTab === 'licenses' && activeLicenseSubTab === 'TRADER PRO' ? 'hidden' : ''}`}>
+              <div className="relative">
                 <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" size={18} aria-hidden />
                 <Input
                   type="text"
@@ -1079,7 +1079,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           )}
 
       {activeTab === 'licenses' && activeLicenseSubTab === 'TRADER PRO' ? (
-        <TraderProAdmin />
+        <TraderProAdmin search={searchTerm} />
       ) : (
       <div className="bg-surface border border-tint/8 rounded-2xl overflow-hidden">
         {errorMsg && (
