@@ -221,3 +221,38 @@ export async function deleteStep(id: string): Promise<void> {
   const { error } = await supabase.from('trilha_steps').delete().eq('id', id);
   if (error) throw error;
 }
+
+// --- Problemas diários (treino prático) ---
+// Cota e débito de Coins vivem nas RPCs (SECURITY DEFINER); o cliente só consulta.
+
+export interface DailyStatus {
+  used: number;
+  allowed: number;
+  free: number;
+  pack_size: number;
+  pack_cost: number;
+  correct_today: number;
+  total: number;
+  total_correct: number;
+  unlimited: boolean;
+}
+
+export async function fetchDailyStatus(): Promise<DailyStatus | null> {
+  const { data, error } = await supabase.rpc('get_daily_problems_status');
+  if (error) { console.error('[trilhaGain] fetchDailyStatus', error); return null; }
+  return data as DailyStatus;
+}
+
+// Lança 'quota_exceeded' quando a cota do dia acabou.
+export async function submitDailyProblem(kind: string, seed: number, correct: boolean): Promise<DailyStatus> {
+  const { data, error } = await supabase.rpc('submit_daily_problem', { p_kind: kind, p_seed: seed, p_correct: correct });
+  if (error) { console.error('[trilhaGain] submitDailyProblem', error); throw new Error(error.message); }
+  return data as DailyStatus;
+}
+
+// Lança 'insufficient_xp' sem saldo.
+export async function buyDailyPack(): Promise<DailyStatus> {
+  const { data, error } = await supabase.rpc('buy_daily_problem_pack');
+  if (error) { console.error('[trilhaGain] buyDailyPack', error); throw new Error(error.message); }
+  return data as DailyStatus;
+}

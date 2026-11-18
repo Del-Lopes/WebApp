@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Milestone } from 'lucide-react';
+import { Loader2, Milestone, Target } from 'lucide-react';
 import { TrilhaTrack, TrilhaStats } from '../../types';
 import {
   fetchTracks, fetchTrackTree, fetchCompletedLessonIds, fetchStats,
@@ -12,7 +12,8 @@ import { LessonPlayer } from './LessonPlayer';
 import { TrackNode } from './unitNodes';
 import { InvertedScroll } from './InvertedScroll';
 import { useAuth } from '../../contexts/AuthContext';
-import { EmptyState, PageHeader, Skeleton } from '../ui';
+import { EmptyState, PageHeader, Skeleton, Tabs } from '../ui';
+import { DailyProblems } from './DailyProblems';
 
 interface Props {
   onBack: () => void;
@@ -31,6 +32,7 @@ export const TrilhaGain: React.FC<Props> = ({ onBack, onBuyCoins }) => {
   const [stats, setStats] = useState<TrilhaStats | null>(null);
   const [playing, setPlaying] = useState<{ nodes: TrackNode[]; startIndex: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tab, setTab] = useState<'jornada' | 'problemas'>('jornada');
 
   useEffect(() => {
     (async () => {
@@ -104,12 +106,31 @@ export const TrilhaGain: React.FC<Props> = ({ onBack, onBuyCoins }) => {
           <span className="flex items-center gap-2 min-w-0 text-xl md:text-2xl">
             <span className="shrink-0">Trilha Gain</span>
             <span className="text-fg-subtle shrink-0">—</span>
-            <span className="text-accent-fg truncate">Jornada do Trader</span>
+            <span className="text-accent-fg truncate">{tab === 'jornada' ? 'Jornada do Trader' : 'Problemas diários'}</span>
           </span>
         }
         actions={<GamificationBar stats={stats} onBuy={onBuyCoins} />}
       />
 
+      <Tabs
+        className="mb-5"
+        aria-label="Seções da Trilha Gain"
+        value={tab}
+        onChange={setTab}
+        items={[
+          { key: 'jornada', label: 'Jornada do Trader', icon: Milestone },
+          { key: 'problemas', label: 'Problemas diários', icon: Target },
+        ]}
+      />
+
+      {tab === 'problemas' ? (
+        <DailyProblems
+          coins={stats?.total_xp ?? 0}
+          onCoinsChanged={async () => setStats(await fetchStats())}
+          onBuyCoins={onBuyCoins}
+        />
+      ) : (
+      <>
       {/* Rolagem reversa: barra começa no topo e desce normal; a trilha
           sobe (aula 1 sai por baixo, aula 2 entra por cima). */}
       {loading && !activeTrack ? (
@@ -132,6 +153,8 @@ export const TrilhaGain: React.FC<Props> = ({ onBack, onBuyCoins }) => {
         </InvertedScroll>
       ) : (
         <EmptyState icon={Milestone} title="Nenhuma trilha publicada ainda." />
+      )}
+      </>
       )}
 
       {/* Player do módulo: flui aula→aula→gain→…→revisão sem voltar ao lobby */}
