@@ -53,6 +53,7 @@ import { GrowthMetrics } from './GrowthMetrics';
 import { PartnerApplications } from './PartnerApplications';
 import { CollapsibleSection } from './CollapsibleSection';
 import { ForumImagesMonitor } from './ForumImagesMonitor';
+import { TraderProAdmin } from '../TraderPro/TraderProAdmin';
 import {
   Badge, Button, Card, EmptyState, Input, Label, PageHeader, Select, Skeleton, Tabs, Textarea,
   Table, THead, TBody, TR, TH, TD,
@@ -96,7 +97,7 @@ interface AdminPanelProps {
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) => {
   const [activeTab, setActiveTab] = useState<'licenses' | 'partners' | 'prospects' | 'users' | 'content' | 'market' | 'automation' | 'live_room' | 'growth'>('licenses');
-  const [activeLicenseSubTab, setActiveLicenseSubTab] = useState<'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO' | 'FX SQUAD'>('AFK TRADER');
+  const [activeLicenseSubTab, setActiveLicenseSubTab] = useState<'TRADER PRO' | 'AFK TRADER' | 'SNOW BALL' | 'BOLETA PRO' | 'FX SQUAD'>('AFK TRADER');
   const [licenses, setLicenses] = useState<LicenseRequest[]>([]);
   const [partners, setPartners] = useState<Profile[]>([]);
   const [prospects, setProspects] = useState<Prospect[]>([]);
@@ -1055,7 +1056,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
 
           {(activeTab === 'licenses' || activeTab === 'partners' || activeTab === 'users' || activeTab === 'prospects') && (
             <div className="space-y-4">
-              <div className="relative">
+              <div className={`relative ${activeTab === 'licenses' && activeLicenseSubTab === 'TRADER PRO' ? 'hidden' : ''}`}>
                 <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-subtle" size={18} aria-hidden />
                 <Input
                   type="text"
@@ -1071,12 +1072,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
                   aria-label="Produto da licença"
                   value={activeLicenseSubTab}
                   onChange={setActiveLicenseSubTab}
-                  items={(['AFK TRADER', 'SNOW BALL', 'BOLETA PRO', 'FX SQUAD'] as const).map((tab) => ({ key: tab, label: tab }))}
+                  items={(['TRADER PRO', 'AFK TRADER', 'SNOW BALL', 'BOLETA PRO', 'FX SQUAD'] as const).map((tab) => ({ key: tab, label: tab }))}
                 />
               )}
             </div>
           )}
 
+      {activeTab === 'licenses' && activeLicenseSubTab === 'TRADER PRO' ? (
+        <TraderProAdmin />
+      ) : (
       <div className="bg-surface border border-tint/8 rounded-2xl overflow-hidden">
         {errorMsg && (
           <div className="p-4 bg-danger/10 text-danger-fg border-b border-danger/20 text-sm" role="alert">
@@ -2025,6 +2029,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack, onShowTour }) =>
           </div>
         ) : null}
       </div>
+      )}
 
       {selectedIds.length > 0 && (
            <div className="fixed bottom-4 sm:bottom-10 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] sm:w-auto bg-elevated/95 text-fg px-4 py-4 sm:px-6 rounded-2xl shadow-2xl flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6 animate-in slide-in-from-bottom-12 duration-500 z-50 backdrop-blur-xl border border-tint/10">
